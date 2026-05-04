@@ -1,0 +1,843 @@
+
+{
+  "entities": {
+    "Ghoul": {
+      "title": "Ghoul",
+      "type": "object",
+      "description": "Representa um Ghoul, um tipo especial de lutador do Mundo 17.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rarity": { "type": "string" },
+        "energy_bonus": { "type": "string" },
+        "damage_bonus": { "type": "string" }
+      },
+      "required": ["id", "name", "rarity"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "type": "object",
+      "description": "Represents a game achievement.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["general", "raid_rooms", "total_raids"] },
+        "category": { "type": "string", "description": "General achievement category (e.g., 'Friends', 'Coins', 'Energy', 'Raid')" },
+        "maxLevel": { "type": "number", "description": "Maximum level for progression achievements." },
+        "requirement": { "type": "string", "description": "Requirement to complete the achievement (e.g., '100N', '1250h')." },
+        "progressionBonus": { "type": "string", "description": "Description of the progression bonus (e.g., '5% de energia a cada lvl')." },
+        "tiers": {
+          "type": "array",
+          "description": "Specific tiers for raid achievements.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "requirement": { "type": "string", "description": "The requirement for the tier (e.g., 'Room 10', '25 Completions')." },
+              "bonus": { "type": "string", "description": "The bonus granted at this tier." }
+            },
+            "required": ["requirement", "bonus"]
+          }
+        }
+      },
+      "required": ["id", "name", "type", "category"]
+    },
+    "SavedAnswer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SavedAnswer",
+      "type": "object",
+      "description": "Represents a saved AI-generated answer for later use.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the saved answer."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who saved this answer. (Relationship: User 1:N SavedAnswer)"
+        },
+        "question": {
+          "type": "string",
+          "description": "The original question asked to the AI."
+        },
+        "answer": {
+          "type": "string",
+          "description": "The AI-generated answer that was saved."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the answer was saved.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "question",
+        "answer",
+        "createdAt"
+      ]
+    },
+    "WikiContent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WikiContent",
+      "type": "object",
+      "description": "Represents a page or article from the Anime Eternal Wiki, either from Fandom or a custom in-app wiki.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the wiki content."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the wiki page."
+        },
+        "content": {
+          "type": "string",
+          "description": "The main content of the wiki page (e.g., text, HTML)."
+        },
+        "source": {
+          "type": "string",
+          "description": "Indicates the source of the wiki content (e.g., 'Fandom', 'In-App')."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp indicating when the wiki content was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "content",
+        "source",
+        "lastUpdated"
+      ]
+    },
+    "ContentSuggestion": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContentSuggestion",
+      "type": "object",
+      "description": "Represents a suggestion made by a user for new or updated content for the Wiki.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the content suggestion."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the suggestion. (Relationship: User 1:N ContentSuggestion)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Suggested title for the new/updated content."
+        },
+        "content": {
+          "type": "string",
+          "description": "The suggested content itself (e.g., text, description)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the suggestion (e.g., 'pending', 'approved', 'rejected')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the suggestion was made.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "content",
+        "status",
+        "createdAt"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Eternal Guide app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's chosen username."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "tag": {
+          "type": "string",
+          "description": "An optional tag for special user roles, like 'admin'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "reputationPoints": {
+            "type": "number",
+            "description": "Points awarded to a user for helpful feedback."
+        },
+        "credits": {
+            "type": "number",
+            "description": "F2P currency earned from achievements, used for Gamepasses."
+        },
+        "weaponSlots": {
+            "type": "object",
+            "description": "Stores the equipped weapons in the three slots.",
+            "properties": {
+                "0": { "$ref": "#/backend/entities/UserWeapon" },
+                "1": { "$ref": "#/backend/entities/UserWeapon" },
+                "2": { "$ref": "#/backend/entities/UserWeapon" }
+            }
+        },
+         "fighterSlots": {
+            "type": "object",
+            "description": "Stores the equipped fighters (Titans, Stands, Shadows).",
+            "properties": {
+                "0": { "$ref": "#/backend/entities/UserFighter" },
+                "1": { "$ref": "#/backend/entities/UserFighter" },
+                "2": { "$ref": "#/backend/entities/UserFighter" },
+                "3": { "$ref": "#/backend/entities/UserFighter" },
+                "4": { "$ref": "#/backend/entities/UserFighter" },
+                "5": { "$ref": "#/backend/entities/UserFighter" }
+            }
+        },
+        "jewelrySlots": {
+          "type": "object",
+          "description": "Stores the equipped jewelry in the four slots.",
+          "properties": {
+            "ring": { "$ref": "#/backend/entities/UserJewelry" },
+            "bracelet": { "$ref": "#/backend/entities/UserJewelry" },
+            "necklace": { "$ref": "#/backend/entities/UserJewelry" },
+            "earring": { "$ref": "#/backend/entities/UserJewelry" }
+          }
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "UserWeapon": {
+      "title": "UserWeapon",
+      "description": "Represents a weapon equipped by a user, including its evolution and enchantments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rarity": { "type": "string" },
+        "type": { "type": "string", "enum": ["damage", "scythe", "energy"] },
+        "evolutionLevel": { "type": "number", "description": "The star level of the weapon (0-3)." },
+        "breathingEnchantment": { "type": "string", "nullable": true },
+        "stoneEnchantment": { "type": "string", "nullable": true },
+        "passiveEnchantment": { "type": "string", "nullable": true }
+      }
+    },
+    "UserFighter": {
+      "title": "UserFighter",
+      "description": "Represents a fighter (Titan, Stand, Shadow) equipped by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rarity": { "type": "string" },
+        "type": { "type": "string", "enum": ["Titan", "Stand", "Shadow"] },
+        "evolutionLevel": { "type": "number", "description": "The star level of the fighter (0-3)." },
+        "enchantment": { "type": "string", "nullable": true, "description": "Rarity enchantment for Titans/Stands." },
+        "level": { "type": "number", "nullable": true, "description": "Leveling for Shadows." }
+      }
+    },
+    "UserJewelry": {
+      "title": "UserJewelry",
+      "description": "Represents a piece of jewelry equipped by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "e.g., 'gold-energy-bracelet'" },
+        "name": { "type": "string", "description": "e.g., 'Gold Energy Bracelet'" },
+        "type": { "type": "string", "enum": ["energy", "coin", "damage", "luck"], "description": "The type of bonus the jewelry provides." },
+        "level": { "type": "string", "enum": ["bronze", "silver", "gold", "rose-gold"], "description": "The material/level of the jewelry." }
+      },
+      "required": ["id", "name", "type", "level"]
+    },
+    "UserItem": {
+        "title": "UserItem",
+        "description": "Represents a generic item a user has on their profile, like a power, aura, or tier.",
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "name": {"type": "string"},
+            "rarity": {"type": "string"},
+            "world": {"type": "string"},
+            "avatarTier": {"type": "number"},
+            "petTier": {"type": "number"},
+            "leveling": { "type": "number", "description": "O nível de 'leveling' de um poder, se aplicável." }
+        }
+    },
+    "UserAccessory": {
+        "title": "UserAccessory",
+        "description": "Represents an accessory that a user has equipped/owns, including its rarity.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "rarity": { "type": "string" }
+        },
+        "required": ["id", "rarity"]
+    },
+    "UserGamepass": {
+        "title": "UserGamepass",
+        "description": "Represents a gamepass that a user owns.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" }
+        },
+        "required": ["id"]
+    },
+    "World": {
+      "title": "World",
+      "type": "object",
+      "description": "Represents one of the 21 worlds in the game.",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the world (e.g., 'World 20 - Grand Elder')." }
+      },
+       "required": ["name"]
+    },
+    "Power": {
+        "title": "Power",
+        "type": "object",
+        "description": "Represents a gacha or progression power within a world.",
+        "properties": {
+            "name": { "type": "string", "description": "Name of the power set (e.g., 'Grand Elder Power')." },
+            "type": { "type": "string", "enum": ["gacha", "progression"], "description": "The type of power." },
+            "statType": { "type": "string", "enum": ["energy", "damage", "coin", "mixed", "luck"], "description": "The primary stat this power affects. 'mixed' indicates multiple types of boosts." },
+            "maxLevel": { "type": "number", "description": "The maximum level for a progression power." },
+            "maxBoost": { "type": "string", "description": "The maximum boost for a single-stat progression power." },
+            "unlockCost": { "type": "string", "description": "The cost in coins to unlock this power for rolling or progression." },
+            "leveling": {
+                "type": "object",
+                "description": "Details about the leveling system for a gacha power.",
+                "properties": {
+                    "token": { "type": "string", "description": "The name of the token used for leveling." },
+                    "costPerLevel": { "type": "number", "description": "The number of tokens required for each level-up." },
+                    "maxLevel": { "type": "number", "description": "The maximum level achievable." },
+                    "description": { "type": "string", "description": "A brief description of the leveling mechanic." }
+                }
+            },
+            "boosts": {
+              "type": "array",
+              "description": "An array of boosts for mixed progression powers.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["damage", "energy", "coin", "crit_damage"] },
+                  "value": { "type": "string" }
+                }
+              }
+            }
+        },
+        "required": ["name", "type"]
+    },
+    "PowerStat": {
+        "title": "PowerStat",
+        "type": "object",
+        "description": "Represents an individual stat or level for a power.",
+        "properties": {
+            "name": { "type": "string", "description": "Name of the stat level (e.g., 'Sleeping Power', 'Second Form')." },
+            "multiplier": { "type": "string", "description": "The stat multiplier (e.g., '2x', '1.5x')." },
+            "rarity": { "type": "string", "description": "The rarity of the gacha roll (e.g., 'Phantom', 'Supreme')." },
+            "probability": { "type": "number", "description": "The probability of getting this roll."},
+            "statType": { "type": "string", "enum": ["energy", "damage", "coin"], "description": "The stat this specific level affects, for mixed gacha powers." },
+            "energy_crit_bonus": { "type": "string", "description": "The energy critical hit chance bonus (e.g., '1.00%')." }
+        },
+        "required": ["name"]
+    },
+    "NPC": {
+      "title": "NPC",
+      "type": "object",
+      "description": "Represents a non-player character in a world.",
+      "properties": {
+        "name": { "type": "string" },
+        "rank": { "type": "string", "description": "The rank of the NPC (e.g., 'E', 'SS')." },
+        "exp": { "type": "number", "description": "Experience points dropped by the NPC." },
+        "hp": { "type": "string", "description": "Health points of the NPC." },
+        "world": { "type": "string", "description": "The world where the NPC is located." },
+        "drops": {
+          "type": "object",
+          "description": "Details about the items dropped by the NPC.",
+          "properties": {
+            "coins": {
+              "type": "object",
+              "properties": {
+                "amount": { "type": "string" },
+                "probability": { "type": "number" }
+              }
+            },
+            "breathing_token": {
+              "type": "object",
+              "properties": {
+                "amount": { "type": "string" },
+                "probability": { "type": "number" }
+              }
+            },
+            "demon_arts_token": {
+              "type": "object",
+              "properties": {
+                "amount": { "type": "string" },
+                "probability": { "type": "number" }
+              }
+            },
+            "avatar_soul": {
+              "type": "object",
+              "properties": {
+                "amount": { "type": "number" },
+                "probability": { "type": "number" }
+              }
+            },
+            "weapon": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "rarity": { "type": "string" },
+                "probability": { "type": "number" }
+              }
+            },
+            "aura": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "probability": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "required": ["name", "rank", "hp", "world"]
+    },
+    "Pet": {
+        "title": "Pet",
+        "type": "object",
+        "description": "Represents a companion pet in a world.",
+        "properties": {
+            "name": { "type": "string" },
+            "rank": { "type": "string" },
+            "rarity": { "type": "string" },
+            "energy_bonus": { "type": "string", "description": "The energy bonus provided by the pet." }
+        },
+        "required": ["name", "rank", "rarity", "energy_bonus"]
+    },
+    "Avatar": {
+        "title": "Avatar",
+        "type": "object",
+        "description": "Represents a player avatar.",
+        "properties": {
+            "name": { "type": "string" },
+            "rank": { "type": "string" },
+            "rarity": { "type": "string" },
+            "energy_bonus": { "type": "string", "description": "The energy bonus provided by the avatar." },
+            "leveling": {
+                "type": "object",
+                "properties": {
+                    "maxLevel": { "type": "number" },
+                    "costUnit": { "type": "string" },
+                    "stats_lv_100": { "type": "string" },
+                    "stats_lv_150": { "type": "string" }
+                }
+            }
+        },
+        "required": ["name", "rank", "rarity", "energy_bonus"]
+    },
+    "Dungeon": {
+        "title": "Dungeon",
+        "type": "object",
+        "description": "Represents a dungeon within a world.",
+        "properties": {
+            "name": { "type": "string" },
+            "boss": { "type": "string" },
+            "description": { "type": "string" }
+        },
+        "required": ["name"]
+    },
+    "Accessory": {
+        "title": "Accessory",
+        "type": "object",
+        "description": "Represents a wearable accessory dropped by a boss in a specific world.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the accessory." },
+            "name": { "type": "string", "description": "The name of the accessory." },
+            "world": { "type": "string", "description": "The name of the world where the accessory drops." },
+            "boss": { "type": "string", "description": "The name of the boss that drops the accessory." },
+            "rarity": { "type": "string", "description": "The rarity of the accessory (e.g., C-Rank, S-Rank, SS-Rank)." },
+            "coins_bonus": { "type": "string", "description": "The coin bonus multiplier (e.g., '0.1', '2.25')." },
+            "energy_bonus": { "type": "string", "description": "The energy bonus multiplier (eg., '0.01x', '0.75x')." },
+            "exp_bonus": { "type": "string", "description": "The experience bonus percentage (e.g., '1.0%', '7.5%')." },
+            "damage_bonus": { "type": "string", "description": "The damage bonus multiplier (e.g., '0.05x', '1x')." },
+            "movespeed_bonus": { "type": "string", "description": "The movement speed bonus percentage (e.g., '10%', '75%')." }
+        },
+        "required": ["id", "name", "world"]
+    },
+    "Shadow": {
+      "title": "Shadow",
+      "type": "object",
+      "description": "Represents a Shadow fighter, a special type of fighter dropped by bosses from World 6 onwards.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "The name of the Shadow, usually tied to the boss that drops it." },
+        "type": { "type": "string", "enum": ["Energy", "Damage"], "description": "The type of bonus the Shadow provides." },
+        "stats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rank": { "type": "string", "description": "The boss rank that drops this stat version (e.g., 'Rank SS', 'Rank SSS')." },
+              "rarity": { "type": "string", "description": "The rarity of the Shadow (e.g., 'Phantom', 'Supremo')." },
+              "bonus": { "type": "string", "description": "The bonus value (e.g., '7% Energy', '7% Damage')." },
+              "cooldown": { "type": "string", "description": "The attack cooldown, applicable only to Damage Shadows (e.g., '2s')." }
+            },
+            "required": ["rank", "rarity", "bonus"]
+          }
+        }
+      },
+      "required": ["id", "name", "type", "stats"]
+    },
+    "Stand": {
+      "title": "Stand",
+      "type": "object",
+      "description": "Represents a Stand fighter, a special type of fighter from World 16.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "The name of the Stand." },
+        "rarity": { "type": "string", "description": "The rarity of the Stand." },
+        "energy_bonus": { "type": "string", "description": "The energy bonus provided by the Stand." }
+      },
+      "required": ["id", "name", "rarity", "energy_bonus"]
+    },
+    "Obelisk": {
+      "title": "Obelisk",
+      "type": "object",
+      "description": "Representa um obelisco especial em um mundo que fornece bônus de status.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "statType": { "type": "string", "enum": ["damage", "energy", "luck"] },
+        "maxLevel": { "type": "number" },
+        "world": { "type": "string" }
+      },
+      "required": ["id", "name", "statType"]
+    },
+     "GameMetadata": {
+      "title": "GameMetadata",
+      "type": "object",
+      "description": "Stores metadata about the game data version.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "A version string, e.g., '1.0.1'. Incremented on data changes."
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last data update."
+        }
+      },
+      "required": ["version", "lastUpdatedAt"]
+    },
+    "NegativeFeedback": {
+      "title": "NegativeFeedback",
+      "type": "object",
+      "description": "Stores a user's negative feedback on an AI response for admin review. Can be in a top-level collection or a user's subcollection.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "ID of the user who gave feedback." },
+        "userEmail": { "type": "string", "description": "Email of the user." },
+        "question": { "type": "string", "description": "The original user question." },
+        "negativeResponse": { "type": "string", "description": "The AI response that was marked as negative." },
+        "aiSuggestion": { "type": "string", "description": "An AI-generated suggestion on how to improve the response." },
+        "reputationPointsAwarded": { "type": "number", "description": "Points the AI suggests awarding for this feedback." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of the feedback." },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "reviewing", "fixed"],
+            "description": "The review status of the feedback."
+        },
+        "reviewedBy": {
+            "type": "string",
+            "description": "The email of the admin who reviewed the feedback."
+        }
+      },
+      "required": ["id", "userId", "question", "createdAt", "status"]
+    },
+    "AchievementProgress": {
+      "title": "AchievementProgress",
+      "description": "Stores the user's selected level for various general achievements.",
+      "type": "object",
+      "properties": {
+        "friends-bonus": { "type": "number", "description": "Selected level for Friends Bonus V." },
+        "total-coins": { "type": "number", "description": "Selected level for Total coins XXVIII." },
+        "total-energy": { "type": "number", "description": "Selected level for Total energy XLV." },
+        "time-played": { "type": "number", "description": "Selected level for Time Played X." },
+        "star-opened": { "type": "number", "description": "Selected level for Star opened X." },
+        "total-enemies": { "type": "number", "description": "Selected level for Total Enemies XIX." }
+      }
+    }
+  },
+  "auth": {
+    "providers": [
+      "anonymous",
+      "google.com",
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/achievements/{achievementId}",
+        "definition": {
+          "entityName": "Achievement",
+          "schema": { "$ref": "#/backend/entities/Achievement" },
+          "description": "Stores game achievements."
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Stores user profile information."
+        }
+      },
+      {
+        "path": "/users/{userId}/savedAnswers/{savedAnswerId}",
+        "definition": {
+          "entityName": "SavedAnswer",
+          "schema": { "$ref": "#/backend/entities/SavedAnswer" },
+          "description": "Stores AI-generated answers saved by the user."
+        }
+      },
+       {
+        "path": "/users/{userId}/powers/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+       {
+        "path": "/users/{userId}/auras/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+       {
+        "path": "/users/{userId}/pets/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+      {
+        "path": "/users/{userId}/weapons/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+        {
+        "path": "/users/{userId}/fighters/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+      {
+        "path": "/users/{userId}/accessories/{accessoryId}",
+        "definition": {
+            "entityName": "UserAccessory",
+            "schema": { "$ref": "#/backend/entities/UserAccessory"},
+            "description": "Stores user-owned accessories and their rarities."
+        }
+      },
+      {
+        "path": "/users/{userId}/gamepasses/{gamepassId}",
+        "definition": {
+            "entityName": "UserGamepass",
+            "schema": { "$ref": "#/backend/entities/UserGamepass"},
+            "description": "Stores user-owned gamepasses."
+        }
+      },
+      {
+        "path": "/users/{userId}/index/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the user's index tiers."
+        }
+      },
+      {
+        "path": "/users/{userId}/obelisks/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+       {
+        "path": "/users/{userId}/rank/{itemId}",
+        "definition": {
+          "entityName": "UserItem",
+          "schema": { "$ref": "#/backend/entities/UserItem" },
+          "description": "Stores the items a user has."
+        }
+      },
+      {
+        "path": "/users/{userId}/achievements/{progressId}",
+        "definition": {
+          "entityName": "AchievementProgress",
+          "schema": { "$ref": "#/backend/entities/AchievementProgress" },
+          "description": "Stores the user's selected level for general achievements."
+        }
+      },
+      {
+        "path": "/users/{userId}/contentSuggestions/{contentSuggestionId}",
+        "definition": {
+          "entityName": "ContentSuggestion",
+          "schema": { "$ref": "#/backend/entities/ContentSuggestion" },
+          "description": "Stores content suggestions made by the user for the Wiki."
+        }
+      },
+      {
+        "path": "/users/{userId}/negativeFeedback/{feedbackId}",
+        "definition": {
+          "entityName": "NegativeFeedback",
+          "schema": { "$ref": "#/backend/entities/NegativeFeedback" },
+          "description": "A user-specific copy of their negative feedback for display in their profile."
+        }
+      },
+       {
+        "path": "/negativeFeedback/{feedbackId}",
+        "definition": {
+          "entityName": "NegativeFeedback",
+          "schema": { "$ref": "#/backend/entities/NegativeFeedback" },
+          "description": "A global collection for all negative AI response feedback for admin review."
+        }
+      },
+      {
+        "path": "/wikiContent/{wikiContentId}",
+        "definition": {
+          "entityName": "WikiContent",
+          "schema": { "$ref": "#/backend/entities/WikiContent" },
+          "description": "Stores general wiki articles. This is for high-level guides, not detailed game data."
+        }
+      },
+      {
+        "path": "/metadata/gameData",
+        "definition": {
+            "entityName": "GameMetadata",
+            "schema": { "$ref": "#/backend/entities/GameMetadata" },
+            "description": "A singleton document to track game data version for cache invalidation."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}",
+        "definition": {
+          "entityName": "World",
+          "schema": { "$ref": "#/backend/entities/World" },
+          "description": "Top-level collection for each game world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/powers/{powerId}",
+        "definition": {
+          "entityName": "Power",
+          "schema": { "$ref": "#/backend/entities/Power" },
+          "description": "Sub-collection for powers available in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/powers/{powerId}/stats/{statId}",
+        "definition": {
+          "entityName": "PowerStat",
+          "schema": { "$ref": "#/backend/entities/PowerStat" },
+          "description": "The individual levels and stats for a specific power."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/npcs/{npcId}",
+        "definition": {
+          "entityName": "NPC",
+          "schema": { "$ref": "#/backend/entities/NPC" },
+          "description": "Sub-collection for NPCs found in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/pets/{petId}",
+        "definition": {
+          "entityName": "Pet",
+          "schema": { "$ref": "#/backend/entities/Pet" },
+          "description": "Sub-collection for pets available in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/dungeons/{dungeonId}",
+        "definition": {
+          "entityName": "Dungeon",
+          "schema": { "$ref": "#/backend/entities/Dungeon" },
+          "description": "Sub-collection for dungeons located in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/accessories/{accessoryId}",
+        "definition": {
+          "entityName": "Accessory",
+          "schema": { "$ref": "#/backend/entities/Accessory" },
+          "description": "Sub-collection for accessories available in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/shadows/{shadowId}",
+        "definition": {
+          "entityName": "Shadow",
+          "schema": { "$ref": "#/backend/entities/Shadow" },
+          "description": "Sub-collection for Shadow fighters available in a world."
+        }
+      },
+      {
+        "path": "/worlds/{worldId}/stands/{standId}",
+        "definition": {
+          "entityName": "Stand",
+          "schema": { "$ref": "#/backend/entities/Stand" },
+          "description": "Sub-collection for Stand fighters available in a world."
+        }
+      },
+       {
+        "path": "/worlds/{worldId}/ghouls/{ghoulId}",
+        "definition": {
+          "entityName": "Ghoul",
+          "schema": { "$ref": "#/backend/entities/Ghoul" },
+          "description": "Sub-collection for Ghoul fighters available in a world."
+        }
+      },
+       {
+        "path": "/worlds/{worldId}/obelisks/{obeliskId}",
+        "definition": {
+          "entityName": "Obelisk",
+          "schema": { "$ref": "#/backend/entities/Obelisk" },
+          "description": "Sub-collection for special Obelisks available in a world."
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is organized with 'worlds' as the top-level collection to logically separate game content. Each world document contains sub-collections for 'powers', 'npcs', 'pets', 'dungeons', 'accessories', 'shadows' and 'stands', creating a hierarchical and scalable data model. This allows for efficient querying of specific game data. For example, to get all shadows for 'World 7', you query the '/worlds/world7/shadows' sub-collection. A new top-level collection 'achievements' is added to store all game achievements, which is separate from world-specific data."
+  }
+}

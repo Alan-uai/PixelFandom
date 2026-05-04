@@ -1,0 +1,94 @@
+{
+  "placeholderImages": [
+    {
+      "id": "wiki-1",
+      "description": "A fantasy landscape for a getting started guide.",
+      "imageUrl": "https://images.unsplash.com/photo-1717564954563-e0263d335695?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmYW50YXN5JTIwbGFuZHNjYXBlfGVufDB8fHx8MTc1OTU1NDY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy landscape"
+    },
+    {
+      "id": "wiki-2",
+      "description": "An image representing a magical aura.",
+      "imageUrl": "https://images.unsplash.com/photo-1730562764749-75a7210fcbd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYWdpYyUyMGF1cmF8ZW58MHx8fHwxNzU5NTU0NzUwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "magic aura"
+    },
+    {
+      "id": "wiki-3",
+      "description": "A powerful warrior.",
+      "imageUrl": "https://images.unsplash.com/photo-1689452283620-fd3de4062563?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3YXJyaW9yJTIwYXJtb3J8ZW58MHx8fHwxNzU5NTU0NzUwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "warrior armor"
+    },
+    {
+      "id": "wiki-4",
+      "description": "A crafting table with glowing items.",
+      "imageUrl": "https://images.unsplash.com/photo-1620140036708-455ed5c0426a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjcmFmdGluZyUyMG1hZ2ljfGVufDB8fHx8MTc1OTU1NDc1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "crafting magic"
+    },
+    {
+      "id": "wiki-5",
+      "description": "A glowing star representing prestige.",
+      "imageUrl": "https://images.unsplash.com/photo-1599305445671-ac291c6aeaaa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxsZXZlbCUyMHVwfGVufDB8fHx8MTc1OTYyNzU4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "level up"
+    },
+    {
+      "id": "wiki-6",
+      "description": "A numbered list representing ranks.",
+      "imageUrl": "https://images.unsplash.com/photo-1583324188194-c74b4703a8d1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyYW5rfGVufDB8fHx8MTc1OTYyOTI4Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rank progression"
+    },
+    {
+      "id": "wiki-7",
+      "description": "A powerful boss monster in a dark environment.",
+      "imageUrl": "https://images.unsplash.com/photo-1604145414583-6a9b4c7c646f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmYW50YXN5JTIwYm9zcyUyMG1vbnN0ZXJ8ZW58MHx8fHwxNzU5NzMxMDUyfDA&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy boss"
+    },
+    {
+      "id": "wiki-8",
+      "description": "A glowing anime-style sword.",
+      "imageUrl": "https://images.unsplash.com/photo-1608272583854-476cb404db5b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhbmltZSUyMHN3b3JkfGVufDB8fHx8MTc1OTc4NzYwM3ww&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "anime sword"
+    },
+    {
+      "id": "wiki-9",
+      "description": "A powerful, glowing sword representing damage.",
+      "imageUrl": "https://images.unsplash.com/photo-1614136155123-41037cb45873?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwb3dlcmZ1bCUyMHN3b3JkfGVufDB8fHx8MTc1OTg2Nzk0Nnww&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "powerful sword"
+    },
+    {
+      "id": "wiki-10",
+      "description": "An alien planet landscape, representing a world raid.",
+      "imageUrl": "https://images.unsplash.com/photo-1583561234237-733737303a7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhbGllbiUyMHBsYW5ldCUyMHJhaWR8ZW58MHx8fHwxNzYwMTMxNzU0fDA&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "planet raid"
+    },
+    {
+      "id": "wiki-11",
+      "description": "A dark, ominous dungeon entrance, representing a raid.",
+      "imageUrl": "https://images.unsplash.com/photo-1615124974286-9bdb331d2745?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxkYXJrJTIwZGFuZ2VyJTIwZHVvZ2VvbnxlbnwwfHx8fDE3NjAxMzI5NTl8MA&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "dungeon entrance"
+    },
+    {
+      "id": "wiki-12",
+      "description": "A collage of game pass icons.",
+      "imageUrl": "https://images.unsplash.com/photo-1542751371-adc38448a05e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnYW1lJTIwcGFzc3xlbnwwfHx8fDE3NjAyNDY3MTB8MA&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "game pass"
+    },
+    {
+      "id": "wiki-13",
+      "description": "Abstract numbers and code representing scientific notation.",
+      "imageUrl": "https://images.unsplash.com/photo-1550645612-83f5d594b671?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzY2llbnRpZmljJTIwbm90YXRpb258ZW58MHx8fHwxNzYwMzU2NDk4fDA&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "scientific notation"
+    },
+    {
+      "id": "wiki-14",
+      "description": "A grim reaper's scythe against a dark background.",
+      "imageUrl": "https://images.unsplash.com/photo-1615286922425-c651138988a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmYW50YXN5JTIwc2N5dGhlfGVufDB8fHx8MTc2MDQ1NjM1NHww&ixlibrb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy scythe"
+    },
+    {
+      "id": "wiki-15",
+      "description": "A giant monstrous titan attacking a city.",
+      "imageUrl": "https://images.unsplash.com/photo-1632516422203-22e96e5427b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtb25zdGVyJTIwdGl0YW58ZW58MHx8fHwxNzYwNDU2NTkz&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "monster titan"
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict authorization model, primarily focused on owner-only access for user-specific data and public read access with owner-controlled writes for publicly available game data.
+ *
+ * Data Structure:
+ * - User-specific data is nested under `/users/{userId}`, providing a clear separation of private data.
+ * - Game data (worlds, powers, etc.) is stored in top-level collections like `/worlds/{worldId}`, allowing for public read access.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to protect privacy.
+ * - The default security posture for ambiguous relationships is strict owner-only access.
+ * - Public read access is granted for game data collections to enable open access to game information.
+ * - Writes to game data collections are only allowed.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the current user is signed in.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Requires authentication for certain operations.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the resource.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces ownership-based access control.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the current user is the owner of the existing resource.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces ownership-based access control and verifies document existence.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && existsAfter(/databases/$(database)/documents/users/$(userId));
+    }
+
+    /**
+     * @description Rules for user profiles.
+     * @path /users/{userId}
+     * @allow (create) If the user is creating their own profile (auth.uid matches userId).
+     * @deny (create) If a user tries to create a profile for another user.
+     * @allow (get, update, delete) If the user is the owner of the profile.
+     * @deny (get, update, delete) If a user tries to access or modify another user's profile.
+     * @principle Enforces strict user-ownership for profile data.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for saved AI-generated answers.
+     * @path /users/{userId}/savedAnswers/{savedAnswerId}
+     * @allow (create) If the user is creating a saved answer for their own profile (userId matches auth.uid).
+     * @deny (create) If a user tries to create a saved answer for another user.
+     * @allow (get, list, update, delete) If the user is the owner of the saved answer (userId matches auth.uid).
+     * @deny (get, list, update, delete) If a user tries to access or modify another user's saved answer.
+     * @principle Enforces strict user-ownership for saved answers.
+     */
+    match /users/{userId}/savedAnswers/{savedAnswerId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+     /**
+      * @description Rules for content suggestions made by users.
+      * @path /users/{userId}/contentSuggestions/{contentSuggestionId}
+      * @allow (create) If the user is creating a content suggestion for their own profile (userId matches auth.uid).
+      * @deny (create) If a user tries to create a content suggestion for another user.
+      * @allow (get, list, update, delete) If the user is the owner of the content suggestion (userId matches auth.uid).
+      * @deny (get, list, update, delete) If a user tries to access or modify another user's content suggestion.
+      * @principle Enforces strict user-ownership for content suggestions.
+      */
+    match /users/{userId}/contentSuggestions/{contentSuggestionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for general wiki content.
+     * @path /wikiContent/{wikiContentId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) Restricted write access.
+     * @principle Allows public access to wiki content while restricting modifications.
+     */
+    match /wikiContent/{wikiContentId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+   /**
+    * @description Rules for game worlds.
+    * @path /worlds/{worldId}
+    * @allow (get, list) Public read access.
+    * @deny (create, update, delete) Restricted write access.
+    * @principle Allows public access to world information while restricting modifications.
+    */
+    match /worlds/{worldId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for powers within a world.
+     * @path /worlds/{worldId}/powers/{powerId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) Restricted write access.
+     * @principle Allows public access to power information while restricting modifications.
+     */
+    match /worlds/{worldId}/powers/{powerId} {
+      allow get, list: if true;
+            allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for power stats.
+     * @path /worlds/{worldId}/powers/{powerId}/stats/{statId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) Restricted write access.
+     * @principle Allows public access to power stat information while restricting modifications.
+     */
+    match /worlds/{worldId}/powers/{powerId}/stats/{statId} {
+      allow get, list: if true;
+            allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+   /**
+    * @description Rules for NPCs within a world.
+    * @path /worlds/{worldId}/npcs/{npcId}
+    * @allow (get, list) Public read access.
+    * @deny (create, update, delete) Restricted write access.
+    * @principle Allows public access to NPC information while restricting modifications.
+    */
+    match /worlds/{worldId}/npcs/{npcId} {
+      allow get, list: if true;
+            allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for pets within a world.
+     * @path /worlds/{worldId}/pets/{petId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) Restricted write access.
+     * @principle Allows public access to pet information while restricting modifications.
+     */
+    match /worlds/{worldId}/pets/{petId} {
+      allow get, list: if true;
+            allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+   /**
+    * @description Rules for dungeons within a world.
+    * @path /worlds/{worldId}/dungeons/{dungeonId}
+    * @allow (get, list) Public read access.
+    * @deny (create, update, delete) Restricted write access.
+    * @principle Allows public access to dungeon information while restricting modifications.
+    */
+    match /worlds/{worldId}/dungeons/{dungeonId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
