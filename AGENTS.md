@@ -3,7 +3,7 @@
 ## Project Overview
 
 Two separate projects with independent `.git` directories:
-- **PixelFandom** (root): Next.js 15 wiki for "Anime Eternal" game (Roblox)
+- **PixelFandom** (root): Next.js 15 wiki for "Pixel Blade" game (Roblox)
 - **PixelBot** (`PixelBot/`): Discord bot for the same game
 
 ## Commands
