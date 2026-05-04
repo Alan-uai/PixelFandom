@@ -2,13 +2,42 @@
 -- PIXEL BLADE DATABASE - TABLES FOR SUPABASE
 -- =====================================================
 -- Generated from wiki data extraction
+-- NOTE: Uses DROP TABLE IF EXISTS to overwrite old data
 -- =====================================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
--- ENUMS
+-- DROP EXISTING TABLES AND TYPES (for overwrite)
+-- =====================================================
+
+DROP TABLE IF EXISTS weapon_abilities CASCADE;
+DROP TABLE IF EXISTS build_presets CASCADE;
+DROP TABLE IF EXISTS game_config CASCADE;
+DROP TABLE IF EXISTS resources CASCADE;
+DROP TABLE IF EXISTS crafting_recipes CASCADE;
+DROP TABLE IF EXISTS codes CASCADE;
+DROP TABLE IF EXISTS bosses CASCADE;
+DROP TABLE IF EXISTS enemies CASCADE;
+DROP TABLE IF EXISTS worlds CASCADE;
+DROP TABLE IF EXISTS spirit_capacity_synergy CASCADE;
+DROP TABLE IF EXISTS spirit_system_config CASCADE;
+DROP TABLE IF EXISTS upgrades CASCADE;
+DROP TABLE IF EXISTS potions CASCADE;
+DROP TABLE IF EXISTS rings CASCADE;
+DROP TABLE IF EXISTS ring_stat_formulas CASCADE;
+DROP TABLE IF EXISTS ring_quality_tiers CASCADE;
+DROP TABLE IF EXISTS armors CASCADE;
+DROP TABLE IF EXISTS weapons CASCADE;
+
+DROP TYPE IF EXISTS tier_rank;
+DROP TYPE IF EXISTS element_type;
+DROP TYPE IF EXISTS attack_speed_type;
+DROP TYPE IF EXISTS rarity_level;
+
+-- =====================================================
+-- ENUMS (Recreate after drop)
 -- =====================================================
 
 CREATE TYPE rarity_level AS ENUM ('common', 'rare', 'epic', 'legendary', 'vaulted');
@@ -153,16 +182,6 @@ CREATE TABLE ring_quality_tiers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-INSERT INTO ring_quality_tiers (tier_name, quality_min, quality_max, description, aura_color, action) VALUES
-('Dull', 1, 29, 'Lowest quality', NULL, 'Melt for Stardust'),
-('Runed', 30, 59, 'Basic quality', NULL, NULL),
-('Enchanted', 60, 69, 'Enhanced', NULL, NULL),
-('Blessed', 70, 79, 'Good quality', NULL, NULL),
-('Shiny', 80, 89, 'High quality', NULL, NULL),
-('Pristine', 90, 99, 'Very high quality', 'Blue/Cyan', NULL),
-('Volcanic', 100, 109, 'Excellent quality', 'Red/Orange', NULL),
-('Heirloom', 110, 118, 'Best quality - worth investing', NULL, 'Must max refine');
-
 -- =====================================================
 -- RING STAT FORMULAS (Kennot's formulas)
 -- =====================================================
@@ -177,14 +196,6 @@ CREATE TABLE ring_stat_formulas (
     stardust_to_level_8 INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
-INSERT INTO ring_stat_formulas (stat_type, formula, coefficient_a, coefficient_b, highest_scaling_range, stardust_to_level_8) VALUES
-('Damage', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200),
-('Health', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200),
-('Energy Recovery', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200),
-('Max Energy', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200),
-('Crit Chance', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200),
-('Speed', 'y = (a × x) + b', 0.4286, 9.1, '100-109', 4200);
 
 -- =====================================================
 -- POTIONS TABLE
@@ -269,9 +280,6 @@ CREATE TABLE spirit_system_config (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-INSERT INTO spirit_system_config (default_capacity, max_capacity, recommended_minimum, per_spirit_speed_bonus, per_spirit_damage_bonus, boss_spirit_value, boss_spirit_speed_multiplier)
-VALUES (2, 10, 6, 5.0, 8.0, 2, 2.0);
-
 CREATE TABLE spirit_capacity_synergy (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     capacity INTEGER NOT NULL,
@@ -280,12 +288,6 @@ CREATE TABLE spirit_capacity_synergy (
     notes VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
-INSERT INTO spirit_capacity_synergy (capacity, max_damage_bonus, max_speed_bonus, notes) VALUES
-(2, '+16%', '+10%', 'Default'),
-(5, '+40%', '+25%', NULL),
-(8, '+64%', '+40%', NULL),
-(10, '+80%', '+50%', 'Theoretical max');
 
 -- =====================================================
 -- WORLDS TABLE
@@ -486,32 +488,6 @@ CREATE TABLE game_config (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert core game configuration
-INSERT INTO game_config (config_key, config_value, category, description) VALUES
-('game_info', 
- '{"name": "Pixel Blade", "developer": "Frost Blade Games", "version": "1.16.0", "totalVisits": "100M+"}', 
- 'general', 'Basic game information'),
-
-('controls', 
- '{"movement": {"WASD": "Move", "Mouse": "Aim/Attack", "Space": "Dash", "Q": "Dash"}, "combat": {"M1": "Attack", "E": "Ability", "R": "Potion", "F/RightClick": "Block"}}', 
- 'controls', 'Control mappings'),
-
-('level_colors', 
- '{"0-9": "Gray", "10-24": "Green", "25-49": "Blue", "50-79": "Purple", "80-99": "Yellow", "100+": "Red"}', 
- 'level', 'Level tag colors'),
-
-('level_unlocks', 
- '{"5": "Potion Stand", "10": "Ancient Sands", "20": "Haunted Tundra", "30": "Second Potion Slot + Crimson Abyss", "40": "Enhancement System"}', 
- 'level', 'Level unlock requirements'),
-
-('rarity_stats', 
- '{"common": {"statBoosts": 1, "banner": "None"}, "rare": {"statBoosts": 1, "banner": "T1"}, "epic": {"statBoosts": 2, "banner": "T1 + Stat"}, "legendary": {"statBoosts": 2, "banner": "T1 + Stat + T2"}}', 
- 'rarity', 'Rarity stat and banner bonuses'),
-
-('difficulty_multiplier', 
- '{"normal": "1x", "heroic": "Higher", "nightmare": "Highest, elemental bypass"}', 
- 'game', 'Difficulty modifiers');
-
 -- =====================================================
 -- BUILD PRESETS TABLE
 -- =====================================================
@@ -535,14 +511,6 @@ CREATE TABLE build_presets (
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
--- Insert popular builds
-INSERT INTO build_presets (build_name, build_type, recommended_upgrades, recommended_armor, recommended_weapon, strategy, difficulty_level, is_meta) VALUES
-('God Run Speedrun', 'speedrun', '["Rage Spirits (max)", "Spirit Capacity"]', 'Crystal Armor', 'Imperialist', 'Chain lightning kills multiple enemies = more spirits', 'All', true),
-('Boss Killer', 'boss', '["Life Steal", "Stamina", "Flame Element"]', 'Feral Armor', 'Solar Scythe', 'Maximum survivability and boss DPS', 'Heroic+', true),
-('Pro Player Glass Cannon', 'skill', '["Rage Spirits", "Stamina"]', 'Helden Armor', 'Stella/Imperialist', 'For skilled players who can dodge everything', 'All', false),
-('Solo Beginner', 'solo', '["Rage Spirits", "Spirit Capacity", "Life Steal"]', 'Knight Set', 'Steel Sword', 'Focus on survival and spirit scaling', 'Normal', false),
-('Raid Meta', 'raid', '["Rage Spirits", "Spirit Capacity", "Flame Element", "Life Steal"]', 'Crystal Armor', 'Solar Scythe', 'Optimal for wave-based content', 'Raids', true);
 
 -- =====================================================
 -- TABLES FOR ABILITIES (from weapons)
