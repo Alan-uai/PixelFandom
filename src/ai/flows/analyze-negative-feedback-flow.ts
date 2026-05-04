@@ -9,7 +9,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import { prompt as generateSolutionPrompt } from './generate-solution';
 
 const AnalyzeNegativeFeedbackInputSchema = z.object({
   question: z.string().describe('A pergunta original do usuário.'),
@@ -27,22 +26,19 @@ export async function analyzeNegativeFeedback(input: AnalyzeNegativeFeedbackInpu
   return analyzeNegativeFeedbackFlow(input);
 }
 
-// Re-utilizando o prompt principal como a "base de conhecimento" do que é uma boa resposta.
-const mainPromptTemplate = generateSolutionPrompt.prompt;
-
 const prompt = ai.definePrompt({
   name: 'analyzeNegativeFeedbackPrompt',
   input: {schema: AnalyzeNegativeFeedbackInputSchema},
   output: {schema: AnalyzeNegativeFeedbackOutputSchema},
   prompt: `Você é um engenheiro de IA especialista em análise de qualidade de respostas de LLMs para o jogo Anime Eternal. Sua tarefa é analisar uma resposta que foi marcada como negativa por um usuário e fornecer duas coisas:
-1. Uma sugestão clara e acionável para um administrador sobre como melhorar o prompt ou os dados.
-2. Uma pontuação de reputação para o usuário que enviou o feedback.
+ 1. Uma sugestão clara e acionável para um administrador sobre como melhorar o prompt ou os dados.
+ 2. Uma pontuação de reputação para o usuário que enviou o feedback.
 
-**Contexto:**
-A IA tem acesso a um prompt principal com regras muito estritas. Analise a resposta negativa à luz dessas regras.
+ **Contexto:**
+ A IA tem acesso a um prompt principal com regras muito estritas. Analise a resposta negativa à luz dessas regras.
 
-**Regras do Prompt Principal (Resumidas):**
-${mainPromptTemplate}
+ **Regras do Prompt Principal (Resumidas):**
+ A IA deve sempre responder com JSON válido conforme schemas específicos. Respostas devem ser personalizadas quando possível.
 
 ---
 

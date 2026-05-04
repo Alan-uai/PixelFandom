@@ -54,7 +54,6 @@ export const prompt = ai.definePrompt({
   name: 'identifyItemsPrompt',
   input: { schema: IdentifyPowersInputSchema },
   output: { schema: IdentifyPowersOutputSchema },
-  outputFormat: "json",
   prompt: `Você é um especialista em análise de imagem para o jogo Anime Eternal. Sua tarefa é analisar um ou mais screenshots da tela de um jogador e identificar o NOME e a CATEGORIA de cada item.
 
 **PROCESSO:**
