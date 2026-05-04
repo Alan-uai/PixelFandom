@@ -1,0 +1,79 @@
+{
+  "potions": {
+    "totalCount": 4,
+    "unlock": {
+      "potionStand": "Level 5",
+      "secondSlot": "Level 30"
+    },
+    "usage": {
+      "maxUsesPerRun": 3,
+      "vendor": "Plague Doctor"
+    },
+    "list": [
+      {
+        "name": "Godly Potion",
+        "description": "Powerful shield and damage boost potion",
+        "effects": [
+          "Instantly gain a large shield",
+          "Heal 30%",
+          "Damage boost lasting 20s"
+        ],
+        "cost": {
+          "price": "3 for R99 (R$)",
+          "craftingCost": "30 Gold, 5 Spirit Essence, 10 Gold Ore",
+          "savings": "40% cheaper when crafted"
+        }
+      },
+      {
+        "name": "Dragon Flask",
+        "description": "Speed and damage boost potion",
+        "effects": [
+          "Instantly gain a small shield",
+          "Speed boost",
+          "Damage boost lasting 8s"
+        ],
+        "cost": {
+          "price": "60 coins"
+        }
+      },
+      {
+        "name": "Health Flask",
+        "description": "Basic healing potion",
+        "effects": [
+          "Instantly heal 15% of your Health"
+        ],
+        "cost": {
+          "price": "20 coins"
+        }
+      },
+      {
+        "name": "Energy Flask",
+        "description": "Health and energy recovery potion",
+        "effects": [
+          "Instantly heal 10% of your Health",
+          "Instantly heal 50% of your Energy"
+        ],
+        "cost": {
+          "price": "30 coins"
+        }
+      }
+    ],
+    "crafting": {
+      "unlockLevel": 40,
+      "system": "Enhancement System",
+      "costs": {
+        "description": "Cost increases exponentially",
+        "maxLevel": "+10 enhancement",
+        "effect": "+5-10% stats per enhancement",
+        "resource": "Enhancement Stones (Rare drops)"
+      },
+      "advice": "Only worth it for Legendary gear you'll keep forever"
+    },
+    "tips": [
+      "Buy potions from Plague Doctor at Potion Stand",
+      "Equip potions from your Blue Bag",
+      "Use D-pad Left/Right to switch slots",
+      "Save Gold for weapon upgrades instead of potions"
+    ]
+  }
+}

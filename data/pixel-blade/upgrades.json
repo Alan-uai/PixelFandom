@@ -1,0 +1,319 @@
+{
+  "upgrades": {
+    "description": "Random upgrades presented after clearing each room in dungeons",
+    "choicesPerLevel": 3,
+    "maxRanks": 4,
+    "mechanics": [
+      "Each upgrade can be ranked up to 4 times",
+      "Choosing same upgrade again increases its effects",
+      "Limited levels means you can't max everything",
+      "Most upgrades only affect basic (M1) attacks, except Critical Boost"
+    ],
+    "spiritSystem": {
+      "defaultCapacity": 2,
+      "maxCapacity": 10,
+      "theoreticalMax": 10,
+      "recommendedMinimum": "6-8",
+      "spiritOrbs": {
+        "appearance": "Yellow glowing spheres that orbit your character",
+        "spawn": "Drop from defeated enemies",
+        "loseOnHit": "Some spirits are lost when hit (damage dependent)",
+        "bossSpirit": {
+          "description": "Counts as two regular spirits",
+          "speedBonus": "Double the speed of two normal spirits"
+        }
+      },
+      "speedBonus": {
+        "perSpirit": "+5% movement speed",
+        "with8Spirits": "+40% movement speed",
+        "with10Spirits": "+50% movement speed"
+      }
+    },
+    "damageFormulas": {
+      "physicalDPS": "Physical DPS = (Base ATK × (1 + Strength%)) × (1 + Rage Multiplier) / Attack Speed",
+      "rageMultiplier": "Rage Multiplier = (1 + Rage Stacks × 0.05) × (Current Spirits / Capacity)",
+      "elementalDot": "Total DoT = (Flame × 21) + (Frost × 10.4) + (Poison × 15.8)",
+      "effectiveHP": "Effective HP = Base Health × Armor Multiplier"
+    },
+    "tierList": {
+      "sPlus": [
+        {
+          "name": "Rage Spirits",
+          "category": "Offensive",
+          "description": "Increases Damage and Movement Speed for every Spirit orb",
+          "perRank": "+8% damage, +5% speed per orb",
+          "scaling": {
+            "normal": "~6% weapon damage per spirit",
+            "boss": "~9% weapon damage per spirit"
+          },
+          "note": "MUST PICK - Core engine for God Run"
+        },
+        {
+          "name": "Spirit Capacity",
+          "category": "Utility",
+          "description": "Increases maximum Spirit orbs you can carry",
+          "perRank": "+1 spirit slot (max 10)",
+          "synergy": "Essential for Rage Spirits - higher cap = higher damage multiplier",
+          "note": "MUST PICK - Must be paired with Rage Spirits"
+        }
+      ],
+      "aTier": [
+        {
+          "name": "Flame Element",
+          "category": "Offensive",
+          "description": "Adds Burn to your attacks",
+          "damage": "~21 total damage over 3 ticks",
+          "note": "Highest damage elemental DOT - Best for boss melting"
+        },
+        {
+          "name": "Life Steal",
+          "category": "Defensive",
+          "description": "Restores HP whenever you get a Spirit Orb",
+          "heal": "Heals on pickup, not on damage",
+          "note": "Sustain core - increases forgiveness and saves potion costs"
+        },
+        {
+          "name": "Stamina",
+          "category": "Utility",
+          "description": "Increases Stamina and Stamina Regeneration",
+          "note": "Best defensive upgrade - crucial for dashing/dodging boss mechanics"
+        }
+      ],
+      "bTier": [
+        {
+          "name": "Frost Element",
+          "category": "Offensive",
+          "description": "Adds Frost to your attacks",
+          "damage": "~10.4 total damage over 4 ticks",
+          "secondary": "Slows enemies",
+          "note": "Lower damage than Flame but provides crowd control"
+        },
+        {
+          "name": "Poison Element",
+          "category": "Offensive",
+          "description": "Adds Poison to your attacks",
+          "damage": "~15.8 total damage over 2 ticks",
+          "note": "Decent damage but weaker total output than Flame"
+        },
+        {
+          "name": "Critical Boost",
+          "category": "Offensive",
+          "description": "Increases Critical Strike chance",
+          "note": "Only strong if stacked multiple times. One of few upgrades affecting abilities."
+        },
+        {
+          "name": "Recovery",
+          "category": "Utility",
+          "description": "Reduces the cooldown of your Weapon's skill",
+          "cooldownReduction": "Increases per rank",
+          "note": "Can achieve infinite Solar Beam with enough Recovery"
+        }
+      ],
+      "cTier": [
+        {
+          "name": "Elemental Circle",
+          "category": "Offensive",
+          "description": "AOE damage circle around player",
+          "mechanic": "Deals periodic damage scaling with highest element level",
+          "tickRate": "Every 1.5s at Lv.1 (faster with upgrades: 1.5s → 1.2s)",
+          "bypass": "Bypasses armored mobs in Nightmare Difficulty",
+          "note": "Damage tick delayed and often misses moving targets - Inconsistent. Works during ability animations and i-frames."
+        },
+        {
+          "name": "Agility",
+          "category": "Utility",
+          "description": "Increases chance to ignore an attack",
+          "note": "Chance to dodge is too unreliable"
+        },
+        {
+          "name": "Thorns",
+          "category": "Defensive",
+          "description": "Returns damage to attackers that hit you",
+          "effect": "100% damage return at rank 1, increases per rank",
+          "note": "Requires taking damage to work - bad for survival. Works during ability animations and i-frames."
+        }
+      ],
+      "dTier": [
+        {
+          "name": "Health Boost",
+          "category": "Defensive",
+          "description": "Increases max HP",
+          "note": "Focus on not getting hit rather than tanking hits"
+        }
+      ]
+    },
+    "detailedList": [
+      {
+        "name": "Rage Spirits",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Your basic attacks (M1s) deal an extra hit for each Spirit you have",
+        "damagePerSpirit": {
+          "normal": "~6% weapon damage per spirit",
+          "boss": "~9% weapon damage per spirit"
+        },
+        "priority": "S+ - MUST PICK",
+        "interaction": "Works during i-frames and ability animations"
+      },
+      {
+        "name": "Spirit Capacity",
+        "type": "Utility",
+        "maxRanks": 4,
+        "effect": "Adds one extra spirit slot each level, up to a maximum of 10",
+        "synergy": "Pairs well with Rage Spirits",
+        "priority": "S+ - MUST PICK with Rage Spirits"
+      },
+      {
+        "name": "Flame Element",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Apply Burn to enemies you hit. Burn damage scales from weapon's base damage.",
+        "ticks": 3,
+        "damageScaling": "Weapon base damage × 21 per level",
+        "priority": "A - Best DOT"
+      },
+      {
+        "name": "Frost Element",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Apply Frost to enemies you hit. Frost damage scales from weapon's base damage.",
+        "ticks": 4,
+        "damageScaling": "Weapon base damage × 10.4 per level",
+        "secondary": "Slows enemies",
+        "priority": "B - Crowd control"
+      },
+      {
+        "name": "Poison Element",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Apply Poison to enemies you hit. Poison damage scales from weapon's base damage.",
+        "ticks": 2,
+        "damageScaling": "Weapon base damage × 15.8 per level",
+        "priority": "B - Secondary element"
+      },
+      {
+        "name": "Life Steal",
+        "type": "Defensive",
+        "maxRanks": 4,
+        "effect": "Restore HP whenever you get a Spirit Orb",
+        "note": "Heals on pickup, not on damage",
+        "priority": "A - Sustain"
+      },
+      {
+        "name": "Stamina",
+        "type": "Utility",
+        "maxRanks": 4,
+        "effect": "Increases Stamina and Stamina Regeneration",
+        "priority": "A - Best defensive upgrade"
+      },
+      {
+        "name": "Recovery",
+        "type": "Utility",
+        "maxRanks": 4,
+        "effect": "Reduces the cooldown of your Weapon's skill",
+        "cooldownReduction": "Increases per rank",
+        "priority": "B - Ability spam",
+        "note": "Solar Scythe can achieve infinite ability with high Recovery"
+      },
+      {
+        "name": "Critical Boost",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Increases the Critical Strike chance of your Weapon",
+        "note": "One of few upgrades that affect abilities",
+        "priority": "B - Only strong if stacked"
+      },
+      {
+        "name": "Health Boost",
+        "type": "Defensive",
+        "maxRanks": 4,
+        "effect": "Gain additional HP, scaling with rank",
+        "priority": "C/D - Redundant with high speed"
+      },
+      {
+        "name": "Agility",
+        "type": "Utility",
+        "maxRanks": 4,
+        "effect": "Increases the chance to ignore an attack",
+        "priority": "C - Unreliable"
+      },
+      {
+        "name": "Thorns",
+        "type": "Defensive",
+        "maxRanks": 4,
+        "effect": "Returns 100% of the damage you receive to the enemy that hits you",
+        "note": "Additional ranks increase reflected damage. Works during ability animations and i-frames.",
+        "priority": "D - Requires taking damage"
+      },
+      {
+        "name": "Element Circle",
+        "type": "Offensive",
+        "maxRanks": 4,
+        "effect": "Apply Fire, Frost or Poison damage to enemies standing in the Elemental Circle",
+        "mechanic": "Damage scales from weapons damage",
+        "tickRate": "Hits every 1.5s at Lv.1 (faster with upgrades: 1.5s → 1.2s)",
+        "special": "All elements can bypass armored mobs in Nightmare Difficulty",
+        "priority": "C - Inconsistent"
+      }
+    ],
+    "godRunStrategy": {
+      "description": "To achieve an unstoppable God Run, follow this exact upgrade priority:",
+      "coreEngine": ["Rage Spirits", "Spirit Capacity"],
+      "damageSource": "Stack Rage Spirits as much as possible",
+      "sustain": "Get 1 rank of Life Steal",
+      "element": "Pick Flame Element",
+      "tips": [
+        "Max Spirit Capacity ASAP (6-8 minimum)",
+        "Maintain 8+ spirits active",
+        "Never let spirits drop below 6",
+        "Use ranged/AOE weapons (Imperialist, Solar Scythe)",
+        "Use Life Steal to heal when collecting spirits"
+      ]
+    },
+    "builds": {
+      "speedrun": {
+        "description": "Best for fast farming and mob clearing",
+        "upgrades": "Rage Spirits (max stack)",
+        "armor": "Crystal Armor",
+        "weapon": "Imperialist",
+        "synergy": "Chain lightning kills multiple enemies = more spirits"
+      },
+      "bossKiller": {
+        "description": "Maximum survivability and boss DPS",
+        "upgrades": "Life Steal + Stamina + Flame",
+        "armor": "Feral Armor",
+        "weapon": "Solar Scythe"
+      },
+      "proPlayer": {
+        "description": "For skilled players who can dodge everything",
+        "upgrades": "Rage Spirits + Stamina",
+        "armor": "Helden Armor",
+        "weapon": "Stella / Imperialist"
+      },
+      "solo": {
+        "priority": "Rage Spirits → Spirit Capacity → Life Steal → Stamina → Flame Element"
+      },
+      "heroic": {
+        "priority": "Rage Spirits → Stamina → Spirit Capacity → Life Steal → Flame Element"
+      }
+    },
+    "spiritCapacitySynergy": {
+      "table": [
+        {"capacity": 2, "maxDamageBonus": "+16%", "maxSpeedBonus": "+10%", "notes": "Default"},
+        {"capacity": 5, "maxDamageBonus": "+40%", "maxSpeedBonus": "+25%"},
+        {"capacity": 8, "maxDamageBonus": "+64%", "maxSpeedBonus": "+40%"},
+        {"capacity": 10, "maxDamageBonus": "+80%", "maxSpeedBonus": "+50%", "notes": "Theoretical max"}
+      ],
+      "tip": "Spirit Capacity is worthless without Rage Spirits - get both together"
+    },
+    "importantNotes": [
+      "Most banner upgrades only affect basic (M1) attacks, except Critical Boost",
+      "Elemental Circle and Thorns work even while abilities are mid animation and while you have i-frames",
+      "Spirit Capacity is worthless without Rage Spirits - get both together",
+      "Rage Spirits is the most OP upgrade - ALWAYS take it when offered",
+      "Flame Element has the highest total DOT damage - better than Poison or Frost",
+      "Chain kills in circular patterns to create Spirit collection routes",
+      "Focus on fully maxing 2-3 core upgrades before diversifying - Quality beats quantity"
+    ]
+  }
+}

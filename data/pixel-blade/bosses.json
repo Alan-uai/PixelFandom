@@ -1,0 +1,187 @@
+{
+  "bosses": {
+    "totalBosses": 9,
+    "spawnPattern": "Every 5 waves in Raids mode",
+    "rewards": ["Special currency", "Unique cosmetics/titles", "Upgrade materials", "Rare weapons or armour"],
+    "mechanics": [
+      "Defeating a boss may unlock new difficulty",
+      "Some bosses summon minions during battle",
+      "Certain attacks may require dodging or timing",
+      "Many bosses have phase-based combat"
+    ],
+    "byWorld": {
+      "grasslands": {
+        "worldName": "Grasslands",
+        "chapters": 3,
+        "bosses": [
+          {
+            "name": "John the Lumberjack",
+            "chapter": 1,
+            "type": "Mini-boss",
+            "description": "Simple melee boss - good for practicing basic combat",
+            "hp": "Medium",
+            "attacks": ["Axe Smash", "Tornado"],
+            "difficulty": "Easy",
+            "strategy": "Simple melee boss, good for practice",
+            "xpDrop": "12-20 XP",
+            "drops": ["Beginner items and chests"]
+          },
+          {
+            "name": "Goblin King",
+            "chapter": 2,
+            "type": "Boss",
+            "description": "A goblin leader with minion summons",
+            "attacks": ["Slam attacks", "Minion Summons (Goblins)"],
+            "difficulty": "Medium",
+            "strategy": "Clear goblin minions first before focusing on boss",
+            "drops": ["Rare beginner items"]
+          },
+          {
+            "name": "The Kingslayer",
+            "chapter": 3,
+            "type": "Final Boss",
+            "description": "The final boss of Grasslands. Has two phases. Was once the hero of Grassland Island, fallen to the Wrath.",
+            "hp": "High",
+            "attacks": ["Slam attacks"],
+            "phase2": "At 50% HP or below, summons 3 random enemies (Bolts or Mages)",
+            "difficulty": "Hard",
+            "quote": "Warrior… Is it peace that you seek? Yet you kill others for the illusion of harmony. Lend me the strength of your blood and you shall join the Wrath.",
+            "strategy": "Kill adds first when phase 2 starts",
+            "drops": ["Epic/Legendary weapons", "Rare beginner items"]
+          }
+        ]
+      },
+      "ancientSands": {
+        "worldName": "Ancient Sands",
+        "status": "Coming Soon",
+        "chapters": 3,
+        "bosses": [
+          {
+            "name": "Giant Sand Worm",
+            "chapter": 1,
+            "type": "Boss",
+            "description": "A massive worm that burrows underground and attacks from below",
+            "attacks": ["Burrows underground", "Spits projectiles"],
+            "weakness": "Frost",
+            "difficulty": "Medium",
+            "strategy": "Watch for underground movement, dodge when surfacing"
+          },
+          {
+            "name": "Necros",
+            "chapter": 2,
+            "type": "Boss",
+            "description": "A necromancer boss that can turn invisible and teleport",
+            "attacks": ["Invisibility", "Teleport", "Dark magic"],
+            "weakness": "Flame, Frost",
+            "difficulty": "Hard",
+            "strategy": "Difficult boss - track movement when invisible"
+          },
+          {
+            "name": "Titan",
+            "chapter": 3,
+            "type": "Final Boss",
+            "description": "A two-phase giant boss with slam and orb attacks",
+            "attacks": ["Slam attacks", "Orb attacks"],
+            "phase2": "More aggressive patterns",
+            "weakness": "Frost",
+            "difficulty": "Hard",
+            "strategy": "Learn attack patterns in phase 1 before committing"
+          }
+        ]
+      },
+      "hauntedTundra": {
+        "worldName": "Haunted Tundra",
+        "status": "Coming Soon",
+        "chapters": 3,
+        "bosses": [
+          {
+            "name": "Giant Yeti",
+            "chapter": 1,
+            "type": "Boss",
+            "description": "A massive yeti that throws snowballs and summons ice spikes",
+            "attacks": ["Snowballs", "Ice spikes", "Ground slam"],
+            "weakness": "Flame",
+            "difficulty": "Medium-Hard",
+            "strategy": "Dodge snowballs and ice spikes, punish after ground slam"
+          },
+          {
+            "name": "The Musician",
+            "chapter": 2,
+            "type": "Boss",
+            "description": "A unique boss that summons minions to protect itself",
+            "attacks": ["Minion Summons", "Musical attacks"],
+            "weakness": "Flame",
+            "difficulty": "Medium",
+            "strategy": "Mechanic boss - kill minions first"
+          },
+          {
+            "name": "Kori",
+            "chapter": 3,
+            "type": "Final Boss",
+            "description": "The final boss of Tundra. Has multiple devastating attacks.",
+            "attacks": ["Charge Beam", "Multiple attacks"],
+            "weakness": "Flame",
+            "difficulty": "Very Hard",
+            "strategy": "Charge Beam attack - must hide behind rocks",
+            "drops": ["Best Legendary gear", "Kori's Fang (100 damage)"]
+          }
+        ]
+      },
+      "crimsonAbyss": {
+        "worldName": "Crimson Abyss",
+        "status": "Coming Soon",
+        "chapters": 3,
+        "bosses": [
+          {
+            "name": "John The Lumberjack",
+            "chapter": 1,
+            "type": "Mini-boss",
+            "description": "First miniboss after clearing 5 rooms. Noticeably bigger than the giant and wields a big axe.",
+            "attacks": ["Chop", "Slice"],
+            "difficulty": "Medium",
+            "strategy": "Bigger than standard giants - watch for axe attacks"
+          },
+          {
+            "name": "Giant Goblin",
+            "chapter": 2,
+            "type": "Mini-boss",
+            "description": "Second miniboss after clearing 5 rooms. Wields a sword-cannon combo. Paired with 2 Mortar Goblins and 2 Cannon Goblins.",
+            "attacks": ["Sword slash", "Cannon fire"],
+            "difficulty": "Medium",
+            "strategy": "Clear adds first - they're very dangerous together"
+          },
+          {
+            "name": "Kingslayer",
+            "chapter": 3,
+            "type": "Boss",
+            "description": "Final boss. At 50% HP summons 3 random enemies (Bolts or Mages).",
+            "attacks": ["Slam attacks", "Phase 2: Minion Summon"],
+            "difficulty": "Hard",
+            "phaseTrigger": "50% HP",
+            "phase2Action": "Summons 3 random enemies (Bolts or Mages)",
+            "strategy": "Focus on adds when phase starts, then return to boss"
+          }
+        ]
+      }
+    },
+    "raidBosses": {
+      "spawnEvery": "5 waves",
+      "wave5": {
+        "difficulty": "Learn basic attack patterns",
+        "tip": "Use dash to dodge telegraphed attacks. Don't waste abilities."
+      },
+      "wave10": {
+        "difficulty": "Miniboss spawns with adds",
+        "tip": "Kill adds first, then focus boss. Use campfire before engaging."
+      },
+      "wave20": {
+        "difficulty": "Full boss with multiple phases",
+        "tip": "Save ultimate abilities. Circle strafe to avoid combo attacks."
+      },
+      "wave30": {
+        "difficulty": "Multiple elite enemies",
+        "tip": "Coordinate with team. Use Power/Timeless Ring for ability spam."
+      }
+    }
+  }
+}

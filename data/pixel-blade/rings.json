@@ -1,0 +1,250 @@
+{
+  "rings": {
+    "totalCount": 12,
+    "dropSystem": {
+      "mode": "Raids",
+      "normalRingDrop": {
+        "waveRequirement": 10,
+        "chance": "10% per wave"
+      },
+      "superRingDrop": {
+        "wave30": "7.5% chance",
+        "wave50": "15% chance",
+        "description": "Better stats than normal rings"
+      },
+      "rarityDistribution": {
+        "normal": {
+          "common": "38%",
+          "rare": "15%",
+          "epic": "7%",
+          "legendary": "7%"
+        },
+        "super": {
+          "guaranteedEpic": true,
+          "legendary": "33% (reduced rate)"
+        }
+      }
+    },
+    "qualitySystem": {
+      "qualityTiers": [
+        {"name": "Dull", "range": "1-29", "description": "Lowest quality", "action": "Melt for Stardust"},
+        {"name": "Runed", "range": "30-59", "description": "Basic quality"},
+        {"name": "Enchanted", "range": "60-69", "description": "Enhanced"},
+        {"name": "Blessed", "range": "70-79", "description": "Good quality"},
+        {"name": "Shiny", "range": "80-89", "description": "High quality"},
+        {"name": "Pristine", "range": "90-99", "description": "Very high quality", "aura": "Blue/Cyan"},
+        {"name": "Volcanic", "range": "100-109", "description": "Excellent quality", "aura": "Red/Orange"},
+        {"name": "Heirloom", "range": "110-118", "description": "Best quality - worth investing", "note": "Quality 110+ is Heirloom tier"}
+      ],
+      "refineSystem": {
+        "uses": "Stardust (from melting rings)",
+        "maxRefine": "+30 (or +8 levels)",
+        "advice": "Quality 110+ is Heirloom - most valuable rings worth investing",
+        "advice2": "Rings below 50 quality should be melted for Stardust"
+      }
+    },
+    "statFormulas": {
+      "credits": "Created by @Kennot",
+      "formula": "y = (a × x) + b",
+      "example": "For quality 100: y = (0.4286 × 100) + 9.1 = 52.0%",
+      "highestScaling": "100-109 range - 4200 Stardust to Lv.8",
+      "ringStatTypes": ["Damage", "Health", "Energy Recovery", "Max Energy", "Crit Chance", "Speed"],
+      "importantNotes": [
+        "The 2nd stat buff will never match the 1st",
+        "Damage and Health scaling calculated regardless of base quality",
+        "At high quality tiers, rings emit an aura (Volcanic = red/orange, Pristine = blue/cyan)"
+      ]
+    },
+    "rarityBonuses": {
+      "common": {
+        "statBoosts": 1,
+        "banner": "None"
+      },
+      "rare": {
+        "statBoosts": 1,
+        "banner": "T1 banner when upgraded"
+      },
+      "epic": {
+        "statBoosts": 2,
+        "banner": "T1 banner + additional stat boost when upgraded"
+      },
+      "legendary": {
+        "statBoosts": 2,
+        "banner": "T1 banner + additional stat boost + T2 banner when upgraded"
+      }
+    },
+    "tierList": {
+      "sTier": ["Dragon Ring", "Timeless Ring"],
+      "aTier": ["Vampire Ring", "Rage Ring", "Power Ring"],
+      "bTier": ["Element Ring", "Shadow Ring", "Polar Ring", "Ghost Ring"],
+      "cTier": ["Forest Ring", "Serpent Ring", "Health Ring"]
+    },
+    "list": [
+      {
+        "name": "Dragon Ring",
+        "tier": "S",
+        "rarity": "Legendary",
+        "description": "Fire damage ring - best for DPS",
+        "startingBanner": "Flame Element",
+        "keyBuffs": ["Damage", "Energy Recovery", "Flame Damage"],
+        "synergy": "Infinite combo build",
+        "obtain": "Raids (Wave 30+)",
+        "craft": {"cost": "20 Fire Essence + 15 Gold Ore", "worth": "YES - For fire builds"},
+        "possibleStats": ["Damage %", "Energy Recovery", "Flame Element"]
+      },
+      {
+        "name": "Timeless Ring",
+        "tier": "S",
+        "rarity": "Legendary",
+        "description": "Ability recovery and damage ring",
+        "startingBanner": "Recovery",
+        "keyBuffs": ["Dash Recovery", "Energy Recovery", "Speed"],
+        "synergy": "Infinite ability build",
+        "obtain": "Raids (Wave 30+)",
+        "possibleStats": ["Energy Recovery", "Speed", "Dash Recovery"]
+      },
+      {
+        "name": "Power Ring",
+        "tier": "A",
+        "rarity": "Legendary",
+        "description": "Strong overall damage ring",
+        "startingBanner": "Stamina",
+        "keyBuffs": ["Ability Recovery", "Energy Recovery", "Max Energy"],
+        "synergy": "Crit-focused builds",
+        "obtain": "Raids or Craft",
+        "craft": {"cost": "30 Gold Ore + 10 Diamonds", "worth": "YES - Universal DPS boost"},
+        "possibleStats": ["Ability Recovery", "Energy Recovery", "Max Energy"]
+      },
+      {
+        "name": "Vampire Ring",
+        "tier": "A",
+        "rarity": "Legendary",
+        "description": "Life steal ring - best for survival",
+        "startingBanner": "Life Steal",
+        "keyBuffs": ["Agility", "Poison Element", "Spirit Damage"],
+        "synergy": "Survival build",
+        "obtain": "Raids",
+        "possibleStats": ["Agility", "Poison Element", "Spirit Damage", "Life Steal"]
+      },
+      {
+        "name": "Rage Ring",
+        "tier": "A",
+        "rarity": "Legendary",
+        "description": "Aggressive DPS ring",
+        "startingBanner": "Rage Spirits",
+        "keyBuffs": ["Crit Damage", "Damage", "Dodge Chance"],
+        "synergy": "Aggressive playstyle",
+        "obtain": "Raids",
+        "possibleStats": ["Crit Damage", "Damage", "Dodge Chance"]
+      },
+      {
+        "name": "Element Ring",
+        "tier": "B",
+        "rarity": "Epic",
+        "description": "Elemental damage ring",
+        "startingBanner": "Elemental Circle",
+        "keyBuffs": ["Frost Element", "Fire Element", "Poison Element"],
+        "synergy": "Elemental circle build",
+        "obtain": "Raids",
+        "mechanic": "Elemental Circle deals periodic damage scaling with highest element level. 1.5s tick at Lv.1 (faster with upgrades). Bypasses armor in Nightmare.",
+        "possibleStats": ["Frost Element", "Fire Element", "Poison Element"]
+      },
+      {
+        "name": "Shadow Ring",
+        "tier": "B",
+        "rarity": "Epic",
+        "description": "Shadow damage ring",
+        "startingBanner": "Critical",
+        "keyBuffs": ["Crit", "Agility"],
+        "synergy": "Assassin builds",
+        "obtain": "Raids",
+        "possibleStats": ["Crit Chance", "Agility", "Dash Recovery"]
+      },
+      {
+        "name": "Polar Ring",
+        "tier": "B",
+        "rarity": "Epic",
+        "description": "Frost-focused ring",
+        "startingBanner": "Frost Element",
+        "keyBuffs": ["Ability Recovery", "Dodge Chance", "Frost Element"],
+        "synergy": "Frost control builds",
+        "obtain": "Raids",
+        "possibleStats": ["Frost Element", "Dodge Chance", "Ability Recovery"]
+      },
+      {
+        "name": "Ghost Ring",
+        "tier": "B",
+        "rarity": "Epic",
+        "description": "Ghost element ring",
+        "startingBanner": "Speed",
+        "keyBuffs": ["Speed", "Dash", "Dash Energy Cost"],
+        "synergy": "Mobility builds",
+        "obtain": "Raids",
+        "possibleStats": ["Speed", "Dash Recovery", "Dash Energy Cost"]
+      },
+      {
+        "name": "Forest Ring",
+        "tier": "C",
+        "rarity": "Rare",
+        "description": "Nature healing ring",
+        "startingBanner": "Thorns",
+        "keyBuffs": ["Crit", "Health"],
+        "synergy": "Sustain builds",
+        "obtain": "Raids",
+        "possibleStats": ["Crit Chance", "Health", "Life Steal"]
+      },
+      {
+        "name": "Serpent Ring",
+        "tier": "C",
+        "rarity": "Rare",
+        "description": "Poison-focused ring",
+        "startingBanner": "Poison Element",
+        "keyBuffs": ["Health", "Max Energy", "Poison Element"],
+        "synergy": "Poison DOT builds",
+        "obtain": "Raids",
+        "possibleStats": ["Health", "Max Energy", "Poison Element"]
+      },
+      {
+        "name": "Health Ring",
+        "tier": "C",
+        "rarity": "Common",
+        "description": "Basic health ring",
+        "startingBanner": "Health Boost",
+        "keyBuffs": ["Health", "Max Energy"],
+        "synergy": "Tank builds (weak overall)",
+        "obtain": "Raids",
+        "possibleStats": ["Health", "Max Energy"]
+      }
+    ],
+    "investment": {
+      "priority": [
+        "Dragon Ring + Timeless Ring (Infinite combo build)",
+        "Vampire Ring (Survival build)",
+        "Power Ring (Universal DPS)",
+        "Any S/A tier ring with 110+ quality"
+      ],
+      "notRecommended": [
+        "Rings below 80 quality",
+        "C tier rings (unless desperate)"
+      ],
+      "recommendedQuality": "110+ (Heirloom)",
+      "stardustCost": {
+        "Lv1": 100,
+        "Lv2": 200,
+        "Lv3": 400,
+        "Lv4": 800,
+        "Lv5": 1600,
+        "Lv6": 3200,
+        "Lv7": 6400,
+        "Lv8": 12800
+      }
+    },
+    "buildSynergies": {
+      "infiniteCombo": ["Timeless Ring", "Recovery Banner"],
+      "survival": ["Vampire Ring", "Life Steal"],
+      "dps": ["Power Ring", "Damage Stats"],
+      "elemental": ["Dragon Ring", "Flame Element"],
+      "mobility": ["Ghost Ring", "Speed Stats"]
+    }
+  }
+}

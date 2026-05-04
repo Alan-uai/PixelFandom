@@ -1,0 +1,182 @@
+{
+  "codes": {
+    "description": "Pixel Blade codes are one-time use per account, released during updates, milestones, and events",
+    "requirements": {
+      "mustJoinGroup": true,
+      "mustCompleteTutorial": true,
+      "mustFollowDevelopers": "For some codes"
+    },
+    "redeemInstructions": [
+      "Join Frost Blade Games Roblox group",
+      "Launch Pixel Blade on Roblox",
+      "Complete the tutorial to access the lobby",
+      "Go to the Bank (yellow building on left side of spawn)",
+      "Press E to interact",
+      "Enter the code exactly (case-sensitive)",
+      "Click Claim to receive rewards",
+      "Press Accept to add items to inventory"
+    ],
+    "activeCodes": [
+      {
+        "code": "UI",
+        "rewards": "3 Rings, 1 Tier 1 Chest, 500 Coins",
+        "type": "Update",
+        "verified": "2026-02"
+      },
+      {
+        "code": "650K",
+        "rewards": "300 Coins, 12 Godly Potions",
+        "type": "Milestone",
+        "verified": "2026-02"
+      },
+      {
+        "code": "AncientSands",
+        "rewards": "1 Revive, 200 Coins, 3 Godly Potions",
+        "type": "World",
+        "verified": "2026-02"
+      },
+      {
+        "code": "625K",
+        "rewards": "3 Revives, 500 XP, 6 Godly Potions",
+        "type": "Milestone",
+        "verified": "2026-02"
+      },
+      {
+        "code": "PLUSHIE",
+        "rewards": "1 Ring, 2 Tier 1 Chests",
+        "type": "Event",
+        "verified": "2026-02"
+      },
+      {
+        "code": "CrimsonNightmare",
+        "rewards": "3 Revives, 5-6 Godly Potions",
+        "type": "World",
+        "verified": "2026-01"
+      },
+      {
+        "code": "600K",
+        "rewards": "3 Rings, 1-2 Tier 1 Chests",
+        "type": "Milestone",
+        "verified": "2026-01"
+      },
+      {
+        "code": "575K",
+        "rewards": "600 Coins, 500 Stardust",
+        "type": "Milestone",
+        "verified": "2026-01"
+      },
+      {
+        "code": "550K",
+        "rewards": "2 Rings, 1 Daily Chest",
+        "type": "Milestone",
+        "verified": "2026-01"
+      },
+      {
+        "code": "World4",
+        "rewards": "5 Revives, 500 Coins",
+        "type": "World",
+        "verified": "2025-12"
+      },
+      {
+        "code": "goldentooth",
+        "rewards": "2,000 Coins",
+        "type": "Creator",
+        "verified": "2025-12"
+      },
+      {
+        "code": "Quests",
+        "rewards": "1 Revive, 1000 XP, 250 Coins, 9 Godly Potions",
+        "type": "Event",
+        "verified": "2025-11"
+      },
+      {
+        "code": "Rings",
+        "rewards": "1 Ring, 300 Stardust",
+        "type": "Event",
+        "verified": "2025-08"
+      },
+      {
+        "code": "Alpha",
+        "rewards": "1000 XP, 150 Coins",
+        "type": "Starter",
+        "verified": "2025-06"
+      },
+      {
+        "code": "FBG",
+        "rewards": "1 Tier 1 Daily Chest",
+        "type": "Group",
+        "verified": "2025-05"
+      },
+      {
+        "code": "Theo",
+        "rewards": "250 Coins",
+        "type": "NPC",
+        "verified": "2025-05"
+      }
+    ],
+    "milestoneCodes": {
+      "pattern": "Numbers (like 350K, 400K, 450K, etc.)",
+      "description": "Released when game reaches certain Like/Visit milestones",
+      "rewards": "Revives, Godly Potions, Coins, XP, Chests",
+      "current": ["350K", "375K", "400K", "425K", "450K", "475K", "500K", "525K", "550K", "575K", "600K", "625K", "650K"]
+    },
+    "eventCodes": {
+      "seasonal": {
+        "christmas": ["CHRISTMAS25", "SnowmanArm", "HotCocoa", "MerryMerry", "HollyJolly"],
+        "halloween": [],
+        "easter": []
+      },
+      "updates": ["Update", "Ancient", "Nightmare", "Nightmare2", "TundraNightmare", "CrimsonAbyss", "delayblade", "kori"]
+    },
+    "creatorCodes": {
+      "description": "Support content creators",
+      "codes": ["fudge", "ogvexx", "demer", "blexor", "Raven", "Pickle"]
+    },
+    "expiredCodes": [
+      "175K", "200K", "225K", "250K", "275K", "300K",
+      "30M", "125k", "150K",
+      "FreeWish", "SecretFudge", "Tundra",
+      "Nightmare", "Ancient", "Potions", "SorryForDelay",
+      "UpdateLog", "XP", "EarlyAccess",
+      "HollyJolly", "MerryMerry", "HotCocoa", "CHRISTMAS25", "SnowmanArm",
+      "BREAKABLES", "FREEWISH", "100M", "kori", "delayblade", "325K", "350K",
+      "elias", "blexor", "demer", "ogvexx", "fudge"
+    ],
+    "rewardsTypes": {
+      "coins": "Main currency for buying and upgrading weapons/gear",
+      "xp": "Experience points for leveling up faster",
+      "revives": "Keep running after death in difficult dungeons",
+      "potions": ["Godly Potion", "Dragon Flask", "Health Flask", "Energy Flask"],
+      "rings": "Accessory with stat bonuses",
+      "chests": ["Tier 1 Daily Chest", "Wooden Chest", "Royal Chest", "Godly Chest"],
+      "stardust": "Currency for refining rings",
+      "wishes": "Used in wish system for extra benefits",
+      "weapons": "Free starter weapons like Wooden Swords"
+    },
+    "shopChests": {
+      "dailyReset": true,
+      "purchaseLimit": "1 of each per day",
+      "types": [
+        {"name": "Wooden Chest", "cost": 250, "rarity": "Low"},
+        {"name": "Royal Chest", "cost": 650, "rarity": "Medium"},
+        {"name": "Godly Chest", "cost": 1000, "rarity": "High"}
+      ]
+    },
+    "dailyChest": {
+      "location": "Right of spawn, between bank and portal, next to lamp post",
+      "description": "Marked by cyan chest",
+      "requirement": "Join Frost Blade Games Roblox group",
+      "reward": "Free Tier 1 chest daily",
+      "uniqueFeature": "Only chest that increases loot pool - can drop any item the player has unlocked",
+      "timing": "Once per 24 hours"
+    },
+    "tips": [
+      "Redeem newest codes first - they expire fastest",
+      "Most codes last 2-4 weeks",
+      "New codes drop every 2-3 weeks on average",
+      "Major updates always include at least 2 new codes",
+      "Check developer Discord for early access to codes",
+      "Bookmark this page for regular updates"
+    ]
+  }
+}

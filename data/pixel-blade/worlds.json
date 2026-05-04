@@ -1,0 +1,224 @@
+{
+  "worlds": {
+    "totalCount": 4,
+    "chaptersPerWorld": 3,
+    "levelsPerChapter": 5,
+    "difficulties": ["Normal", "Heroic", "Nightmare"],
+    "list": [
+      {
+        "name": "Training Camp",
+        "worldNumber": 0,
+        "type": "Tutorial",
+        "levelRange": "1",
+        "description": "Safe training area for new players to learn basic mechanics",
+        "features": [
+          "Tutorial area",
+          "No enemy damage",
+          "Practice dummies",
+          "Mechanic tutorials"
+        ],
+        "enemies": ["Training Dummy"],
+        "bosses": [],
+        "notableLoot": ["Wooden Sword (Starting)"],
+        "tips": "Practice basic mechanics: Air-dashing, Parrying, Spacing rhythm. Essential for beginners."
+      },
+      {
+        "name": "Grasslands",
+        "worldNumber": 1,
+        "type": "World 1",
+        "levelRange": "2-5",
+        "status": "Available",
+        "description": "Open fields, forests, and castles. The first real combat zone.",
+        "environment": "Open fields, forests, and castles",
+        "chapters": [
+          {
+            "chapter": 1,
+            "boss": "John the Lumberjack",
+            "mechanics": "Simple melee boss, good for practice",
+            "attackPattern": "Axe Smash, Tornado",
+            "difficulty": "Easy"
+          },
+          {
+            "chapter": 2,
+            "boss": "Goblin King",
+            "mechanics": "Summons goblin minions, clear them first",
+            "attackPattern": "Slam attacks, Minion Summons",
+            "difficulty": "Medium"
+          },
+          {
+            "chapter": 3,
+            "boss": "The Kingslayer",
+            "mechanics": "Final boss of Chapter 1, two phases",
+            "attackPattern": "Slam attacks, Phase 2 at 50% HP summons 3 random enemies (Bolts or Mages)",
+            "difficulty": "Hard"
+          }
+        ],
+        "enemies": [
+          {"name": "Zombies", "type": "Close range", "description": "Grab and bite attack"},
+          {"name": "Archers", "type": "Long range", "description": "Precise arrows aimed at player's head"},
+          {"name": "Giants", "type": "Close range", "description": "Massive maces, crushing attacks that damage and stun"},
+          {"name": "Mages", "type": "Long range", "description": "Cast Fire, Frost, or Poison debuffs"},
+          {"name": "Cannon Goblins", "type": "Long range", "description": "Stationary, operate cannons"},
+          {"name": "Mortar Goblins", "type": "Long range", "description": "Shoot explosives from sky, stun and burn"},
+          {"name": "Treants", "type": "Close range", "description": "Nature-based enemies"}
+        ],
+        "notableLoot": [
+          "Wooden Scythe",
+          "Steel Sword",
+          "Crusher",
+          "Blood Sickle",
+          "Frost Blade",
+          "Kingslayer (Boss Drop)"
+        ],
+        "features": [
+          "3 Bosses",
+          "Decent loot",
+          "Good for beginners",
+          "Multiple enemy types"
+        ],
+        "tips": "Practice basic positioning and dodging ranged projectiles (Cannon Goblins / Mortar Goblins)"
+      },
+      {
+        "name": "Ancient Sands",
+        "worldNumber": 2,
+        "type": "World 2",
+        "levelRange": "6-10",
+        "status": "Coming Soon",
+        "description": "A vast desert with pyramids and ancient ruins",
+        "environment": "Desert, Pyramids, Ancient ruins",
+        "warning": "Data based on YouTube videos, pending official confirmation",
+        "chapters": [
+          {
+            "chapter": 1,
+            "boss": "Giant Sand Worm",
+            "mechanics": "Burrows underground and spits projectiles",
+            "weakness": "Frost"
+          },
+          {
+            "chapter": 2,
+            "boss": "Necros",
+            "mechanics": "Can go invisible and teleport",
+            "weakness": "Flame, Frost"
+          },
+          {
+            "chapter": 3,
+            "boss": "Titan",
+            "mechanics": "Two-phase giant boss with slam and orb attacks",
+            "weakness": "Frost"
+          }
+        ],
+        "enemies": [
+          {"name": "Sand Scorpions", "type": "Melee", "description": "Fast melee, poison sting"},
+          {"name": "Mummies", "type": "Melee", "description": "Lunging attacks, curse debuff"},
+          {"name": "Desert Bandits", "type": "Ranged", "description": "Fire bombs"},
+          {"name": "Sand Worms", "type": "Burrowing", "description": "Underground attacks"},
+          {"name": "Sand Golems", "type": "Tank", "description": "Gold Ore drops, ground slam AOE"}
+        ],
+        "notableLoot": [
+          "Sandstorm",
+          "Necromancer Blade",
+          "Moon Sickle",
+          "Scorpion Tail (Epic)",
+          "Desert Scimitar (Epic)",
+          "Tomb Hammer (Rare)"
+        ],
+        "features": [
+          "Invisibility and burrow mechanics",
+          "Poison enemies",
+          "Multiple Bosses"
+        ],
+        "tips": "Practice dealing with invisibility and burrow mechanics"
+      },
+      {
+        "name": "Haunted Tundra",
+        "worldNumber": 3,
+        "type": "World 3",
+        "levelRange": "11-15",
+        "status": "Coming Soon",
+        "description": "A frozen wasteland with blizzards and haunted creatures",
+        "environment": "Frozen wasteland, Blizzards",
+        "warning": "Data based on YouTube videos, pending official confirmation - High difficulty area",
+        "chapters": [
+          {
+            "chapter": 1,
+            "boss": "Giant Yeti",
+            "mechanics": "Throws snowballs, summons ice spikes, ground slam",
+            "weakness": "Flame"
+          },
+          {
+            "chapter": 2,
+            "boss": "The Musician",
+            "mechanics": "Summons minions to protect itself",
+            "weakness": "Flame"
+          },
+          {
+            "chapter": 3,
+            "boss": "Kori",
+            "mechanics": "Final boss of Tundra, has multiple devastating attacks. Charge Beam attack - must hide behind rocks",
+            "weakness": "Flame"
+          }
+        ],
+        "enemies": [
+          {"name": "Yetis", "type": "Melee", "description": "Large, powerful melee enemies"},
+          {"name": "Ice Elementals", "type": "Ranged", "description": "Ice projectile attacks"},
+          {"name": "Frost Archers", "type": "Ranged", "description": "Long range ice arrows"},
+          {"name": "Ghosts", "type": "Spectral", "description": "Phase through attacks"},
+          {"name": "Corrupted Warriors", "type": "Melee", "description": "Fallen warriors with enhanced stats"}
+        ],
+        "notableLoot": [
+          "Ice Spear",
+          "Ghost Katana",
+          "Frost Blade (Rare drop)"
+        ],
+        "features": [
+          "Freeze mechanics",
+          "High difficulty",
+          "Multiple Bosses"
+        ],
+        "tips": "Requires mastering dodge and parry skills"
+      },
+      {
+        "name": "Crimson Abyss",
+        "worldNumber": 4,
+        "type": "World 4",
+        "levelRange": "20+",
+        "status": "Coming Soon",
+        "description": "The fourth world and the last world in Arc 1. Every player needs to beat to progress to Arc 2.",
+        "environment": "Crimson themed dungeon",
+        "chapters": 3,
+        "levelsPerChapter": 5,
+        "difficulties": ["Normal", "Heroic", "Nightmare (Upcoming)"],
+        "bosses": [
+          {
+            "name": "John The Lumberjack",
+            "type": "Mini-boss",
+            "description": "First miniboss after 5 rooms in Chapter 1. Bigger than giant, wields big axe.",
+            "attacks": ["Chop", "Slice"]
+          },
+          {
+            "name": "Giant Goblin",
+            "type": "Mini-boss",
+            "description": "Second miniboss after 5 rooms in Chapter 2. Sword-cannon combo, paired with 2 Mortar Goblins and 2 Cannon Goblins.",
+            "attacks": ["Sword slash", "Cannon fire"]
+          },
+          {
+            "name": "Kingslayer",
+            "type": "Boss",
+            "description": "Final boss of Chapter 3. Was once hero of Grassland Island, fallen to the Wrath. At 50% HP summons 3 random enemies (Bolts or Mages).",
+            "quote": "Warrior… Is it peace that you seek? Yet you kill others for the illusion of harmony. Lend me the strength of your blood and you shall join the Wrath.",
+            "attacks": ["Phase 1: Slam attacks", "Phase 2: Minion summon at 50% HP"]
+          }
+        ],
+        "enemies": [
+          {"name": "Zombie", "chapters": "1, 2, 3", "type": "Close range", "description": "Grab and bite"},
+          {"name": "Archer", "chapters": "1, 2, 3", "type": "Long range", "description": "Shoot arrows"},
+          {"name": "Giant", "chapters": "1, 2, 3", "type": "Close range", "description": "Spiked clubs, brute force"},
+          {"name": "Mage", "chapters": "2, 3", "type": "Long range", "description": "Fire, Frost, Poison debuffs"},
+          {"name": "Cannon Goblin", "chapters": "2, 3", "type": "Long range", "description": "Stationary cannons"},
+          {"name": "Mortar Goblin", "chapters": "2, 3", "type": "Long range", "description": "Explosives from sky, stun and burn"},
+          {"name": "Bolt", "chapters": "3", "type": "Close range", "description": "Dual daggers, lightning fast, stuns"}
+        ]
+      }
+    ]
+  }
+}

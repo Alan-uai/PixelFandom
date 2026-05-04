@@ -1,0 +1,203 @@
+{
+  "enemies": {
+    "spawnMechanic": "Enemies become stronger by 1-2 levels per room cleared",
+    "attackTypes": ["Close range", "Medium range", "Long range"],
+    "list": [
+      {
+        "name": "Zombie",
+        "worlds": ["Grasslands", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Close range",
+        "description": "The most common foes. Undead creatures that engage in close-quarters combat.",
+        "attacks": ["Grab and bite"],
+        "behavior": "Relentless, ever-present in Chapters 1 and 2",
+        "strength": "Numbers (weak individually)",
+        "xpDrop": "1-3 XP",
+        "speed": "Medium",
+        "hp": "Low"
+      },
+      {
+        "name": "Archer",
+        "worlds": ["Grasslands", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Long range",
+        "description": "Once skilled human trackers, now serve the Wrath. Armed with deadly bows.",
+        "attacks": ["Precise arrows aimed at player's head"],
+        "behavior": "Fast, accurate, dangerous from distance",
+        "strength": "Long range precision",
+        "xpDrop": "1-3 XP",
+        "speed": "Medium",
+        "hp": "Low"
+      },
+      {
+        "name": "Giant",
+        "worlds": ["Grasslands", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Close range",
+        "description": "Towering giants that abandoned humanity to serve the Wrath. Wield massive maces.",
+        "attacks": ["Crushing attacks that damage and stun"],
+        "behavior": "Slow but devastating up close",
+        "strength": "Most durable mob, high damage",
+        "xpDrop": "1-3 XP",
+        "speed": "Slow",
+        "hp": "Medium"
+      },
+      {
+        "name": "Mage",
+        "worlds": ["Grasslands", "Ancient Sands", "Haunted Tundra", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Long range",
+        "description": "Menaces to society that shoot magic at the player.",
+        "attacks": ["Magic projectiles with debuffs"],
+        "debuffs": ["Fire", "Frost", "Poison"],
+        "behavior": "Casts one of three debuffs on hit",
+        "xpDrop": "1-3 XP",
+        "speed": "Medium",
+        "hp": "Low",
+        "strength": "Medium"
+      },
+      {
+        "name": "Cannon Goblin",
+        "worlds": ["Grasslands", "Ancient Sands", "Haunted Tundra", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Long range",
+        "description": "Operate cannons to shoot cannonballs at the player.",
+        "attacks": ["Cannonballs"],
+        "behavior": "Cannot move, manning a cannon",
+        "strategy": "Take care of them first before fighting moving mobs",
+        "xpDrop": "1-3 XP",
+        "hp": "Low"
+      },
+      {
+        "name": "Mortar Goblin",
+        "worlds": ["Grasslands", "Ancient Sands", "Haunted Tundra", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Long range",
+        "description": "Shoot explosives that rain down from the sky.",
+        "attacks": ["Explosives from sky"],
+        "effects": ["Stun", "Burn"],
+        "behavior": "Cannot move, stationary",
+        "strategy": "Take care of them first",
+        "xpDrop": "1-3 XP",
+        "hp": "Low"
+      },
+      {
+        "name": "Bolt",
+        "worlds": ["Grasslands", "Crimson Abyss"],
+        "chapters": [1, 2, 3],
+        "type": "Close range",
+        "description": "Use dual wielding daggers. Has correlation to lightning.",
+        "attacks": ["Blitz attack - dashing in at amplified speed"],
+        "effects": ["Stun for a couple seconds", "High damage"],
+        "behavior": "Amplifies speed when dashing in",
+        "strategy": "Watch for dash animation",
+        "xpDrop": "1-3 XP"
+      },
+      {
+        "name": "Treant",
+        "worlds": ["Grasslands"],
+        "type": "Close range",
+        "description": "Nature-based enemy",
+        "attacks": ["Melee attacks"],
+        "behavior": "Forest-dwelling enemies"
+      },
+      {
+        "name": "Sand Scorpion",
+        "worlds": ["Ancient Sands"],
+        "type": "Melee",
+        "description": "Fast melee enemy with poison sting",
+        "attacks": ["Poison sting"],
+        "effects": ["Poison stacks"],
+        "drop": "Scorpion Tail (Epic)",
+        "strategy": "Fast, dangerous up close"
+      },
+      {
+        "name": "Mummy",
+        "worlds": ["Ancient Sands"],
+        "type": "Melee (Elite)",
+        "description": "Ancient bandages with curse debuff",
+        "attacks": ["Lunging with arms"],
+        "effects": ["Curse debuff"],
+        "drop": "Rare blueprints",
+        "strategy": "High HP enemies"
+      },
+      {
+        "name": "Desert Bandit",
+        "worlds": ["Ancient Sands"],
+        "type": "Ranged",
+        "description": "Ranged enemies that throw fire bombs",
+        "attacks": ["Fire bombs"],
+        "drop": "Fire Essence"
+      },
+      {
+        "name": "Sand Worm",
+        "worlds": ["Ancient Sands"],
+        "type": "Burrowing",
+        "description": "Worms that burrow underground and attack from below",
+        "attacks": ["Underground attacks"],
+        "weakness": "Frost"
+      },
+      {
+        "name": "Sand Golem",
+        "worlds": ["Ancient Sands"],
+        "type": "Tank",
+        "description": "Tanky golem with ground slam AOE",
+        "attacks": ["Ground slam"],
+        "drop": "Gold Ore",
+        "strategy": "Focus fire to avoid AOE damage"
+      },
+      {
+        "name": "Yeti",
+        "worlds": ["Haunted Tundra"],
+        "type": "Melee",
+        "description": "Large yeti enemies in frozen wasteland",
+        "attacks": ["Snowballs", "Ice spikes", "Ground slam"],
+        "weakness": "Flame"
+      },
+      {
+        "name": "Ice Elemental",
+        "worlds": ["Haunted Tundra"],
+        "type": "Ranged",
+        "description": "Elemental enemies with ice projectile attacks",
+        "attacks": ["Ice projectiles"],
+        "weakness": "Flame"
+      },
+      {
+        "name": "Frost Archer",
+        "worlds": ["Haunted Tundra"],
+        "type": "Ranged",
+        "description": "Long range ice archers",
+        "attacks": ["Long range ice arrows"],
+        "weakness": "Flame"
+      },
+      {
+        "name": "Ghost",
+        "worlds": ["Haunted Tundra"],
+        "type": "Spectral",
+        "description": "Phase through attacks",
+        "attacks": ["Spectral attacks"],
+        "behavior": "Can phase through attacks"
+      },
+      {
+        "name": "Corrupted Warrior",
+        "worlds": ["Haunted Tundra"],
+        "type": "Melee",
+        "description": "Fallen warriors with enhanced stats",
+        "attacks": ["Melee attacks"],
+        "behavior": "More dangerous than standard warriors"
+      }
+    ],
+    "miniBosses": {
+      "grasslands": ["John the Lumberjack", "Goblin King"],
+      "ancientSands": ["Giant Sand Worm", "Necros"],
+      "hauntedTundra": ["Giant Yeti", "The Musician"],
+      "crimsonAbyss": ["John The Lumberjack", "Giant Goblin"]
+    },
+    "tips": [
+      "Enemies respawn frequently and drop basic loot and coins",
+      "Each room completed makes enemies stronger by 1-2 levels",
+      "Variety and number of enemies increase per room",
+      "Defeating all enemies in a room grants access to the next room"
+    ]
+  }
+}

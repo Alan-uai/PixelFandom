@@ -1,0 +1,277 @@
+{
+  "game": {
+    "name": "Pixel Blade",
+    "developer": "Frost Blade Games",
+    "publisher": "Frost Blade Games",
+    "platform": "Roblox",
+    "genre": "RPG/Roguelike",
+    "releaseDate": "June 23, 2024",
+    "version": "1.16.0",
+    "totalVisits": "100M+",
+    "favorites": "700K+",
+    "updates": "Regular (every 2-4 weeks)"
+  },
+  "controls": {
+    "movement": {
+      "WASD": "Move your character",
+      "Mouse": "Aim and attack",
+      "Space": "Dash (requires stamina)",
+      "Jump": "While dashing increases distance but removes invincibility"
+    },
+    "combat": {
+      "M1": "Left click - Basic attack",
+      "E": "Use ability (weapon skill)",
+      "R": "Consume potion",
+      "Q": "Dash",
+      "F": "Block",
+      "Right-Click": "Block"
+    },
+    "parry": {
+      "timing": "Block right before enemy attack hits",
+      "effect": "Stuns enemy",
+      "bonus": "Next hit deals increased damage"
+    }
+  },
+  "stats": {
+    "baseHealth": 100,
+    "baseStamina": 0,
+    "baseStrength": 0,
+    "baseSpirit": 0,
+    "attributes": [
+      {"name": "Health", "description": "Base HP - determines survivability"},
+      {"name": "Speed", "description": "Movement speed - Slow (≤17), Medium (18-20), Fast (21+)"},
+      {"name": "Energy", "description": "Required for abilities"},
+      {"name": "Stamina", "description": "Required for dashing"},
+      {"name": "Strength", "description": "Damage multiplier"},
+      {"name": "Crit Chance", "description": "Chance for extra damage"},
+      {"name": "Knockback", "description": "Enemy displacement"}
+    ],
+    "formulas": {
+      "physicalDPS": "(Base ATK × (1 + Strength%)) × (1 + Rage Multiplier) / Attack Speed",
+      "rageMultiplier": "(1 + Rage Stacks × 0.05) × (Current Spirits / Capacity)",
+      "elementalDot": "(Flame × 21) + (Frost × 10.4) + (Poison × 15.8)",
+      "effectiveHP": "Base Health × Armor Multiplier"
+    }
+  },
+  "levelSystem": {
+    "maxLevel": "Unlimited",
+    "levelColors": [
+      {"range": "0-9", "color": "Gray"},
+      {"range": "10-24", "color": "Green"},
+      {"range": "25-49", "color": "Blue"},
+      {"range": "50-79", "color": "Purple"},
+      {"range": "80-99", "color": "Yellow"},
+      {"range": "100+", "color": "Red"}
+    ],
+    "levelUnlock": [
+      {"level": 5, "unlock": "Potion Stand"},
+      {"level": 10, "unlock": "Ancient Sands World"},
+      {"level": 20, "unlock": "Haunted Tundra World"},
+      {"level": 30, "unlock": "Second Potion Slot, Crimson Abyss World"},
+      {"level": 40, "unlock": "Enhancement System"}
+    ],
+    "levelUpReward": "500 coins every 5 levels"
+  },
+  "rarity": {
+    "types": [
+      {"name": "Common", "abbreviation": "C", "color": "White", "statBoosts": 1},
+      {"name": "Rare", "abbreviation": "R", "color": "Blue", "statBoosts": 1, "banner": "T1 when upgraded"},
+      {"name": "Epic", "abbreviation": "E", "color": "Purple", "statBoosts": 2, "banner": "T1 + stat boost when upgraded"},
+      {"name": "Legendary", "abbreviation": "L", "color": "Gold", "statBoosts": 2, "banner": "T1 + stat boost + T2 when upgraded"},
+      {"name": "Vaulted", "abbreviation": "V", "color": "Limited", "description": "Limited event items"}
+    ],
+    "upgradeRequirements": {
+      "Legendary": {"duplicates": [1, 2, 5, 10, 20, 30], "maxLevel": 8},
+      "Epic": {"duplicates": [1, 2, 5, 10, 20, 30, 40], "maxLevel": 8},
+      "Rare": {"duplicates": [1, 8, 20, 50, 100, 200, 400, 1000, 2500], "maxLevel": 9},
+      "Common": {"duplicates": [1, 8, 20, 50, 100, 200, 400, 1000, 2500], "maxLevel": 9}
+    },
+    "weaponDamageRanges": {
+      "Common": "9-20 damage",
+      "Rare": "25-45 damage",
+      "Epic": "45-65 damage",
+      "Legendary": "75-100 damage",
+      "Vaulted": "Varies"
+    }
+  },
+  "mechanics": {
+    "armory": {
+      "description": "Inventory system for weapons, armors, potions and chests",
+      "storage": "Displays owned items",
+      "upgrade": "Use duplicates and coins to upgrade gear",
+      "tabs": ["Weapons", "Armor", "Chest", "Potions"]
+    },
+    "spiritSystem": {
+      "defaultSlots": 2,
+      "maxSlots": 10,
+      "function": "Orbs dropped by defeated enemies that increase movement speed",
+      "perSpiritBonus": {
+        "speed": "+5%",
+        "damage": "+8% (with Rage Spirits)"
+      },
+      "bossSpirit": {
+        "value": "2x normal spirit",
+        "speed": "Double normal spirits"
+      },
+      "keyUpgrades": [
+        {"name": "Rage Spirits", "effect": "Damage per spirit orb"},
+        {"name": "Spirit Capacity", "effect": "Max spirits you can hold"},
+        {"name": "Life Steal", "effect": "Heal when collecting spirits"}
+      ]
+    },
+    "energySystem": {
+      "description": "Required to use weapon abilities",
+      "baseCost": "Varies by weapon (30-45 typical)",
+      "cooldowns": "Varies by weapon (7-22 seconds typical)",
+      "recoverySources": ["Rings", "Upgrades", "Timeless Ring"]
+    },
+    "difficulty": [
+      {"name": "Normal", "description": "Easier and faster to complete", "enemyMultiplier": "1x"},
+      {"name": "Heroic", "description": "Better rewards - extra coins, XP, chests, weapon and armor drops", "enemyMultiplier": "Higher"},
+      {"name": "Nightmare", "description": "Highest difficulty, armor bypass for elemental attacks", "enemyMultiplier": "Highest", "special": "Elemental Circle and abilities bypass armor"}
+    ]
+  },
+  "gameModes": {
+    "campaign": {
+      "description": "Main story mode through worlds",
+      "worlds": 4,
+      "chaptersPerWorld": 3,
+      "levelsPerChapter": 5
+    },
+    "raids": {
+      "description": "Endless wave defense mode",
+      "bossSpawn": "Every 5 waves",
+      "ringDrops": {
+        "wave10": "10% chance per wave",
+        "wave30": "7.5% chance (Super Rings)",
+        "wave50": "15% chance (Better Super Rings)"
+      },
+      "difficulty": {
+        "noob": "Basic rings, common weapons, gold",
+        "easy": "Rare rings, epic weapons, upgrade materials",
+        "medium": "Super rings, legendary weapons, rare materials",
+        "hard": "Best super rings, exclusive legendaries, max rewards"
+      }
+    },
+    "dailyChest": {
+      "description": "Free daily rewards from Frost Blade Games Roblox group",
+      "location": "Right of spawn, between bank and portal",
+      "requirement": "Join Frost Blade Games Roblox group"
+    }
+  },
+  "hub": {
+    "name": "Mother Tree",
+    "description": "Central hub in game",
+    "locations": [
+      {"name": "The Bank", "npc": "Theo", "function": "Code redemption"},
+      {"name": "The Armory", "npc": "Bruce", "function": "Inventory management"},
+      {"name": "The Shop", "npc": "Nora", "function": "Daily items and chests"},
+      {"name": "The Portal", "npc": "Greg", "function": "World access"},
+      {"name": "Daily Chest", "location": "Right of spawn", "function": "Free daily chest"},
+      {"name": "Potion Stand", "npc": "Plague Doctor", "function": "Potion purchase/equip", "unlock": "Level 5"}
+    ]
+  },
+  "resources": {
+    "ores": [
+      {"name": "Wood", "world": "World 1", "source": "Trees / Wooden Chests", "use": "Basic crafting"},
+      {"name": "Iron Ore", "world": "World 1-2", "source": "Mining / Chests", "use": "Steel gear"},
+      {"name": "Gold Ore", "world": "World 2", "source": "Mining / Gold Chests", "use": "Golden weapons and accessories"},
+      {"name": "Diamond", "world": "World 3", "source": "Mining / Diamond Chests", "use": "Crystal gear and end-game items"}
+    ],
+    "essences": [
+      {"name": "Fire Essence", "source": "Fire mobs / Chests", "use": "Solar Scythe, Flame Rings"},
+      {"name": "Frost Essence", "source": "Ice mobs / Chests", "use": "Frost Blade, Imperialist"},
+      {"name": "Poison Essence", "source": "Poison mobs / Chests", "use": "Infested, Shadow Scythe"},
+      {"name": "Shadow Essence", "source": "Shadow mobs", "use": "Dark weapons"},
+      {"name": "Spirit Essence", "source": "Boss drops", "use": "End-game crafting"}
+    ],
+    "materials": [
+      {"name": "Slime Goo", "source": "Slimes", "use": "Blood Sickle"},
+      {"name": "Scorpion Tail", "source": "Sand Scorpions", "use": "Tomb Hammer, Desert Armor"},
+      {"name": "Coal", "source": "Mining", "use": "Forged Steel"},
+      {"name": "Ice Shard", "source": "Ice mobs", "use": "Crystal Armor"}
+    ]
+  },
+  "crafting": {
+    "blacksmith": {
+      "name": "Hargon the Blacksmith",
+      "unlock": "Level 1",
+      "discount": "5% Gold discount on 10+ items"
+    },
+    "recipes": {
+      "common": [
+        {"item": "Steel Sword", "cost": 500, "materials": ["5 Wood", "20 Iron Ore"], "worth": "YES - Essential early upgrade"}
+      ],
+      "rare": [
+        {"item": "Blood Sickle", "cost": 1000, "materials": ["10 Slime Goo", "30 Iron Ore"], "worth": "Maybe - Easier to farm as drop"},
+        {"item": "Tomb Hammer", "cost": 1500, "materials": ["15 Scorpion Tail", "25 Gold Ore"], "worth": "YES - Reliable mid-game weapon"}
+      ],
+      "epic": [
+        {"item": "Forged Steel", "cost": 3500, "materials": ["10 Coal", "20 Gold Ore", "40 Iron Ore"], "worth": "YES - Best Epic for tanks"},
+        {"item": "Buster Blade", "cost": 4500, "materials": ["5 Diamonds", "15 Shadow Essence", "30 Gold Ore"], "worth": "Maybe - Better to farm from boss"}
+      ],
+      "legendary": [
+        {"item": "Solar Scythe", "cost": 10000, "materials": ["15 Diamonds", "25 Gold Ore", "30 Fire Essence"], "worth": "ABSOLUTELY - #1 boss DPS weapon"},
+        {"item": "Imperialist", "cost": 15000, "materials": ["20 Spirit Essence", "30 Diamonds", "40 Frost Essence"], "worth": "YES - #1 ranked weapon"}
+      ],
+      "armor": [
+        {"item": "Knight Set", "rarity": "Rare", "cost": "5000 Gold total", "materials": ["20 Gold Ore", "50 Iron Ore per piece"], "bonus": "+5% HP, +10% Defense", "worth": "YES - Best early armor"},
+        {"item": "Desert Armor", "rarity": "Epic", "cost": "3000 Gold per piece", "materials": ["5 Fire Essence", "10 Scorpion Tail", "25 Gold Ore"], "bonus": "+15% Fire Resist, +10% Speed", "worth": "Situational - Good for Ancient Sands"},
+        {"item": "Crystal Armor", "rarity": "Legendary", "cost": "12000 Gold per piece", "materials": ["20 Ice Shard", "30 Spirit Essence", "50 Diamonds"], "bonus": "AOE damage scaling with Defense", "worth": "ABSOLUTELY - Meta speedrun armor"}
+      ],
+      "rings": [
+        {"item": "Power Ring", "tier": "S", "cost": 2000, "materials": ["10 Diamonds", "30 Gold Ore"], "worth": "YES - Universal DPS boost"},
+        {"item": "Flame Ring", "tier": "A", "cost": 1500, "materials": ["20 Fire Essence", "15 Gold Ore"], "worth": "YES - For fire builds"}
+      ],
+      "consumables": [
+        {"item": "Health Flask", "shopPrice": 20, "crafting": "5 Gold, 2 Iron Ore, 5 Wood", "savings": "50% cheaper when crafted"},
+        {"item": "Godly Potion", "shopPrice": "50 Gold (3 for R99)", "crafting": "30 Gold, 5 Spirit Essence, 10 Gold Ore", "savings": "40% cheaper when crafted"}
+      ]
+    },
+    "enhancement": {
+      "unlockLevel": 40,
+      "system": "Enhancement Stones",
+      "maxLevel": "+10",
+      "effect": "+5-10% stats per enhancement",
+      "cost": "Increases exponentially",
+      "advice": "Only worth it for Legendary gear you'll keep forever"
+    }
+  },
+  "chests": {
+    "shopChests": {
+      "wooden": {"cost": 250, "rarity": "Low"},
+      "royal": {"cost": 650, "rarity": "Medium"},
+      "godly": {"cost": 1000, "rarity": "High"}
+    },
+    "dropChests": [
+      "Wooden Chests",
+      "Gold Chests",
+      "Diamond Chests"
+    ],
+    "daily": {
+      "type": "Tier 1 Daily Chest",
+      "cost": "Free (join group)",
+      "unique": "Can drop any item player has unlocked"
+    }
+  },
+  "tips": {
+    "do": [
+      "Use the highest damage weapon you have",
+      "Prioritize Spirit Capacity in dungeon upgrades",
+      "Always take Rage Spirits when offered",
+      "Open every chest you find",
+      "Mine all ore nodes",
+      "Save Gold for weapon upgrades instead of potions",
+      "Join groups for World 2+ content",
+      "Redeem codes for free rewards"
+    ],
+    "dont": [
+      "Spend all Gold on potions",
+      "Ignore Spirit Capacity upgrades",
+      "Skip chests and mining nodes",
+      "Fight bosses solo too early in heroic+",
+      "Fight without proper gear",
+      "Skip redeeming codes"
+    ]
+  }
+}

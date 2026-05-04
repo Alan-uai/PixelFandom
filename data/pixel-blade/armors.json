@@ -1,0 +1,208 @@
+{
+  "armors": {
+    "totalCount": 15,
+    "rarities": {
+      "common": 2,
+      "rare": 5,
+      "epic": 4,
+      "legendary": 3,
+      "vaulted": 1
+    },
+    "tierList": {
+      "sPlusTier": ["Kori's Blessing", "Nekros' Shell"],
+      "sTier": ["Void Armor", "King's Armor"],
+      "aTier": ["Frost Mail", "Samurai Armor", "Sand Warrior Armor"],
+      "bTier": ["Yeti Hide", "Mummy Wraps", "Iron Plate"],
+      "cTier": ["Forest Guard", "Leather Vest", "Desert Robes", "Starter Armor"]
+    },
+    "byWorld": {
+      "grasslands": {
+        "worldName": "Grasslands",
+        "levelRange": "2-5",
+        "armors": [
+          {
+            "name": "Starter Armor",
+            "rarity": "Common",
+            "description": "Basic armor for beginners",
+            "stats": {
+              "health": 50,
+              "speed": 0,
+              "energy": 100
+            },
+            "obtain": "Starting gear"
+          },
+          {
+            "name": "Leather Vest",
+            "rarity": "Common",
+            "description": "Light leather protection",
+            "stats": {
+              "health": 75,
+              "speed": 5,
+              "energy": 110
+            },
+            "obtain": "Chests or shops"
+          },
+          {
+            "name": "Iron Plate",
+            "rarity": "Rare",
+            "description": "Heavy iron armor",
+            "stats": {
+              "health": 120,
+              "speed": 0,
+              "energy": 120
+            },
+            "obtain": "Shops or enemy drops"
+          },
+          {
+            "name": "Forest Guard",
+            "rarity": "Rare",
+            "description": "Armor blessed by the forest",
+            "stats": {
+              "health": 100,
+              "speed": 10,
+              "energy": 130
+            },
+            "obtain": "Enemy drops or chests"
+          },
+          {
+            "name": "King's Armor",
+            "rarity": "Epic",
+            "description": "Royal armor of a fallen king",
+            "stats": {
+              "health": 180,
+              "speed": 5,
+              "energy": 150
+            },
+            "obtain": "Boss drops or chests"
+          }
+        ]
+      },
+      "ancientSands": {
+        "worldName": "Ancient Sands",
+        "levelRange": "6-10",
+        "armors": [
+          {
+            "name": "Desert Robes",
+            "rarity": "Rare",
+            "description": "Light robes for desert travel",
+            "stats": {
+              "health": 90,
+              "speed": 15,
+              "energy": 140
+            },
+            "obtain": "Shops or drops"
+          },
+          {
+            "name": "Mummy Wraps",
+            "rarity": "Rare",
+            "description": "Ancient bandages with protection",
+            "stats": {
+              "health": 110,
+              "speed": 8,
+              "energy": 135
+            },
+            "obtain": "Enemy drops"
+          },
+          {
+            "name": "Sand Warrior Armor",
+            "rarity": "Epic",
+            "description": "Battle-worn desert armor",
+            "stats": {
+              "health": 160,
+              "speed": 10,
+              "energy": 160
+            },
+            "obtain": "Boss drops or chests"
+          },
+          {
+            "name": "Nekros' Shell",
+            "rarity": "Legendary",
+            "description": "Dark armor of Nekros",
+            "stats": {
+              "health": 250,
+              "speed": 5,
+              "energy": 180
+            },
+            "obtain": "Nekros boss drop"
+          }
+        ]
+      },
+      "hauntedTundra": {
+        "worldName": "Haunted Tundra",
+        "levelRange": "11-15",
+        "armors": [
+          {
+            "name": "Yeti Hide",
+            "rarity": "Rare",
+            "description": "Thick fur from a yeti",
+            "stats": {
+              "health": 140,
+              "speed": 5,
+              "energy": 145
+            },
+            "obtain": "Enemy drops"
+          },
+          {
+            "name": "Samurai Armor",
+            "rarity": "Epic",
+            "description": "Traditional Japanese armor",
+            "stats": {
+              "health": 190,
+              "speed": 12,
+              "energy": 175
+            },
+            "obtain": "Boss drops or chests"
+          },
+          {
+            "name": "Frost Mail",
+            "rarity": "Epic",
+            "description": "Armor infused with ice",
+            "stats": {
+              "health": 200,
+              "speed": 8,
+              "energy": 170
+            },
+            "obtain": "Enemy drops or chests"
+          },
+          {
+            "name": "Kori's Blessing",
+            "rarity": "Legendary",
+            "description": "Ultimate armor from Kori",
+            "stats": {
+              "health": 300,
+              "speed": 12,
+              "energy": 200
+            },
+            "obtain": "Kori boss drop"
+          }
+        ]
+      },
+      "special": {
+        "specialArmors": [
+          {
+            "name": "Void Armor",
+            "rarity": "Legendary",
+            "description": "Armor from the void",
+            "stats": {
+              "health": 280,
+              "speed": 10,
+              "energy": 190
+            },
+            "obtain": "Special events or drops"
+          },
+          {
+            "name": "Christmas Outfit",
+            "rarity": "Vaulted",
+            "description": "Festive limited armor",
+            "stats": {
+              "health": 150,
+              "speed": 15,
+              "energy": 160
+            },
+            "obtain": "Limited event (Vaulted)"
+          }
+        ]
+      }
+    }
+  }
+}

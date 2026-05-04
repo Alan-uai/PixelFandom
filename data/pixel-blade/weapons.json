@@ -1,0 +1,467 @@
+{
+  "weapons": {
+    "totalCount": 33,
+    "rarities": {
+      "common": 5,
+      "rare": 8,
+      "epic": 10,
+      "legendary": 8,
+      "vaulted": 2
+    },
+    "upgradeSystem": {
+      "legendary": {"duplicates": [1, 2, 5, 10, 20, 30], "maxLevel": 8},
+      "epic": {"duplicates": [1, 2, 5, 10, 20, 30, 40], "maxLevel": 8},
+      "rare": {"duplicates": [1, 8, 20, 50, 100, 200, 400, 1000, 2500], "maxLevel": 9},
+      "common": {"duplicates": [1, 8, 20, 50, 100, 200, 400, 1000, 2500], "maxLevel": 9}
+    },
+    "damageFormula": "Base ATK × (1 + Strength%) × (1 + Rage Multiplier) / Attack Speed",
+    "attackSpeedCategories": ["Fast", "Medium", "Slow"],
+    "tierList": {
+      "sTier": ["Solar", "Imperialist", "Stellar", "Golden Hand"],
+      "aTier": ["Royalist", "Nekros' Blade", "Kori's Fang", "Void Slayer"],
+      "bTier": ["Ghost Katana", "Ice Spear", "Sandstorm", "Necromancer Blade", "Forged Steel"],
+      "cTier": ["Blood Sickle", "Moon Sickle", "Frost Blade", "Buster Blade", "Nightmare Blade"],
+      "dTier": ["Ninja Blade", "Crusher", "Wooden Scythe", "Steel Sword", "Tomb Hammer", "Wing Blade"]
+    },
+    "weaponTypes": ["Sword", "Greatsword", "Scythe", "Hammer", "Axe", "Katana"],
+    "abilities": {
+      "unlockLevel": 2,
+      "activationDelay": "~1 second slow movement",
+      "cooldown": "Varies by weapon",
+      "list": [
+        {"name": "Tornado", "weapons": ["Wooden Sword", "Steel Sword"], "effect": "Whirling AOE attack for 2.5s"},
+        {"name": "Smash", "weapon": "Crusher", "effect": "Leap to nearest enemy and deal damage"},
+        {"name": "Berserk", "weapons": ["Tomb Hammer", "Blood Sickle"], "effect": "Temporary speed and damage boost"},
+        {"name": "Pierce", "weapon": "Wing Blade", "effect": "Dash forward, stunning pierce attack"},
+        {"name": "Slash", "weapon": "Ninja Blade", "effect": "Dash to closest enemy, strike twice (+5.7% damage each)"},
+        {"name": "Adrenaline", "weapon": "Sinner", "effect": "Speed boost + 9% HP shield"},
+        {"name": "Rejuvenate", "weapon": "Wooden Scythe", "effect": "Heal 10% HP + 10% HP shield"},
+        {"name": "Titan", "weapon": "Forged Steel", "effect": "Shockwave stun + 13% HP + ~1.11% damage boost"},
+        {"name": "Earthquake", "weapon": "Buster Blade", "effect": "Area rocks at half base damage"},
+        {"name": "Blind", "weapons": ["Nightmare Blade", "Excalibur"], "effect": "Stun nearby enemies briefly"},
+        {"name": "Sub-Zero", "weapon": "Frost Blade", "effect": "Frost blast + extra frost damage for 5s"},
+        {"name": "Venom", "weapon": "Shadow", "effect": "Poison damage over 5s"},
+        {"name": "Inferno", "weapon": "Fire Blade", "effect": "Flame blast + extra fire damage"},
+        {"name": "Solar", "weapon": "Solar Scythe", "effect": "Channel beam, fire damage to nearby enemies"},
+        {"name": "Blood Snowstorm", "weapon": "Infested Blade", "effect": "AOE frost + poison damage"},
+        {"name": "Lightning", "weapon": "Imperialist", "effect": "Chain lightning (9 enemies) + stun + speed boost"},
+        {"name": "Constellation", "weapon": "Stellar", "effect": "Dash between 4 targets, massive damage"},
+        {"name": "Raise The Dead", "weapon": "Necromancer Blade", "effect": "Summon ghouls, heal 2.5% when ability used (requires 2 souls)"},
+        {"name": "Gemstone", "weapon": "Crystal Scythe", "effect": "Collect crystals with spirits, shield + blast per crystal (7.5% shield, 20% dmg per crystal)"},
+        {"name": "Blood Thirst", "weapon": "Vampire Axe", "effect": "Frenzy 1.5x damage, heal 25% per basic attack for 5s"},
+        {"name": "Void Grip", "weapon": "Titan", "effect": "Shield absorbs damage, charged strike deals 1.5x damage"},
+        {"name": "Black Hole", "weapon": "Black Star", "effect": "Black hole sucks enemies and deals DOT"},
+        {"name": "Cosmic Beam", "weapon": "Sky Watcher", "effect": "Beam damages enemies in path, mark enemies for +25% damage per star card"},
+        {"name": "Death's Grasp", "weapon": "Death Scythe", "effect": "Half damage + stun, collect soul and spirit"},
+        {"name": "Oblivion", "weapon": "Oblivion Scythe", "effect": "Consume all souls/spirits, unleash scythes"},
+        {"name": "Spikes", "weapon": "Cactus Sword", "effect": "Grow spikes around, damage multiple times"},
+        {"name": "Lunar Spell", "weapon": "Moon Sickle", "effect": "Tracking poison projectile"},
+        {"name": "Bone Strength", "weapon": "Bone Blade", "effect": "Bone shield for 20s"},
+        {"name": "Dragon's Heart", "weapon": "Dragon's Heart", "effect": "Ablaze: Speed boost + flame damage + flame ground effect"},
+        {"name": "Spiritual Warp", "weapon": "Ghost Katana", "effect": "Teleport + 5% heal, stun enemies passed through (1.5x damage)"}
+      ]
+    },
+    "list": [
+      {
+        "name": "Wooden Sword",
+        "rarity": "Common",
+        "type": "Sword",
+        "damage": {"min": 9, "max": 83.2},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Medium",
+        "knockback": 1.6,
+        "ability": "Tornado",
+        "obtain": "Starting weapon (Tutorial)",
+        "drops": {
+          "common": {"multiplier": 10.0, "dropChance": "High"}
+        }
+      },
+      {
+        "name": "Steel Sword",
+        "rarity": "Common",
+        "type": "Sword",
+        "damage": {"min": 11, "max": 101.8},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Medium",
+        "knockback": 2,
+        "ability": "Tornado",
+        "obtain": "Craft (500 Gold) or Chests",
+        "drops": {
+          "common": {"multiplier": 10.0, "dropChance": "High"}
+        }
+      },
+      {
+        "name": "Wooden Scythe",
+        "rarity": "Common",
+        "type": "Scythe",
+        "damage": {"min": 12, "max": 111},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Medium",
+        "knockback": 2.4,
+        "ability": "Rejuvenate",
+        "obtain": "Chests or Enemy drops",
+        "drops": {
+          "common": {"multiplier": 10.0, "dropChance": "High"}
+        }
+      },
+      {
+        "name": "Crusher",
+        "rarity": "Common",
+        "type": "Hammer",
+        "damage": {"min": 16, "max": 148},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Slow",
+        "knockback": 3,
+        "ability": "Smash",
+        "obtain": "Chests or Enemy drops",
+        "drops": {
+          "common": {"multiplier": 10.0, "dropChance": "High"}
+        }
+      },
+      {
+        "name": "Sinner",
+        "rarity": "Common",
+        "type": "Sword",
+        "damage": {"min": 12, "max": 111},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Fast",
+        "knockback": 2,
+        "ability": "Adrenaline",
+        "obtain": "Heroic only - Chests",
+        "drops": {
+          "common": {"multiplier": 10.0, "dropChance": "High"}
+        }
+      },
+      {
+        "name": "Wing Blade",
+        "rarity": "Rare",
+        "type": "Sword",
+        "damage": {"min": 18, "max": 116},
+        "critChance": {"min": "12.5%", "max": "47.5%"},
+        "attackSpeed": "Fast",
+        "knockback": 2,
+        "ability": "Pierce",
+        "obtain": "Enemy drops"
+      },
+      {
+        "name": "Frost Blade",
+        "rarity": "Rare",
+        "type": "Sword",
+        "damage": {"min": 19, "max": 122.5},
+        "critChance": {"min": "12.5%", "max": "47.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 2,
+        "ability": "Sub-Zero",
+        "element": "Frost",
+        "obtain": "Enemy drops or Chests",
+        "drops": {
+          "rare": {"multiplier": 2.0, "dropChance": "Medium"}
+        }
+      },
+      {
+        "name": "Blood Sickle",
+        "rarity": "Rare",
+        "type": "Scythe",
+        "damage": {"min": 24, "max": 154.8},
+        "critChance": {"min": "12.5%", "max": "47.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 2,
+        "ability": "Berserk",
+        "obtain": "Grasslands drops",
+        "drops": {
+          "rare": {"multiplier": 2.0, "dropChance": "Medium"}
+        }
+      },
+      {
+        "name": "Moon Sickle",
+        "rarity": "Rare",
+        "type": "Scythe",
+        "damage": {"min": 22, "max": 142},
+        "critChance": {"min": "12.5%", "max": "47.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 2,
+        "ability": "Lunar Spell",
+        "element": "Poison",
+        "obtain": "Ancient Sands drops"
+      },
+      {
+        "name": "Tomb Hammer",
+        "rarity": "Rare",
+        "type": "Hammer",
+        "damage": {"min": 28, "max": 180.6},
+        "critChance": {"min": "12.5%", "max": "47.5%"},
+        "attackSpeed": "Slow",
+        "knockback": 3,
+        "ability": "Berserk",
+        "obtain": "Craft (1500 Gold) or drops",
+        "crafting": {"materials": ["15 Scorpion Tail", "25 Gold Ore"], "worth": "YES - Reliable mid-game weapon"}
+      },
+      {
+        "name": "Ninja Blade",
+        "rarity": "Rare",
+        "type": "Sword",
+        "damage": {"min": 32, "max": 195.2},
+        "critChance": {"min": "15%", "max": "50%"},
+        "attackSpeed": "Fast",
+        "knockback": 2,
+        "ability": "Slash",
+        "special": "Ability uses 2x stamina/energy compared to other weapons",
+        "obtain": "Enemy drops"
+      },
+      {
+        "name": "Cactus Sword",
+        "rarity": "Rare",
+        "type": "Sword",
+        "damage": {"min": 11, "max": 101.8},
+        "critChance": {"min": "10%", "max": "40%"},
+        "attackSpeed": "Fast",
+        "knockback": 2,
+        "ability": "Spikes",
+        "obtain": "Drops"
+      },
+      {
+        "name": "Shadow Scythe",
+        "rarity": "Epic",
+        "type": "Scythe",
+        "damage": {"min": 40, "max": 244},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "ability": "Venom",
+        "element": "Poison",
+        "obtain": "Heroic drops"
+      },
+      {
+        "name": "Ghost Katana",
+        "rarity": "Epic",
+        "type": "Katana",
+        "damage": {"min": 36, "max": 219.6},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Fast",
+        "knockback": 2,
+        "ability": "Spiritual Warp",
+        "element": "Ghost",
+        "obtain": "Chests or boss drops"
+      },
+      {
+        "name": "Necromancer Blade",
+        "rarity": "Epic",
+        "type": "Sword",
+        "damage": {"min": 36, "max": 190},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 2.5,
+        "ability": "Raise The Dead",
+        "element": "Dark",
+        "obtain": "Ancient Sands drops"
+      },
+      {
+        "name": "Ice Spear",
+        "rarity": "Epic",
+        "type": "Sword",
+        "damage": {"min": 35, "max": 185},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "element": "Frost",
+        "obtain": "Haunted Tundra drops"
+      },
+      {
+        "name": "Sandstorm",
+        "rarity": "Epic",
+        "type": "Sword",
+        "damage": {"min": 32, "max": 168},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 2.5,
+        "element": "Earth",
+        "obtain": "Ancient Sands drops"
+      },
+      {
+        "name": "Forged Steel",
+        "rarity": "Epic",
+        "type": "Greatsword",
+        "damage": {"min": 44, "max": 268.4},
+        "critChance": {"min": "15%", "max": "50%"},
+        "attackSpeed": "Slow",
+        "knockback": 3,
+        "ability": "Titan",
+        "obtain": "Craft (3500 Gold)",
+        "crafting": {"materials": ["10 Coal", "20 Gold Ore", "40 Iron Ore"], "worth": "YES - Best Epic for tanks"},
+        "drops": {
+          "epic": {"multiplier": 0.13, "dropChance": "Low"}
+        }
+      },
+      {
+        "name": "Buster Blade",
+        "rarity": "Epic",
+        "type": "Greatsword",
+        "damage": {"min": 49, "max": 298.9},
+        "critChance": {"min": "15%", "max": "50%"},
+        "attackSpeed": "Slow",
+        "knockback": 3,
+        "ability": "Earthquake",
+        "obtain": "Heroic only",
+        "drops": {
+          "epic": {"multiplier": 0.13, "dropChance": "Low"}
+        }
+      },
+      {
+        "name": "Nightmare Blade",
+        "rarity": "Epic",
+        "type": "Sword",
+        "damage": {"min": 35, "max": 213.5},
+        "critChance": {"min": "10%", "max": "45%"},
+        "attackSpeed": "Medium",
+        "knockback": 2,
+        "ability": "Blind",
+        "obtain": "Heroic only"
+      },
+      {
+        "name": "Imperialist",
+        "rarity": "Legendary",
+        "type": "Greatsword",
+        "damage": {"min": 52, "max": 300},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3.5,
+        "ability": "Lightning",
+        "element": "Frost",
+        "abilityDetails": {"chainTargets": 9, "effect": "Stun + Speed boost"},
+        "obtain": "Craft (15000 Gold) or Kori boss drop",
+        "crafting": {"materials": ["20 Spirit Essence", "30 Diamonds", "40 Frost Essence"], "worth": "YES - #1 ranked weapon"},
+        "drops": {
+          "legendary": {"multiplier": 0.04, "dropChance": "Very Low"}
+        },
+        "notes": "Best all-around weapon. Chain lightning, freeze control, self-speed boost."
+      },
+      {
+        "name": "Solar Scythe",
+        "rarity": "Legendary",
+        "type": "Scythe",
+        "damage": {"min": 60, "max": 267},
+        "critChance": {"min": "10%", "max": "50%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "ability": "Solar",
+        "element": "Fire",
+        "abilityDetails": {"effect": "Solar Beam - massive AoE damage, can be infinite with Recovery"},
+        "obtain": "Craft (10000 Gold)",
+        "crafting": {"materials": ["15 Diamonds", "25 Gold Ore", "30 Fire Essence"], "worth": "ABSOLUTELY - #1 boss DPS weapon"},
+        "notes": "Highest DPS weapon. Best for melting bosses."
+      },
+      {
+        "name": "Golden Hand",
+        "rarity": "Legendary",
+        "type": "Greatsword",
+        "damage": {"min": 48, "max": 280},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "obtain": "Boss drops or Raids"
+      },
+      {
+        "name": "Royalist",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": {"min": 45, "max": 260},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "obtain": "Boss drops",
+        "notes": "Despite being Epic rarity, provides invisibility + i-frames + speed boost. Excellent survivability."
+      },
+      {
+        "name": "Kori's Fang",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": 100,
+        "critChance": "Very High",
+        "knockback": "Very High",
+        "element": "Frost",
+        "obtain": "Kori boss drop (World 3)",
+        "notes": "Best in game - 100 damage"
+      },
+      {
+        "name": "Void Slayer",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": 95,
+        "critChance": "High",
+        "knockback": "High",
+        "element": "Void",
+        "obtain": "Boss drops"
+      },
+      {
+        "name": "Nekros' Blade",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": 80,
+        "critChance": "Medium-High",
+        "knockback": "Medium",
+        "element": "Dark",
+        "obtain": "Nekros boss drop"
+      },
+      {
+        "name": "Sky Watcher",
+        "rarity": "Legendary",
+        "type": "Greatsword",
+        "damage": {"min": 66, "max": 293.7},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "knockback": 3,
+        "ability": "Cosmic Vision",
+        "abilityDetails": {"effect": "Mark enemies for +25% damage per star card (max 8)", "energyCost": "40-45", "cooldown": "22s", "duration": "6s"},
+        "obtain": "Tundra Nightmare drop",
+        "dropRate": "0.0037%-0.083%",
+        "notes": "Stack Spirit Capacity + use Cosmic Vision for +25% damage per star card"
+      },
+      {
+        "name": "Black Star",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": {"min": 66, "max": 293.7},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "ability": "Black Hole",
+        "obtain": "World 3 weapon",
+        "notes": "Burst king. Extreme single-hit damage and area coverage. Dominates speedruns."
+      },
+      {
+        "name": "Infested Blade",
+        "rarity": "Legendary",
+        "type": "Sword",
+        "damage": {"min": 52, "max": 231.4},
+        "critChance": {"min": "17.5%", "max": "57.5%"},
+        "attackSpeed": "Medium",
+        "ability": "Blood Snowstorm",
+        "element": "Poison + Frost",
+        "notes": "Arguably worst legendary as of 1.5.0. Only redeeming + Frost with ability."
+      },
+      {
+        "name": "Halloween Scythe",
+        "rarity": "Vaulted",
+        "type": "Scythe",
+        "damage": {"min": 42, "max": 240},
+        "critChance": "High",
+        "knockback": "High",
+        "obtain": "Limited Halloween event"
+      },
+      {
+        "name": "Christmas Blade",
+        "rarity": "Vaulted",
+        "type": "Sword",
+        "damage": {"min": 40, "max": 230},
+        "critChance": "High",
+        "knockback": "Medium",
+        "obtain": "Limited Christmas event"
+      }
+    ],
+    "dropRateFormula": "Real Value% × Drop Chance = Answer, Answer × 100 = Final %",
+    "elementalDamage": {
+      "flame": {"dot": 21, "ticks": 3},
+      "frost": {"dot": 10.4, "ticks": 4, "effect": "Slow"},
+      "poison": {"dot": 15.8, "ticks": 2}
+    }
+  }
+}
