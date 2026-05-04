@@ -4,13 +4,13 @@ export * from './hooks';
 
 export type {
   Database,
-  User,
-  World,
-  Sword,
-  Dungeon,
-  Boss,
+  Weapon,
   Armor,
   Ring,
-  Quest,
-  Chest,
+  World,
+  Boss,
+  Enemy,
+  Upgrade,
+  Potion,
+  Code,
 } from './client';

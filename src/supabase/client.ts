@@ -19,422 +19,6 @@ export const supabase: SupabaseClient = createClient(
   }
 );
 
-export type Database = {
-  public: {
-    Tables: {
-      worlds: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          required_level: number;
-          image_url: string | null;
-          is_unlocked: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          required_level?: number;
-          image_url?: string | null;
-          is_unlocked?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          description?: string | null;
-          required_level?: number;
-          image_url?: string | null;
-          is_unlocked?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      swords: {
-        Row: {
-          id: string;
-          name: string;
-          type: 'damage' | 'scythe' | 'energy';
-          rarity: 'comum' | 'incomum' | 'raro' | 'epico' | 'lendario' | 'mitico' | 'phantom' | 'supremo' | 'divino';
-          base_damage: string | null;
-          one_star_damage: string | null;
-          two_star_damage: string | null;
-          three_star_damage: string | null;
-          enchantments: Json | null;
-          world_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          type: 'damage' | 'scythe' | 'energy';
-          rarity: 'comum' | 'incomum' | 'raro' | 'epico' | 'lendario' | 'mitico' | 'phantom' | 'supremo' | 'divino';
-          base_damage?: string | null;
-          one_star_damage?: string | null;
-          two_star_damage?: string | null;
-          three_star_damage?: string | null;
-          enchantments?: Json | null;
-          world_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          type?: 'damage' | 'scythe' | 'energy';
-          rarity?: 'comum' | 'incomum' | 'raro' | 'epico' | 'lendario' | 'mitico' | 'phantom' | 'supremo' | 'divino';
-          base_damage?: string | null;
-          one_star_damage?: string | null;
-          two_star_damage?: string | null;
-          three_star_damage?: string | null;
-          enchantments?: Json | null;
-          world_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      profiles: {
-        Row: {
-          id: string;
-          username: string | null;
-          email: string | null;
-          tag: string | null;
-          reputation_points: number;
-          credits: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          username?: string | null;
-          email?: string | null;
-          tag?: string | null;
-          reputation_points?: number;
-          credits?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          username?: string | null;
-          email?: string | null;
-          tag?: string | null;
-          reputation_points?: number;
-          credits?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      user_inventory: {
-        Row: {
-          id: string;
-          user_id: string;
-          item_type: 'sword' | 'armor' | 'potion' | 'ring' | 'accessory' | 'aura' | 'pet' | 'chest' | 'quest' | 'fighter';
-          item_id: string;
-          quantity: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          item_type: 'sword' | 'armor' | 'potion' | 'ring' | 'accessory' | 'aura' | 'pet' | 'chest' | 'quest' | 'fighter';
-          item_id: string;
-          quantity?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          item_type?: 'sword' | 'armor' | 'potion' | 'ring' | 'accessory' | 'aura' | 'pet' | 'chest' | 'quest' | 'fighter';
-          item_id?: string;
-          quantity?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      user_weapons: {
-        Row: {
-          id: string;
-          user_id: string;
-          slot_index: number;
-          sword_id: string | null;
-          equipped_rarity: string | null;
-          evolution_level: number;
-          breathing_enchantment: string | null;
-          stone_enchantment: string | null;
-          passive_enchantment: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          slot_index: number;
-          sword_id?: string | null;
-          equipped_rarity?: string | null;
-          evolution_level?: number;
-          breathing_enchantment?: string | null;
-          stone_enchantment?: string | null;
-          passive_enchantment?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          slot_index?: number;
-          sword_id?: string | null;
-          equipped_rarity?: string | null;
-          evolution_level?: number;
-          breathing_enchantment?: string | null;
-          stone_enchantment?: string | null;
-          passive_enchantment?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      dungeons: {
-        Row: {
-          id: string;
-          world_id: string | null;
-          name: string;
-          description: string | null;
-          boss_id: string | null;
-          required_level: number;
-          energy_cost: number;
-          reward_coins: string | null;
-          reward_exp: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          world_id?: string | null;
-          name: string;
-          description?: string | null;
-          boss_id?: string | null;
-          required_level?: number;
-          energy_cost?: number;
-          reward_coins?: string | null;
-          reward_exp?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          world_id?: string | null;
-          name?: string;
-          description?: string | null;
-          boss_id?: string | null;
-          required_level?: number;
-          energy_cost?: number;
-          reward_coins?: string | null;
-          reward_exp?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      bosses: {
-        Row: {
-          id: string;
-          world_id: string | null;
-          name: string;
-          rank: string | null;
-          hp: string | null;
-          exp_reward: string | null;
-          coin_reward: string | null;
-          drop_items: Json | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          world_id?: string | null;
-          name: string;
-          rank?: string | null;
-          hp?: string | null;
-          exp_reward?: string | null;
-          coin_reward?: string | null;
-          drop_items?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          world_id?: string | null;
-          name?: string;
-          rank?: string | null;
-          hp?: string | null;
-          exp_reward?: string | null;
-          coin_reward?: string | null;
-          drop_items?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      armors: {
-        Row: {
-          id: string;
-          name: string;
-          rarity: string;
-          world_id: string | null;
-          drop_boss_id: string | null;
-          damage_bonus: string | null;
-          energy_bonus: string | null;
-          coins_bonus: string | null;
-          exp_bonus: string | null;
-          movespeed_bonus: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          rarity: string;
-          world_id?: string | null;
-          drop_boss_id?: string | null;
-          damage_bonus?: string | null;
-          energy_bonus?: string | null;
-          coins_bonus?: string | null;
-          exp_bonus?: string | null;
-          movespeed_bonus?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          rarity?: string;
-          world_id?: string | null;
-          drop_boss_id?: string | null;
-          damage_bonus?: string | null;
-          energy_bonus?: string | null;
-          coins_bonus?: string | null;
-          exp_bonus?: string | null;
-          movespeed_bonus?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      rings: {
-        Row: {
-          id: string;
-          name: string;
-          rarity: string;
-          material: string | null;
-          bonus_type: 'damage' | 'energy' | 'coins' | 'exp' | 'movespeed' | 'luck';
-          bonus_value: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          rarity: string;
-          material?: string | null;
-          bonus_type: 'damage' | 'energy' | 'coins' | 'exp' | 'movespeed' | 'luck';
-          bonus_value?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          rarity?: string;
-          material?: string | null;
-          bonus_type?: 'damage' | 'energy' | 'coins' | 'exp' | 'movespeed' | 'luck';
-          bonus_value?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      quests: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          world_id: string | null;
-          required_level: number;
-          reward_coins: string | null;
-          reward_exp: string | null;
-          reward_items: Json | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          world_id?: string | null;
-          required_level?: number;
-          reward_coins?: string | null;
-          reward_exp?: string | null;
-          reward_items?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          description?: string | null;
-          world_id?: string | null;
-          required_level?: number;
-          reward_coins?: string | null;
-          reward_exp?: string | null;
-          reward_items?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      chests: {
-        Row: {
-          id: string;
-          name: string;
-          rarity: string;
-          world_id: string | null;
-          cost_coins: string | null;
-          cost_gems: string | null;
-          possible_items: Json | null;
-          drop_rates: Json | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          rarity: string;
-          world_id?: string | null;
-          cost_coins?: string | null;
-          cost_gems?: string | null;
-          possible_items?: Json | null;
-          drop_rates?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          rarity?: string;
-          world_id?: string | null;
-          cost_coins?: string | null;
-          cost_gems?: string | null;
-          possible_items?: Json | null;
-          drop_rates?: Json | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-  };
-};
-
 export type Json =
   | string
   | number
@@ -443,12 +27,544 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type User = Database['public']['Tables']['profiles']['Row'];
-export type World = Database['public']['Tables']['worlds']['Row'];
-export type Sword = Database['public']['Tables']['swords']['Row'];
-export type Dungeon = Database['public']['Tables']['dungeons']['Row'];
-export type Boss = Database['public']['Tables']['bosses']['Row'];
+export type Database = {
+  public: {
+    Tables: {
+      weapons: {
+        Row: {
+          id: string;
+          name: string;
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          weapon_type: string;
+          damage_min: number;
+          damage_max: number;
+          crit_chance_min: number;
+          crit_chance_max: number;
+          attack_speed: 'fast' | 'medium' | 'slow';
+          knockback: number;
+          element: 'fire' | 'frost' | 'poison' | 'dark' | 'ghost' | 'void' | 'earth' | 'none';
+          ability_name: string | null;
+          ability_description: string | null;
+          ability_energy_cost: number | null;
+          ability_cooldown: number | null;
+          ability_effect: string | null;
+          obtain_method: string | null;
+          craft_cost: number | null;
+          craft_materials: Json | null;
+          is_worth_crafting: boolean;
+          drop_rate_multiplier: number | null;
+          drop_rate_percentage: number | null;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          weapon_type: string;
+          damage_min: number;
+          damage_max: number;
+          crit_chance_min: number;
+          crit_chance_max: number;
+          attack_speed: 'fast' | 'medium' | 'slow';
+          knockback: number;
+          element: 'fire' | 'frost' | 'poison' | 'dark' | 'ghost' | 'void' | 'earth' | 'none';
+          ability_name?: string | null;
+          ability_description?: string | null;
+          ability_energy_cost?: number | null;
+          ability_cooldown?: number | null;
+          ability_effect?: string | null;
+          obtain_method?: string | null;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          is_worth_crafting?: boolean;
+          drop_rate_multiplier?: number | null;
+          drop_rate_percentage?: number | null;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          weapon_type?: string;
+          damage_min?: number;
+          damage_max?: number;
+          crit_chance_min?: number;
+          crit_chance_max?: number;
+          attack_speed?: 'fast' | 'medium' | 'slow';
+          knockback?: number;
+          element?: 'fire' | 'frost' | 'poison' | 'dark' | 'ghost' | 'void' | 'earth' | 'none';
+          ability_name?: string | null;
+          ability_description?: string | null;
+          ability_energy_cost?: number | null;
+          ability_cooldown?: number | null;
+          ability_effect?: string | null;
+          obtain_method?: string | null;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          is_worth_crafting?: boolean;
+          drop_rate_multiplier?: number | null;
+          drop_rate_percentage?: number | null;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      armors: {
+        Row: {
+          id: string;
+          name: string;
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          world_name: string | null;
+          health_bonus: number;
+          speed_bonus: number;
+          energy_bonus: number;
+          passive_ability: string | null;
+          passive_ability_level: number | null;
+          obtain_method: string | null;
+          craft_cost: number | null;
+          craft_materials: Json | null;
+          set_bonus: Json | null;
+          is_worth_crafting: boolean;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          world_name?: string | null;
+          health_bonus: number;
+          speed_bonus: number;
+          energy_bonus: number;
+          passive_ability?: string | null;
+          passive_ability_level?: number | null;
+          obtain_method?: string | null;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          set_bonus?: Json | null;
+          is_worth_crafting?: boolean;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          world_name?: string | null;
+          health_bonus?: number;
+          speed_bonus?: number;
+          energy_bonus?: number;
+          passive_ability?: string | null;
+          passive_ability_level?: number | null;
+          obtain_method?: string | null;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          set_bonus?: Json | null;
+          is_worth_crafting?: boolean;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      rings: {
+        Row: {
+          id: string;
+          name: string;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          description: string | null;
+          starting_banner: string | null;
+          key_buffs: Json | null;
+          possible_stats: Json | null;
+          synergy: string | null;
+          is_craftable: boolean;
+          craft_cost: number | null;
+          craft_materials: Json | null;
+          is_worth_crafting: boolean;
+          obtain_method: string | null;
+          drop_wave_requirement: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          description?: string | null;
+          starting_banner?: string | null;
+          key_buffs?: Json | null;
+          possible_stats?: Json | null;
+          synergy?: string | null;
+          is_craftable?: boolean;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          is_worth_crafting?: boolean;
+          obtain_method?: string | null;
+          drop_wave_requirement?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'vaulted';
+          description?: string | null;
+          starting_banner?: string | null;
+          key_buffs?: Json | null;
+          possible_stats?: Json | null;
+          synergy?: string | null;
+          is_craftable?: boolean;
+          craft_cost?: number | null;
+          craft_materials?: Json | null;
+          is_worth_crafting?: boolean;
+          obtain_method?: string | null;
+          drop_wave_requirement?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      worlds: {
+        Row: {
+          id: string;
+          world_name: string;
+          world_number: number;
+          world_type: string | null;
+          level_range: string | null;
+          status: string | null;
+          description: string | null;
+          environment: string | null;
+          chapters: number;
+          levels_per_chapter: number;
+          difficulties: Json | null;
+          is_coming_soon: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          world_name: string;
+          world_number: number;
+          world_type?: string | null;
+          level_range?: string | null;
+          status?: string | null;
+          description?: string | null;
+          environment?: string | null;
+          chapters?: number;
+          levels_per_chapter?: number;
+          difficulties?: Json | null;
+          is_coming_soon?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          world_name?: string;
+          world_number?: number;
+          world_type?: string | null;
+          level_range?: string | null;
+          status?: string | null;
+          description?: string | null;
+          environment?: string | null;
+          chapters?: number;
+          levels_per_chapter?: number;
+          difficulties?: Json | null;
+          is_coming_soon?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      bosses: {
+        Row: {
+          id: string;
+          name: string;
+          world_name: string | null;
+          chapter: number | null;
+          boss_type: string | null;
+          description: string | null;
+          hp_level: string | null;
+          difficulty: string | null;
+          attacks: Json | null;
+          phase_mechanics: string | null;
+          weakness: string[] | null;
+          strategy: string | null;
+          tips: string[] | null;
+          xp_drop: string | null;
+          items_dropped: Json | null;
+          notable_loot: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          world_name?: string | null;
+          chapter?: number | null;
+          boss_type?: string | null;
+          description?: string | null;
+          hp_level?: string | null;
+          difficulty?: string | null;
+          attacks?: Json | null;
+          phase_mechanics?: string | null;
+          weakness?: string[] | null;
+          strategy?: string | null;
+          tips?: string[] | null;
+          xp_drop?: string | null;
+          items_dropped?: Json | null;
+          notable_loot?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          world_name?: string | null;
+          chapter?: number | null;
+          boss_type?: string | null;
+          description?: string | null;
+          hp_level?: string | null;
+          difficulty?: string | null;
+          attacks?: Json | null;
+          phase_mechanics?: string | null;
+          weakness?: string[] | null;
+          strategy?: string | null;
+          tips?: string[] | null;
+          xp_drop?: string | null;
+          items_dropped?: Json | null;
+          notable_loot?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      enemies: {
+        Row: {
+          id: string;
+          name: string;
+          world_name: string | null;
+          chapters: Json | null;
+          enemy_type: string | null;
+          description: string | null;
+          health_level: string | null;
+          speed_level: string | null;
+          strength_level: string | null;
+          difficulty: string | null;
+          attacks: Json | null;
+          effects: Json | null;
+          xp_drop: string | null;
+          coin_drop: string | null;
+          items_dropped: Json | null;
+          weakness: string[] | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          world_name?: string | null;
+          chapters?: Json | null;
+          enemy_type?: string | null;
+          description?: string | null;
+          health_level?: string | null;
+          speed_level?: string | null;
+          strength_level?: string | null;
+          difficulty?: string | null;
+          attacks?: Json | null;
+          effects?: Json | null;
+          xp_drop?: string | null;
+          coin_drop?: string | null;
+          items_dropped?: Json | null;
+          weakness?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          world_name?: string | null;
+          chapters?: Json | null;
+          enemy_type?: string | null;
+          description?: string | null;
+          health_level?: string | null;
+          speed_level?: string | null;
+          strength_level?: string | null;
+          difficulty?: string | null;
+          attacks?: Json | null;
+          effects?: Json | null;
+          xp_drop?: string | null;
+          coin_drop?: string | null;
+          items_dropped?: Json | null;
+          weakness?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      upgrades: {
+        Row: {
+          id: string;
+          name: string;
+          category: string;
+          description: string | null;
+          effect: string;
+          per_rank_effect: string | null;
+          max_ranks: number;
+          damage_per_spirit: number | null;
+          speed_per_spirit: number | null;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          priority_order: number | null;
+          is_must_pick: boolean;
+          notes: string | null;
+          important_notes: string[] | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          category: string;
+          description?: string | null;
+          effect: string;
+          per_rank_effect?: string | null;
+          max_ranks?: number;
+          damage_per_spirit?: number | null;
+          speed_per_spirit?: number | null;
+          tier: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          priority_order?: number | null;
+          is_must_pick?: boolean;
+          notes?: string | null;
+          important_notes?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          category?: string;
+          description?: string | null;
+          effect?: string;
+          per_rank_effect?: string | null;
+          max_ranks?: number;
+          damage_per_spirit?: number | null;
+          speed_per_spirit?: number | null;
+          tier?: 's_plus' | 's' | 'a' | 'b' | 'c' | 'd';
+          priority_order?: number | null;
+          is_must_pick?: boolean;
+          notes?: string | null;
+          important_notes?: string[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      potions: {
+        Row: {
+          id: string;
+          name: string;
+          effects: Json;
+          shop_price: number | null;
+          crafting_cost: number | null;
+          crafting_materials: Json | null;
+          savings_percentage: number | null;
+          unlock_level: number | null;
+          second_slot_unlock_level: number | null;
+          max_uses_per_run: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          effects: Json;
+          shop_price?: number | null;
+          crafting_cost?: number | null;
+          crafting_materials?: Json | null;
+          savings_percentage?: number | null;
+          unlock_level?: number | null;
+          second_slot_unlock_level?: number | null;
+          max_uses_per_run?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          effects?: Json;
+          shop_price?: number | null;
+          crafting_cost?: number | null;
+          crafting_materials?: Json | null;
+          savings_percentage?: number | null;
+          unlock_level?: number | null;
+          second_slot_unlock_level?: number | null;
+          max_uses_per_run?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      codes: {
+        Row: {
+          id: string;
+          code: string;
+          rewards: Json;
+          reward_type: string | null;
+          code_type: string | null;
+          is_active: boolean;
+          verified_date: string | null;
+          verified_by: string | null;
+          is_expired: boolean;
+          expired_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          rewards: Json;
+          reward_type?: string | null;
+          code_type?: string | null;
+          is_active?: boolean;
+          verified_date?: string | null;
+          verified_by?: string | null;
+          is_expired?: boolean;
+          expired_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          rewards?: Json;
+          reward_type?: string | null;
+          code_type?: string | null;
+          is_active?: boolean;
+          verified_date?: string | null;
+          verified_by?: string | null;
+          is_expired?: boolean;
+          expired_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+  };
+};
+
+export type Weapon = Database['public']['Tables']['weapons']['Row'];
 export type Armor = Database['public']['Tables']['armors']['Row'];
 export type Ring = Database['public']['Tables']['rings']['Row'];
-export type Quest = Database['public']['Tables']['quests']['Row'];
-export type Chest = Database['public']['Tables']['chests']['Row'];
+export type World = Database['public']['Tables']['worlds']['Row'];
+export type Boss = Database['public']['Tables']['bosses']['Row'];
+export type Enemy = Database['public']['Tables']['enemies']['Row'];
+export type Upgrade = Database['public']['Tables']['upgrades']['Row'];
+export type Potion = Database['public']['Tables']['potions']['Row'];
+export type Code = Database['public']['Tables']['codes']['Row'];
