@@ -219,7 +219,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
     toggleSaveAnswer, 
     isAnswerSaved,
     wikiArticles: wikiArticles || [],
-    isWikiLoading: (isFirestoreWikiLoading || areSavedAnswersLoading || isMetadataLoading) && wikiArticles.length === 0,
+    isWikiLoading: (isFirestoreWikiLoading || areSavedAnswersLoading) && wikiArticles.length === 0,
     isAuthDialogOpen,
     setAuthDialogOpen,
     gameDataVersion,
