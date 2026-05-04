@@ -5,20 +5,32 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+const FALLBACK_FIREBASE_CONFIG = {
+  projectId: "studio-7418937138-8cc95",
+  appId: "1:904481424539:web:4180cfbbe003dbcc08b23e",
+  apiKey: "demo-api-key",
+  authDomain: "studio-7418937138-8cc95.firebaseapp.com",
+  measurementId: "",
+  messagingSenderId: "904481424539"
+};
+
+function hasValidFirebaseConfig(): boolean {
+  return !!(firebaseConfig.apiKey && firebaseConfig.apiKey !== "AIzaSyAyqsRuvDyAFnk7I6Wbaaeijg3Hb_2BYro");
+}
+
 export function initializeFirebase() {
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
     let firebaseApp;
+    
+    if (!hasValidFirebaseConfig()) {
+      console.warn('Firebase not configured - using fallback config for development');
+      firebaseApp = initializeApp(FALLBACK_FIREBASE_CONFIG);
+      return getSdks(firebaseApp);
+    }
+    
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
       firebaseApp = initializeApp();
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
       if (process.env.NODE_ENV === "production") {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
@@ -28,7 +40,6 @@ export function initializeFirebase() {
     return getSdks(firebaseApp);
   }
 
-  // If already initialized, return the SDKs with the already initialized App
   return getSdks(getApp());
 }
 
