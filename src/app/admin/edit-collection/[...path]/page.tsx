@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/hooks/use-admin';
 import { Loader2, ShieldAlert, ChevronRight, Files, PlusCircle, Pencil, Trash2, Save, Upload } from 'lucide-react';
-import { useFirestore, useDoc, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
-import { doc, collection, deleteDoc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
@@ -29,7 +27,8 @@ import { seedWorldData } from '@/ai/flows/seed-world-data-flow';
 
 function NewWorldForm() {
     const router = useRouter();
-    const { firestore } = useFirebase();
+    // TODO: Replace Firebase with Supabase
+    // const { firestore } = useFirebase();
     const { toast } = useToast();
     const [worldName, setWorldName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -41,85 +40,17 @@ function NewWorldForm() {
         setFileCount(files ? files.length : 0);
     };
 
+    // TODO: Replace Firebase/Firestore functionality with Supabase
     const handleCreateWorld = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!worldName.trim() || !firestore) return;
+        if (!worldName.trim()) return;
 
         setIsCreating(true);
-        const files = fileInputRef.current?.files;
-
-        try {
-            // Case 1: No files, just create the world document
-            if (!files || files.length === 0) {
-                const worldId = worldName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                if (!worldId) {
-                    toast({ variant: 'destructive', title: 'Nome Inválido', description: 'Por favor, insira um nome de mundo válido.' });
-                    setIsCreating(false);
-                    return;
-                }
-                const worldRef = doc(firestore, 'worlds', worldId);
-                await setDoc(worldRef, { name: worldName });
-                toast({ title: 'Mundo Criado!', description: `O mundo "${worldName}" foi criado. Você pode adicionar coleções a ele agora.` });
-                router.push(`/admin/manage-content`);
-                return;
-            }
-
-            // Case 2: Files provided, start the Smart Seeding process
-            toast({ title: 'Processando Arquivos...', description: 'A IA está lendo e estruturando os dados. Isso pode levar um momento.' });
-
-            let allExtractedText = '';
-            
-            for (const file of Array.from(files)) {
-                const reader = new FileReader();
-                const filePromise = new Promise<string>((resolve, reject) => {
-                    reader.onload = async () => {
-                        try {
-                            const fileDataUri = reader.result as string;
-                            const extractionType = file.type.startsWith('image/') || file.type === 'application/pdf' ? 'json' : 'markdown';
-                            
-                            const rawTextResult = await extractTextFromFile({ fileDataUri, extractionType: 'markdown' });
-                            if (!rawTextResult || typeof rawTextResult.extractedText === 'undefined') {
-                                throw new Error(`A IA não conseguiu extrair texto do arquivo: ${file.name}`);
-                            }
-                            resolve(rawTextResult.extractedText);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-                    reader.onerror = (error) => reject(error);
-                    reader.readAsDataURL(file);
-                });
-                
-                allExtractedText += (await filePromise) + '\n\n';
-            }
-            
-            if (!allExtractedText.trim()) {
-                throw new Error("A IA não conseguiu extrair nenhum texto dos arquivos fornecidos.");
-            }
-
-            // Step 2: Format the combined extracted text into a structured JSON
-            const jsonResult = await formatTextToJson({ rawText: allExtractedText });
-             if (!jsonResult || !jsonResult.jsonString || jsonResult.jsonString === '[]') {
-                throw new Error("A IA não conseguiu formatar os dados para JSON a partir dos textos combinados.");
-            }
-
-            // Step 3: Seed the data into Firestore using the new flow
-            toast({ title: 'Semeando Dados...', description: 'Os dados foram estruturados. Agora, salvando no banco de dados.' });
-            const seedResult = await seedWorldData({ worldName, worldDataJson: jsonResult.jsonString });
-            
-            if (seedResult) {
-                toast({ title: 'Mundo Criado e Populado!', description: `O mundo "${worldName}" e seus dados foram criados com sucesso.` });
-                router.push('/admin/manage-content');
-            } else {
-                throw new Error("Falha ao salvar os dados do mundo no Firestore.");
-            }
-
-        } catch (error: any) {
-            console.error("Erro ao criar mundo:", error);
-            toast({ variant: 'destructive', title: "Erro ao Criar", description: error.message });
-        } finally {
-            setIsCreating(false);
-        }
+        // TODO: Implement Supabase-based world creation
+        // For now, just show a toast and redirect
+        toast({ title: 'Funcionalidade em desenvolvimento', description: 'A funcionalidade de criação de mundo está sendo atualizada para usar Supabase.' });
+        setIsCreating(false);
+        router.push('/admin/manage-content');
     };
 
     return (
@@ -169,7 +100,6 @@ function NewWorldForm() {
 export default function EditCollectionPage() {
   const params = useParams();
   const router = useRouter();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
 
@@ -181,7 +111,7 @@ export default function EditCollectionPage() {
   
   const isSubCollection = queryPath.length > 2;
   const subCollectionName = isSubCollection ? queryPath[2] : null;
-
+  
   const isWorldContext = queryPath[0] === 'worlds';
   const worldId = isWorldContext && queryPath.length > 1 ? queryPath[1] : null;
   
@@ -189,31 +119,21 @@ export default function EditCollectionPage() {
   if (isNew && queryPath.length === 1 && queryPath[0] === 'worlds') {
     return <NewWorldForm />;
   }
-
-  const worldRef = useMemoFirebase(() => {
-    if (!firestore || !worldId) return null;
-    return doc(firestore, 'worlds', worldId);
-  }, [firestore, worldId]);
-
-  const subCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !worldId || !subCollectionName) return null;
-    return collection(firestore, 'worlds', worldId, subCollectionName);
-  }, [firestore, worldId, subCollectionName]);
-
-  const { data: worldData, isLoading: isWorldLoading } = useDoc(worldRef);
-  const { data: subCollectionData, isLoading: isSubCollectionLoading } = useCollection(subCollectionRef as any);
-
+  
+  // TODO: Replace Firebase/Firestore functionality with Supabase
+  // For now, placeholder values
+  const worldData = null;
+  const isWorldLoading = false;
+  const subCollectionData = null;
+  const isSubCollectionLoading = false;
+  
+  // TODO: Replace Firebase/Firestore delete functionality with Supabase
   const handleDelete = async (itemId: string) => {
-    if (!subCollectionRef) return;
-    try {
-      await deleteDoc(doc(subCollectionRef, itemId));
-      toast({ title: "Item Removido", description: "O item foi removido com sucesso da coleção." });
-    } catch (error: any) {
-      console.error("Erro ao remover item:", error);
-      toast({ variant: 'destructive', title: "Erro ao Remover", description: error.message });
-    }
+    // TODO: Implement Supabase-based deletion
+    console.log('Delete item:', itemId);
+    toast({ title: "Funcionalidade em desenvolvimento", description: "A funcionalidade de exclusão está sendo atualizada para usar Supabase." });
   };
-
+  
   const isLoading = isAdminLoading || isWorldLoading || isSubCollectionLoading;
 
   if (isLoading) {
