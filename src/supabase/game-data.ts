@@ -119,3 +119,22 @@ export async function getGameDataVersion(): Promise<string> {
     return today;
   }
 }
+
+export async function getUpdateLog() {
+  try {
+    const { data, error } = await supabase
+      .from('game_config')
+      .select('config_value')
+      .eq('config_key', 'updateLog')
+      .single();
+
+    if (error || !data) {
+      return { message: 'No update log available.' };
+    }
+
+    return data.config_value || { message: 'No update log available.' };
+  } catch (error) {
+    console.error('Error fetching update log:', error);
+    return { error: 'An error occurred while fetching the update log.' };
+  }
+}

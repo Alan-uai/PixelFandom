@@ -2,42 +2,54 @@
 
 ## Project Overview
 
-This repo contains two projects:
-- **PixelFandom** (root): Next.js 15 site for Pixel Wizard World wiki
-- **PixelBot** (`/PixelBot`): Discord bot
+Two separate projects with independent `.git` directories:
+- **PixelFandom** (root): Next.js 15 wiki for "Anime Eternal" game (Roblox)
+- **PixelBot** (`PixelBot/`): Discord bot for the same game
 
 ## Commands
 
-### Site (PixelFandom)
+### PixelFandom (root)
 ```bash
-npm run dev         # Dev server on port 9002
-npm run build      # Production build (ignores TS/ESLint errors - see next.config.ts)
-npm run lint      # Lint
-npm run typecheck # TypeScript check
+npm run dev         # Next.js dev server on port 9002 (uses Turbopack)
+npm run build      # Production build (ignores TS/ESLint errors intentionally)
+npm run lint       # Next.js lint
+npm run typecheck  # tsc --noEmit
 ```
 
-### Discord Bot (PixelBot)
+### PixelBot
 ```bash
-cd PixelBot && npm run dev    # Dev with --watch
-cd PixelBot && npm start     # Production with pm2
-```
-
-## Database
-
-Supabase migrations in `supabase/migrations/`. Run with:
-```bash
-npx supabase db push
+cd PixelBot && npm install
+cd PixelBot && node --watch src/index.js   # Dev mode
+cd PixelBot && npm start                   # Production via pm2
 ```
 
 ## Architecture Notes
 
-- Next.js uses TypeScript with `ignoreBuildErrors: true` in next.config.ts
-- Auth via Firebase (see `src/firebase/`)
-- AI flows via OpenRouter SDK in `src/ai/flows/`
-- Bot uses pm2 for production process management
+- **Next.js build ignores errors**: `ignoreBuildErrors: false` and `ignoreDuringBuilds: false` in `next.config.ts` aren't intentional
+- **PixelBot is plain Node.js** (ES modules)
+- **Auth**: Discord (`src/auth`)
+- **Database**: Supabase (`supabase/migrations/`, `src/supabase/`)
+- **AI features**: OpenRouter SDK (`src/ai/flows/`)
+- **Game data**: Static files in `src/lib/world-*-data.ts` + Supabase for dynamic content
+- **PixelBot structure**: `commands/`, `events/`, `loaders/`, `services/`, `jobs/`, `ai/`, `utils/`
+- **Deprecated**: `PixelBot/src/deploy-commands.js` is discontinued (deploy logic moved to main bot)
+
+## Environment Setup
+
+- Root: copy `.env.local.example` → `.env.local`
+- PixelBot: copy `PixelBot/.env.example` → `PixelBot/.env`
+- Required: Discord token, client ID, guild ID, Supabase credentials, OpenRouter API key
+
+## Database
+
+Supabase migrations in `supabase/migrations/`. Push with:
+```bash
+npx supabase db push
+```
+Schema reference: `supabase/SCHEMA.md` (18 tables for game data)
 
 ## Git Workflow
 
-- PixelFandom remote: `https://github.com/Alan-uai/PixelFandom`
-- PixelBot remote: `https://github.com/Alan-uai/PixelBot`
-- Each project has its own .git directory (nested in PixelBot/)
+- **PixelFandom remote**: `https://github.com/Alan-uai/PixelFandom`
+- **PixelBot remote**: `https://github.com/Alan-uai/PixelBot`
+- Each project has its own `.git` directory (PixelBot's is nested)

@@ -1,8 +1,16 @@
 // src/ai/flows/generate-solution.ts
 'use server';
 import { z } from 'zod';
-import { chat, chatStreamSSE } from '@/lib/openrouter-client';
+import { chatWithTools, chatStreamSSE } from '@/lib/openrouter-client';
 import { getGameDataByWorld, getUserProfileJson } from '@/supabase/game-data';
+import { personas } from '@/lib/personas';
+import { responseStyles } from '@/lib/response-styles';
+import { emojiStyles } from '@/lib/emoji-styles';
+import { officialLanguages } from '@/lib/official-languages';
+import { funLanguages } from '@/lib/fun-languages';
+
+// Unifica os idiomas em um único objeto para facilitar a busca
+const allLanguages = { ...officialLanguages, ...funLanguages };
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -13,6 +21,15 @@ const GenerateSolutionInputSchema = z.object({
   problemDescription: z.string().describe('A description of the player is encountering in Anime Eternal.'),
   wikiContext: z.string().describe('The entire content of the game wiki to be used as a knowledge base.'),
   history: z.array(MessageSchema).optional().describe('The previous messages in the conversation.'),
+  responseStyleInstruction: z.string().optional().describe('Uma instrução específica sobre o estilo de resposta (curta, média, detalhada, tópicos, etc.).'),
+  personaInstruction: z.string().optional().describe('Uma instrução específica sobre a persona que a IA deve adotar (amigável, técnico, engraçado, etc.).'),
+  languageInstruction: z.string().optional().describe('Uma instrução específica sobre o idioma em que a resposta deve ser gerada.'),
+  emojiInstruction: z.string().optional().describe('Uma instrução sobre como usar emojis.'),
+  userName: z.string().optional().describe('O nome do usuário para uma saudação personalizada.'),
+  userTitle: z.string().optional().describe('Um título honorífico que o usuário escolheu (Mestre, Campeão, etc.).'),
+  userProfileContext: z.string().optional().describe("Dados do perfil do jogador (mundo atual, rank, DPS) para contextualizar a resposta."),
+  userGoalsContext: z.string().optional().describe("As metas atuais que o jogador definiu para si mesmo."),
+  imageDataUri: z.string().optional().describe("Uma foto relacionada ao problema, como um data URI."),
 });
 export type GenerateSolutionInput = z.infer<typeof GenerateSolutionInputSchema>;
 
@@ -82,16 +99,22 @@ async function getUserProfileData() {
   }
 }
 
-async function searchGameData(worldName: string, category: string, itemName?: string) {
-  try {
-    return await getGameDataByWorld(worldName, category, itemName);
-  } catch {
-    return null;
-  }
-}
-
 export async function generateSolution(input: GenerateSolutionInput): Promise<GenerateSolutionOutput> {
-  const { problemDescription, wikiContext, history } = input;
+  const { problemDescription, wikiContext, history, personaInstruction, responseStyleInstruction, languageInstruction, emojiInstruction, userName, userTitle } = input;
+
+  // Fallbacks para personalização
+  const persona = personaInstruction || personas.amigavel.instruction;
+  const responseStyle = responseStyleInstruction || responseStyles.detailed.instruction;
+  const language = languageInstruction || allLanguages.pt_br.instruction;
+  const emoji = emojiInstruction || emojiStyles.moderate.instruction;
+
+  // Saudação personalizada
+  let greeting = 'Olá!';
+  if (userTitle && userName) {
+    greeting = `Olá, ${userTitle} ${userName}!`;
+  } else if (userName) {
+    greeting = `Olá, ${userName}!`;
+  }
 
   const historyText = history ? history.map(m => `- ${m.role}: ${m.content}`).join('\n') : '';
 
@@ -100,10 +123,18 @@ export async function generateSolution(input: GenerateSolutionInput): Promise<Ge
     ? `Dados do perfil do usuário: ${JSON.stringify(userProfile)}`
     : 'Dados do perfil não disponíveis.';
 
-  const userPrompt = `**Regras Gerais:**
-${SYSTEM_PROMPT}
+  const userPrompt = `**Personalidade:** ${persona}
+**Estilo de Resposta:** ${responseStyle}
+**Uso de Emojis:** ${emoji}
+**Idioma Final:** ${language}
+- Traduza e adapte culturalmente para o idioma solicitado.
+
+**REGRAS CRÍTICAS:**
+1. Comece SEMPRE com saudação: ${greeting}
+2. Use o wiki e ferramentas para buscar dados
 
 ---
+
 **INÍCIO DO CONTEÚDO DO WIKI**
 ${wikiContext}
 **FIM DO CONTEÚDO DO WIKI**
@@ -115,19 +146,19 @@ ${userProfileText}
 **Descrição do Problema:** ${problemDescription}`;
 
   try {
-    const result = await chat({
+    const result = await chatWithTools({
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       model: 'openai/gpt-4o-mini',
       temperature: 0.3,
     });
 
-    if (!result) {
-      return fallbackResponse;
-    }
-
-    const parsed = JSON.parse(result);
+    const response = await result.getResponse();
+    const content = response.output?.[0]?.content || '{}';
+    
+    const parsed = JSON.parse(typeof content === 'string' ? content : content);
     return {
       generalResponse: parsed.generalResponse || fallbackResponse.generalResponse,
       personalizedResponse: parsed.personalizedResponse || fallbackResponse.personalizedResponse,
@@ -139,14 +170,36 @@ ${userProfileText}
 }
 
 export async function generateSolutionStream(input: GenerateSolutionInput) {
-  const { problemDescription, wikiContext, history } = input;
+  const { problemDescription, wikiContext, history, personaInstruction, responseStyleInstruction, languageInstruction, emojiInstruction, userName, userTitle } = input;
+
+  // Fallbacks para personalização
+  const persona = personaInstruction || personas.amigavel.instruction;
+  const responseStyle = responseStyleInstruction || responseStyles.detailed.instruction;
+  const language = languageInstruction || allLanguages.pt_br.instruction;
+  const emoji = emojiInstruction || emojiStyles.moderate.instruction;
+
+  // Saudação personalizada
+  let greeting = 'Olá!';
+  if (userTitle && userName) {
+    greeting = `Olá, ${userTitle} ${userName}!`;
+  } else if (userName) {
+    greeting = `Olá, ${userName}!`;
+  }
 
   const historyText = history ? history.map(m => `- ${m.role}: ${m.content}`).join('\n') : '';
 
-  const userPrompt = `**Regras Gerais:**
-${SYSTEM_PROMPT}
+  const userPrompt = `**Personalidade:** ${persona}
+**Estilo de Resposta:** ${responseStyle}
+**Uso de Emojis:** ${emoji}
+**Idioma Final:** ${language}
+- Traduza e adapte culturalmente para o idioma solicitado.
+
+**REGRAS CRÍTICAS:**
+1. Comece SEMPRE com saudação: ${greeting}
+2. Use o wiki e ferramentas para buscar dados
 
 ---
+
 **INÍCIO DO CONTEÚDO DO WIKI**
 ${wikiContext}
 **FIM DO CONTEÚDO DO WIKI**
@@ -159,6 +212,7 @@ ${historyText ? `**HISTÓRICO DA CONVERSA:**\n${historyText}\n` : ''}
   try {
     const stream = await chatStreamSSE({
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       model: 'openai/gpt-4o-mini',

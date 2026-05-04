@@ -36,7 +36,7 @@ export async function extractTextFromFile(input: ExtractTextFromFileInput): Prom
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      model: 'openai/gpt-4o-mini',
+      model: 'minimax/minimax-m2.5:free',
       temperature: 0.3,
       responseFormat: 'json',
     });
