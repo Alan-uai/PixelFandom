@@ -1,7 +1,7 @@
 // src/ai/flows/generate-solution.ts
 'use server';
 import { z } from 'zod';
-import { chatWithTools, chatStreamSSE } from '@/lib/openrouter-client';
+import { chatWithTools, chatStreamSSE, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 import { getGameDataByWorld, getUserProfileJson } from '@/supabase/game-data';
 import { personas } from '@/lib/personas';
 import { responseStyles } from '@/lib/response-styles';
@@ -86,7 +86,7 @@ const fallbackResponse = {
     generalResponse: JSON.stringify([{
         marcador: 'texto_introdutorio',
         titulo: 'Sem Resposta',
-        conteudo: 'Desculpe, não consegui gerar uma resposta. Por favor, tente reformular sua pergunta.'
+        conteudo: GENERIC_ERROR_MESSAGE
     }]),
     personalizedResponse: JSON.stringify([])
 };
@@ -156,7 +156,7 @@ ${userProfileText}
     });
 
     const response = await result.getResponse();
-    const content = response.output?.[0]?.content || '{}';
+    const content = (response.output as any)?.[0]?.content || '{}';
     
     const parsed = JSON.parse(typeof content === 'string' ? content : content);
     return {
@@ -232,7 +232,7 @@ ${historyText ? `**HISTÓRICO DA CONVERSA:**\n${historyText}\n` : ''}
           generalResponse: JSON.stringify([{
             marcador: 'texto_introdutorio',
             titulo: 'Erro',
-            conteudo: 'Desculpe, não consegui processar sua pergunta. Tente reformulá-la.'
+            conteudo: GENERIC_ERROR_MESSAGE
           }]),
           personalizedResponse: JSON.stringify([])
         };

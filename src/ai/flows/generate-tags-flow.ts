@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const GenerateTagsInputSchema = z.object({
   title: z.string().describe('The title of the wiki article.'),
@@ -45,13 +45,13 @@ Based on the content above, generate the tags.`;
     });
 
     if (!result) {
-      return { tags: '' };
+      return { tags: GENERIC_ERROR_MESSAGE };
     }
 
     const parsed = JSON.parse(result);
-    return { tags: parsed.tags || '' };
+    return { tags: parsed.tags || GENERIC_ERROR_MESSAGE };
   } catch (error) {
     console.error('Error in tag generation:', error);
-    return { tags: '' };
+    return { tags: GENERIC_ERROR_MESSAGE };
   }
 }

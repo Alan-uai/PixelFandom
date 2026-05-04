@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const AnalyzeNegativeFeedbackInputSchema = z.object({
   question: z.string().describe('A pergunta original do usuário.'),
@@ -49,7 +49,7 @@ export async function analyzeNegativeFeedback(input: AnalyzeNegativeFeedbackInpu
 
 Agora, forneça sua análise, sugestão e a pontuação de reputação.`;
 
-  const fallbackResponse = { suggestion: "Não foi possível gerar uma sugestão de melhoria.", reputationPointsAwarded: 0 };
+  const fallbackResponse = { suggestion: GENERIC_ERROR_MESSAGE, reputationPointsAwarded: 0 };
 
   try {
     const result = await chatStructured({
@@ -68,11 +68,11 @@ Agora, forneça sua análise, sugestão e a pontuação de reputação.`;
 
     const parsed = JSON.parse(result);
     return {
-      suggestion: parsed.suggestion || fallbackResponse.suggestion,
+      suggestion: parsed.suggestion || GENERIC_ERROR_MESSAGE,
       reputationPointsAwarded: parsed.reputationPointsAwarded || 0,
     };
   } catch (error) {
     console.error("Erro no fluxo de análise de feedback negativo:", error);
-    return { suggestion: "Ocorreu um erro ao analisar o feedback.", reputationPointsAwarded: 0 };
+    return { suggestion: GENERIC_ERROR_MESSAGE, reputationPointsAwarded: 0 };
   }
 }

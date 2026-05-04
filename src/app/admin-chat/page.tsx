@@ -1,31 +1,22 @@
 'use client';
 
-import { useAdmin } from '@/hooks/use-admin';
-import { Loader2, ShieldAlert } from 'lucide-react';
-import { AdminChatView } from '@/components/admin-chat-view';
+import { motion } from 'framer-motion';
+import Home from '@/app/page';
+import { Badge } from '@/components/ui/badge';
 
-export default function AdminChatPage() {
-  const { isAdmin, isLoading } = useAdmin();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center">
-        <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
-        <h1 className="text-2xl font-bold">Acesso Negado</h1>
-        <p className="text-muted-foreground mt-2">
-          Você não tem permissão para acessar esta página.
-        </p>
-      </div>
-    );
-  }
-
-  return <AdminChatView />;
+export default function AdminChat() {
+  return (
+    <div className="relative">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-16 right-4 z-50"
+      >
+        <Badge variant="destructive" className="px-3 py-1">
+          Admin Mode
+        </Badge>
+      </motion.div>
+      <Home />
+    </div>
+  );
 }

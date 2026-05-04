@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 import { nanoid } from 'nanoid';
 
 const GenerateWikiArticleFromDataInputSchema = z.object({
@@ -52,7 +52,7 @@ Estrutue o objeto JSON de saída.`;
     });
 
     if (!result) {
-      throw new Error('A IA não conseguiu gerar o artigo da wiki.');
+      throw new Error(GENERIC_ERROR_MESSAGE);
     }
 
     const parsed = JSON.parse(result);
@@ -62,8 +62,8 @@ Estrutue o objeto JSON de saída.`;
     const errorArticle = {
       id: nanoid(),
       title: `Erro ao gerar artigo para ${input.worldName}`,
-      summary: 'Não foi possível gerar o conteúdo.',
-      content: `Ocorreu um erro ao tentar gerar o artigo a partir dos dados fornecidos.`,
+      summary: GENERIC_ERROR_MESSAGE,
+      content: GENERIC_ERROR_MESSAGE,
       tags: 'erro',
       imageUrl: '',
       tables: {}

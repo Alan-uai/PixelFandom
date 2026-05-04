@@ -1,71 +1,48 @@
 'use client';
 
-import { useApp } from '@/context/app-provider';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Bot, Trash2, Inbox } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import Head from 'next/head';
-import { useUser } from '@/firebase';
+import { Trash2 } from 'lucide-react';
 
+const savedAnswers = [
+  { id: '1', question: 'How to get Legendary Sword?', answer: 'Complete the Forgotten Temple raid and collect 10 Ancient Shards from elite mobs.', date: '2026-05-01' },
+  { id: '2', question: 'Best armor for tanking?', answer: 'Phantom Armor set provides highest defense and threat generation.', date: '2026-04-28' },
+];
 
-export default function SavedAnswersPage() {
-  const { savedAnswers, toggleSaveAnswer } = useApp();
-  const { user } = useUser();
-
-  const handleToggleSave = (answer: any) => {
-    // Ensure we have a valid user and answer before proceeding
-    if (user && answer) {
-        toggleSaveAnswer(answer);
-    }
-  };
-
+export default function Saved() {
   return (
-    <>
-      <Head>
-        <title>Respostas Salvas - Guia Eterno</title>
-      </Head>
-      <div className="space-y-6">
-         <header className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight font-headline">Respostas Salvas</h1>
-            <p className="text-muted-foreground">Sua coleção de soluções úteis do assistente de IA.</p>
-        </header>
-        
-        {savedAnswers.length > 0 ? (
-          <ScrollArea className="h-[calc(100vh-12rem)]">
-            <div className="space-y-4 pr-4">
-              {savedAnswers.map((answer) => (
-                <Card key={answer.id}>
-                  <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                      <Bot className="h-6 w-6 text-primary" />
-                      <CardTitle className="text-lg">Resposta da IA</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-foreground/80 whitespace-pre-wrap">{answer.content}</p>
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleToggleSave(answer)}
-                      className="bg-accent/80 text-accent-foreground hover:bg-accent"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remover
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg p-12 h-96">
-            <Inbox className="h-16 w-16 mb-4" />
-            <h2 className="text-2xl font-semibold">Nenhuma Resposta Salva Ainda</h2>
-            <p className="mt-2">Use o ícone de marcador no chat para salvar respostas úteis para mais tarde.</p>
-          </div>
-        )}
+    <div className="max-w-4xl mx-auto p-4 pt-20">
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-2xl font-bold mb-6"
+      >
+        Saved Answers
+      </motion.h1>
+      <div className="space-y-4">
+        {savedAnswers.map((item, index) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold">{item.question}</h3>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.answer}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{item.date}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
-    </>
+    </div>
   );
 }

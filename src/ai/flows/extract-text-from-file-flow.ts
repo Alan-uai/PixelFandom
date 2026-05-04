@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const ExtractTextFromFileInputSchema = z.object({
   fileDataUri: z
@@ -42,13 +42,13 @@ export async function extractTextFromFile(input: ExtractTextFromFileInput): Prom
     });
 
     if (!result) {
-      return { extractedText: '' };
+      return { extractedText: GENERIC_ERROR_MESSAGE };
     }
 
     const parsed = JSON.parse(result);
-    return { extractedText: parsed.extractedText || '' };
+    return { extractedText: parsed.extractedText || GENERIC_ERROR_MESSAGE };
   } catch (error) {
     console.error("Erro no fluxo de extração de texto:", error);
-    return { extractedText: 'Erro ao processar o arquivo.' };
+    return { extractedText: GENERIC_ERROR_MESSAGE };
   }
 }

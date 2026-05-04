@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const FormatTextToJsonInputSchema = z.object({
   rawText: z.string().describe('O texto bruto a ser convertido em JSON.'),
@@ -40,13 +40,13 @@ export async function formatTextToJson(input: FormatTextToJsonInput): Promise<Fo
     });
 
     if (!result) {
-      return { jsonString: '[]' };
+      return { jsonString: JSON.stringify([{ error: GENERIC_ERROR_MESSAGE }]) };
     }
 
     const parsed = JSON.parse(result);
-    return { jsonString: parsed.jsonString || '[]' };
+    return { jsonString: parsed.jsonString || JSON.stringify([{ error: GENERIC_ERROR_MESSAGE }]) };
   } catch (error) {
     console.error("Erro no fluxo de formatação de texto para JSON:", error);
-    return { jsonString: 'Erro ao processar o texto.' };
+    return { jsonString: JSON.stringify([{ error: GENERIC_ERROR_MESSAGE }]) };
   }
 }

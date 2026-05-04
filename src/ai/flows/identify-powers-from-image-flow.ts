@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 import { allGameData } from '@/lib/game-data-context';
 
 const allItemsKnowledgeContext = allGameData.flatMap(world => {
@@ -66,7 +66,7 @@ export async function identifyPowersFromImage(input: IdentifyPowersInput): Promi
     });
 
     if (!result) {
-      return { items: [] };
+      return { items: [{ name: GENERIC_ERROR_MESSAGE, category: 'error' }] };
     }
 
     const parsed = JSON.parse(result);
@@ -77,9 +77,9 @@ export async function identifyPowersFromImage(input: IdentifyPowersInput): Promi
         index === self.findIndex((p) => p.name === item.name && p.category === item.category)
     );
     
-    return { items: uniqueItems };
+    return { items: uniqueItems.length > 0 ? uniqueItems : [{ name: GENERIC_ERROR_MESSAGE, category: 'error' }] };
   } catch (error) {
     console.error("Erro no fluxo de identificação de itens:", error);
-    return { items: [] };
+    return { items: [{ name: GENERIC_ERROR_MESSAGE, category: 'error' }] };
   }
 }

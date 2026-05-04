@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chat } from '@/lib/openrouter-client';
+import { chat, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const SummarizeWikiContentInputSchema = z.object({
   wikiContent: z.string().describe('The content of the wiki page to summarize.'),
@@ -30,12 +30,12 @@ Wiki Content: ${input.wikiContent}`;
     });
 
     if (!result) {
-      return { summary: '' };
+      return { summary: GENERIC_ERROR_MESSAGE };
     }
 
     return { summary: result };
   } catch (error) {
     console.error("Erro no fluxo de resumir conteúdo wiki:", error);
-    return { summary: '' };
+    return { summary: GENERIC_ERROR_MESSAGE };
   }
 }

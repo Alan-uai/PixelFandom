@@ -1,6 +1,6 @@
 'use server';
 import { z } from 'zod';
-import { chatStructured } from '@/lib/openrouter-client';
+import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
 const ExtractStatsFromImageInputSchema = z.object({
   image: z.string().describe("Um screenshot do jogo como um data URI."),
@@ -27,7 +27,7 @@ Se uma informação não estiver claramente visível, leave o campo corresponden
 Responda em JSON com {currentWorld, rank, totalDamage, energyGain}`;
 
 const fallbackResponse = {
-  currentWorld: '',
+  currentWorld: GENERIC_ERROR_MESSAGE,
   rank: '',
   totalDamage: '',
   energyGain: ''
@@ -53,13 +53,13 @@ export async function extractStatsFromImage(input: ExtractStatsFromImageInput): 
 
     const parsed = JSON.parse(result);
     return {
-      currentWorld: parsed.currentWorld || '',
+      currentWorld: parsed.currentWorld || GENERIC_ERROR_MESSAGE,
       rank: parsed.rank || '',
       totalDamage: parsed.totalDamage || '',
       energyGain: parsed.energyGain || '',
     };
   } catch (error) {
     console.error("Erro no fluxo de extração de estatísticas:", error);
-    return fallbackResponse;
+    return { ...fallbackResponse, currentWorld: GENERIC_ERROR_MESSAGE };
   }
 }
