@@ -48,7 +48,7 @@ export async function chatStructured({
   return response.choices[0].message.content;
 }
 
-export async function chatStream({
+export async function* chatStream({
   messages,
   model = 'openai/gpt-4o-mini',
   temperature = 0.7,
@@ -57,14 +57,66 @@ export async function chatStream({
   model?: string;
   temperature?: number;
 }) {
-  const result = await openRouter.chat.send({
+  const stream = await openRouter.chat.send({
     messages,
     model,
     temperature,
     stream: true,
   });
 
-  return result;
+  for await (const chunk of stream) {
+    const content = chunk.choices?.[0]?.delta?.content;
+    if (content) {
+      yield content;
+    }
+  }
+}
+
+export async function chatStreamSSE({
+  messages,
+  model = 'openai/gpt-4o-mini',
+  temperature = 0.7,
+}: {
+  messages: Array<{ role: string; content: string }>;
+  model?: string;
+  temperature?: number;
+}) {
+  const stream = await openRouter.chat.send({
+    messages,
+    model,
+    temperature,
+    stream: true,
+  });
+
+  const encoder = new TextEncoder();
+  const readable = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of stream) {
+          const content = chunk.choices?.[0]?.delta?.content;
+          if (content) {
+            const data = JSON.stringify({ delta: content });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          }
+        }
+
+        if (stream.response) {
+          const usage = await stream.response;
+          const usageData = JSON.stringify({ usage });
+          controller.enqueue(encoder.encode(`data: {"done": true, "usage": ${usageData}}\n\n`));
+        }
+
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (error) {
+        const errorData = JSON.stringify({ error: error.message });
+        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+        controller.close();
+      }
+    }
+  });
+
+  return readable;
 }
 
 export { openRouter };

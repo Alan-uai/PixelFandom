@@ -1,7 +1,7 @@
 // src/ai/flows/generate-solution.ts
 'use server';
 import { z } from 'zod';
-import { chat, chatStream } from '@/lib/openrouter-client';
+import { chat, chatStreamSSE } from '@/lib/openrouter-client';
 import { getGameDataByWorld, getUserProfileJson } from '@/supabase/game-data';
 
 const MessageSchema = z.object({
@@ -157,7 +157,7 @@ ${historyText ? `**HISTÓRICO DA CONVERSA:**\n${historyText}\n` : ''}
 **Descrição do Problema:** ${problemDescription}`;
 
   try {
-    const stream = await chatStream({
+    const stream = await chatStreamSSE({
       messages: [
         { role: 'user', content: userPrompt },
       ],

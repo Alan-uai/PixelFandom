@@ -14,7 +14,6 @@ npm run dev         # Dev server on port 9002
 npm run build      # Production build (ignores TS/ESLint errors - see next.config.ts)
 npm run lint      # Lint
 npm run typecheck # TypeScript check
-npm run genkit:dev # Run Genkit AI flows
 ```
 
 ### Discord Bot (PixelBot)
@@ -34,7 +33,7 @@ npx supabase db push
 
 - Next.js uses TypeScript with `ignoreBuildErrors: true` in next.config.ts
 - Auth via Firebase (see `src/firebase/`)
-- AI flows via Genkit in `src/ai/flows/`
+- AI flows via OpenRouter SDK in `src/ai/flows/`
 - Bot uses pm2 for production process management
 
 ## Git Workflow
