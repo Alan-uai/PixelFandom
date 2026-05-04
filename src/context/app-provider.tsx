@@ -6,10 +6,11 @@ import type { Message, SavedAnswer, WikiArticle } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseClientProvider, useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getGameDataVersion } from '@/supabase/game-data';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAdmin } from '@/hooks/use-admin';
 import { Loader2 } from 'lucide-react';
-import { getAllGameData } from '@/firebase/firestore/data';
+import { getAllGameData } from '@/supabase/game-data';
 import { allGameData as staticGameData } from '@/lib/game-data-context';
 
 type ActiveSidePanel = 'codes' | 'locations' | null;
@@ -83,9 +84,21 @@ function AppStateProvider({ children }: { children: ReactNode }) {
 
   const { data: firestoreWikiArticles, isLoading: isFirestoreWikiLoading } = useCollection<WikiArticle>(wikiCollectionRef as any);
   const { data: savedAnswers, isLoading: areSavedAnswersLoading } = useCollection<SavedAnswer>(savedAnswersCollectionRef as any);
-  const { data: gameMetadata, isLoading: isMetadataLoading } = useDoc(gameDataRef);
   
-  const gameDataVersion = useMemo(() => gameMetadata?.version || '1.0.0', [gameMetadata]);
+  const [gameDataVersion, setGameDataVersion] = useState('1.0.0');
+
+  useEffect(() => {
+    async function fetchVersion() {
+      try {
+        const version = await getGameDataVersion();
+        setGameDataVersion(version);
+      } catch {
+        const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        setGameDataVersion(today);
+      }
+    }
+    fetchVersion();
+  }, []);
 
   useEffect(() => {
     const loadGameData = async () => {
@@ -101,20 +114,20 @@ function AppStateProvider({ children }: { children: ReactNode }) {
                 }
             }
             
-            // If cache is invalid or missing, fetch from Firestore
-            const firestoreData = await getAllGameData();
+            // If cache is invalid or missing, fetch from Supabase
+            const supabaseData = await getAllGameData();
             
             let combinedData;
-            if (firestoreData && !firestoreData.error) {
-                // Merge firestore data with static data, giving firestore precedence
-                const firestoreMap = new Map(firestoreData.map((item: any) => [item.id, item]));
+            if (supabaseData && !supabaseData.error) {
+                // Merge supabase data with static data, giving supabase precedence
+                const supabaseMap = new Map(supabaseData.map((item: any) => [item.id, item]));
                 combinedData = staticGameData.map(staticItem => {
-                    const firestoreItem = firestoreMap.get(staticItem.id);
-                    return firestoreItem ? { ...staticItem, ...firestoreItem } : staticItem;
+                    const supabaseItem = supabaseMap.get(staticItem.id);
+                    return supabaseItem ? { ...staticItem, ...supabaseItem } : staticItem;
                 });
             } else {
-                // If firestore fetch fails, fallback to static data
-                console.warn("Could not fetch game data from Firestore, falling back to static data.");
+                // If supabase fetch fails, fallback to static data
+                console.warn("Could not fetch game data from Supabase, falling back to static data.");
                 combinedData = staticGameData;
             }
 
@@ -129,11 +142,11 @@ function AppStateProvider({ children }: { children: ReactNode }) {
         }
     };
     
-    if (gameDataVersion || !isMetadataLoading) {
+    if (gameDataVersion) {
       loadGameData();
     }
 
-  }, [gameDataVersion, isMetadataLoading]);
+  }, [gameDataVersion]);
 
   useEffect(() => {
     try {

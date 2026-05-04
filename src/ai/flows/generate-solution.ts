@@ -2,7 +2,7 @@
 'use server';
 import { z } from 'zod';
 import { chat, chatStream } from '@/lib/openrouter-client';
-import { getGameData, getUserProfileJson } from '@/firebase/firestore/data';
+import { getGameDataByWorld, getUserProfileJson } from '@/supabase/game-data';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -84,7 +84,7 @@ async function getUserProfileData() {
 
 async function searchGameData(worldName: string, category: string, itemName?: string) {
   try {
-    return await getGameData(worldName, category, itemName);
+    return await getGameDataByWorld(worldName, category, itemName);
   } catch {
     return null;
   }
