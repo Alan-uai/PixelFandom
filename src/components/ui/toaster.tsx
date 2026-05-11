@@ -1,11 +1,18 @@
-import * as React from "react";
-import { ToastProvider, toast } from "sonner";
+import { Toaster as SonnerToaster } from "sonner";
 
-const Toaster: React.FC = ({ children }) => {
+const Toaster = () => {
   return (
-    <ToastProvider>
-      {children}
-    </ToastProvider>
+    <SonnerToaster
+      position="bottom-right"
+      toastOptions={{
+        style: {
+          background: "hsl(var(--background))",
+          color: "hsl(var(--foreground))",
+          border: "1px solid hsl(var(--border))",
+        },
+      }}
+    />
   );
 };
-export default Toaster;
+
+export { Toaster };

@@ -1,0 +1,1 @@
+export const allGameData: any[] = [];

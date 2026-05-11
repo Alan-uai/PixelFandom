@@ -1,34 +1,18 @@
 'use client';
 
-import { useParams, useRouter, redirect } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/hooks/use-admin';
-import { Loader2, ShieldAlert, ChevronRight, Files, PlusCircle, Pencil, Trash2, Save, Upload } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, ShieldAlert, Upload, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
-import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
-import { seedWorldData } from '@/ai/flows/seed-world-data-flow';
+import { supabase } from '@/supabase';
 
 function NewWorldForm() {
     const router = useRouter();
-    // TODO: Replace Firebase with Supabase
-    // const { firestore } = useFirebase();
     const { toast } = useToast();
     const [worldName, setWorldName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -40,15 +24,12 @@ function NewWorldForm() {
         setFileCount(files ? files.length : 0);
     };
 
-    // TODO: Replace Firebase/Firestore functionality with Supabase
     const handleCreateWorld = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!worldName.trim()) return;
 
         setIsCreating(true);
-        // TODO: Implement Supabase-based world creation
-        // For now, just show a toast and redirect
-        toast({ title: 'Funcionalidade em desenvolvimento', description: 'A funcionalidade de criação de mundo está sendo atualizada para usar Supabase.' });
+        toast({ title: 'Funcionalidade em desenvolvimento', description: 'A funcionalidade de criação de mundo será implementada em breve.' });
         setIsCreating(false);
         router.push('/admin/manage-content');
     };
@@ -120,18 +101,22 @@ export default function EditCollectionPage() {
     return <NewWorldForm />;
   }
   
-  // TODO: Replace Firebase/Firestore functionality with Supabase
-  // For now, placeholder values
   const worldData = null;
   const isWorldLoading = false;
   const subCollectionData = null;
   const isSubCollectionLoading = false;
   
-  // TODO: Replace Firebase/Firestore delete functionality with Supabase
   const handleDelete = async (itemId: string) => {
-    // TODO: Implement Supabase-based deletion
-    console.log('Delete item:', itemId);
-    toast({ title: "Funcionalidade em desenvolvimento", description: "A funcionalidade de exclusão está sendo atualizada para usar Supabase." });
+    try {
+      const table = isWorldContext ? 'worlds' : collectionPath;
+      const { error } = await supabase.from(table).delete().eq('id', itemId);
+      if (error) throw error;
+      toast({ title: "Item excluído", description: "O item foi removido com sucesso." });
+      router.refresh();
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      toast({ variant: 'destructive', title: 'Erro ao Excluir', description: 'Não foi possível excluir o item.' });
+    }
   };
   
   const isLoading = isAdminLoading || isWorldLoading || isSubCollectionLoading;

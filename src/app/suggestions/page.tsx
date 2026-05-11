@@ -1,8 +1,6 @@
 
 'use client';
 
-import { useFirestore, useCollection, useMemoFirebase, useUser, useFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,9 +14,11 @@ import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { micromark } from 'micromark';
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/supabase';
+import { supabase } from '@/supabase';
 
 
 interface Suggestion {
@@ -29,10 +29,7 @@ interface Suggestion {
   content: string;
   attachmentURLs?: string[];
   status: 'pending' | 'approved' | 'rejected';
-  createdAt: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  created_at: string;
 }
 
 interface NegativeFeedback {
@@ -43,22 +40,28 @@ interface NegativeFeedback {
   negativeResponse: string;
   aiSuggestion: string;
   reputationPointsAwarded?: number;
-  createdAt: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  created_at: string;
   status: 'pending' | 'reviewing' | 'fixed';
   reviewedBy?: string;
 }
 
 function ContentSuggestionsTab() {
-  const firestore = useFirestore();
-  const suggestionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'contentSuggestions'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
-  const { data: suggestions, isLoading } = useCollection<Suggestion>(suggestionsQuery as any);
-  
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('content_suggestions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setSuggestions(data as Suggestion[]);
+        }
+        setIsLoading(false);
+      });
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -96,7 +99,7 @@ function ContentSuggestionsTab() {
                   {suggestion.status}
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {suggestion.createdAt ? formatDistanceToNow(new Date(suggestion.createdAt.seconds * 1000), { addSuffix: true, locale: ptBR }) : '...'}
+                  {suggestion.created_at ? formatDistanceToNow(new Date(suggestion.created_at), { addSuffix: true, locale: ptBR }) : '...'}
                 </p>
               </div>
             </CardHeader>
@@ -142,48 +145,49 @@ function ContentSuggestionsTab() {
 
 function NegativeFeedbackTab() {
   const { user } = useUser();
-  const { firestore } = useFirebase();
   const { toast } = useToast();
   const [updatingFeedback, setUpdatingFeedback] = useState<string | null>(null);
   const [hidingFeedbacks, setHidingFeedbacks] = useState<string[]>([]);
+  const [feedbacks, setFeedbacks] = useState<NegativeFeedback[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
 
-  const feedbackQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'negativeFeedback'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
-  const { data: feedbacks, isLoading } = useCollection<NegativeFeedback>(feedbackQuery as any);
+  useEffect(() => {
+    supabase
+      .from('negative_feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setFeedbacks(data as NegativeFeedback[]);
+        }
+        setIsLoading(false);
+      });
+  }, []);
 
   const handleUpdateStatus = async (feedbackItem: NegativeFeedback, newStatus: 'reviewing' | 'fixed') => {
-    if (!firestore || !user) return;
+    if (!user) return;
     setUpdatingFeedback(feedbackItem.id);
     
-    const feedbackRef = doc(firestore, 'negativeFeedback', feedbackItem.id);
-    const userFeedbackRef = doc(firestore, 'users', feedbackItem.userId, 'negativeFeedback', feedbackItem.id);
-    const userRef = doc(firestore, 'users', feedbackItem.userId);
-
     try {
         const updatePayload = {
             status: newStatus,
             reviewedBy: user.email,
         };
 
-        await updateDoc(feedbackRef, updatePayload);
-        await setDoc(userFeedbackRef, {
-            ...updatePayload, 
-            question: feedbackItem.question,
-            createdAt: feedbackItem.createdAt
-        }, { merge: true });
-
+        await supabase
+          .from('negative_feedback')
+          .update(updatePayload)
+          .eq('id', feedbackItem.id);
 
         if (newStatus === 'fixed' && feedbackItem.status !== 'fixed') {
-             // Use the dynamic points from the feedback document, or fallback to 1
             const pointsToAward = feedbackItem.reputationPointsAwarded || 1;
-            await updateDoc(userRef, {
-                reputationPoints: increment(pointsToAward)
-            });
             
-             // Start the 5-second timer to hide the card
+            await supabase
+              .from('profiles')
+              .update({ reputation_points: pointsToAward })
+              .eq('id', feedbackItem.userId);
+            
             setTimeout(() => {
                 setHidingFeedbacks(prev => [...prev, feedbackItem.id]);
             }, 5000);
@@ -193,6 +197,12 @@ function NegativeFeedbackTab() {
             title: 'Status Atualizado!',
             description: `O feedback foi marcado como "${newStatus}".`,
         });
+
+        setFeedbacks(prev =>
+          prev.map(fb =>
+            fb.id === feedbackItem.id ? { ...fb, ...updatePayload } : fb
+          )
+        );
 
     } catch (error: any) {
         console.error("Erro ao atualizar status:", error);
@@ -243,7 +253,7 @@ function NegativeFeedbackTab() {
               </CardDescription>
                <div className='flex items-center gap-2'>
                 {getStatusBadge(feedback.status)}
-                <span className='text-xs text-muted-foreground'>{feedback.createdAt ? formatDistanceToNow(new Date(feedback.createdAt.seconds * 1000), { addSuffix: true, locale: ptBR }) : '...'}</span>
+                <span className='text-xs text-muted-foreground'>{feedback.created_at ? formatDistanceToNow(new Date(feedback.created_at), { addSuffix: true, locale: ptBR }) : '...'}</span>
                </div>
             </CardHeader>
             <CardContent className="space-y-6">

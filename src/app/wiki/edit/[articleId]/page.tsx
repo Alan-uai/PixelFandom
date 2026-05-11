@@ -5,9 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, collection } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +22,7 @@ import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
 import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { supabase } from '@/supabase';
 
 // Base schema for a generic document
 const genericDocSchema = z.object({
@@ -57,7 +55,6 @@ function EditPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { firestore, firebaseApp } = useFirebase();
   const { toast } = useToast();
   const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   
@@ -78,22 +75,34 @@ function EditPageContent() {
   const [articleId, setArticleId] = useState(isNewArticle ? nanoid() : articleIdParam);
   
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [article, setArticle] = useState<any>(null);
+  const [isArticleLoading, setIsArticleLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const storage = firebaseApp ? getStorage(firebaseApp) : null;
   
-  // Determine the correct doc reference based on context (wiki article or generic collection item)
-  const docRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    if (isGenericCollection) {
-      if (!collectionPath) return null;
-      return doc(firestore, collectionPath, articleId);
-    }
-    return doc(firestore, 'wikiContent', articleId);
-  }, [firestore, articleId, collectionPath, isGenericCollection]);
-
-  const { data: article, isLoading: isArticleLoading } = useDoc(docRef, { skip: isNewArticle });
+  // Fetch article data from Supabase
+  useEffect(() => {
+    if (isNewArticle) return;
+    
+    setIsArticleLoading(true);
+    const table = isGenericCollection ? collectionPath! : 'wiki_articles';
+    
+    supabase
+      .from(table)
+      .select('*')
+      .eq('id', articleId)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setArticle(data);
+        }
+        setIsArticleLoading(false);
+      })
+      .catch(() => {
+        setIsArticleLoading(false);
+      });
+  }, [articleId, isGenericCollection, collectionPath, isNewArticle]);
 
   const form = useForm<ArticleFormData>({
     resolver: zodResolver(articleSchema),
@@ -259,18 +268,25 @@ function EditPageContent() {
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !storage) return;
+    if (!file) return;
 
     setIsUploadingImage(true);
     toast({ title: 'Enviando imagem...', description: 'A imagem está sendo enviada para o armazenamento.' });
 
     try {
-      const storageRef = ref(storage, `wiki-images/${articleId}/${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
+      const filePath = `wiki-images/${articleId}/${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('wiki-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wiki-images')
+        .getPublicUrl(filePath);
       
-      setValue('imageUrl', downloadURL);
-      setImagePreview(downloadURL);
+      setValue('imageUrl', publicUrl);
+      setImagePreview(publicUrl);
 
       toast({ title: 'Imagem Enviada!', description: 'A nova imagem do artigo foi salva.' });
     } catch (error) {
@@ -307,13 +323,10 @@ function EditPageContent() {
   };
 
   const onSubmit = async (values: ArticleFormData) => {
-    if (!docRef) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível encontrar o documento para atualizar.' });
-      return;
-    }
     setIsSaving(true);
     
     try {
+      const now = new Date().toISOString();
       let dataToSave: any;
 
       if (isGenericCollection) {
@@ -345,15 +358,21 @@ function EditPageContent() {
               tags: values.tags.split(',').map(tag => tag.trim()),
               imageUrl: values.imageUrl || '',
               tables: parsedTables,
-              updatedAt: serverTimestamp()
+              updated_at: now
           };
       }
       
       if (isNewArticle) {
-        dataToSave.createdAt = serverTimestamp();
+        dataToSave.created_at = now;
       }
 
-      await setDoc(docRef, dataToSave, { merge: true });
+      const table = isGenericCollection ? collectionPath! : 'wiki_articles';
+      const { error } = await supabase
+        .from(table)
+        .upsert(dataToSave, { onConflict: 'id' });
+
+      if (error) throw error;
+
       toast({ title: 'Sucesso!', description: `O item foi ${isNewArticle ? 'criado' : 'atualizado'}.` });
       
       if (isNewArticle) {
@@ -361,7 +380,7 @@ function EditPageContent() {
       }
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      toast({ variant: 'destructive', title: 'Erro ao Salvar', description: 'Não foi possível salvar os dados no Firestore.' });
+      toast({ variant: 'destructive', title: 'Erro ao Salvar', description: 'Não foi possível salvar os dados no Supabase.' });
     } finally {
       setIsSaving(false);
     }

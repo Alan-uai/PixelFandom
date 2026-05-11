@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useUser } from '@/supabase';
+import { supabase } from '@/supabase';
 
 interface AdminState {
   isAdmin: boolean;
@@ -10,47 +10,39 @@ interface AdminState {
 }
 
 export function useAdmin(): AdminState {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, isLoading: isUserLoading } = useUser();
   const [adminState, setAdminState] = useState<AdminState>({
     isAdmin: false,
     isLoading: true,
   });
 
   useEffect(() => {
-    // If the main user object is still loading, we are also loading.
-    if (isUserLoading || !firestore) {
+    if (isUserLoading) {
       setAdminState({ isAdmin: false, isLoading: true });
       return;
     }
 
-    // If there's no user, they can't be an admin.
     if (!user) {
       setAdminState({ isAdmin: false, isLoading: false });
       return;
     }
 
-    // User is available, check their document in Firestore.
-    const userDocRef = doc(firestore, 'users', user.uid);
-    
-    getDoc(userDocRef)
-      .then((docSnap) => {
-        if (docSnap.exists()) {
-          // Check for the 'tag' field in the user's document
-          const userData = docSnap.data();
-          const isAdmin = userData.tag === 'admin';
-          setAdminState({ isAdmin, isLoading: false });
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data?.role === 'admin') {
+          setAdminState({ isAdmin: true, isLoading: false });
         } else {
-          // User document doesn't exist, so they are not an admin.
           setAdminState({ isAdmin: false, isLoading: false });
         }
       })
-      .catch((error) => {
-        console.error("Error getting user admin status from Firestore:", error);
+      .catch(() => {
         setAdminState({ isAdmin: false, isLoading: false });
       });
-
-  }, [user, isUserLoading, firestore]);
+  }, [user, isUserLoading]);
 
   return adminState;
 }

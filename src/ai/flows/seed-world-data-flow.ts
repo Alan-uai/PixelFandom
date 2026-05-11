@@ -1,8 +1,6 @@
 'use server';
 import { z } from 'zod';
-// seed-world-data-flow.ts - chatStructured import removed (unused)
-import { initializeFirebaseServer } from '@/firebase/server';
-import { writeBatch, doc } from 'firebase/firestore';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SeedWorldDataInputSchema = z.object({
     worldName: z.string().describe("O nome do novo mundo."),
@@ -10,69 +8,59 @@ const SeedWorldDataInputSchema = z.object({
 });
 export type SeedWorldDataInput = z.infer<typeof SeedWorldDataInputSchema>;
 
+function getSupabaseAdmin(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase URL or Service Role Key not found in environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
+
 export async function seedWorldData(input: SeedWorldDataInput): Promise<boolean> {
-  const { firestore } = initializeFirebaseServer();
+  const supabase = getSupabaseAdmin();
   const worldData = JSON.parse(input.worldDataJson);
   
   const worldId = worldData.id;
   if (!worldId) {
-      console.error("Dados do mundo não contêm um 'id' numérico.");
+      console.error("Dados do mundo não contêm um 'id'.");
       return false;
   }
 
-  const batch = writeBatch(firestore);
-  const worldRef = doc(firestore, 'worlds', worldId);
-
-  const worldDocData = { ...worldData, name: input.worldName };
-  delete worldDocData.powers;
-  delete worldDocData.npcs;
-  delete worldDocData.pets;
-  delete worldDocData.dungeons;
-  delete worldDocData.shadows;
-  delete worldDocData.stands;
-  delete worldDocData.accessories;
-  batch.set(worldRef, worldDocData);
-
-  const seedSubcollection = (subcollectionName: string, items: any[]) => {
-    if (items && Array.isArray(items) && items.length > 0) {
-      for (const item of items) {
-          if (!item.id) {
-              console.warn(`Item em '${subcollectionName}' sem ID, pulando:`, item);
-              continue;
-          };
-          const itemRef = doc(worldRef, subcollectionName, item.id);
-          const { stats, ...itemData } = item;
-          batch.set(itemRef, itemData);
-
-          if (subcollectionName === 'powers' && stats && Array.isArray(stats) && stats.length > 0) {
-              for (const stat of stats) {
-                  const statId = stat.id || (stat.name || JSON.stringify(stat)).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                  if (!statId) {
-                      console.warn(`Stat em '${item.name}' sem ID, pulando:`, stat);
-                      continue;
-                  };
-                  const statRef = doc(itemRef, 'stats', statId);
-                  batch.set(statRef, stat);
-              }
-          }
-      }
-    }
+  const worldDocData: Record<string, any> = {
+    id: worldId,
+    world_name: input.worldName,
+    world_number: worldData.worldNumber || worldData.world_number || 0,
+    world_type: worldData.worldType || worldData.world_type || null,
+    level_range: worldData.levelRange || worldData.level_range || null,
+    description: worldData.description || null,
+    environment: worldData.environment || null,
+    chapters: worldData.chapters || 3,
+    levels_per_chapter: worldData.levelsPerChapter || worldData.levels_per_chapter || 5,
+    status: 'available',
+    difficulties: worldData.difficulties || null,
   };
 
-  seedSubcollection('powers', worldData.powers);
-  seedSubcollection('npcs', worldData.npcs);
-  seedSubcollection('pets', worldData.pets);
-  seedSubcollection('dungeons', worldData.dungeons);
-  seedSubcollection('shadows', worldData.shadows);
-  seedSubcollection('stands', worldData.stands);
-  seedSubcollection('accessories', worldData.accessories);
-
   try {
-      await batch.commit();
-      console.log(`Mundo '${input.worldName}' e suas subcoleções foram populados com sucesso.`);
+      const { error } = await supabase.from('worlds').upsert(worldDocData, { onConflict: 'id' });
+      
+      if (error) {
+        console.error("Erro ao inserir mundo:", error);
+        return false;
+      }
+
+      console.log(`Mundo '${input.worldName}' foi populado com sucesso no Supabase.`);
       return true;
   } catch (error) {
-      console.error("Erro ao executar o batch de semeadura do mundo:", error);
+      console.error("Erro ao executar a semeadura do mundo:", error);
       return false;
   }
 }
