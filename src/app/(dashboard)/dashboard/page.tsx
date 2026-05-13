@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -11,26 +12,37 @@ import type { Tenant } from '@/supabase/client';
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const router = useRouter();
   const [tenants, setTenants] = useState<(Tenant & { role: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     supabase
       .from('tenant_members')
       .select('role, tenant:tenants(*)')
       .eq('user_id', user.id)
       .then(({ data }) => {
-        if (data) {
-          setTenants(
-            data
+        const userTenants = data
+          ? data
               .filter((d: any) => d.tenant)
               .map((d: any) => ({ ...d.tenant, role: d.role }))
-          );
+          : [];
+
+        setTenants(userTenants);
+
+        // Onboarding: if user has no tenants, redirect to create one
+        if (userTenants.length === 0) {
+          router.push('/dashboard/new');
+          return;
         }
+
         setLoading(false);
       });
-  }, [user]);
+  }, [user, router]);
 
   return (
     <div className="max-w-4xl mx-auto">

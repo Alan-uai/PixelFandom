@@ -12,6 +12,8 @@ interface SupabaseContextType {
   signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithDiscord: () => Promise<{ error: Error | null }>;
+  signInWithGitHub: () => Promise<{ error: Error | null }>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
@@ -76,7 +78,27 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
+    });
+    return { error };
+  };
+
+  const signInWithDiscord = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
+    });
+    return { error };
+  };
+
+  const signInWithGitHub = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
       },
     });
     return { error };
@@ -92,6 +114,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         signInWithGoogle,
+        signInWithDiscord,
+        signInWithGitHub,
       }}
     >
       {children}
