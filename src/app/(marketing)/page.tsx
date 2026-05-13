@@ -5,12 +5,23 @@ import Link from 'next/link';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, BookOpen, Cpu, Globe, Users, Loader2 } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Cpu,
+  Globe,
+  Users,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
 export default function Home() {
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -18,8 +29,12 @@ export default function Home() {
       .select('*')
       .eq('is_public', true)
       .order('name')
-      .then(({ data }) => {
-        if (data) setWikis(data);
+      .then(({ data, error: err }) => {
+        if (err) {
+          setError(err.message);
+        } else if (data) {
+          setWikis(data);
+        }
         setLoading(false);
       });
   }, []);
@@ -73,20 +88,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Public Wikis */}
+      {/* Public Wikis — Carrossel Horizontal */}
       <section className="py-16 px-4 border-t">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-4">
-            Wikis Públicas
-          </h2>
-          <p className="text-muted-foreground text-center mb-12">
-            Explore wikis criadas pela comunidade.
-          </p>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold">Wikis Públicas</h2>
+              <p className="text-muted-foreground mt-1">
+                Explore wikis criadas pela comunidade.
+              </p>
+            </div>
+            {wikis.length > 3 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById('wiki-carousel')
+                      ?.scrollBy({ left: -320, behavior: 'smooth' })
+                  }
+                  className="h-10 w-10 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById('wiki-carousel')
+                      ?.scrollBy({ left: 320, behavior: 'smooth' })
+                  }
+                  className="h-10 w-10 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+                  aria-label="Próximo"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
 
           {loading ? (
-            <div className="flex justify-center py-8">
+            <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : error ? (
+            <Card className="text-center py-8">
+              <CardContent className="flex items-center justify-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                <p>Erro ao carregar wikis: {error}</p>
+              </CardContent>
+            </Card>
           ) : wikis.length === 0 ? (
             <Card className="text-center py-8">
               <CardContent>
@@ -96,9 +146,17 @@ export default function Home() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-3 gap-4">
+            <div
+              id="wiki-carousel"
+              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {wikis.map((wiki) => (
-                <Link key={wiki.id} href={`/w/${wiki.slug}`}>
+                <Link
+                  key={wiki.id}
+                  href={`/w/${wiki.slug}`}
+                  className="snap-start shrink-0 w-[280px]"
+                >
                   <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-base">
