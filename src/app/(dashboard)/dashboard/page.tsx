@@ -7,13 +7,14 @@ import { useUser } from '@/supabase';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Settings, ExternalLink, Loader2 } from 'lucide-react';
+import { Plus, Settings, ExternalLink, Loader2, BookOpen, Users, Globe, FileText } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
 export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
   const [tenants, setTenants] = useState<(Tenant & { role: string })[]>([]);
+  const [stats, setStats] = useState<Record<string, { articles: number; members: number }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,32 +22,55 @@ export default function DashboardPage() {
       setLoading(false);
       return;
     }
-    supabase
-      .from('tenant_members')
-      .select('role, tenant:tenants(*)')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
-        const userTenants = data
-          ? data
-              .filter((d: any) => d.tenant)
-              .map((d: any) => ({ ...d.tenant, role: d.role }))
-          : [];
+    (async () => {
+      const { data } = await supabase
+        .from('tenant_members')
+        .select('role, tenant:tenants(*)')
+        .eq('user_id', user.id);
 
-        setTenants(userTenants);
+      const userTenants = data
+        ? data
+            .filter((d: any) => d.tenant)
+            .map((d: any) => ({ ...d.tenant, role: d.role }))
+        : [];
 
-        // Onboarding: if user has no tenants, redirect to create one
-        if (userTenants.length === 0) {
-          router.push('/dashboard/new');
-          return;
-        }
+      setTenants(userTenants);
 
-        setLoading(false);
-      });
+      if (userTenants.length === 0) {
+        router.push('/dashboard/new');
+        return;
+      }
+
+      // Fetch stats for each tenant
+      const statsMap: Record<string, { articles: number; members: number }> = {};
+      await Promise.all(
+        userTenants.map(async (t) => {
+          const [articles, members] = await Promise.all([
+            supabase.from('wiki_articles').select('id', { count: 'exact', head: true }).eq('tenant_id', t.id),
+            supabase.from('tenant_members').select('user_id', { count: 'exact', head: true }).eq('tenant_id', t.id),
+          ]);
+          statsMap[t.id] = {
+            articles: articles.count || 0,
+            members: members.count || 0,
+          };
+        })
+      );
+      setStats(statsMap);
+      setLoading(false);
+    })();
   }, [user, router]);
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Minhas Wikis</h1>
           <p className="text-muted-foreground mt-1">
@@ -61,50 +85,63 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : tenants.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center py-12">
-            <p className="text-muted-foreground mb-4">
-              Você ainda não tem nenhuma wiki.
-            </p>
-            <Button asChild>
-              <Link href="/dashboard/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Primeira Wiki
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {tenants.map((tenant) => (
-            <Card key={tenant.id}>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {tenants.map((tenant) => {
+          const s = stats[tenant.id];
+          return (
+            <Card key={tenant.id} className="relative">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {tenant.logo_url && (
-                    <img src={tenant.logo_url} alt="" className="h-5 w-5 rounded" />
-                  )}
-                  {tenant.name}
-                </CardTitle>
-                <CardDescription>
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                    {tenant.role}
-                  </span>
-                </CardDescription>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    {tenant.logo_url && (
+                      <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
+                    )}
+                    <div>
+                      <CardTitle className="text-base">{tenant.name}</CardTitle>
+                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mt-1">
+                        {tenant.role}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 min-h-[2.5rem]">
                   {tenant.description || 'Sem descrição'}
                 </p>
-                <div className="flex gap-2">
+
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                  {s && (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5" />
+                        {s.articles} artigos
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        {s.members} membros
+                      </span>
+                    </>
+                  )}
+                  {tenant.custom_domain && (
+                    <span className="flex items-center gap-1">
+                      <Globe className="h-3.5 w-3.5" />
+                      Domínio
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/dashboard/${tenant.slug}/settings`}>
                       <Settings className="h-3.5 w-3.5 mr-1.5" />
-                      Gerenciar
+                      Configurar
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/dashboard/${tenant.slug}/editor/new`}>
+                      <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                      Novo Artigo
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
@@ -116,9 +153,9 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
