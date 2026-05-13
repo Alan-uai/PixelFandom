@@ -2,7 +2,7 @@
 
 import { useAdmin } from '@/hooks/use-admin';
 import { Loader2, ShieldAlert } from 'lucide-react';
-import { WikiManagementView } from '@/components/wiki-management-view';
+import WikiManagementView from '@/components/wiki-management-view';
 
 export default function ManageContentPage() {
   const { isAdmin, isLoading } = useAdmin();

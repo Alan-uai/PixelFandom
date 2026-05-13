@@ -1,11 +1,7 @@
-import { OpenRouter } from '@openrouter/sdk';
-import { tool } from '@openrouter/sdk';
 import { z } from 'zod';
 import { getGameData, getUpdateLog } from '@/supabase';
 
-const openRouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 const FALLBACK_CHAIN = (process.env.FALLBACK_CHAIN ||
   'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
@@ -13,35 +9,59 @@ const FALLBACK_CHAIN = (process.env.FALLBACK_CHAIN ||
 
 export const GENERIC_ERROR_MESSAGE = 'Desculpe não pude te responder, porém acredito que @suporte pode te ajudar';
 
-const getGameDataTool = tool({
-  name: 'getGameData',
-  description: 'Get information about game content like powers, NPCs, pets, accessories, or dungeons from a specific world.',
-  inputSchema: z.object({
-    worldName: z.string().describe('The name of the world to search in (e.g., "World 1", "Windmill Island").'),
-    category: z.string().describe('The category of information to get (e.g., "powers", "npcs", "pets", "accessories", "dungeons", "missions").'),
-    itemName: z.string().optional().describe('The specific name of the item to look for (e.g., "Grand Elder Power"). Be flexible; if an exact match fails, try a partial name.'),
-  }),
-  outputSchema: z.unknown(),
-  execute: async (params) => {
-    return await getGameData(params.worldName, params.category, params.itemName);
-  }
-});
+const getGameDataToolDef = {
+  type: 'function' as const,
+  function: {
+    name: 'getGameData',
+    description: 'Get information about game content like powers, NPCs, pets, accessories, or dungeons from a specific world.',
+    parameters: {
+      type: 'object',
+      properties: {
+        worldName: { type: 'string', description: 'The name of the world to search in (e.g., "World 1", "Windmill Island").' },
+        category: { type: 'string', description: 'The category of information to get (e.g., "powers", "npcs", "pets", "accessories", "dungeons", "missions").' },
+        itemName: { type: 'string', description: 'The specific name of the item to look for.' },
+      },
+      required: ['worldName', 'category'],
+    },
+  },
+};
 
-const getUpdateLogTool = tool({
-  name: 'getUpdateLog',
-  description: 'Gets the latest game update log. Use this when the user asks "what is the new update?", "what changed?", "update log", etc.',
-  inputSchema: z.object({}),
-  outputSchema: z.unknown(),
-  execute: async () => {
-    return await getUpdateLog();
-  }
-});
+const getUpdateLogToolDef = {
+  type: 'function' as const,
+  function: {
+    name: 'getUpdateLog',
+    description: 'Gets the latest game update log. Use this when the user asks "what is the new update?", "what changed?", "update log", etc.',
+    parameters: { type: 'object', properties: {} },
+  },
+};
 
-async function withFallback<T>(fn: (model: string) => Promise<T>, preferredModel?: string): Promise<T> {
-  const modelsToTry = preferredModel 
-    ? [preferredModel, ...FALLBACK_CHAIN.filter(m => m !== preferredModel)]
+const TOOLS = [getGameDataToolDef, getUpdateLogToolDef];
+
+async function openRouterFetch(
+  body: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<Response> {
+  return fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://pixelfandom.vercel.app',
+      'X-Title': 'PixelFandom',
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+async function withFallback<T>(
+  fn: (model: string) => Promise<T>,
+  preferredModel?: string
+): Promise<T> {
+  const modelsToTry = preferredModel
+    ? [preferredModel, ...FALLBACK_CHAIN.filter((m) => m !== preferredModel)]
     : [...FALLBACK_CHAIN];
-  
+
   let lastError: any;
   for (const model of modelsToTry) {
     try {
@@ -51,14 +71,14 @@ async function withFallback<T>(fn: (model: string) => Promise<T>, preferredModel
       console.warn(`Model ${model} failed, trying next fallback:`, error);
     }
   }
-  throw new Error(GENERIC_ERROR_MESSAGE);
+  throw new Error(lastError?.message || GENERIC_ERROR_MESSAGE);
 }
 
-export async function chat({ 
-  messages, 
-  model, 
-  temperature = 0.7, 
-  maxTokens 
+export async function chat({
+  messages,
+  model,
+  temperature = 0.7,
+  maxTokens,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
@@ -66,23 +86,23 @@ export async function chat({
   maxTokens?: number;
 }) {
   return withFallback(async (currentModel) => {
-    const result = await openRouter.chat.send({
-      chatRequest: {
-        messages,
-        model: currentModel,
-        temperature,
-        maxTokens,
-      }
+    const res = await openRouterFetch({
+      model: currentModel,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
     });
-    return result.choices[0].message.content;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    return data.choices[0].message.content;
   }, model);
 }
 
-export async function chatStructured({ 
-  messages, 
-  model, 
-  temperature = 0.7, 
-  responseFormat = 'json_object' 
+export async function chatStructured({
+  messages,
+  model,
+  temperature = 0.7,
+  responseFormat = 'json_object',
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
@@ -90,15 +110,15 @@ export async function chatStructured({
   responseFormat?: string;
 }) {
   return withFallback(async (currentModel) => {
-    const result = await openRouter.chat.send({
-      chatRequest: {
-        messages,
-        model: currentModel,
-        temperature,
-        responseFormat: { type: responseFormat as any },
-      }
+    const res = await openRouterFetch({
+      model: currentModel,
+      messages,
+      temperature,
+      response_format: { type: responseFormat },
     });
-    return result.choices[0].message.content;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    return data.choices[0].message.content;
   }, model);
 }
 
@@ -106,7 +126,7 @@ export async function chatWithTools({
   messages,
   model,
   temperature = 0.7,
-  tools = [getGameDataTool, getUpdateLogTool],
+  tools = TOOLS,
   maxToolRounds = 5,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
@@ -116,62 +136,92 @@ export async function chatWithTools({
   maxToolRounds?: number;
 }) {
   return withFallback(async (currentModel) => {
-    const result = await openRouter.callModel({
-      chatRequest: {
-        messages,
+    let currentMessages = [...messages];
+    let toolResults: any[] = [];
+
+    for (let round = 0; round < maxToolRounds; round++) {
+      const res = await openRouterFetch({
         model: currentModel,
+        messages: currentMessages,
         temperature,
-      },
-      tools,
-      maxToolRounds,
-    });
-    return result;
+        tools,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+
+      const choice = data.choices[0];
+      const message = choice.message;
+
+      if (!message.tool_calls || message.tool_calls.length === 0) {
+        return { content: message.content, toolResults };
+      }
+
+      currentMessages.push(message);
+
+      for (const tc of message.tool_calls) {
+        let result: any;
+        try {
+          const args = JSON.parse(tc.function.arguments);
+          if (tc.function.name === 'getGameData') {
+            result = await getGameData(args.worldName, args.category, args.itemName);
+          } else if (tc.function.name === 'getUpdateLog') {
+            result = await getUpdateLog();
+          } else {
+            result = { error: `Unknown tool: ${tc.function.name}` };
+          }
+        } catch (err: any) {
+          result = { error: err.message };
+        }
+        toolResults.push({ name: tc.function.name, result });
+        currentMessages.push({
+          role: 'tool' as any,
+          tool_call_id: tc.id as string,
+          content: JSON.stringify(result),
+        } as any);
+      }
+    }
+
+    return { content: 'Maximum tool rounds reached.', toolResults };
   }, model);
 }
 
-export async function chatStreamSSE({ 
-  messages, 
-  model, 
-  temperature = 0.7 
+export async function chatStreamSSE({
+  messages,
+  model,
+  temperature = 0.7,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
   temperature?: number;
 }) {
-  const modelsToTry = model 
-    ? [model, ...FALLBACK_CHAIN.filter(m => m !== model)]
+  const modelsToTry = model
+    ? [model, ...FALLBACK_CHAIN.filter((m) => m !== model)]
     : [...FALLBACK_CHAIN];
-  
+
   for (const currentModel of modelsToTry) {
     try {
-      const stream = await openRouter.chat.stream({
-        chatRequest: {
-          messages,
-          model: currentModel,
-          temperature,
-          stream: true,
-        }
-      });
-      return stream;
+      const res = await openRouterFetch(
+        { model: currentModel, messages, temperature, stream: true }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.body;
     } catch (error) {
-      console.warn(`Model ${currentModel} failed for stream, trying next fallback:`, error);
+      console.warn(`Model ${currentModel} failed for stream:`, error);
     }
   }
-  
+
   return new ReadableStream({
     start(controller) {
-      const errorData = JSON.stringify({
-        generalResponse: JSON.stringify([{
-          marcador: 'texto_introdutorio',
-          titulo: 'Erro',
-          conteudo: GENERIC_ERROR_MESSAGE
-        }]),
-        personalizedResponse: JSON.stringify([])
+      const err = JSON.stringify({
+        generalResponse: JSON.stringify([
+          { marcador: 'texto_introdutorio', titulo: 'Erro', conteudo: GENERIC_ERROR_MESSAGE },
+        ]),
+        personalizedResponse: JSON.stringify([]),
       });
-      controller.enqueue(new TextEncoder().encode(errorData));
+      controller.enqueue(new TextEncoder().encode(err));
       controller.close();
-    }
+    },
   });
 }
 
-export { openRouter, getGameDataTool, getUpdateLogTool };
+export { getGameDataToolDef, getUpdateLogToolDef };

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OpenRouter } from '@openrouter/sdk';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 
-const openrouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,19 +32,48 @@ export async function POST(request: NextRequest) {
     }
     messages.push({ role: 'user', content: message });
 
-    const stream = await (openrouter.chat as any).completions.create({
-      model,
-      messages,
-      stream: true,
+    const orRes = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://pixelfandom.vercel.app',
+        'X-Title': 'PixelFandom',
+      },
+      body: JSON.stringify({ model, messages, stream: true }),
     });
+
+    if (!orRes.ok) {
+      const errData = await orRes.json().catch(() => null);
+      throw new Error(errData?.error?.message || `OpenRouter error (${orRes.status})`);
+    }
+
+    const stream = orRes.body;
+    if (!stream) throw new Error('No response body');
+
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
 
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(content));
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter((l) => l.startsWith('data: '));
+
+            for (const line of lines) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                if (content) {
+                  controller.enqueue(new TextEncoder().encode(content));
+                }
+              } catch {}
             }
           }
           controller.close();

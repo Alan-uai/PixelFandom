@@ -155,8 +155,7 @@ ${userProfileText}
       temperature: 0.3,
     });
 
-    const response = await result.getResponse();
-    const content = (response.output as any)?.[0]?.content || '{}';
+    const content = result.content || '{}';
     
     const parsed = JSON.parse(typeof content === 'string' ? content : content);
     return {
@@ -215,7 +214,7 @@ ${historyText ? `**HISTÓRICO DA CONVERSA:**\n${historyText}\n` : ''}
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      model: 'openai/gpt-4o-mini',
+      model: 'nvidia/nemotron-3-super-120b-a12b:free',
       temperature: 0.3,
     });
 
