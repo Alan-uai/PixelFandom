@@ -82,12 +82,48 @@ export default async function WikiPage({ params, searchParams }: Props) {
 
   // Article view
   if (articleSlug) {
-    const { data: article } = await supabase
+    // Try wiki_articles first
+    let { data: article } = await supabase
       .from('wiki_articles')
       .select('*')
       .eq('tenant_id', tenant.id)
       .eq('slug', articleSlug)
       .single();
+
+    // Fallback: search in custom collection items
+    if (!article) {
+      const { data: collections } = await supabase
+        .from('custom_collections')
+        .select('id')
+        .eq('tenant_id', tenant.id);
+
+      if (collections && collections.length > 0) {
+        const { data: items } = await supabase
+          .from('collection_items')
+          .select('id, data, created_at, updated_at')
+          .in('collection_id', collections.map((c: any) => c.id));
+
+        if (items) {
+          for (const item of items) {
+            const itemData = item.data as Record<string, any>;
+            const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
+            const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            if (itemSlug === articleSlug) {
+              article = {
+                title: name,
+                content: JSON.stringify(itemData),
+                summary: itemData?.description || null,
+                tags: null,
+                image_url: null,
+                updated_at: item.updated_at,
+                id: item.id,
+              } as any;
+              break;
+            }
+          }
+        }
+      }
+    }
 
     return (
       <article className="max-w-3xl mx-auto">
