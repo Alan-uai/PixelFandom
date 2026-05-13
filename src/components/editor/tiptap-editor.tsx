@@ -1,0 +1,169 @@
+'use client';
+
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import ImageExtension from '@tiptap/extension-image';
+import LinkExtension from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
+import { Button } from '@/components/ui/button';
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Code,
+  List,
+  ListOrdered,
+  Quote,
+  Heading1,
+  Heading2,
+  Heading3,
+  Image,
+  Link,
+  Undo,
+  Redo,
+} from 'lucide-react';
+import { useCallback, useState } from 'react';
+
+type TiptapEditorProps = {
+  content: string;
+  onChange: (html: string, json: string) => void;
+  placeholder?: string;
+};
+
+export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Placeholder.configure({ placeholder: placeholder || 'Escreva seu conteúdo aqui...' }),
+      ImageExtension,
+      LinkExtension.configure({ openOnClick: false }),
+      Underline,
+    ],
+    content: parseInitialContent(content),
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      const json = JSON.stringify(editor.getJSON());
+      onChange(html, json);
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[300px] px-4 py-3',
+      },
+    },
+  });
+
+  const handleImageUpload = useCallback(() => {
+    const url = window.prompt('URL da imagem:');
+    if (url && editor) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
+
+  const handleLinkAdd = useCallback(() => {
+    const url = window.prompt('URL do link:');
+    if (url && editor) {
+      editor.chain().focus().setLink({ href: url }).run();
+    }
+  }, [editor]);
+
+  if (!editor) return null;
+
+  const ToolbarButton = ({ onClick, active, children }: any) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-1.5 rounded hover:bg-muted transition-colors ${
+        active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const Divider = () => <div className="w-px h-5 bg-border mx-1" />;
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="flex flex-wrap items-center gap-0.5 p-2 border-b bg-muted/30">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')}>
+          <Bold className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}>
+          <Italic className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')}>
+          <UnderlineIcon className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')}>
+          <Code className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })}>
+          <Heading1 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })}>
+          <Heading2 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })}>
+          <Heading3 className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')}>
+          <List className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')}>
+          <ListOrdered className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')}>
+          <Quote className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={handleImageUpload}>
+          <Image className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={handleLinkAdd} active={editor.isActive('link')}>
+          <Link className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={() => editor.chain().focus().undo().run()}>
+          <Undo className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().redo().run()}>
+          <Redo className="h-4 w-4" />
+        </ToolbarButton>
+      </div>
+      <EditorContent editor={editor} />
+    </div>
+  );
+}
+
+function parseInitialContent(content: string): any {
+  if (!content) return '';
+
+  // Try parsing as TipTap JSON
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && parsed.type === 'doc') return parsed;
+  } catch {
+    // Not JSON — treat as HTML or markdown
+  }
+
+  // If it looks like HTML, use it directly
+  if (content.trim().startsWith('<')) {
+    return content;
+  }
+
+  // Otherwise return as plain text (TipTap will wrap in paragraph)
+  return content;
+}

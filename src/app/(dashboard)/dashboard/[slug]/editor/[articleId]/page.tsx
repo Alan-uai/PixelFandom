@@ -12,6 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import TiptapEditor from '@/components/editor/tiptap-editor';
+import { extractTextFromContent } from '@/lib/content-utils';
 import { Loader2, Save, ShieldAlert, Sparkles, Upload, Image as ImageIcon, Text } from 'lucide-react';
 import type { WikiArticle } from '@/lib/types';
 import { nanoid } from 'nanoid';
@@ -215,7 +217,8 @@ function EditPageContent() {
   
   const handleGenerateTags = async () => {
     setIsGeneratingTags(true);
-    const { title, summary, content } = form.getValues();
+    const { title, summary } = form.getValues();
+    const content = extractTextFromContent(form.getValues().content);
     try {
       const result = await generateTags({ title, summary, content });
       if (result.tags) {
@@ -234,7 +237,8 @@ function EditPageContent() {
 
   const handleGenerateSummary = async () => {
     setIsGeneratingSummary(true);
-    const { content, title } = form.getValues();
+    const { title } = form.getValues();
+    const content = extractTextFromContent(form.getValues().content);
     try {
       const result = await summarizeWikiContent({ wikiContent: content, topic: title });
       if (result.summary) {
@@ -548,28 +552,15 @@ function EditPageContent() {
                         name="content"
                         render={({ field }) => (
                         <FormItem>
-                            <div className="flex items-center justify-between">
-                            <FormLabel>Conteúdo (Markdown)</FormLabel>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={isExtracting}
-                                onClick={() => {
-                                    const handler = (e: Event) => {
-                                        handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'markdown');
-                                        fileInputRef.current?.removeEventListener('change', handler);
-                                    };
-                                    fileInputRef.current?.addEventListener('change', handler);
-                                    fileInputRef.current?.click();
-                                }}
-                            >
-                                {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Extrair de Arquivo
-                            </Button>
-                            </div>
+                            <FormLabel>Conteúdo</FormLabel>
                             <FormControl>
-                            <Textarea {...field} className="min-h-[250px]" />
+                            <TiptapEditor
+                                content={field.value}
+                                onChange={(html, json) => {
+                                field.onChange(json);
+                                }}
+                                placeholder="Escreva o conteúdo do artigo..."
+                            />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
