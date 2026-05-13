@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Home from '@/app/page';
+import Home from '../(marketing)/page';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminChat() {

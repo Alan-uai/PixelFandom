@@ -1,212 +1,190 @@
 'use client';
 
-import { useState, useCallback, lazy, Suspense } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { ChatContainer } from '@/components/chat/chat-container';
-import ChatBubble from '@/components/chat/chat-bubble';
-import { TypingIndicator } from '@/components/chat/typing-indicator';
-import { ChatInput } from '@/components/chat/chat-input';
-import { QuickSuggestions } from '@/components/chat/quick-suggestions';
-import { MessageFeedback } from '@/components/chat/message-feedback';
-import { CitationBlock } from '@/components/chat/citation-block';
-import { useChatStore } from '@/lib/store';
-import { useTenantHeader } from '@/hooks/use-tenant';
-import type { Message } from '@/lib/types';
-
-// ChatHistory imported directly since it's a default export now
-import ChatHistory from '@/components/chat/chat-history';
-
-const QUICK_SUGGESTIONS = [
-  'How do I get started with Pixel Blade?',
-  'What are the best weapons for beginners?',
-  'Where can I find raid timers?',
-  'How to redeem promo codes?',
-];
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, BookOpen, Cpu, Globe, Users, Loader2 } from 'lucide-react';
+import type { Tenant } from '@/supabase/client';
 
 export default function Home() {
-  const tenantHeaders = useTenantHeader();
-  const {
-    sessions,
-    activeSessionId,
-    isHistoryOpen,
-    addSession,
-    updateSession,
-    deleteSession,
-    setActiveSession,
-    addMessage,
-    toggleHistory,
-  } = useChatStore();
+  const [wikis, setWikis] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
-  const messages = activeSession?.messages || [];
-
-  const generateSessionTitle = (firstMessage: string) => {
-    return firstMessage.length > 30 ? `${firstMessage.slice(0, 30)}...` : firstMessage;
-  };
-
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    let currentSessionId = activeSessionId;
-
-    if (!currentSessionId) {
-      const newSession = {
-        id: crypto.randomUUID(),
-        title: generateSessionTitle(input.trim()),
-        messages: [userMessage],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      addSession(newSession);
-      currentSessionId = newSession.id;
-    } else {
-      addMessage(currentSessionId, userMessage);
-    }
-
-    setInput('');
-    setIsLoading(true);
-
-    const assistantMessageId = crypto.randomUUID();
-    const initialAssistantMessage: Message = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-    };
-    addMessage(currentSessionId, initialAssistantMessage);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...tenantHeaders },
-        body: JSON.stringify({ message: userMessage.content }),
+  useEffect(() => {
+    supabase
+      .from('tenants')
+      .select('*')
+      .eq('is_public', true)
+      .order('name')
+      .then(({ data }) => {
+        if (data) setWikis(data);
+        setLoading(false);
       });
-
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        accumulatedContent += chunk;
-
-        updateSession(currentSessionId, {
-          messages: sessions
-            .find(s => s.id === currentSessionId)
-            ?.messages.map(m =>
-              m.id === assistantMessageId ? { ...m, content: accumulatedContent } : m
-            ) || [],
-        });
-      }
-
-      if (activeSession?.messages.length === 0) {
-        updateSession(currentSessionId, {
-          title: generateSessionTitle(userMessage.content),
-        });
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      updateSession(currentSessionId, {
-        messages: sessions
-          .find(s => s.id === currentSessionId)
-          ?.messages.map(m =>
-            m.id === assistantMessageId
-              ? { ...m, content: 'An error occurred. Please try again.' }
-              : m
-          ) || [],
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, isLoading, activeSessionId, activeSession, addSession, addMessage, updateSession, sessions]);
-
-  const handleNewSession = () => {
-    const newSession = {
-      id: crypto.randomUUID(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    addSession(newSession);
-  };
-
-  const handleSelectSession = (id: string) => setActiveSession(id);
-  const handleDeleteSession = (id: string) => deleteSession(id);
-  const handleRenameSession = (id: string, title: string) => updateSession(id, { title });
-
-  const handleFeedback = (messageId: string, type: 'positive' | 'negative', category?: string) => {
-    console.log('Feedback:', messageId, type, category);
-  };
-
-  const handleSuggestionSelect = (suggestion: string) => {
-    setInput(suggestion);
-    setTimeout(() => handleSend(), 100);
-  };
+  }, []);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <ChatHistory
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
-        onDeleteSession={handleDeleteSession}
-        onRenameSession={handleRenameSession}
-        isOpen={isHistoryOpen}
-        onToggle={toggleHistory}
-      />
-      <div className="flex-1 flex flex-col pt-14 max-w-4xl mx-auto w-full">
-        <ChatContainer>
-          <AnimatePresence>
-            {messages.map((message) => (
-              <div key={message.id}>
-                <ChatBubble message={message} />
-                {message.role === 'assistant' && (
-                  <>
-                    <MessageFeedback
-                      messageId={message.id}
-                      currentFeedback={message.feedback}
-                      onFeedback={handleFeedback}
-                    />
-                    <CitationBlock
-                      citations={message.citations || []}
-                      isVisible={!!message.citations?.length}
-                    />
-                  </>
-                )}
-              </div>
+    <div className="flex flex-col min-h-screen">
+      {/* Hero */}
+      <section className="flex flex-col items-center justify-center py-20 md:py-28 text-center px-4">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
+          Sua wiki,{' '}
+          <span className="text-primary">do seu jeito</span>
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-2xl mb-8">
+          Crie wikis para seus jogos, comunidades, projetos ou qualquer assunto.
+          Com assistente IA, domínio personalizado e integração com Discord.
+        </p>
+        <div className="flex gap-4">
+          <Button size="lg" asChild>
+            <Link href="/dashboard/new">
+              Criar Wiki Grátis
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link href="/about">
+              Saiba Mais
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-4 border-t">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-12">
+            Tudo que você precisa
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {features.map((f) => (
+              <Card key={f.title}>
+                <CardHeader>
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                    <f.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-base">{f.title}</CardTitle>
+                  <CardDescription>{f.description}</CardDescription>
+                </CardHeader>
+              </Card>
             ))}
-            {isLoading && <TypingIndicator />}
-          </AnimatePresence>
-        </ChatContainer>
-        <QuickSuggestions
-          suggestions={QUICK_SUGGESTIONS}
-          onSelect={handleSuggestionSelect}
-          isVisible={messages.length === 0 && !isLoading}
-        />
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSend}
-          isLoading={isLoading}
-          placeholder="Ask about Pixel Blade..."
-        />
-      </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Public Wikis */}
+      <section className="py-16 px-4 border-t">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-4">
+            Wikis Públicas
+          </h2>
+          <p className="text-muted-foreground text-center mb-12">
+            Explore wikis criadas pela comunidade.
+          </p>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : wikis.length === 0 ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Nenhuma wiki pública ainda. Seja o primeiro a criar!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-4">
+              {wikis.map((wiki) => (
+                <Link key={wiki.id} href={`/w/${wiki.slug}`}>
+                  <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        {wiki.logo_url && (
+                          <img src={wiki.logo_url} alt="" className="h-5 w-5 rounded" />
+                        )}
+                        {wiki.name}
+                      </CardTitle>
+                      {wiki.description && (
+                        <CardDescription className="line-clamp-2">
+                          {wiki.description}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Globe className="h-3 w-3 mr-1" />
+                        /w/{wiki.slug}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 px-4 border-t text-center">
+        <h2 className="text-3xl font-bold mb-4">
+          Pronto para criar sua wiki?
+        </h2>
+        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+          Leva menos de um minuto. Sem cartão de crédito.
+        </p>
+        <Button size="lg" asChild>
+          <Link href="/dashboard/new">
+            Criar Wiki Grátis
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t py-8 px-4">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} PixelFandom</p>
+          <div className="flex gap-6">
+            <Link href="/about" className="hover:text-foreground">Sobre</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
+
+const features = [
+  {
+    icon: BookOpen,
+    title: 'Editor Poderoso',
+    description: 'Editor rich text com TipTap, markdown e upload de imagens.',
+  },
+  {
+    icon: Cpu,
+    title: 'Assistente IA',
+    description: 'IA configurável por wiki que responde sobre seu conteúdo.',
+  },
+  {
+    icon: Users,
+    title: 'Equipe e Permissões',
+    description: 'Controle de acesso por roles: owner, admin, editor, viewer.',
+  },
+  {
+    icon: Globe,
+    title: 'Domínio Próprio',
+    description: 'Use seu próprio domínio ou um subdomínio personalizado.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Coleções Customizadas',
+    description: 'Dados estruturados com schemas flexíveis por coleção.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Integração Discord',
+    description: 'Bot do Discord para buscar e criar páginas da wiki.',
+  },
+];
