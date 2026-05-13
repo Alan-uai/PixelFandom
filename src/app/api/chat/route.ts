@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenRouter } from '@openrouter/sdk';
+import { getTenantBySlug } from '@/lib/tenant';
+import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 
 const openrouter = new OpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -13,9 +15,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    // Resolve tenant context
+    const requestTenant = getTenantFromRequest(request);
+    let systemPrompt = '';
+
+    if (requestTenant?.slug) {
+      const tenant = await getTenantBySlug(requestTenant.slug);
+      if (tenant?.ai_enabled && tenant.ai_config) {
+        const config = tenant.ai_config as Record<string, unknown>;
+        systemPrompt = (config.system_prompt as string) || '';
+      }
+    }
+
+    const messages: { role: string; content: string }[] = [];
+    if (systemPrompt) {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
+    messages.push({ role: 'user', content: message });
+
     const stream = await (openrouter.chat as any).completions.create({
       model: 'openai/gpt-3.5-turbo',
-      messages: [{ role: 'user', content: message }],
+      messages,
       stream: true,
     });
 

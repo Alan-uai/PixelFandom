@@ -10,6 +10,7 @@ import { QuickSuggestions } from '@/components/chat/quick-suggestions';
 import { MessageFeedback } from '@/components/chat/message-feedback';
 import { CitationBlock } from '@/components/chat/citation-block';
 import { useChatStore } from '@/lib/store';
+import { useTenantHeader } from '@/hooks/use-tenant';
 import type { Message } from '@/lib/types';
 
 // ChatHistory imported directly since it's a default export now
@@ -23,6 +24,7 @@ const QUICK_SUGGESTIONS = [
 ];
 
 export default function Home() {
+  const tenantHeaders = useTenantHeader();
   const {
     sessions,
     activeSessionId,
@@ -86,7 +88,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...tenantHeaders },
         body: JSON.stringify({ message: userMessage.content }),
       });
 
