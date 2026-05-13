@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Send, Bot } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
 export default function WikiAIConfigPage() {
@@ -139,6 +139,72 @@ export default function WikiAIConfigPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {enabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Testar Assistente</CardTitle>
+            <CardDescription>Faça uma pergunta para testar a configuração.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChatTest slug={slug} />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ChatTest({ slug }: { slug: string }) {
+  const [message, setMessage] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleTest = async () => {
+    if (!message.trim()) return;
+    setLoading(true);
+    setResponse('');
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-tenant-slug': slug },
+        body: JSON.stringify({ message }),
+      });
+      if (!res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        setResponse(text);
+      }
+    } catch {
+      setResponse('Erro ao testar o assistente.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Digite uma mensagem de teste..."
+          onKeyDown={(e) => e.key === 'Enter' && handleTest()}
+        />
+        <Button onClick={handleTest} disabled={loading || !message.trim()} size="sm">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </Button>
+      </div>
+      {response && (
+        <div className="flex gap-2 rounded-lg bg-muted p-3">
+          <Bot className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+          <p className="text-sm whitespace-pre-wrap">{response}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,11 +9,13 @@ export function getTenantFromRequest(request: NextRequest): RequestTenant {
   const slug =
     request.nextUrl.searchParams.get('__tenant_slug') ||
     request.cookies.get('x-tenant-slug')?.value ||
+    request.headers.get('x-tenant-slug') ||
     null;
 
   const id =
     request.nextUrl.searchParams.get('__tenant_id') ||
     request.cookies.get('x-tenant-id')?.value ||
+    request.headers.get('x-tenant-id') ||
     null;
 
   if (!slug) return null;

@@ -1,22 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import Home from '../(marketing)/page';
-import { Badge } from '@/components/ui/badge';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function AdminChat() {
-  return (
-    <div className="relative">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-16 right-4 z-50"
-      >
-        <Badge variant="destructive" className="px-3 py-1">
-          Admin Mode
-        </Badge>
-      </motion.div>
-      <Home />
-    </div>
-  );
+export default function AdminChatRedirect() {
+  const router = useRouter();
+  useEffect(() => { router.replace('/dashboard'); }, [router]);
+  return null;
 }

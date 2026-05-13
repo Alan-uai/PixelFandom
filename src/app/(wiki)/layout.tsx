@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { Loader2, Menu, Search, X } from 'lucide-react';
+import { Loader2, Menu, Search, X, MessageCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
+import ChatWidget from '@/components/wiki/chat-widget';
 import type { Tenant } from '@/supabase/client';
 
 export default function WikiLayout({
@@ -138,6 +139,7 @@ export default function WikiLayout({
           {children}
         </main>
       </div>
+      {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} />}
     </div>
   );
 }

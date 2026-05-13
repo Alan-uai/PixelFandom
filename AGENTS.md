@@ -38,6 +38,8 @@
 
 ## Key env vars
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, `FALLBACK_CHAIN` (comma-separated model list)
+`VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)
+`VERCEL_PROJECT_ID` — ID do projeto Vercel
 
 ## Important files
 - `docs/ai-rules.md` — strict agent behavior rules (Portuguese). Follow when editing code.

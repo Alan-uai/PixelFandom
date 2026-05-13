@@ -18,12 +18,14 @@ export async function POST(request: NextRequest) {
     // Resolve tenant context
     const requestTenant = getTenantFromRequest(request);
     let systemPrompt = '';
+    let model = 'openai/gpt-4o-mini';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
       if (tenant?.ai_enabled && tenant.ai_config) {
         const config = tenant.ai_config as Record<string, unknown>;
         systemPrompt = (config.system_prompt as string) || '';
+        model = (config.model as string) || model;
       }
     }
 
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
     messages.push({ role: 'user', content: message });
 
     const stream = await (openrouter.chat as any).completions.create({
-      model: 'openai/gpt-3.5-turbo',
+      model,
       messages,
       stream: true,
     });

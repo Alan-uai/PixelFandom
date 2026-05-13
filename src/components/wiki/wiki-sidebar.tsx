@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/supabase';
-import { Loader2, Home, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Home, FileText, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react';
 
 type SidebarArticle = {
   id: string;
@@ -40,7 +40,7 @@ export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
 
   return (
     <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b space-y-1">
         <Link
           href={`/w/${tenantSlug}`}
           className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -51,6 +51,17 @@ export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
         >
           <Home className="h-4 w-4" />
           Home
+        </Link>
+        <Link
+          href={`/w/${tenantSlug}/chat`}
+          className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            pathname === `/w/${tenantSlug}/chat`
+              ? 'bg-primary/10 text-primary'
+              : 'hover:bg-muted'
+          }`}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Assistente IA
         </Link>
       </div>
 
