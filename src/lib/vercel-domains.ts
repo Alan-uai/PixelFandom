@@ -1,5 +1,3 @@
-'use server';
-
 const VERCEL_API = 'https://api.vercel.com';
 const VERCEL_TOKEN = process.env.VERCEL_API_TOKEN || '';
 const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID || '';

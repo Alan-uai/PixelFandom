@@ -1,5 +1,3 @@
-'use server';
-
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
 
