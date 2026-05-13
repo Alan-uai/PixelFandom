@@ -1,144 +1,141 @@
-# Pixel Blade Database Schema
+# PixelFandom Database Schema
 
 ## Visão Geral
 
-Este documento descreve o schema do banco de dados para o jogo Pixel Blade, projetado para Supabase (PostgreSQL).
+Schema do banco de dados PostgreSQL no Supabase, com migrations de 001 a 007.
 
-## Arquivos
+## Arquivos de Migração
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `001_create_pixel_blade_tables.sql` | Cria todas as tabelas e índices |
-| `002_seed_data.sql` | Popula as tabelas com dados da wiki |
+| Migration | Descrição |
+|-----------|-----------|
+| `001` | Tabelas do jogo Pixel Blade (weapons, armors, rings, etc.) |
+| `002` | Seed data inicial do Pixel Blade |
+| `003` | Tabelas de app (wiki_articles, content_suggestions, feedback, saved_answers) |
+| `004` | Profiles + RLS policies + auto-create profile trigger |
+| `005` | **Multi-tenant**: tenants, tenant_members, discord_guilds, custom_collections, collection_items |
+| `006` | Adiciona `tenant_id` às tabelas de app + atualiza RLS |
+| `007` | Seed do tenant Pixel Blade com collections + dados de jogo |
 
-## Tabelas Criadas
+---
 
-### 1. weapons
-Armas do jogo (33 armas).
-- **Campos**: name, rarity, weapon_type, damage_min/max, crit_chance, attack_speed, knockback, element, ability, tier
-- **Índices**: rarity, tier, type, element
+## Multi-Tenant Tables (migrations 005-007)
 
-### 2. armors
-Armaduras do jogo (15 armaduras).
-- **Campos**: name, rarity, world_name, health_bonus, speed_bonus, energy_bonus, passive_ability, tier
-- **Índices**: rarity, world, tier
+### tenants
+Wikis individuais (espaços multi-tenant).
+- **PK**: id (UUID)
+- **UK**: slug, custom_domain
+- **Campos**: name, slug, custom_domain, logo_url, description, theme (JSONB), ai_enabled, ai_config (JSONB), is_public, created_at, updated_at
+- **Índices**: slug, domain, is_public (partial)
 
-### 3. rings
-Anéis do jogo (12 anéis).
-- **Campos**: name, tier, rarity, description, starting_banner, key_buffs, synergy, craftable
-- **Índices**: tier, rarity, craftable
+### tenant_members
+Mapeamento usuário → tenant com role.
+- **PK**: (tenant_id, user_id)
+- **FK**: tenant_id → tenants(id), user_id → auth.users(id)
+- **Campos**: role ('owner', 'admin', 'editor', 'viewer'), invited_by
+- **Índices**: user_id, (tenant_id, role)
 
-### 4. ring_quality_tiers
-Sistema de qualidade dos anéis (8 níveis).
-- **Campos**: tier_name, quality_min/max, description, aura_color, action
+### discord_guilds
+Mapeamento servidor Discord → tenant.
+- **PK**: guild_id (TEXT)
+- **FK**: tenant_id → tenants(id) ON DELETE SET NULL
+- **Campos**: channel_id, bot_enabled
 
-### 5. ring_stat_formulas
-Fórmulas de stats por qualidade (Kennot's formulas).
-- **Campos**: stat_type, formula, coefficients (a, b), highest_scaling_range, stardust_cost
+### custom_collections
+Coleções flexíveis por tenant (ex: weapons, characters, items).
+- **PK**: id (UUID)
+- **FK**: tenant_id → tenants(id) ON DELETE CASCADE
+- **UK**: (tenant_id, slug)
+- **Campos**: name, slug, description, schema (JSONB - definição de campos), icon, item_count
+- **Índices**: tenant_id
 
-### 6. potions
-Poções do jogo (4 poções).
-- **Campos**: name, effects, shop_price, crafting_cost, materials, unlock_level
+### collection_items
+Items de dados dentro de coleções, armazenados como JSONB.
+- **PK**: id (UUID)
+- **FK**: collection_id → custom_collections(id) ON DELETE CASCADE, created_by → auth.users(id)
+- **Campos**: data (JSONB)
+- **Índices**: collection_id, created_by
 
-### 7. upgrades
-Upgrades de banners (13 upgrades).
-- **Campos**: name, category, description, per_rank_effect, tier, priority_order, is_must_pick
-- **Índices**: category, tier, priority
+---
 
-### 8. spirit_system_config
-Configuração do sistema de spirits.
-- **Campos**: default_capacity, max_capacity, per_spirit_bonus, boss_spirit_value
+## App Tables (migrations 003-004, com tenant_id via 006)
 
-### 9. spirit_capacity_synergy
-Tabela de sinergia capacidade spirits.
-- **Campos**: capacity, max_damage_bonus, max_speed_bonus
+### wiki_articles
+Artigos de wiki com suporte a TipTap/JSON.
+- **PK**: id (UUID)
+- **FK**: tenant_id → tenants(id)
+- **Campos**: title, summary, content (TEXT), tags (TEXT[]), image_url, tables (JSONB)
+- **tenant_id**: adicionado na migration 006
 
-### 10. worlds
-Mundos do jogo (5 mundos).
-- **Campos**: world_name, world_number, level_range, status, description, environment, chapters
-- **Índices**: world_number, status
+### content_suggestions
+Sugestões de conteúdo enviadas por usuários.
+- **FK**: tenant_id → tenants(id)
+- **Campos**: user_id, user_email, title, content, attachment_urls, status ('pending', 'approved', 'rejected')
 
-### 11. enemies
-Inimigos do jogo.
-- **Campos**: name, world_name, chapters, enemy_type, stats, attacks, effects, drops, weakness
-- **Índices**: world, type, difficulty
+### negative_feedback
+Feedback negativo de respostas da IA.
+- **FK**: tenant_id → tenants(id)
+- **Campos**: user_id, user_email, question, negative_response, ai_suggestion, reputation_points_awarded, status, reviewed_by
 
-### 12. bosses
-Chefes do jogo (9 chefes).
-- **Campos**: name, world_name, chapter, boss_type, stats, attacks, phase_mechanics, strategy, drops
-- **Índices**: world, chapter, type
+### saved_answers
+Respostas salvas pelos usuários.
+- **FK**: tenant_id → tenants(id)
+- **Campos**: user_id, question, answer
 
-### 13. codes
-Códigos do jogo (ativos e expirados).
-- **Campos**: code, rewards, type, is_active, verified_date, is_expired
-- **Índices**: active (where is_active = true), type
+### profiles
+Perfis de usuário vinculados ao Supabase Auth.
+- **PK**: id → auth.users(id) ON DELETE CASCADE
+- **Campos**: username (UK), display_name, email, avatar_url, role ('user', 'admin', 'moderator'), reputation_points
+- **Trigger**: `handle_new_user()` cria profile automaticamente no signup
 
-### 14. crafting_recipes
-Receitas de crafting do ferreiro.
-- **Campos**: item_name, item_type, rarity, gold_cost, materials, is_worth_crafting, worth_notes
-- **Índices**: type, rarity
+---
 
-### 15. resources
-Materiais e recursos.
-- **Campos**: resource_name, resource_type, source_world, source_method, usage, items_crafted
-- **Índices**: type, world
+## Game Data Tables (migrations 001-002)
 
-### 16. game_config
-Configurações gerais do jogo.
-- **Campos**: config_key, config_value (JSON), category, description
+Tabelas originais do Pixel Blade. Mantidas para compatibilidade. Os dados foram copiados para `custom_collections` na migration 007.
 
-### 17. build_presets
-Presets de builds populares.
-- **Campos**: build_name, build_type, recommended_upgrades, recommended_gear, strategy, is_meta
+| Tabela | Registros | Descrição |
+|--------|-----------|-----------|
+| weapons | 31 | Armas com stats, abilities, drop rates |
+| armors | 15 | Armaduras com bônus |
+| rings | 12 | Anéis com tiers e buffs |
+| potions | 4 | Poções e efeitos |
+| upgrades | 13 | Upgrades de banner |
+| worlds | 5 | Mundos do jogo |
+| enemies | 10+ | Inimigos |
+| bosses | 9 | Chefes |
+| codes | - | Códigos promocionais |
+| crafting_recipes | 9 | Receitas de crafting |
+| resources | - | Materiais |
+| game_config | - | Configurações gerais |
+| build_presets | 5 | Presets de builds |
+| weapon_abilities | - | Habilidades de armas |
+| ring_quality_tiers | 8 | Qualidade dos anéis |
+| ring_stat_formulas | 6 | Fórmulas de stats |
+| spirit_system_config | - | Configuração de espíritos |
+| spirit_capacity_synergy | - | Sinergia de capacidade |
 
-### 18. weapon_abilities
-Habilidades das armas.
-- **Campos**: ability_name, description, effect_type, effect_details, weapons, energy_cost, cooldown
+---
 
-## Enums Criados
+## Enums
 
 ```sql
-CREATE TYPE rarity_level AS ENUM ('common', 'rare', 'epic', 'legendary', 'vaulted');
-CREATE TYPE attack_speed_type AS ENUM ('fast', 'medium', 'slow');
-CREATE TYPE element_type AS ENUM ('fire', 'frost', 'poison', 'dark', 'ghost', 'void', 'earth', 'none');
-CREATE TYPE tier_rank AS ENUM ('s_plus', 's', 'a', 'b', 'c', 'd');
+rarity_level  : ENUM ('common', 'rare', 'epic', 'legendary', 'vaulted')
+attack_speed  : ENUM ('fast', 'medium', 'slow')
+element_type  : ENUM ('fire', 'frost', 'poison', 'dark', 'ghost', 'void', 'earth', 'none')
+tier_rank     : ENUM ('s_plus', 's', 'a', 'b', 'c', 'd')
 ```
 
-## Triggers
+## RLS Policies
 
-Todos os registros têm `updated_at` atualizado automaticamente via trigger `update_updated_at()`.
+- **Tenants**: público lê tenants públicos, membros atualizam
+- **tenant_members**: membros leem, owners/admins gerenciam
+- **custom_collections/collection_items**: escopo por tenant com roles
+- **wiki_articles**: leitura pública se tenant público, escrita por editors+
+- **content_suggestions/negative_feedback**: admins do tenant
+- **saved_answers**: próprio usuário
 
-## Como Executar
+## Seed Data
 
-1. Execute `001_create_pixel_blade_tables.sql` primeiro
-2. Execute `002_seed_data.sql` para popular os dados
-
-```bash
-# Via Supabase CLI
-psql -h your-host -U postgres -d postgres -f supabase/migrations/001_create_pixel_blade_tables.sql
-psql -h your-host -U postgres -d postgres -f supabase/migrations/002_seed_data.sql
-```
-
-## Contagem de Dados
-
-| Tabela | Registros |
-|--------|-----------|
-| weapons | 31 |
-| armors | 15 |
-| rings | 12 |
-| potions | 4 |
-| upgrades | 13 |
-| worlds | 5 |
-| enemies | 10+ |
-| bosses | 9 |
-| crafting_recipes | 9 |
-| ring_quality_tiers | 8 |
-| ring_stat_formulas | 6 |
-| build_presets | 5 |
-
-## Notas
-
-- UUIDs são gerados automaticamente para IDs
-- Timestamps com timezone (`TIMESTAMP WITH TIME ZONE`)
-- JSONB é usado para dados estruturados (buffs, materials, effects)
-- Índices para otimização de queries frequentes
+- **Tenant Pixel Blade**: `00000000-0000-0000-0000-000000000001`
+- **Collections**: weapons, armors, rings, potions, upgrades, worlds, enemies, bosses, codes, crafting-recipes
+- **AI config**: modelo gpt-4o-mini, system prompt em português, contexto das tabelas de jogo

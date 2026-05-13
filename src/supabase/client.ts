@@ -555,6 +555,163 @@ export type Database = {
           updated_at?: string;
         };
       };
+      // =========================================
+      // Multi-Tenant Tables
+      // =========================================
+      tenants: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          custom_domain: string | null;
+          logo_url: string | null;
+          description: string | null;
+          theme: Json;
+          ai_enabled: boolean;
+          ai_config: Json;
+          is_public: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          custom_domain?: string | null;
+          logo_url?: string | null;
+          description?: string | null;
+          theme?: Json;
+          ai_enabled?: boolean;
+          ai_config?: Json;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          custom_domain?: string | null;
+          logo_url?: string | null;
+          description?: string | null;
+          theme?: Json;
+          ai_enabled?: boolean;
+          ai_config?: Json;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      tenant_members: {
+        Row: {
+          tenant_id: string;
+          user_id: string;
+          role: 'owner' | 'admin' | 'editor' | 'viewer';
+          invited_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          user_id: string;
+          role?: 'owner' | 'admin' | 'editor' | 'viewer';
+          invited_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          tenant_id?: string;
+          user_id?: string;
+          role?: 'owner' | 'admin' | 'editor' | 'viewer';
+          invited_by?: string | null;
+          created_at?: string;
+        };
+      };
+      discord_guilds: {
+        Row: {
+          guild_id: string;
+          tenant_id: string | null;
+          channel_id: string | null;
+          bot_enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          guild_id: string;
+          tenant_id?: string | null;
+          channel_id?: string | null;
+          bot_enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          guild_id?: string;
+          tenant_id?: string | null;
+          channel_id?: string | null;
+          bot_enabled?: boolean;
+          created_at?: string;
+        };
+      };
+      custom_collections: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          schema: Json;
+          icon: string | null;
+          item_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          schema?: Json;
+          icon?: string | null;
+          item_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          schema?: Json;
+          icon?: string | null;
+          item_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      collection_items: {
+        Row: {
+          id: string;
+          collection_id: string;
+          data: Json;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          data?: Json;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          data?: Json;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 };
@@ -568,3 +725,8 @@ export type Enemy = Database['public']['Tables']['enemies']['Row'];
 export type Upgrade = Database['public']['Tables']['upgrades']['Row'];
 export type Potion = Database['public']['Tables']['potions']['Row'];
 export type Code = Database['public']['Tables']['codes']['Row'];
+export type Tenant = Database['public']['Tables']['tenants']['Row'];
+export type TenantMember = Database['public']['Tables']['tenant_members']['Row'];
+export type DiscordGuild = Database['public']['Tables']['discord_guilds']['Row'];
+export type CustomCollection = Database['public']['Tables']['custom_collections']['Row'];
+export type CollectionItem = Database['public']['Tables']['collection_items']['Row'];
