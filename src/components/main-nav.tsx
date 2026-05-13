@@ -12,11 +12,8 @@ export default function MainNav() {
         <Link href="/" className="text-muted-foreground hover:text-foreground">
           Home
         </Link>
-        <Link href="/about" className="text-muted-foreground hover:text-foreground">
-          About
-        </Link>
-        <Link href="/admin/manage-content" className="text-muted-foreground hover:text-foreground">
-          Admin
+        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+          Dashboard
         </Link>
       </div>
     </nav>

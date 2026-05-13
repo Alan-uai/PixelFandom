@@ -30,30 +30,29 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Custom domain: lookup tenant and rewrite
-  try {
-    const resp = await fetch(
-      `${SUPA_URL}/rest/v1/tenants?custom_domain=eq.${encodeURIComponent(host)}&select=slug,id`,
-      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
-    );
+  // Custom domain: lookup tenant and rewrite (only for wiki pages)
+  if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/')) {
+    try {
+      const resp = await fetch(
+        `${SUPA_URL}/rest/v1/tenants?custom_domain=eq.${encodeURIComponent(host)}&select=slug,id`,
+        { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
+      );
 
-    if (resp.ok) {
-      const data = (await resp.json()) as { slug: string; id: string }[];
-      if (data?.length > 0) {
-        const url = request.nextUrl.clone();
+      if (resp.ok) {
+        const data = (await resp.json()) as { slug: string; id: string }[];
+        if (data?.length > 0) {
+          const url = request.nextUrl.clone();
 
-        url.searchParams.set('__tenant_slug', data[0].slug);
-        url.searchParams.set('__tenant_id', data[0].id);
-
-        if (!isApiRoute) {
+          url.searchParams.set('__tenant_slug', data[0].slug);
+          url.searchParams.set('__tenant_id', data[0].id);
           url.pathname = `/w/${data[0].slug}${pathname === '/' ? '' : pathname}`;
-        }
 
-        return NextResponse.rewrite(url);
+          return NextResponse.rewrite(url);
+        }
       }
+    } catch {
+      // Tenant lookup failed — pass through
     }
-  } catch {
-    // Tenant lookup failed — pass through
   }
 
   return NextResponse.next();
