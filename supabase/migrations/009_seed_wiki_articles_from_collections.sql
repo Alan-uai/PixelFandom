@@ -18,7 +18,7 @@ BEGIN
         WHERE tenant_id = pixel_tenant_id
     LOOP
         FOR item IN
-            SELECT ci.id, ci.data
+            SELECT ci.id, ci.data, ci.created_at, ci.updated_at
             FROM public.collection_items ci
             WHERE ci.collection_id = col.id
         LOOP
@@ -38,19 +38,23 @@ BEGIN
                 article_slug := col.slug || '-' || substring(item.id::text, 1, 8);
             END IF;
 
-            -- Insert as wiki_article if not already exists (by slug + tenant_id)
-            INSERT INTO public.wiki_articles (tenant_id, title, slug, content, summary, tags, created_at, updated_at)
-            VALUES (
-                pixel_tenant_id,
-                article_title,
-                article_slug,
-                item.data::text,
-                item.data->>'description',
-                ARRAY[col.slug],
-                COALESCE(item.created_at, NOW()),
-                COALESCE(item.updated_at, NOW())
-            )
-            ON CONFLICT DO NOTHING;
+            -- Insert as wiki_article if not already exists
+            IF NOT EXISTS (
+                SELECT 1 FROM public.wiki_articles
+                WHERE tenant_id = pixel_tenant_id AND slug = article_slug
+            ) THEN
+                INSERT INTO public.wiki_articles (tenant_id, title, slug, content, summary, tags, created_at, updated_at)
+                VALUES (
+                    pixel_tenant_id,
+                    article_title,
+                    article_slug,
+                    item.data::text,
+                    item.data->>'description',
+                    ARRAY[col.slug],
+                    COALESCE(item.created_at, NOW()),
+                    COALESCE(item.updated_at, NOW())
+                );
+            END IF;
         END LOOP;
     END LOOP;
 END $$;
