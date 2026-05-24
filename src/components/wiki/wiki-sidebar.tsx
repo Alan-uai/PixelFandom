@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/supabase';
 import {
   Loader2, FileText, ChevronDown, ChevronRight,
   Search, Grid3X3, List,
   X, Hash, BookOpen, PanelLeft
 } from 'lucide-react';
+import { useWikiData } from '@/context/wiki-provider';
 
 type SidebarArticle = {
   id: string;
@@ -19,35 +19,21 @@ type SidebarArticle = {
 
 type Props = {
   tenantSlug: string;
-  tenantId: string;
   collapsed?: boolean;
   onToggle?: () => void;
 };
 
-export default function WikiSidebar({ tenantSlug, tenantId, collapsed, onToggle }: Props) {
+export default function WikiSidebar({ tenantSlug, collapsed, onToggle }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [articles, setArticles] = useState<SidebarArticle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useWikiData();
   const [articleCollapsed, setArticleCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const currentView = searchParams.get('view') || 'grid';
-
-  useEffect(() => {
-    if (!tenantId) return;
-    supabase
-      .from('wiki_articles')
-      .select('id, title, slug, tags')
-      .eq('tenant_id', tenantId)
-      .order('title')
-      .then(({ data }) => {
-        if (data) setArticles(data);
-        setLoading(false);
-      });
-  }, [tenantId]);
+  const articles: SidebarArticle[] = (data?.articles || []) as SidebarArticle[];
 
   const currentSlug = useMemo(() => {
     const base = `/w/${tenantSlug}/`;

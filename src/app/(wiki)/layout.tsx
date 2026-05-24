@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
-import type { Tenant } from '@/supabase/client';
+import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 
 export default function WikiLayout({
   children,
@@ -17,28 +17,34 @@ export default function WikiLayout({
   children: React.ReactNode;
 }>) {
   const params = useParams();
+  const slug = params?.slug as string;
+
+  if (!slug) return <>{children}</>;
+
+  return (
+    <WikiDataProvider slug={slug}>
+      <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+    </WikiDataProvider>
+  );
+}
+
+function WikiLayoutContent({
+  slug,
+  children,
+}: {
+  slug: string;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
-  const slug = params?.slug as string;
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useWikiData();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const tenant = data?.tenant || null;
   const isChatPage = pathname === `/w/${slug}/chat`;
-
-  useEffect(() => {
-    if (!slug) return;
-    fetch(`/api/tenants?slug=${encodeURIComponent(slug)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setTenant(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [slug]);
 
   useEffect(() => {
     if (isChatPage) {
@@ -189,7 +195,6 @@ export default function WikiLayout({
         <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
           <WikiSidebar
             tenantSlug={slug}
-            tenantId={tenant.id}
             collapsed={sidebarCollapsed}
             onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           />

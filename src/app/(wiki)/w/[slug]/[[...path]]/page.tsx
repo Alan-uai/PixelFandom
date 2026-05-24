@@ -42,23 +42,19 @@ export default async function WikiPage({ params, searchParams }: Props) {
   const articleSlug = path?.join('/') || null;
   const isGrid = view !== 'list';
 
-  const { data: tenant } = await supabase
-    .from('tenants')
-    .select('id, name, slug, logo_url, description')
-    .eq('slug', slug)
-    .single();
+  const { data: wikiData } = await supabase.rpc('get_wiki', {
+    p_slug: slug,
+    p_article_slug: articleSlug || null,
+    p_search: search || null,
+  });
 
-  if (!tenant) notFound();
+  if (!wikiData || !wikiData.tenant) notFound();
+
+  const tenant = wikiData.tenant;
 
   // ── Search mode ──
   if (search) {
-    const { data: results } = await supabase
-      .from('wiki_articles')
-      .select('id, title, slug, summary, content, tags, image_url, updated_at')
-      .eq('tenant_id', tenant.id)
-      .or(`title.ilike.%${search}%,summary.ilike.%${search}%,content.ilike.%${search}%`)
-      .order('title')
-      .limit(30);
+    const results = wikiData.search_results;
 
     return (
       <div className="max-w-4xl mx-auto">
@@ -138,44 +134,28 @@ export default async function WikiPage({ params, searchParams }: Props) {
 
   // ── Article view ──
   if (articleSlug) {
-    let { data: article } = await supabase
-      .from('wiki_articles')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .eq('slug', articleSlug)
-      .single();
+    let article = wikiData.article;
 
     if (!article) {
-      const { data: collections } = await supabase
-        .from('custom_collections')
-        .select('id')
-        .eq('tenant_id', tenant.id);
-
-      if (collections && collections.length > 0) {
-        const { data: items } = await supabase
-          .from('collection_items')
-          .select('id, data, created_at, updated_at')
-          .in('collection_id', collections.map((c: any) => c.id));
-
-        if (items) {
-          for (const item of items) {
-            const itemData = item.data as Record<string, any>;
-            const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
-            const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            if (itemSlug === articleSlug) {
-              article = {
-                title: name,
-                content: formatCollectionData(itemData),
-                summary: itemData?.description || null,
-                tags: null,
-                image_url: null,
-                updated_at: item.updated_at,
-                id: item.id,
-              } as any;
-              break;
-            }
+      for (const collection of wikiData.collections || []) {
+        for (const item of collection.items || []) {
+          const itemData = item.data as Record<string, any>;
+          const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
+          const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          if (itemSlug === articleSlug) {
+            article = {
+              title: name,
+              content: formatCollectionData(itemData),
+              summary: itemData?.description || null,
+              tags: null,
+              image_url: null,
+              updated_at: item.updated_at,
+              id: item.id,
+            } as any;
+            break;
           }
         }
+        if (article) break;
       }
     }
 
@@ -266,14 +246,7 @@ export default async function WikiPage({ params, searchParams }: Props) {
     );
   }
 
-  // ── Wiki home ──
-  const { data: articles } = await supabase
-    .from('wiki_articles')
-    .select('id, title, slug, summary, tags, image_url, updated_at')
-    .eq('tenant_id', tenant.id)
-    .order('updated_at', { ascending: false })
-    .limit(30);
-
+  const articles = wikiData.articles;
   const recentArticles = articles?.slice(0, 6) || [];
 
   return (
