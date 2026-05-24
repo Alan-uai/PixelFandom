@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
-
-const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
-const EMBEDDING_MODEL = 'google/gemini-embedding-2-preview';
-const EMBEDDING_DIMENSIONS = 1536;
+import { generateEmbedding } from '@/lib/gemini-embedding';
 
 const SECTION_PROMPT = `
 FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
@@ -26,26 +23,6 @@ REGRAS:
 - Responda APENAS no formato acima, sem texto fora das seções
 - Use português brasileiro
 `;
-
-async function generateEmbedding(text: string): Promise<number[]> {
-  const res = await fetch(`${OPENROUTER_BASE}/embeddings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: EMBEDDING_MODEL,
-      input: text.slice(0, 8000),
-      dimensions: EMBEDDING_DIMENSIONS,
-      encoding_format: 'float',
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Embedding error (${res.status})`);
-  const data = await res.json();
-  return data.data[0].embedding;
-}
 
 async function retrieveContext(
   message: string,
@@ -143,7 +120,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       { role: 'user', content: message },
     ];
 
-    const orRes = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
