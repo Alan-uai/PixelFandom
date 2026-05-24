@@ -1,3 +1,15 @@
+export type ResponseModality = 'AUDIO' | 'TEXT';
+
+export type VoiceName = 'Puck' | 'Kore' | 'Charon' | 'Fenrir' | 'Aoede';
+
+export type ActivityDetectionConfig = {
+  disabled: boolean;
+  silenceDurationMs: number;
+  prefixPaddingMs: number;
+  endOfSpeechSensitivity: string;
+  startOfSpeechSensitivity: string;
+};
+
 type MessageHandler = {
   onOpen?: () => void;
   onClose?: () => void;
@@ -29,12 +41,91 @@ export class GeminiLiveAPI {
   private connected = false;
   private toolDeclarations: ToolDeclaration[] = [];
 
+  voiceName: VoiceName = 'Kore';
+  temperature = 1.0;
+  responseModalities: ResponseModality[] = ['AUDIO'];
+  isThinkingMode = false;
+  thinkingBudget = 1024;
+  inputAudioTranscription = false;
+  outputAudioTranscription = false;
+
+  automaticActivityDetection: ActivityDetectionConfig = {
+    disabled: false,
+    silenceDurationMs: 1500,
+    prefixPaddingMs: 400,
+    endOfSpeechSensitivity: 'END_SENSITIVITY_UNSPECIFIED',
+    startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
+  };
+
+  activityHandling = 'START_OF_ACTIVITY_INTERRUPTS';
+
   constructor(handlers: MessageHandler) {
     this.handlers = handlers;
   }
 
+  setPublicMode(enabled: boolean) {
+    if (enabled) {
+      this.automaticActivityDetection = {
+        ...this.automaticActivityDetection,
+        silenceDurationMs: 2500,
+        endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
+        startOfSpeechSensitivity: 'START_SENSITIVITY_LOW',
+      };
+    } else {
+      this.automaticActivityDetection = {
+        ...this.automaticActivityDetection,
+        silenceDurationMs: 1500,
+        endOfSpeechSensitivity: 'END_SENSITIVITY_UNSPECIFIED',
+        startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
+      };
+    }
+    this.sendSessionUpdate({
+      realtimeInputConfig: {
+        automaticActivityDetection: this.getVADConfig(),
+        activityHandling: this.activityHandling,
+      },
+    });
+  }
+
+  setVoice(voiceName: VoiceName) {
+    this.voiceName = voiceName;
+    this.sendSessionUpdate({
+      generationConfig: {
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+        },
+      },
+    });
+  }
+
+  setThinkingMode(enabled: boolean, budget = 1024) {
+    this.isThinkingMode = enabled;
+    this.thinkingBudget = budget;
+    this.sendSessionUpdate({
+      generationConfig: {
+        thinkingConfig: { thinkingBudget: enabled ? budget : 0 },
+      },
+    });
+  }
+
   setTools(tools: ToolDeclaration[]) {
     this.toolDeclarations = tools;
+  }
+
+  private getVADConfig() {
+    return {
+      disabled: this.automaticActivityDetection.disabled,
+      silenceDurationMs: this.automaticActivityDetection.silenceDurationMs,
+      prefixPaddingMs: this.automaticActivityDetection.prefixPaddingMs,
+      endOfSpeechSensitivity: this.automaticActivityDetection.endOfSpeechSensitivity,
+      startOfSpeechSensitivity: this.automaticActivityDetection.startOfSpeechSensitivity,
+    };
+  }
+
+  private sendSessionUpdate(config: Record<string, unknown>) {
+    if (this.connected && this.ws) {
+      this.ws.send(JSON.stringify({ session_update: config }));
+    }
   }
 
   async connect(systemInstruction?: string) {
@@ -50,13 +141,16 @@ export class GeminiLiveAPI {
     this.ws.onopen = () => {
       this.connected = true;
       this.sendSetup(systemInstruction);
+      this.handlers.onOpen?.();
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         this.handleMessage(data);
-      } catch { /* ignore binary */ }
+      } catch {
+        /* ignore binary */
+      }
     };
 
     this.ws.onclose = () => {
@@ -78,56 +172,72 @@ export class GeminiLiveAPI {
 
   sendAudioMessage(base64Audio: string) {
     if (!this.connected || !this.ws) return;
-    this.ws.send(JSON.stringify({
-      realtimeInput: {
-        mediaChunks: [{
-          data: base64Audio,
-          mimeType: 'audio/pcm;rate=16000',
-        }],
-      },
-    }));
+    this.ws.send(
+      JSON.stringify({
+        realtimeInput: {
+          mediaChunks: [
+            {
+              data: base64Audio,
+              mimeType: 'audio/pcm;rate=16000',
+            },
+          ],
+        },
+      })
+    );
   }
 
   sendTextMessage(text: string) {
     if (!this.connected || !this.ws) return;
-    this.ws.send(JSON.stringify({
-      realtimeInput: {
-        mediaChunks: [{
-          data: btoa(text),
-          mimeType: 'text/plain',
-        }],
-      },
-    }));
+    this.ws.send(
+      JSON.stringify({
+        realtimeInput: {
+          mediaChunks: [
+            {
+              data: btoa(text),
+              mimeType: 'text/plain',
+            },
+          ],
+        },
+      })
+    );
   }
 
   sendToolResponse(id: string, name: string, response: unknown) {
     if (!this.connected || !this.ws) return;
-    this.ws.send(JSON.stringify({
-      toolResponse: {
-        functionResponses: [{
-          id,
-          name,
-          response: { result: response },
-        }],
-      },
-    }));
+    this.ws.send(
+      JSON.stringify({
+        toolResponse: {
+          functionResponses: [
+            {
+              id,
+              name,
+              response: { result: response },
+            },
+          ],
+        },
+      })
+    );
   }
 
-  get isConnected() { return this.connected; }
+  get isConnected() {
+    return this.connected;
+  }
 
   private sendSetup(systemInstruction?: string) {
     if (!this.ws) return;
 
-    const tools = this.toolDeclarations.length > 0 ? [{
-      functionDeclarations: this.toolDeclarations,
-    }] : [];
+    const tools =
+      this.toolDeclarations.length > 0
+        ? [{ functionDeclarations: this.toolDeclarations }]
+        : [];
 
     const setup: Record<string, unknown> = {
       model: 'models/gemini-3.1-flash-live-preview',
       generationConfig: {
-        responseModalities: ['AUDIO'],
+        responseModalities: this.responseModalities,
+        temperature: this.temperature,
         speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } },
         },
       },
       tools,
@@ -137,6 +247,25 @@ export class GeminiLiveAPI {
       setup.systemInstruction = {
         parts: [{ text: systemInstruction }],
       };
+    }
+
+    if (this.isThinkingMode) {
+      (setup.generationConfig as Record<string, unknown>).thinkingConfig = {
+        thinkingBudget: this.thinkingBudget,
+      };
+    }
+
+    setup.realtimeInputConfig = {
+      automaticActivityDetection: this.getVADConfig(),
+      activityHandling: this.activityHandling,
+      turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
+    };
+
+    if (this.inputAudioTranscription) {
+      (setup as any).inputAudioTranscription = {};
+    }
+    if (this.outputAudioTranscription) {
+      (setup as any).outputAudioTranscription = {};
     }
 
     this.ws.send(JSON.stringify({ setup }));
@@ -171,18 +300,16 @@ export class GeminiLiveAPI {
           }
         }
       }
-
-      if (content.inputTranscription) {
-        // transcription available in content.inputTranscription.text
-      }
     }
 
     if (data.toolCall) {
-      const calls: ToolCall[] = (data.toolCall.functionCalls || []).map((fc: any) => ({
-        id: fc.id,
-        name: fc.name,
-        args: fc.args || {},
-      }));
+      const calls: ToolCall[] = (data.toolCall.functionCalls || []).map(
+        (fc: any) => ({
+          id: fc.id,
+          name: fc.name,
+          args: fc.args || {},
+        })
+      );
       this.handlers.onToolCall?.(calls);
     }
   }

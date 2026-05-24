@@ -1,147 +1,115 @@
-export type Command = {
+export type CommandHandler = (args: string) => void;
+
+export interface Command {
   name: string;
   aliases: string[];
-  description: string;
-  usage: string;
-  handler: (args: string, context: CommandContext) => CommandResult | Promise<CommandResult>;
-};
+  description: Record<string, string>;
+  handler?: CommandHandler;
+}
 
-export type CommandContext = {
-  tenantSlug: string;
-  navigate: (path: string) => void;
-  search: (query: string) => Promise<void>;
-  setVolume?: (level: number) => void;
-};
-
-export type CommandResult = {
-  message: string;
-  action?: 'navigate' | 'search' | 'clear' | 'volume';
-  payload?: string;
-};
-
-const commands: Command[] = [
+export const COMMANDS: Command[] = [
   {
-    name: 'ajuda',
-    aliases: ['help', 'comandos', 'commands'],
-    description: 'Mostra a lista de comandos disponíveis',
-    usage: '/ajuda',
-    handler: async () => ({
-      message: `Comandos disponíveis:
-/ajuda - Mostra esta mensagem
-/limpar - Limpa a conversa
-/buscar <termo> - Busca na wiki
-/pagina <slug> - Navega para um artigo
-/wiki <slug> - Troca para outra wiki
-/artigos - Lista todos os artigos
-/volume <0-100> - Ajusta o volume`,
-    }),
-  },
-  {
-    name: 'limpar',
-    aliases: ['clear', 'clean'],
-    description: 'Limpa a conversa atual',
-    usage: '/limpar',
-    handler: async () => ({
-      message: 'Conversa limpa.',
-      action: 'clear',
-    }),
-  },
-  {
-    name: 'buscar',
-    aliases: ['search', 'procurar', 'find'],
-    description: 'Busca conteúdo na wiki',
-    usage: '/buscar <termo>',
-    handler: async (args, context) => {
-      if (!args) return { message: 'Uso: /buscar <termo>' };
-      await context.search(args);
-      return {
-        message: `Buscando por "${args}"...`,
-        action: 'search',
-        payload: args,
-      };
+    name: 'help',
+    aliases: ['ajuda', 'ayuda'],
+    description: {
+      pt: 'Mostra todos os comandos disponíveis',
+      en: 'Show all available commands',
+      es: 'Muestra todos los comandos disponibles',
     },
   },
   {
-    name: 'pagina',
-    aliases: ['page', 'artigo', 'article', 'ir'],
-    description: 'Navega para um artigo específico',
-    usage: '/pagina <slug>',
-    handler: async (args, context) => {
-      if (!args) return { message: 'Uso: /pagina <slug>' };
-      context.navigate(`/w/${context.tenantSlug}/${args}`);
-      return {
-        message: `Navegando para ${args}...`,
-        action: 'navigate',
-        payload: args,
-      };
+    name: 'clear',
+    aliases: ['limpar', 'limpiar'],
+    description: {
+      pt: 'Limpa a conversa atual',
+      en: 'Clear the current conversation',
+      es: 'Limpiar la conversación actual',
+    },
+  },
+  {
+    name: 'search',
+    aliases: ['buscar', 'procurar', 'find'],
+    description: {
+      pt: 'Busca conteúdo na wiki',
+      en: 'Search wiki content',
+      es: 'Buscar contenido en la wiki',
+    },
+  },
+  {
+    name: 'page',
+    aliases: ['pagina', 'página', 'abrir'],
+    description: {
+      pt: 'Navega para uma página específica',
+      en: 'Navigate to a specific page',
+      es: 'Navegar a una página específica',
     },
   },
   {
     name: 'wiki',
-    aliases: ['trocar', 'switch'],
-    description: 'Troca para outra wiki',
-    usage: '/wiki <slug>',
-    handler: async (args, context) => {
-      if (!args) return { message: 'Uso: /wiki <slug>' };
-      context.navigate(`/w/${args}`);
-      return {
-        message: `Trocando para wiki "${args}"...`,
-        action: 'navigate',
-        payload: args,
-      };
+    aliases: ['mudar', 'switch'],
+    description: {
+      pt: 'Muda para outra wiki',
+      en: 'Switch to another wiki',
+      es: 'Cambiar a otra wiki',
     },
   },
   {
-    name: 'artigos',
-    aliases: ['articles', 'lista', 'list'],
-    description: 'Lista todos os artigos da wiki',
-    usage: '/artigos',
-    handler: async (_args, context) => {
-      try {
-        const res = await fetch(`/api/voice/articles?slug=${encodeURIComponent(context.tenantSlug)}`);
-        const data = await res.json();
-        if (data.articles?.length) {
-          const list = data.articles.map((a: any) => `- ${a.title} (/${a.slug || a.id})`).join('\n');
-          return { message: `Artigos disponíveis:\n${list}` };
-        }
-        return { message: 'Nenhum artigo encontrado.' };
-      } catch {
-        return { message: 'Erro ao listar artigos.' };
-      }
+    name: 'articles',
+    aliases: ['artigos', 'lista', 'list'],
+    description: {
+      pt: 'Lista todos os artigos da wiki',
+      en: 'List all wiki articles',
+      es: 'Listar todos los artículos de la wiki',
     },
   },
   {
     name: 'volume',
-    aliases: ['vol'],
-    description: 'Ajusta o volume da voz (0-100)',
-    usage: '/volume <0-100>',
-    handler: async (args, context) => {
-      const level = parseInt(args);
-      if (isNaN(level) || level < 0 || level > 100) {
-        return { message: 'Uso: /volume <0-100>' };
-      }
-      context.setVolume?.(level);
-      return { message: `Volume ajustado para ${level}.`, action: 'volume', payload: String(level) };
+    aliases: ['vol', 'som', 'sound', 'audio'],
+    description: {
+      pt: 'Ajusta o volume da voz (1-100)',
+      en: 'Adjust voice volume (1-100)',
+      es: 'Ajustar el volumen de la voz (1-100)',
+    },
+  },
+  {
+    name: 'voice',
+    aliases: ['voz', 'vocal'],
+    description: {
+      pt: 'Muda a voz do assistente (Puck, Kore, Charon, Fenrir, Aoede)',
+      en: 'Change assistant voice (Puck, Kore, Charon, Fenrir, Aoede)',
+      es: 'Cambiar la voz del asistente (Puck, Kore, Charon, Fenrir, Aoede)',
     },
   },
 ];
 
 export function detectCommand(text: string): { command: Command; args: string } | null {
-  const match = text.match(/^\/(\w+)(?:\s+(.*))?$/);
-  if (!match) return null;
+  const trimmed = text.trim().toLowerCase();
 
-  const input = match[1].toLowerCase();
-  const args = (match[2] || '').trim();
-
-  for (const cmd of commands) {
-    if (cmd.name === input || cmd.aliases.includes(input)) {
-      return { command: cmd, args };
+  for (const cmd of COMMANDS) {
+    const allNames = [cmd.name, ...cmd.aliases];
+    for (const name of allNames) {
+      const pattern = new RegExp(`^/(${name})(\\s+(.*))?$`, 'i');
+      const match = trimmed.match(pattern);
+      if (match) {
+        return { command: cmd, args: match[3] || '' };
+      }
     }
   }
 
   return null;
 }
 
-export function getCommandList(): Command[] {
-  return commands;
+export function getHelpText(lang = 'pt'): string {
+  const langKey = lang in (COMMANDS[0]?.description || {}) ? lang : 'pt';
+  const lines = COMMANDS.map((cmd) => {
+    const desc =
+      cmd.description[langKey as keyof typeof cmd.description] ||
+      cmd.description['pt'];
+    const aliases = cmd.aliases
+      .slice(0, 3)
+      .map((a) => `/${a}`)
+      .join(', ');
+    return `  **/${cmd.name}**${aliases ? ` (${aliases})` : ''} — ${desc}`;
+  });
+  return lines.join('\n');
 }

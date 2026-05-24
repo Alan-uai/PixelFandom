@@ -70,6 +70,8 @@ export type ToolHandler = (
   args: Record<string, unknown>
 ) => Promise<unknown>;
 
+import { stripTipTapContent } from './utils';
+
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown>,
@@ -83,7 +85,11 @@ export async function handleToolCall(
       );
       if (!res.ok) return { error: 'Search failed' };
       const data = await res.json();
-      return { results: data.results };
+      const results = (data.results || []).map((r: any) => ({
+        ...r,
+        content: r.content ? stripTipTapContent(r.content) : r.content,
+      }));
+      return { results };
     }
 
     case 'getWikiArticle': {
@@ -93,7 +99,15 @@ export async function handleToolCall(
       );
       if (!res.ok) return { error: 'Article not found' };
       const data = await res.json();
-      return { article: data.article };
+      const article = data.article
+        ? {
+            ...data.article,
+            content: data.article.content
+              ? stripTipTapContent(data.article.content)
+              : data.article.content,
+          }
+        : null;
+      return { article };
     }
 
     case 'navigateToPage': {

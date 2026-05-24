@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Send, Bot } from 'lucide-react';
+import { Loader2, Save, Send, Bot, Headphones, Volume2 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
+import type { VoiceName } from '@/lib/voice/geminilive';
 
 export default function WikiAIConfigPage() {
   const params = useParams();
@@ -23,6 +24,10 @@ export default function WikiAIConfigPage() {
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState('openai/gpt-4o-mini');
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [voiceName, setVoiceName] = useState<VoiceName>('Kore');
+  const [voiceVolume, setVoiceVolume] = useState(80);
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  const [publicMode, setPublicMode] = useState(false);
 
   useEffect(() => {
     supabase
@@ -37,6 +42,10 @@ export default function WikiAIConfigPage() {
           const config = data.ai_config as Record<string, unknown> || {};
           setModel((config.model as string) || 'openai/gpt-4o-mini');
           setSystemPrompt((config.system_prompt as string) || '');
+          setVoiceName((config.voice_name as VoiceName) || 'Kore');
+          setVoiceVolume((config.voice_volume as number) || 80);
+          setWakeWordEnabled((config.wake_word as boolean) || false);
+          setPublicMode((config.public_mode as boolean) || false);
         }
         setLoading(false);
       });
@@ -50,7 +59,14 @@ export default function WikiAIConfigPage() {
       .from('tenants')
       .update({
         ai_enabled: enabled,
-        ai_config: { model, system_prompt: systemPrompt },
+        ai_config: {
+          model,
+          system_prompt: systemPrompt,
+          voice_name: voiceName,
+          voice_volume: voiceVolume,
+          wake_word: wakeWordEnabled,
+          public_mode: publicMode,
+        },
       })
       .eq('id', tenant.id);
 
@@ -137,6 +153,71 @@ export default function WikiAIConfigPage() {
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
             Salvar Configuração
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Headphones className="h-5 w-5" />
+            Agente de Voz
+          </CardTitle>
+          <CardDescription>Configure o assistente de voz para a wiki.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="voiceName">Voz do Assistente</Label>
+            <select
+              id="voiceName"
+              value={voiceName}
+              onChange={(e) => setVoiceName(e.target.value as VoiceName)}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="Puck">Puck — Equilibrada</option>
+              <option value="Kore">Kore — Brilhante e clara</option>
+              <option value="Charon">Charon — Grave e acolhedora</option>
+              <option value="Fenrir">Fenrir — Forte e assertiva</option>
+              <option value="Aoede">Aoede — Suave e melódica</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Volume2 className="h-4 w-4" />
+              Volume ({voiceVolume}%)
+            </Label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={voiceVolume}
+              onChange={(e) => setVoiceVolume(Number(e.target.value))}
+              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Wake Word</p>
+              <p className="text-xs text-muted-foreground">Ativar por &ldquo;Psycho&rdquo;</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={wakeWordEnabled}
+              onChange={(e) => setWakeWordEnabled(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Modo Público</p>
+              <p className="text-xs text-muted-foreground">Menos sensível a ruídos</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={publicMode}
+              onChange={(e) => setPublicMode(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300"
+            />
+          </div>
         </CardContent>
       </Card>
 

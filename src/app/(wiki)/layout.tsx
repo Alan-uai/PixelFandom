@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
+import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 
 export default function WikiLayout({
@@ -39,9 +40,11 @@ function WikiLayoutContent({
   const pathname = usePathname();
   const { data, loading } = useWikiData();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const tenant = data?.tenant || null;
   const isChatPage = pathname === `/w/${slug}/chat`;
@@ -65,6 +68,12 @@ function WikiLayoutContent({
       searchRef.current.focus();
     }
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchExpanded && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchExpanded]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -154,18 +163,34 @@ function WikiLayoutContent({
           <VoiceChat tenantSlug={slug} mode="header" />
         </nav>
 
-        <div className="flex-1" />
+        {searchExpanded ? (
+          <form onSubmit={handleSearch} className="relative max-w-sm flex-1 hidden md:block">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              placeholder="Buscar... (Cmd+K)"
+              className="pl-8 h-9 bg-muted"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
+            />
+          </form>
+        ) : (
+          <div className="flex-1" />
+        )}
 
-        {/* Search */}
-        <form onSubmit={handleSearch} className="relative max-w-sm flex-1 hidden md:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar... (Cmd+K)"
-            className="pl-8 h-9 bg-muted"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </form>
+        {/* Search toggle */}
+        <button
+          onClick={() => setSearchExpanded(!searchExpanded)}
+          className={`rounded-md p-2 transition-colors hidden md:flex ${
+            searchExpanded
+              ? 'text-primary bg-primary/10'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+          title="Buscar"
+        >
+          <Search className="h-4 w-4" />
+        </button>
       </header>
 
       {/* Mobile search overlay */}
@@ -196,7 +221,6 @@ function WikiLayoutContent({
           <WikiSidebar
             tenantSlug={slug}
             collapsed={sidebarCollapsed}
-            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           />
         </Suspense>
         <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
@@ -204,6 +228,7 @@ function WikiLayoutContent({
         </main>
       </div>
       {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
+      <FloatingVoiceOrb tenantSlug={slug} />
     </div>
   );
 }

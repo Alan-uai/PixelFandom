@@ -1,9 +1,11 @@
-import { supabase } from '@/supabase';
+'use client';
+
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import WikiGrid from '@/components/wiki/wiki-grid';
+import { useWikiData } from '@/context/wiki-provider';
 
 function formatCollectionData(data: Record<string, any>): string {
   const skipKeys = ['name', 'title', 'description', 'world_name', 'code', 'id', 'image', 'image_url'];
@@ -22,39 +24,82 @@ function formatCollectionData(data: Record<string, any>): string {
     lines.push('| Campo | Valor |');
     lines.push('|-------|-------|');
     for (const [key, val] of fields) {
-      const display = typeof val === 'object' ? JSON.stringify(val) : String(val);
       const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      lines.push(`| ${label} | ${display} |`);
+      if (typeof val === 'object' && val !== null) {
+        if (Array.isArray(val)) {
+          const items = val.map((v: any) => formatValue(v)).join(', ');
+          lines.push(`| ${label} | ${items} |`);
+        } else {
+          const subLines = formatCollectionData(val)
+            .split('\n')
+            .filter((l) => !l.startsWith('| Campo |'))
+            .filter((l) => !l.startsWith('|-------|'))
+            .join('<br>');
+          lines.push(`| ${label} | ${subLines || '—'} |`);
+        }
+      } else {
+        lines.push(`| ${label} | ${String(val)} |`);
+      }
     }
   }
 
   return lines.join('\n');
 }
 
-type Props = {
-  params: Promise<{ slug: string; path?: string[] }>;
-  searchParams: Promise<{ search?: string; view?: string }>;
-};
+function formatValue(val: any): string {
+  if (typeof val === 'object' && val !== null) {
+    if (val.name || val.title) return val.name || val.title;
+    if (val.id) return String(val.id).slice(0, 8);
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
 
-export default async function WikiPage({ params, searchParams }: Props) {
-  const { slug, path } = await params;
-  const { search, view } = await searchParams;
+export default function WikiPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const slug = params?.slug as string;
+  const path = params?.path as string[] | undefined;
+  const search = searchParams?.get('search');
+  const view = searchParams?.get('view');
   const articleSlug = path?.join('/') || null;
   const isGrid = view !== 'list';
 
-  const { data: wikiData } = await supabase.rpc('get_wiki', {
-    p_slug: slug,
-    p_article_slug: articleSlug || null,
-    p_search: search || null,
-  });
+  const { data: wiki, loading } = useWikiData();
 
-  if (!wikiData || !wikiData.tenant) notFound();
+  const tenant = wiki?.tenant;
+  const articles = wiki?.articles;
 
-  const tenant = wikiData.tenant;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
-  // ── Search mode ──
+  if (!wiki || !tenant) {
+    return (
+      <div className="text-center py-20 rounded-xl border bg-card max-w-4xl mx-auto mt-10">
+        <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Wiki não encontrada</h1>
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          Esta wiki não existe ou o link está incorreto.
+        </p>
+        <Link href="/" className="text-primary hover:underline text-sm font-medium">
+          Voltar para o hub
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Search mode (client-side) ──
   if (search) {
-    const results = wikiData.search_results;
+    const q = search.toLowerCase();
+    const results = (articles || []).filter((a: any) =>
+      a.title?.toLowerCase().includes(q) ||
+      a.summary?.toLowerCase().includes(q)
+    );
 
     return (
       <div className="max-w-4xl mx-auto">
@@ -134,10 +179,10 @@ export default async function WikiPage({ params, searchParams }: Props) {
 
   // ── Article view ──
   if (articleSlug) {
-    let article = wikiData.article;
+    let article = wiki.article;
 
     if (!article) {
-      for (const collection of wikiData.collections || []) {
+      for (const collection of wiki.collections || []) {
         for (const item of collection.items || []) {
           const itemData = item.data as Record<string, any>;
           const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
@@ -246,7 +291,6 @@ export default async function WikiPage({ params, searchParams }: Props) {
     );
   }
 
-  const articles = wikiData.articles;
   const recentArticles = articles?.slice(0, 6) || [];
 
   return (

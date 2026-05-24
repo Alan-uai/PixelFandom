@@ -12,10 +12,23 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
   const html = useMemo(() => {
     if (!content) return null;
 
-    // Detect TipTap JSON (starts with { "type": "doc" })
     const trimmed = content.trim();
+
+    // Detect TipTap JSON
     if (trimmed.startsWith('{"type":"doc"') || trimmed.startsWith('{ "type": "doc"') || trimmed.startsWith('{"type":"doc')) {
       return renderTipTapJSON(trimmed);
+    }
+
+    // Detect raw JSON (non-TipTap) — from seed collection items
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          return renderRawJson(parsed);
+        }
+      } catch {
+        // not JSON, fall through
+      }
     }
 
     // Default: render as markdown
@@ -45,6 +58,58 @@ function renderTipTapJSON(json: string): string {
   } catch {
     return '<p>Erro ao renderizar conteúdo.</p>';
   }
+}
+
+function renderRawJson(data: unknown): string {
+  if (typeof data !== 'object' || data === null) {
+    return `<p>${escapeHtml(String(data))}</p>`;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map((item) => `<div class="mb-4">${renderRawJson(item)}</div>`).join('');
+  }
+
+  const obj = data as Record<string, unknown>;
+  const skipKeys = new Set(['id', 'image', 'image_url', 'code']);
+
+  const parts: string[] = [];
+
+  const name = (obj.name || obj.title || obj.world_name || '') as string;
+  if (name) {
+    parts.push(`<h2 class="text-xl font-bold mb-2">${escapeHtml(name)}</h2>`);
+  }
+
+  if (obj.description) {
+    parts.push(
+      `<p class="text-muted-foreground border-l-2 border-primary/40 pl-4 mb-4">${escapeHtml(String(obj.description))}</p>`
+    );
+  }
+
+  const fields = Object.entries(obj).filter(
+    ([key, val]) => !skipKeys.has(key) && val != null && val !== ''
+  );
+
+  if (fields.length > 0) {
+    parts.push('<div class="overflow-x-auto">');
+    parts.push('<table class="min-w-full border-collapse">');
+    parts.push('<tbody>');
+    for (const [key, val] of fields) {
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      let display: string;
+      if (typeof val === 'object' && val !== null) {
+        display = renderRawJson(val);
+      } else {
+        display = escapeHtml(String(val));
+      }
+      parts.push(
+        `<tr class="border-b border-border"><td class="py-2 pr-4 font-medium text-sm align-top whitespace-nowrap">${label}</td><td class="py-2 text-sm">${display}</td></tr>`
+      );
+    }
+    parts.push('</tbody></table>');
+    parts.push('</div>');
+  }
+
+  return parts.join('\n');
 }
 
 function renderProseMirrorNode(node: any): string {

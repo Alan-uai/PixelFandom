@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Loader2, FileText, ChevronDown, ChevronRight,
   Search, Grid3X3, List,
-  X, Hash, BookOpen, PanelLeft
+  X, Hash, BookOpen
 } from 'lucide-react';
 import { useWikiData } from '@/context/wiki-provider';
 
@@ -20,10 +20,9 @@ type SidebarArticle = {
 type Props = {
   tenantSlug: string;
   collapsed?: boolean;
-  onToggle?: () => void;
 };
 
-export default function WikiSidebar({ tenantSlug, collapsed, onToggle }: Props) {
+export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,16 +67,7 @@ export default function WikiSidebar({ tenantSlug, collapsed, onToggle }: Props) 
 
   if (collapsed) {
     return (
-      <aside className="w-12 shrink-0 border-r bg-muted/30 flex flex-col items-center py-3 gap-3 h-[calc(100vh-3.5rem)] sticky top-14">
-        <button
-          onClick={onToggle}
-          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          title="Expandir sidebar"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </button>
-        <div className="flex-1" />
-      </aside>
+      <aside className="w-12 shrink-0 border-r bg-muted/30 h-[calc(100vh-3.5rem)] sticky top-14" />
     );
   }
 
@@ -85,22 +75,6 @@ export default function WikiSidebar({ tenantSlug, collapsed, onToggle }: Props) 
 
   return (
     <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 transition-all duration-200">
-      {/* Toggle */}
-      <div className="flex items-center justify-between px-3 pt-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
-          Navegação
-        </span>
-        {onToggle && (
-          <button
-            onClick={onToggle}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Recolher sidebar"
-          >
-            <PanelLeft className="h-3.5 w-3.5 rotate-180" />
-          </button>
-        )}
-      </div>
-
       {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">
