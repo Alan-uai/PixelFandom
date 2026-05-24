@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
-import { Loader2, Menu, Search, X, MessageCircle } from 'lucide-react';
+import { useRouter, useParams, usePathname } from 'next/navigation';
+import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
@@ -18,12 +18,16 @@ export default function WikiLayout({
 }>) {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const slug = params?.slug as string;
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const isChatPage = pathname === `/w/${slug}/chat`;
 
   useEffect(() => {
     if (!slug) return;
@@ -35,6 +39,12 @@ export default function WikiLayout({
       })
       .catch(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (isChatPage) {
+      setSidebarCollapsed(true);
+    }
+  }, [isChatPage]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -83,23 +93,64 @@ export default function WikiLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
+        {/* Sidebar toggle */}
         <button
-          className="md:hidden"
-          onClick={() => setSearchOpen(!searchOpen)}
+          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden md:flex"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
         >
-          <Menu className="h-5 w-5" />
+          {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
 
-        <Link href={`/w/${slug}`} className="flex items-center gap-2 font-semibold shrink-0">
+        {/* Mobile menu toggle */}
+        <button
+          className="md:hidden rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+          onClick={() => setSearchOpen(!searchOpen)}
+        >
+          <PanelLeft className="h-5 w-5" />
+        </button>
+
+        {/* Wiki name → hub */}
+        <Link href="/" className="flex items-center gap-2 font-semibold shrink-0">
           {tenant.logo_url && (
             <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
           )}
-          <span>{tenant.name}</span>
+          <span className="text-sm">{tenant.name}</span>
         </Link>
+
+        <div className="mx-2 h-5 w-px bg-border" />
+
+        {/* Hero nav */}
+        <nav className="flex items-center gap-1">
+          <Link
+            href={`/w/${slug}`}
+            className={`rounded-md p-2 transition-colors ${
+              pathname === `/w/${slug}`
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+            title="Home"
+          >
+            <House className="h-4 w-4" />
+          </Link>
+          <Link
+            href={`/w/${slug}/chat`}
+            className={`rounded-md p-2 transition-colors ${
+              isChatPage
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+            title="Assistente IA"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Link>
+          <VoiceChat tenantSlug={slug} mode="header" />
+        </nav>
 
         <div className="flex-1" />
 
+        {/* Search */}
         <form onSubmit={handleSearch} className="relative max-w-sm flex-1 hidden md:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -135,15 +186,19 @@ export default function WikiLayout({
       )}
 
       <div className="flex flex-1">
-        <Suspense fallback={<div className="w-64 shrink-0 border-r bg-muted/30" />}>
-          <WikiSidebar tenantSlug={slug} tenantId={tenant.id} />
+        <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
+          <WikiSidebar
+            tenantSlug={slug}
+            tenantId={tenant.id}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </Suspense>
         <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
           {children}
         </main>
       </div>
-      {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} />}
-      <VoiceChat tenantSlug={slug} />
+      {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
     </div>
   );
 }

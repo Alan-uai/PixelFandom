@@ -15,16 +15,9 @@ import {
   LogOut,
   Loader2,
   BookOpen,
+  ExternalLink,
+  House,
 } from 'lucide-react';
-
-const wikiNavItems = [
-  { href: 'settings', label: 'Configurações', icon: Settings },
-  { href: 'domains', label: 'Domínios', icon: Globe },
-  { href: 'members', label: 'Membros', icon: Users },
-  { href: 'ai', label: 'IA', icon: Cpu },
-  { href: 'collections', label: 'Coleções', icon: Columns3 },
-  { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
-];
 
 export default function DashboardLayout({
   children,
@@ -60,48 +53,82 @@ export default function DashboardLayout({
   const isWikiPage = wikiSlug && wikiSlug !== 'new';
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col">
-        <div className="p-4 border-b">
-          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-bold">
-            <LayoutDashboard className="h-5 w-5 text-primary" />
-            PixelFandom
-          </Link>
-        </div>
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
+        <Link href="/" className="flex items-center gap-2 font-semibold shrink-0 text-sm">
+          <LayoutDashboard className="h-4 w-4 text-primary" />
+          PixelFandom
+        </Link>
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        <div className="mx-2 h-5 w-px bg-border" />
+
+        <nav className="flex items-center gap-1">
           <Link
             href="/dashboard"
-            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+            className={`rounded-md p-2 transition-colors ${
               pathname === '/dashboard'
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'hover:bg-muted text-muted-foreground'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
+            title="Minhas Wikis"
           >
             <LayoutDashboard className="h-4 w-4" />
-            Minhas Wikis
           </Link>
-
           <Link
             href="/dashboard/new"
-            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
+            className={`rounded-md p-2 transition-colors ${
               pathname === '/dashboard/new'
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'hover:bg-muted text-muted-foreground'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
+            title="Nova Wiki"
           >
             <Plus className="h-4 w-4" />
-            Nova Wiki
           </Link>
-
           {isWikiPage && (
-            <>
-              <div className="pt-4 pb-1">
-                <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {wikiSlug}
-                </p>
-              </div>
-              {wikiNavItems.map((item) => {
+            <Link
+              href={`/w/${wikiSlug}`}
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Ver Wiki"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          )}
+        </nav>
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[120px]">
+            {user.email || user.id.slice(0, 12)}
+          </span>
+          <Link
+            href="/"
+            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </Link>
+        </div>
+      </header>
+
+      <div className="flex flex-1">
+        {isWikiPage && (
+          <aside className="w-56 shrink-0 border-r bg-muted/30 flex flex-col">
+            <div className="p-3">
+              <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
+                {wikiSlug}
+              </p>
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+              {[
+                { href: 'settings', label: 'Configurações', icon: Settings },
+                { href: 'domains', label: 'Domínios', icon: Globe },
+                { href: 'members', label: 'Membros', icon: Users },
+                { href: 'ai', label: 'IA', icon: Cpu },
+                { href: 'collections', label: 'Coleções', icon: Columns3 },
+                { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+              ].map((item) => {
                 const Icon = item.icon;
                 const href = `/dashboard/${wikiSlug}/${item.href}`;
                 return (
@@ -119,36 +146,16 @@ export default function DashboardLayout({
                   </Link>
                 );
               })}
-              <div className="pt-2">
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href={`/w/${wikiSlug}`}>
-                    <Globe className="h-3.5 w-3.5 mr-1.5" />
-                    Ver Wiki
-                  </Link>
-                </Button>
-              </div>
-            </>
-          )}
-        </nav>
+            </nav>
+          </aside>
+        )}
 
-        <div className="p-3 border-t space-y-1">
-          <div className="px-3 py-2 text-xs text-muted-foreground truncate">
-            {user.email || user.id.slice(0, 12)}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6 max-w-6xl mx-auto">
+            {children}
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Link>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 max-w-6xl mx-auto">
-          {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

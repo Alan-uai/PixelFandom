@@ -5,6 +5,32 @@ import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, L
 import { WikiContent } from '@/components/wiki/wiki-content';
 import WikiGrid from '@/components/wiki/wiki-grid';
 
+function formatCollectionData(data: Record<string, any>): string {
+  const skipKeys = ['name', 'title', 'description', 'world_name', 'code', 'id', 'image', 'image_url'];
+  const lines: string[] = [];
+
+  if (data.description) {
+    lines.push(data.description);
+    lines.push('');
+  }
+
+  const fields = Object.entries(data).filter(
+    ([key, val]) => !skipKeys.includes(key) && val != null && val !== ''
+  );
+
+  if (fields.length > 0) {
+    lines.push('| Campo | Valor |');
+    lines.push('|-------|-------|');
+    for (const [key, val] of fields) {
+      const display = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      lines.push(`| ${label} | ${display} |`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 type Props = {
   params: Promise<{ slug: string; path?: string[] }>;
   searchParams: Promise<{ search?: string; view?: string }>;
@@ -139,7 +165,7 @@ export default async function WikiPage({ params, searchParams }: Props) {
             if (itemSlug === articleSlug) {
               article = {
                 title: name,
-                content: JSON.stringify(itemData),
+                content: formatCollectionData(itemData),
                 summary: itemData?.description || null,
                 tags: null,
                 image_url: null,
