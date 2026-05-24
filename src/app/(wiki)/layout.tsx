@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { Loader2, Menu, Search, X, MessageCircle } from 'lucide-react';
@@ -135,7 +135,9 @@ export default function WikiLayout({
       )}
 
       <div className="flex flex-1">
-        <WikiSidebar tenantSlug={slug} tenantId={tenant.id} />
+        <Suspense fallback={<div className="w-64 shrink-0 border-r bg-muted/30" />}>
+          <WikiSidebar tenantSlug={slug} tenantId={tenant.id} />
+        </Suspense>
         <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
           {children}
         </main>

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
+const EMBEDDING_MODEL = 'google/gemini-embedding-2-preview';
+const EMBEDDING_DIMENSIONS = 1536;
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, articleId, tenantId } = await request.json();
+    const { text, articleId, tenantId, collectionItemId } = await request.json();
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
@@ -16,8 +18,10 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'openai/text-embedding-3-small',
+        model: EMBEDDING_MODEL,
         input: text,
+        dimensions: EMBEDDING_DIMENSIONS,
+        encoding_format: 'float',
       }),
     });
 
@@ -29,13 +33,21 @@ export async function POST(request: NextRequest) {
     const data = await res.json();
     const embedding = data.data[0].embedding;
 
+    const { supabase } = await import('@/supabase');
+
     if (articleId && tenantId) {
-      const { supabase } = await import('@/supabase');
       await supabase
         .from('wiki_articles')
         .update({ embedding: `[${embedding.join(',')}]` })
         .eq('id', articleId)
         .eq('tenant_id', tenantId);
+    }
+
+    if (collectionItemId) {
+      await supabase
+        .from('collection_items')
+        .update({ embedding: `[${embedding.join(',')}]` })
+        .eq('id', collectionItemId);
     }
 
     return NextResponse.json({ embedding });

@@ -42,3 +42,15 @@ export async function updateArticleEmbedding(articleId: string, tenantId: string
     // non-critical
   }
 }
+
+export async function updateCollectionItemEmbedding(itemId: string, text: string) {
+  try {
+    await fetch('/api/embeddings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 8000), collectionItemId: itemId }),
+    });
+  } catch {
+    // non-critical
+  }
+}

@@ -3,6 +3,8 @@ import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
+const EMBEDDING_MODEL = 'google/gemini-embedding-2-preview';
+const EMBEDDING_DIMENSIONS = 1536;
 
 const SECTION_PROMPT = `
 FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
@@ -25,6 +27,83 @@ REGRAS:
 - Use português brasileiro
 `;
 
+async function generateEmbedding(text: string): Promise<number[]> {
+  const res = await fetch(`${OPENROUTER_BASE}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: EMBEDDING_MODEL,
+      input: text.slice(0, 8000),
+      dimensions: EMBEDDING_DIMENSIONS,
+      encoding_format: 'float',
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Embedding error (${res.status})`);
+  const data = await res.json();
+  return data.data[0].embedding;
+}
+
+async function retrieveContext(
+  message: string,
+  tenantSlug: string
+): Promise<string> {
+  try {
+    const embedding = await generateEmbedding(message);
+    const embStr = `[${embedding.join(',')}]`;
+
+    const { supabase } = await import('@/supabase');
+
+    const [wikiRes, collectionRes] = await Promise.all([
+      supabase.rpc('get_wiki_data', {
+        p_slug: tenantSlug,
+        p_search: message,
+        p_embedding: embStr,
+      }),
+      supabase.rpc('search_collection_items', {
+        p_tenant_slug: tenantSlug,
+        p_embedding: embStr,
+        p_search: message,
+        p_limit: 5,
+      }),
+    ]);
+
+    const parts: string[] = [];
+
+    const wikiResults = (wikiRes.data?.search_results as any[]) || [];
+    if (wikiResults.length > 0) {
+      parts.push('--- Artigos do Wiki ---');
+      for (const r of wikiResults.slice(0, 3)) {
+        const content = r.content ? (r.content as string).replace(/<[^>]+>/g, '').slice(0, 1000) : '';
+        parts.push(`Título: ${r.title}\nResumo: ${r.summary || ''}\n${content ? `Conteúdo: ${content}` : ''}`);
+      }
+    }
+
+    const collectionResults = (collectionRes.data as any[]) || [];
+    if (collectionResults.length > 0) {
+      parts.push('--- Itens do Jogo ---');
+      for (const item of collectionResults.slice(0, 5)) {
+        const data = item.data || {};
+        const stats = Object.entries(data)
+          .filter(([k]) => !['name', 'description'].includes(k))
+          .map(([k, v]) => `  ${k}: ${v}`)
+          .join('\n');
+        parts.push(`Item: ${item.name || data.name || 'Sem nome'}
+Coleção: ${item.collection_name || ''}
+Descrição: ${item.description || data.description || ''}
+${stats ? `Stats:\n${stats}` : ''}`);
+      }
+    }
+
+    return parts.join('\n\n');
+  } catch {
+    return '';
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
@@ -35,6 +114,7 @@ export async function POST(request: NextRequest) {
     const requestTenant = getTenantFromRequest(request);
     let systemPrompt = SECTION_PROMPT;
     let model = 'openai/gpt-4o-mini';
+    let tenantSlug = requestTenant?.slug || '';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
@@ -48,8 +128,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const context = await retrieveContext(message, tenantSlug);
+    const ragPrompt = context
+      ? `${systemPrompt}
+
+## Contexto encontrado na base de conhecimento
+${context}
+
+Use o contexto acima como fonte primária para responder. Se o contexto não tiver informação suficiente, complemente com seu conhecimento. Priorize dados dos artigos e itens listados acima.`
+      : systemPrompt;
+
     const messages: { role: string; content: string }[] = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: ragPrompt },
       { role: 'user', content: message },
     ];
 
