@@ -59,14 +59,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error };
 
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        username,
-        email,
-      });
-    }
-
     return { error: null };
   };
 
