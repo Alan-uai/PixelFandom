@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import {
-  Loader2, Home, FileText, ChevronDown, ChevronRight,
-  MessageCircle, Headphones, Search, Grid3X3, List,
-  X, Hash, BookOpen
+  Loader2, FileText, ChevronDown, ChevronRight,
+  Search, Grid3X3, List,
+  X, Hash, BookOpen, PanelLeft
 } from 'lucide-react';
 
 type SidebarArticle = {
@@ -20,15 +20,17 @@ type SidebarArticle = {
 type Props = {
   tenantSlug: string;
   tenantId: string;
+  collapsed?: boolean;
+  onToggle?: () => void;
 };
 
-export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
+export default function WikiSidebar({ tenantSlug, tenantId, collapsed, onToggle }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [articles, setArticles] = useState<SidebarArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  const [articleCollapsed, setArticleCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -78,10 +80,41 @@ export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
     router.push(`${pathname}?${params.toString()}`);
   }, [currentView, searchParams, pathname, router]);
 
+  if (collapsed) {
+    return (
+      <aside className="w-12 shrink-0 border-r bg-muted/30 flex flex-col items-center py-3 gap-3 h-[calc(100vh-3.5rem)] sticky top-14">
+        <button
+          onClick={onToggle}
+          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title="Expandir sidebar"
+        >
+          <PanelLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1" />
+      </aside>
+    );
+  }
+
   const isHome = pathname === `/w/${tenantSlug}`;
 
   return (
-    <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14">
+    <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 transition-all duration-200">
+      {/* Toggle */}
+      <div className="flex items-center justify-between px-3 pt-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+          Navegação
+        </span>
+        {onToggle && (
+          <button
+            onClick={onToggle}
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Recolher sidebar"
+          >
+            <PanelLeft className="h-3.5 w-3.5 rotate-180" />
+          </button>
+        )}
+      </div>
+
       {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">
@@ -104,37 +137,13 @@ export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
         </div>
       </div>
 
-      {/* Nav links */}
-      <div className="px-3 pt-2 pb-1 space-y-0.5">
-        <Link
-          href={`/w/${tenantSlug}`}
-          className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            isHome ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
-          }`}
-        >
-          <Home className="h-4 w-4" />
-          Home
-        </Link>
-        <Link
-          href={`/w/${tenantSlug}/chat`}
-          className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            pathname === `/w/${tenantSlug}/chat`
-              ? 'bg-primary/10 text-primary'
-              : 'hover:bg-muted'
-          }`}
-        >
-          <MessageCircle className="h-4 w-4" />
-          Assistente IA
-        </Link>
-      </div>
-
       {/* Articles section */}
       <div className="flex-1 overflow-y-auto px-2 py-1">
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => setArticleCollapsed(!articleCollapsed)}
           className="flex items-center gap-1 w-full px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground"
         >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {articleCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           <BookOpen className="h-3 w-3" />
           Artigos
           <span className="ml-auto text-[10px] text-muted-foreground/60">
@@ -142,7 +151,7 @@ export default function WikiSidebar({ tenantSlug, tenantId }: Props) {
           </span>
         </button>
 
-        {!collapsed && (
+        {!articleCollapsed && (
           <nav className="space-y-0.5 mt-1">
             {loading ? (
               <div className="flex justify-center py-4">

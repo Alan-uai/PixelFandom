@@ -38,7 +38,7 @@ export class GeminiLiveAPI {
   }
 
   async connect(systemInstruction?: string) {
-    const res = await fetch('/api/voice/token', { method: 'POST' });
+    const res = await fetch('/api/token', { method: 'POST' });
     if (!res.ok) throw new Error('Failed to get token');
     const { token } = await res.json();
     this.token = token;

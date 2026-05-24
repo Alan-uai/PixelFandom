@@ -18,9 +18,10 @@ type Transcript = {
 
 type Props = {
   tenantSlug: string;
+  mode?: 'floating' | 'header';
 };
 
-export default function VoiceChat({ tenantSlug }: Props) {
+export default function VoiceChat({ tenantSlug, mode = 'floating' }: Props) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -180,6 +181,123 @@ export default function VoiceChat({ tenantSlug }: Props) {
     []
   );
 
+  if (mode === 'header') {
+    return (
+      <>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`relative rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ${
+            isActive ? 'text-destructive' : ''
+          }`}
+          title="Comando de Voz"
+        >
+          <Headphones className="h-4 w-4" />
+          {isActive && (
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+          )}
+        </button>
+
+        {isOpen && (
+          <div className="fixed bottom-4 left-4 z-50 w-80 bg-background border rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Headphones className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Comando de Voz</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {connectionStatus === 'connected' ? (
+                  <Wifi className="h-3.5 w-3.5 text-green-500" />
+                ) : connectionStatus === 'connecting' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                ) : (
+                  <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="h-64 overflow-y-auto p-3 space-y-2">
+              {transcripts.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                  <Bot className="h-8 w-8 mb-2" />
+                  <p className="text-xs">
+                    Conecte-se e comece a falar.
+                  </p>
+                  <p className="text-xs mt-1">
+                    Comandos: /ajuda
+                  </p>
+                </div>
+              )}
+
+              {transcripts.map((t) => (
+                <div
+                  key={t.id}
+                  className={`flex ${t.isUser ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${
+                      t.isUser
+                        ? 'bg-primary text-primary-foreground'
+                        : t.text.startsWith('[Usando')
+                        ? 'bg-muted/50 text-muted-foreground italic'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    {t.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {errorMessage && (
+              <div className="px-4 py-2 text-xs text-destructive bg-destructive/10">
+                {errorMessage}
+              </div>
+            )}
+
+            <VoiceControls
+              isMicOn={isMicOn}
+              volume={volume}
+              isConnecting={isConnecting}
+              isConnected={isConnected}
+              onToggleMic={toggleMic}
+              onVolumeChange={handleVolumeChange}
+              onDisconnect={stopVoice}
+            />
+
+            <div className="px-4 py-2 border-t">
+              {!isConnected ? (
+                <button
+                  onClick={startVoice}
+                  disabled={isConnecting}
+                  className="w-full rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {isConnecting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Conectando...
+                    </span>
+                  ) : (
+                    'Conectar Voz'
+                  )}
+                </button>
+              ) : (
+                <p className="text-xs text-center text-muted-foreground">
+                  Microfone ativo. Fale com o assistente.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <button
@@ -191,11 +309,7 @@ export default function VoiceChat({ tenantSlug }: Props) {
         }`}
         title="Comando de Voz"
       >
-        {isActive ? (
-          <Headphones className="h-5 w-5" />
-        ) : (
-          <Headphones className="h-5 w-5" />
-        )}
+        <Headphones className="h-5 w-5" />
       </button>
 
       {isOpen && (
