@@ -14,24 +14,17 @@ export default async function WikiPage({ params, searchParams }: Props) {
   const { search } = await searchParams;
   const articleSlug = path?.join('/') || null;
 
-  // Fetch tenant
-  const { data: tenant } = await supabase
-    .from('tenants')
-    .select('*')
-    .eq('slug', slug)
-    .single();
-
-  if (!tenant) notFound();
-
-  // Search mode
+  // Search mode - use unified RPC
   if (search) {
-    const { data: results } = await supabase
-      .from('wiki_articles')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .or(`title.ilike.%${search}%,summary.ilike.%${search}%,content.ilike.%${search}%`)
-      .order('title')
-      .limit(30);
+    const { data: result } = await supabase.rpc('get_wiki_data', {
+      p_slug: slug,
+      p_search: search,
+      p_embedding: null,
+    });
+
+    if (!result) notFound();
+
+    const results = result.search_results || [];
 
     return (
       <div className="max-w-3xl mx-auto">
@@ -42,7 +35,7 @@ export default async function WikiPage({ params, searchParams }: Props) {
           </h1>
         </div>
 
-        {results && results.length > 0 ? (
+        {results.length > 0 ? (
           <div className="space-y-3">
             {results.map((article: any) => (
               <Link
@@ -55,6 +48,11 @@ export default async function WikiPage({ params, searchParams }: Props) {
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                     {article.summary}
                   </p>
+                )}
+                {article.score > 0 && (
+                  <span className="text-xs text-primary mt-1 inline-block">
+                    Relevância: {Math.round(article.score * 100)}%
+                  </span>
                 )}
               </Link>
             ))}
@@ -82,43 +80,49 @@ export default async function WikiPage({ params, searchParams }: Props) {
 
   // Article view
   if (articleSlug) {
-    // Try wiki_articles first
     let { data: article } = await supabase
       .from('wiki_articles')
       .select('*')
-      .eq('tenant_id', tenant.id)
+      .eq('tenant_id', (await supabase.from('tenants').select('id').eq('slug', slug).single()).data?.id)
       .eq('slug', articleSlug)
       .single();
 
-    // Fallback: search in custom collection items
     if (!article) {
-      const { data: collections } = await supabase
-        .from('custom_collections')
+      const { data: tenant } = await supabase
+        .from('tenants')
         .select('id')
-        .eq('tenant_id', tenant.id);
+        .eq('slug', slug)
+        .single();
 
-      if (collections && collections.length > 0) {
-        const { data: items } = await supabase
-          .from('collection_items')
-          .select('id, data, created_at, updated_at')
-          .in('collection_id', collections.map((c: any) => c.id));
+      if (tenant) {
+        const { data: collections } = await supabase
+          .from('custom_collections')
+          .select('id')
+          .eq('tenant_id', tenant.id);
 
-        if (items) {
-          for (const item of items) {
-            const itemData = item.data as Record<string, any>;
-            const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
-            const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            if (itemSlug === articleSlug) {
-              article = {
-                title: name,
-                content: JSON.stringify(itemData),
-                summary: itemData?.description || null,
-                tags: null,
-                image_url: null,
-                updated_at: item.updated_at,
-                id: item.id,
-              } as any;
-              break;
+        if (collections && collections.length > 0) {
+          const { data: items } = await supabase
+            .from('collection_items')
+            .select('id, data, created_at, updated_at')
+            .in('collection_id', collections.map((c: any) => c.id));
+
+          if (items) {
+            for (const item of items) {
+              const itemData = item.data as Record<string, any>;
+              const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
+              const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+              if (itemSlug === articleSlug) {
+                article = {
+                  title: name,
+                  content: JSON.stringify(itemData),
+                  summary: itemData?.description || null,
+                  tags: null,
+                  image_url: null,
+                  updated_at: item.updated_at,
+                  id: item.id,
+                } as any;
+                break;
+              }
             }
           }
         }
@@ -197,13 +201,16 @@ export default async function WikiPage({ params, searchParams }: Props) {
     );
   }
 
-  // Wiki home — show recent articles
-  const { data: articles } = await supabase
-    .from('wiki_articles')
-    .select('*')
-    .eq('tenant_id', tenant.id)
-    .order('updated_at', { ascending: false })
-    .limit(20);
+  // Wiki home — use unified RPC
+  const { data: result } = await supabase.rpc('get_wiki_data', {
+    p_slug: slug,
+    p_search: null,
+    p_embedding: null,
+  });
+
+  if (!result) notFound();
+
+  const { tenant, articles } = result;
 
   return (
     <div className="max-w-3xl mx-auto">

@@ -4,33 +4,54 @@ import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
+const SECTION_PROMPT = `
+FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
+Forneça sua resposta em seções separadas. Cada seção DEVE começar com @@@SECTION@@@ na própria linha, seguido de um JSON na linha seguinte.
+
+Exemplo:
+@@@SECTION@@@
+{"sectionType":"resumo","title":"Resumo","content":"Resposta direta e objetiva aqui."}
+@@@SECTION@@@
+{"sectionType":"detalhes","title":"Detalhes","content":"Informações detalhadas..."}
+@@@SECTION@@@
+{"sectionType":"dicas","title":"Dicas","content":"Dicas práticas, atalhos, como encontrar ou fazer..."}
+
+REGRAS:
+- sectionType pode ser: "resumo", "detalhes", "dicas" ou outro que fizer sentido
+- O "resumo" deve ser a primeira seção, enxuta e direta
+- Os campos title e content são string
+- O content pode ter múltiplas linhas e markdown
+- Responda APENAS no formato acima, sem texto fora das seções
+- Use português brasileiro
+`;
+
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
-
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Resolve tenant context
     const requestTenant = getTenantFromRequest(request);
-    let systemPrompt = '';
+    let systemPrompt = SECTION_PROMPT;
     let model = 'openai/gpt-4o-mini';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
       if (tenant?.ai_enabled && tenant.ai_config) {
         const config = tenant.ai_config as Record<string, unknown>;
-        systemPrompt = (config.system_prompt as string) || '';
+        const userPrompt = (config.system_prompt as string) || '';
+        if (userPrompt) {
+          systemPrompt = `${userPrompt}\n\n${SECTION_PROMPT}`;
+        }
         model = (config.model as string) || model;
       }
     }
 
-    const messages: { role: string; content: string }[] = [];
-    if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
-    }
-    messages.push({ role: 'user', content: message });
+    const messages: { role: string; content: string }[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: message },
+    ];
 
     const orRes = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
       method: 'POST',
@@ -85,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     return new NextResponse(readableStream, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       },

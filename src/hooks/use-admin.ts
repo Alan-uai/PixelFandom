@@ -38,9 +38,6 @@ export function useAdmin(): AdminState {
         } else {
           setAdminState({ isAdmin: false, isLoading: false });
         }
-      })
-      .catch(() => {
-        setAdminState({ isAdmin: false, isLoading: false });
       });
   }, [user, isUserLoading]);
 

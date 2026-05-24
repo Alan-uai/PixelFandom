@@ -4,11 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send, Bot, User, AlertCircle } from 'lucide-react';
+import StreamingAccordion from './streaming-accordion';
 
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  isStreaming?: boolean;
 };
 
 type WikiChatProps = {
@@ -56,7 +58,10 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
       if (!response.body) throw new Error('Sem resposta');
 
       const assistantId = crypto.randomUUID();
-      setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: 'assistant', content: '', isStreaming: true },
+      ]);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -67,9 +72,17 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, content: accumulated } : m))
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, content: accumulated } : m
+          )
         );
       }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, isStreaming: false } : m
+        )
+      );
     } catch (err) {
       setError('Erro ao conectar com o assistente.');
       console.error(err);
@@ -104,7 +117,14 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
                     : 'bg-muted'
                 }`}
               >
-                {msg.content || (loading ? <Loader2 className="h-3 w-3 animate-spin" /> : null)}
+                {msg.role === 'assistant' ? (
+                  <StreamingAccordion
+                    streamContent={msg.content}
+                    isStreaming={!!msg.isStreaming}
+                  />
+                ) : (
+                  msg.content
+                )}
               </div>
               {msg.role === 'user' && (
                 <User className="h-6 w-6 shrink-0 mt-1 text-muted-foreground" />
@@ -183,13 +203,18 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               </div>
             )}
             <div
-              className={`rounded-xl px-4 py-3 max-w-[75%] ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted'
+              className={`rounded-xl px-4 py-3 max-w-[85%] ${
+                msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              {msg.role === 'assistant' ? (
+                <StreamingAccordion
+                  streamContent={msg.content}
+                  isStreaming={!!msg.isStreaming}
+                />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              )}
             </div>
             {msg.role === 'user' && (
               <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">

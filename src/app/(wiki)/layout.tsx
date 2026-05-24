@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
+import VoiceChat from '@/components/voice/voice-chat';
 import type { Tenant } from '@/supabase/client';
 
 export default function WikiLayout({
@@ -140,6 +141,7 @@ export default function WikiLayout({
         </main>
       </div>
       {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} />}
+      <VoiceChat tenantSlug={slug} />
     </div>
   );
 }

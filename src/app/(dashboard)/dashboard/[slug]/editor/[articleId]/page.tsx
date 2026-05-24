@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
 import { Loader2, Save, ShieldAlert, Sparkles, Upload, Image as ImageIcon, Text } from 'lucide-react';
-import type { WikiArticle } from '@/lib/types';
+
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
@@ -122,9 +122,6 @@ function EditPageContent() {
         if (!error && data) {
           setArticle(data);
         }
-        setIsArticleLoading(false);
-      })
-      .catch(() => {
         setIsArticleLoading(false);
       });
   }, [articleId, isGenericCollection, collectionPath, isNewArticle, tenantId]);

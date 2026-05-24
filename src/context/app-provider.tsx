@@ -99,7 +99,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
             const supabaseData = await getAllGameData();
             
             let combinedData;
-            if (supabaseData && !supabaseData.error) {
+            if (supabaseData && supabaseData.length > 0) {
                 const supabaseMap = new Map(supabaseData.map((item: any) => [item.id, item]));
                 combinedData = staticGameData.map(staticItem => {
                     const supabaseItem = supabaseMap.get(staticItem.id);
@@ -157,7 +157,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user || user.isAnonymous) {
+    if (!user || user.is_anonymous) {
       setSavedAnswers([]);
       setAreSavedAnswersLoading(false);
       return;
@@ -183,7 +183,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
   }, [savedAnswers]);
 
   const toggleSaveAnswer = useCallback(async (answer: Message) => {
-    if (!user || user.isAnonymous) {
+    if (!user || user.is_anonymous) {
       toast({
         variant: 'destructive',
         title: 'Ação necessária',
