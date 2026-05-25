@@ -123,6 +123,20 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
             addTranscript(`[Usando ${call.name}...]`, false);
             const result = await handleToolCallFn(call.name, call.args);
             api.sendToolResponse(call.id, call.name, result);
+            if (result && typeof result === 'object' && 'action' in result) {
+              const action = (result as Record<string, unknown>).action as string;
+              if (action === 'clear_transcripts') {
+                setTranscripts([]);
+              } else if (action === 'set_volume') {
+                const level = Math.max(0, Math.min(100, Number((result as Record<string, unknown>).level) || 80));
+                setVolume(level);
+                playerRef.current?.setVolume(level);
+              } else if (action === 'set_voice') {
+                const voice = (result as Record<string, unknown>).name as VoiceName;
+                setUserVoiceName(voice);
+                apiRef.current?.setVoice(voice);
+              }
+            }
           }
         },
         onSetupComplete: () => {

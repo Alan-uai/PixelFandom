@@ -58,7 +58,7 @@ export class GeminiLiveAPI {
     startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
   };
 
-  activityHandling = 'NO_INTERRUPTION';
+  activityHandling = 'ACTIVITY_HANDLING_UNSPECIFIED';
 
   constructor(handlers: MessageHandler) {
     this.handlers = handlers;
@@ -142,6 +142,7 @@ export class GeminiLiveAPI {
     this.ws.onopen = () => {
       this.connected = true;
       this.sendSetup(systemInstruction);
+      this.handlers.onOpen?.();
     };
 
     this.ws.onmessage = (event) => {
@@ -232,9 +233,7 @@ export class GeminiLiveAPI {
       },
     };
 
-    if (this.toolDeclarations.length > 0) {
-      setup.tools = [{ functionDeclarations: this.toolDeclarations }];
-    }
+    setup.tools = [{ functionDeclarations: this.toolDeclarations }];
 
     if (systemInstruction) {
       setup.systemInstruction = {
@@ -251,7 +250,7 @@ export class GeminiLiveAPI {
     setup.realtimeInputConfig = {
       automaticActivityDetection: this.getVADConfig(),
       activityHandling: this.activityHandling,
-      turnCoverage: 'TURN_INCLUDES_ALL_INPUT',
+      turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
     };
 
     if (this.inputAudioTranscription) {
@@ -267,14 +266,7 @@ export class GeminiLiveAPI {
   private handleMessage(data: any) {
     if ('setupComplete' in data) {
       this.setupComplete = true;
-      this.handlers.onOpen?.();
       this.handlers.onSetupComplete?.();
-      return;
-    }
-
-    if ('error' in data) {
-      console.error('Erro no servidor durante setup:', data.error);
-      this.ws?.close();
       return;
     }
 

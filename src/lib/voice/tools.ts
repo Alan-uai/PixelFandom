@@ -63,6 +63,51 @@ export const TOOL_DECLARATIONS = [
       required: ['slug'],
     },
   },
+  {
+    name: 'help',
+    description: 'Show available commands and how to use the voice assistant.',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'clear',
+    description: 'Clear the current conversation transcript.',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'adjustVolume',
+    description: 'Adjust the voice output volume of the assistant.',
+    parameters: {
+      type: 'object',
+      properties: {
+        level: {
+          type: 'number',
+          description: 'Volume level from 0 (muted) to 100 (max)',
+        },
+      },
+      required: ['level'],
+    },
+  },
+  {
+    name: 'changeVoice',
+    description: 'Change the assistant voice to a different voice style.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Voice name: Puck (balanced), Kore (bright), Charon (deep), Fenrir (strong), Aoede (soft)',
+          enum: ['Puck', 'Kore', 'Charon', 'Fenrir', 'Aoede'],
+        },
+      },
+      required: ['name'],
+    },
+  },
 ];
 
 export type ToolHandler = (
@@ -127,6 +172,29 @@ export async function handleToolCall(
       const targetSlug = args.slug as string;
       context.navigate(`/w/${targetSlug}`);
       return { success: true, slug: targetSlug };
+    }
+
+    case 'help': {
+      return {
+        message: 'I can help you search articles, navigate pages, list content, switch wikis, adjust volume, change my voice, or clear the conversation. Just tell me what you need!',
+      };
+    }
+
+    case 'clear': {
+      return { action: 'clear_transcripts', message: 'Conversation cleared.' };
+    }
+
+    case 'adjustVolume': {
+      const level = Math.max(0, Math.min(100, Number(args.level) || 80));
+      return { action: 'set_volume', level, message: `Volume set to ${level}.` };
+    }
+
+    case 'changeVoice': {
+      const voice = args.name as string;
+      if (!['Puck', 'Kore', 'Charon', 'Fenrir', 'Aoede'].includes(voice)) {
+        return { error: `Invalid voice: ${voice}. Choose: Puck, Kore, Charon, Fenrir, or Aoede.` };
+      }
+      return { action: 'set_voice', name: voice, message: `Voice changed to ${voice}.` };
     }
 
     default:
