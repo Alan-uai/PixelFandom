@@ -48,10 +48,10 @@ function WikiLayoutContent({
   const isVoicePage = pathname === `/w/${slug}/voice`;
 
   useEffect(() => {
-    if (isChatPage) {
+    if (isChatPage || isVoicePage) {
       setSidebarCollapsed(true);
     }
-  }, [isChatPage]);
+  }, [isChatPage, isVoicePage]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
