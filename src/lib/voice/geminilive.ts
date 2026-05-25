@@ -39,6 +39,7 @@ export class GeminiLiveAPI {
   private token: string | null = null;
   private handlers: MessageHandler;
   private connected = false;
+  private setupComplete = false;
   private toolDeclarations: ToolDeclaration[] = [];
 
   voiceName: VoiceName = 'Kore';
@@ -53,11 +54,11 @@ export class GeminiLiveAPI {
     disabled: false,
     silenceDurationMs: 1500,
     prefixPaddingMs: 400,
-    endOfSpeechSensitivity: 'END_SENSITIVITY_UNSPECIFIED',
+    endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH',
     startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
   };
 
-  activityHandling = 'START_OF_ACTIVITY_INTERRUPTS';
+  activityHandling = 'NO_INTERRUPTION';
 
   constructor(handlers: MessageHandler) {
     this.handlers = handlers;
@@ -75,7 +76,7 @@ export class GeminiLiveAPI {
       this.automaticActivityDetection = {
         ...this.automaticActivityDetection,
         silenceDurationMs: 1500,
-        endOfSpeechSensitivity: 'END_SENSITIVITY_UNSPECIFIED',
+        endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH',
         startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
       };
     }
@@ -123,7 +124,7 @@ export class GeminiLiveAPI {
   }
 
   private sendSessionUpdate(config: Record<string, unknown>) {
-    if (this.connected && this.ws) {
+    if (this.connected && this.setupComplete && this.ws) {
       this.ws.send(JSON.stringify({ session_update: config }));
     }
   }
@@ -141,7 +142,6 @@ export class GeminiLiveAPI {
     this.ws.onopen = () => {
       this.connected = true;
       this.sendSetup(systemInstruction);
-      this.handlers.onOpen?.();
     };
 
     this.ws.onmessage = (event) => {
@@ -156,23 +156,26 @@ export class GeminiLiveAPI {
     this.ws.onclose = (event: CloseEvent) => {
       console.warn(`WebSocket fechado: code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean}`);
       this.connected = false;
+      this.setupComplete = false;
       this.handlers.onClose?.();
     };
 
     this.ws.onerror = (error) => {
       this.connected = false;
+      this.setupComplete = false;
       this.handlers.onError?.(error);
     };
   }
 
   disconnect() {
     this.connected = false;
+    this.setupComplete = false;
     this.ws?.close();
     this.ws = null;
   }
 
   sendAudioMessage(base64Audio: string) {
-    if (!this.connected || !this.ws) return;
+    if (!this.connected || !this.setupComplete || !this.ws) return;
     this.ws.send(
       JSON.stringify({
         realtimeInput: {
@@ -186,7 +189,7 @@ export class GeminiLiveAPI {
   }
 
   sendTextMessage(text: string) {
-    if (!this.connected || !this.ws) return;
+    if (!this.connected || !this.setupComplete || !this.ws) return;
     this.ws.send(
       JSON.stringify({
         realtimeInput: { text },
@@ -195,7 +198,7 @@ export class GeminiLiveAPI {
   }
 
   sendToolResponse(id: string, name: string, response: unknown) {
-    if (!this.connected || !this.ws) return;
+    if (!this.connected || !this.setupComplete || !this.ws) return;
     this.ws.send(
       JSON.stringify({
         toolResponse: {
@@ -218,11 +221,6 @@ export class GeminiLiveAPI {
   private sendSetup(systemInstruction?: string) {
     if (!this.ws) return;
 
-    const tools =
-      this.toolDeclarations.length > 0
-        ? [{ functionDeclarations: this.toolDeclarations }]
-        : [];
-
     const setup: Record<string, unknown> = {
       model: 'models/gemini-3.1-flash-live-preview',
       generationConfig: {
@@ -232,8 +230,11 @@ export class GeminiLiveAPI {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } },
         },
       },
-      tools,
     };
+
+    if (this.toolDeclarations.length > 0) {
+      setup.tools = [{ functionDeclarations: this.toolDeclarations }];
+    }
 
     if (systemInstruction) {
       setup.systemInstruction = {
@@ -250,10 +251,8 @@ export class GeminiLiveAPI {
     setup.realtimeInputConfig = {
       automaticActivityDetection: this.getVADConfig(),
       activityHandling: this.activityHandling,
-      turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
+      turnCoverage: 'TURN_INCLUDES_ALL_INPUT',
     };
-
-    setup.sessionResumption = { transparent: true };
 
     if (this.inputAudioTranscription) {
       (setup as any).inputAudioTranscription = {};
@@ -267,7 +266,15 @@ export class GeminiLiveAPI {
 
   private handleMessage(data: any) {
     if ('setupComplete' in data) {
+      this.setupComplete = true;
+      this.handlers.onOpen?.();
       this.handlers.onSetupComplete?.();
+      return;
+    }
+
+    if ('error' in data) {
+      console.error('Erro no servidor durante setup:', data.error);
+      this.ws?.close();
       return;
     }
 

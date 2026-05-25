@@ -9,7 +9,7 @@ export async function POST() {
   try {
     const now = new Date();
     const expireTime = new Date(now.getTime() + 30 * 60 * 1000);
-    const sessionExpireTime = new Date(now.getTime() + 1 * 60 * 1000);
+    const sessionExpireTime = new Date(now.getTime() + 30 * 60 * 1000);
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key=${apiKey}`,
