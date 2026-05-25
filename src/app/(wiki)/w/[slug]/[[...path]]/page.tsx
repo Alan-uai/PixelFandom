@@ -4,56 +4,9 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
+import CollectionItemView from '@/components/wiki/collection-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import { useWikiData } from '@/context/wiki-provider';
-
-function formatCollectionData(data: Record<string, any>): string {
-  const skipKeys = ['name', 'title', 'description', 'world_name', 'code', 'id', 'image', 'image_url'];
-  const lines: string[] = [];
-
-  if (data.description) {
-    lines.push(data.description);
-    lines.push('');
-  }
-
-  const fields = Object.entries(data).filter(
-    ([key, val]) => !skipKeys.includes(key) && val != null && val !== ''
-  );
-
-  if (fields.length > 0) {
-    lines.push('| Campo | Valor |');
-    lines.push('|-------|-------|');
-    for (const [key, val] of fields) {
-      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      if (typeof val === 'object' && val !== null) {
-        if (Array.isArray(val)) {
-          const items = val.map((v: any) => formatValue(v)).join(', ');
-          lines.push(`| ${label} | ${items} |`);
-        } else {
-          const subLines = formatCollectionData(val)
-            .split('\n')
-            .filter((l) => !l.startsWith('| Campo |'))
-            .filter((l) => !l.startsWith('|-------|'))
-            .join('<br>');
-          lines.push(`| ${label} | ${subLines || '—'} |`);
-        }
-      } else {
-        lines.push(`| ${label} | ${String(val)} |`);
-      }
-    }
-  }
-
-  return lines.join('\n');
-}
-
-function formatValue(val: any): string {
-  if (typeof val === 'object' && val !== null) {
-    if (val.name || val.title) return val.name || val.title;
-    if (val.id) return String(val.id).slice(0, 8);
-    return JSON.stringify(val);
-  }
-  return String(val);
-}
 
 export default function WikiPage() {
   const params = useParams();
@@ -180,6 +133,8 @@ export default function WikiPage() {
   // ── Article view ──
   if (articleSlug) {
     let article = wiki.article;
+    let collectionItemData: Record<string, any> | null = null;
+    let collectionType: string | null = null;
 
     if (!article) {
       for (const collection of wiki.collections || []) {
@@ -188,9 +143,11 @@ export default function WikiPage() {
           const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
           const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           if (itemSlug === articleSlug) {
+            collectionItemData = itemData;
+            collectionType = collection.slug;
             article = {
               title: name,
-              content: formatCollectionData(itemData),
+              content: '',
               summary: itemData?.description || null,
               tags: null,
               image_url: null,
@@ -201,6 +158,25 @@ export default function WikiPage() {
           }
         }
         if (article) break;
+      }
+    }
+
+    // Detect if the article content is raw collection JSON (from seed data, not TipTap)
+    const isCollectionItem = collectionItemData !== null ||
+      (article?.content && typeof article.content === 'string' &&
+        (article.content.trim().startsWith('{"name"') ||
+         article.content.trim().startsWith('{"code"') ||
+         article.content.trim().startsWith('{"item_name"')));
+
+    // Parse the raw JSON content from RPC if not from collection fallback
+    if (!collectionItemData && article?.content && isCollectionItem) {
+      try {
+        const parsed = JSON.parse(article.content);
+        if (parsed && typeof parsed === 'object' && !parsed.type) {
+          collectionItemData = parsed;
+        }
+      } catch {
+        // not JSON, proceed with normal rendering
       }
     }
 
@@ -216,60 +192,71 @@ export default function WikiPage() {
 
         {article ? (
           <>
-            {article.image_url && (
-              <div className="rounded-xl overflow-hidden mb-8 border">
-                <img
-                  src={article.image_url}
-                  alt={article.title}
-                  className="w-full max-h-72 object-cover"
-                />
-              </div>
-            )}
-
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold leading-tight mb-3">
-                {article.title}
-              </h1>
-
-              {article.summary && (
-                <p className="text-base text-muted-foreground leading-relaxed border-l-2 border-primary/40 pl-4">
-                  {article.summary}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm text-muted-foreground">
-                {article.updated_at && (
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    Atualizado em {new Date(article.updated_at).toLocaleDateString('pt-BR')}
-                  </span>
+            {collectionItemData ? (
+              <CollectionItemView
+                data={collectionItemData}
+                collectionType={collectionType || undefined}
+                updatedAt={article.updated_at}
+                createdAt={article.created_at}
+              />
+            ) : (
+              <>
+                {article.image_url && (
+                  <div className="rounded-xl overflow-hidden mb-8 border">
+                    <img
+                      src={article.image_url}
+                      alt={article.title}
+                      className="w-full max-h-72 object-cover"
+                    />
+                  </div>
                 )}
-                {article.created_at && (
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {new Date(article.created_at).toLocaleDateString('pt-BR')}
-                  </span>
-                )}
-              </div>
 
-              {article.tags && article.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {article.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                    >
-                      <Tag className="h-3 w-3" />
-                      {tag}
-                    </span>
-                  ))}
+                <header className="mb-8">
+                  <h1 className="text-3xl font-bold leading-tight mb-3">
+                    {article.title}
+                  </h1>
+
+                  {article.summary && (
+                    <p className="text-base text-muted-foreground leading-relaxed border-l-2 border-primary/40 pl-4">
+                      {article.summary}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm text-muted-foreground">
+                    {article.updated_at && (
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        Atualizado em {new Date(article.updated_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                    {article.created_at && (
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {new Date(article.created_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+
+                  {article.tags && article.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {article.tags.map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                        >
+                          <Tag className="h-3 w-3" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </header>
+
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <WikiContent content={article.content} />
                 </div>
-              )}
-            </header>
-
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <WikiContent content={article.content} />
-            </div>
+              </>
+            )}
           </>
         ) : (
           <div className="text-center py-20 rounded-xl border bg-card">
