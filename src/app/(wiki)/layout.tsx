@@ -45,6 +45,7 @@ function WikiLayoutContent({
 
   const tenant = data?.tenant || null;
   const isChatPage = pathname === `/w/${slug}/chat`;
+  const isVoicePage = pathname === `/w/${slug}/voice`;
 
   useEffect(() => {
     if (isChatPage) {
@@ -156,7 +157,7 @@ function WikiLayoutContent({
           >
             <Search className="h-4 w-4" />
           </button>
-          <VoiceChat tenantSlug={slug} mode="header" />
+          <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
         </nav>
 
         {/* Inline search field — expands when toggled */}
