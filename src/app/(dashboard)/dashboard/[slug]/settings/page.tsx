@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Upload, ImageIcon } from 'lucide-react';
-import Image from 'next/image';
 import type { Tenant } from '@/supabase/client';
 import { ensureStorageBuckets } from '@/lib/storage';
 
@@ -138,7 +137,7 @@ export default function WikiSettingsPage() {
             <div className="flex items-start gap-4">
               <div className="w-20 h-20 rounded-lg border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
                 {logoUrl ? (
-                  <Image src={logoUrl} alt="Logo" width={80} height={80} className="object-cover w-full h-full" />
+                  <img src={logoUrl} alt="Logo" className="object-cover w-full h-full" />
                 ) : (
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 )}

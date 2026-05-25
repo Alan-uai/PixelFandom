@@ -230,8 +230,11 @@ export class AudioPlayer {
     this.isReady = true;
   }
 
-  playBase64(base64: string) {
+  async playBase64(base64: string) {
     if (!this.isReady || !this.workletNode) return;
+    if (this.context?.state === 'suspended') {
+      await this.context.resume();
+    }
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {

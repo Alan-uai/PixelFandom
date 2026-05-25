@@ -7,6 +7,7 @@ import { handleToolCall, TOOL_DECLARATIONS } from '@/lib/voice/tools';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { VoiceProfile } from '@/lib/voice/voiceProfile';
 import { useRouter } from 'next/navigation';
+import { useWikiData } from '@/context/wiki-provider';
 import VoiceControls from './voice-controls';
 
 type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error';
@@ -17,10 +18,17 @@ type Props = {
 
 export default function FloatingVoiceOrb({ tenantSlug }: Props) {
   const router = useRouter();
+  const { data } = useWikiData();
+  const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {};
+  const adminVolume = (aiConfig.voice_volume as number) || 80;
+  const adminVoice = (aiConfig.voice_name as VoiceName) || 'Kore';
+  const wakeWordText = (aiConfig.wake_word_text as string) || 'Psycho';
+
   const [status, setStatus] = useState<OrbStatus>('idle');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
-  const [volume, setVolume] = useState(80);
+  const [volume, setVolume] = useState(adminVolume);
+  const [userVoiceName, setUserVoiceName] = useState<VoiceName>(adminVoice);
   const [transcripts, setTranscripts] = useState<{ id: string; text: string; isUser: boolean }[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -54,6 +62,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
   const startWakeWord = useCallback(
     async (streamer: AudioStreamer) => {
       const detector = new WakeWordDetector();
+      if (wakeWordText) detector.setWakeWord(wakeWordText);
       detector.onWakeDetected(() => {
         setStatus('listening');
         setIsMicOn(true);
@@ -66,7 +75,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
       });
       wakeWordRef.current = detector;
     },
-    []
+    [wakeWordText]
   );
 
   const startVoice = useCallback(async () => {
@@ -96,9 +105,9 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
           setErrorMessage('Erro de conexão. Tente novamente.');
           setIsMicOn(false);
         },
-        onAudio: (base64) => {
+        onAudio: async (base64) => {
           setStatus('speaking');
-          player.playBase64(base64);
+          await player.playBase64(base64);
         },
         onText: (text) => {
           addTranscript(text, false);
@@ -299,10 +308,13 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
           <VoiceControls
             isMicOn={isMicOn}
             volume={volume}
+            voiceName={userVoiceName}
+            wakeWordText={wakeWordText}
             isConnecting={isConnecting}
             isConnected={status !== 'idle' && status !== 'error'}
             onToggleMic={toggleMic}
             onVolumeChange={handleVolumeChange}
+            onVoiceChange={setUserVoiceName}
             onDisconnect={stopVoice}
           />
         </div>

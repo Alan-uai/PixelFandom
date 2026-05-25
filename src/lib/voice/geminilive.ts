@@ -153,7 +153,8 @@ export class GeminiLiveAPI {
       }
     };
 
-    this.ws.onclose = () => {
+    this.ws.onclose = (event: CloseEvent) => {
+      console.warn(`WebSocket fechado: code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean}`);
       this.connected = false;
       this.handlers.onClose?.();
     };
@@ -265,7 +266,7 @@ export class GeminiLiveAPI {
   }
 
   private handleMessage(data: any) {
-    if (data.setupComplete) {
+    if ('setupComplete' in data) {
       this.handlers.onSetupComplete?.();
       return;
     }
