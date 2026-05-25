@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { useAdmin } from '@/hooks/use-admin';
+import { useTenantRole } from '@/hooks/use-tenant-role';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { supabase } from '@/supabase';
+import { ensureStorageBuckets } from '@/lib/storage';
 
 // Base schema for a generic document
 const genericDocSchema = z.object({
@@ -58,7 +59,6 @@ function EditPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
@@ -68,6 +68,7 @@ function EditPageContent() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+  const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
   const articleIdParam = Array.isArray(params.articleId) ? params.articleId[0] : params.articleId;
   const collectionPath = searchParams.get('collectionPath');
   const fromGeneration = searchParams.get('from-generation') === 'true';
@@ -298,15 +299,16 @@ function EditPageContent() {
     toast({ title: 'Enviando imagem...', description: 'A imagem está sendo enviada para o armazenamento.' });
 
     try {
-      const filePath = `wiki-images/${articleId}/${file.name}`;
+      await ensureStorageBuckets();
+      const filePath = `${articleId}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
-        .from('wiki-images')
+        .from('wiki-assets')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('wiki-images')
+        .from('wiki-assets')
         .getPublicUrl(filePath);
       
       setValue('imageUrl', publicUrl);
@@ -423,7 +425,7 @@ function EditPageContent() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canEdit) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/supabase';
-import { Button } from '@/components/ui/button';
+import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
   LayoutDashboard,
   Plus,
@@ -16,8 +16,11 @@ import {
   Loader2,
   BookOpen,
   ExternalLink,
-  House,
+  PanelLeft,
+  PanelLeftClose,
+  Headphones,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -26,6 +29,28 @@ export default function DashboardLayout({
 }>) {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
+
+  const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
+  const isWikiPage = wikiSlug && wikiSlug !== 'new';
+  const { canManage, canEdit } = useTenantRole(isWikiPage ? wikiSlug : undefined);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('dashboard-sidebar-collapsed');
+      if (stored === 'true') setSidebarCollapsed(true);
+    } catch {}
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem('dashboard-sidebar-collapsed', String(next));
+    } catch {}
+  };
 
   if (isLoading) {
     return (
@@ -48,9 +73,6 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
-  const isWikiPage = wikiSlug && wikiSlug !== 'new';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -114,35 +136,62 @@ export default function DashboardLayout({
 
       <div className="flex flex-1">
         {isWikiPage && (
-          <aside className="w-56 shrink-0 border-r bg-muted/30 flex flex-col">
-            <div className="p-3">
-              <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                {wikiSlug}
-              </p>
+          <aside
+            className={`${
+              sidebarCollapsed ? 'w-12' : 'w-56'
+            } shrink-0 border-r bg-muted/30 flex flex-col transition-all duration-200`}
+          >
+            <div className="flex items-center gap-1 p-3">
+              {!sidebarCollapsed && (
+                <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider truncate flex-1">
+                  {wikiSlug}
+                </p>
+              )}
+              <button
+                onClick={toggleSidebar}
+                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </button>
             </div>
             <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-              {[
-                { href: 'settings', label: 'Configurações', icon: Settings },
-                { href: 'domains', label: 'Domínios', icon: Globe },
-                { href: 'members', label: 'Membros', icon: Users },
-                { href: 'ai', label: 'IA', icon: Cpu },
-                { href: 'collections', label: 'Coleções', icon: Columns3 },
-                { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
-              ].map((item) => {
+              {(canManage
+                ? [
+                    { href: 'settings', label: 'Configurações', icon: Settings },
+                    { href: 'domains', label: 'Domínios', icon: Globe },
+                    { href: 'members', label: 'Membros', icon: Users },
+                    { href: 'ai', label: 'IA', icon: Cpu },
+                    { href: 'discord', label: 'Discord', icon: Headphones },
+                    { href: 'collections', label: 'Coleções', icon: Columns3 },
+                    { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+                  ]
+                : canEdit
+                ? [
+                    { href: 'collections', label: 'Coleções', icon: Columns3 },
+                    { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+                  ]
+                : []
+              ).map((item) => {
                 const Icon = item.icon;
                 const href = `/dashboard/${wikiSlug}/${item.href}`;
                 return (
                   <Link
                     key={item.href}
                     href={href}
+                    title={sidebarCollapsed ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                       pathname === href
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-muted-foreground'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!sidebarCollapsed && item.label}
                   </Link>
                 );
               })}

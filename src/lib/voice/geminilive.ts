@@ -175,12 +175,10 @@ export class GeminiLiveAPI {
     this.ws.send(
       JSON.stringify({
         realtimeInput: {
-          mediaChunks: [
-            {
-              data: base64Audio,
-              mimeType: 'audio/pcm;rate=16000',
-            },
-          ],
+          audio: {
+            data: base64Audio,
+            mimeType: 'audio/pcm;rate=16000',
+          },
         },
       })
     );
@@ -190,14 +188,7 @@ export class GeminiLiveAPI {
     if (!this.connected || !this.ws) return;
     this.ws.send(
       JSON.stringify({
-        realtimeInput: {
-          mediaChunks: [
-            {
-              data: btoa(text),
-              mimeType: 'text/plain',
-            },
-          ],
-        },
+        realtimeInput: { text },
       })
     );
   }
@@ -260,6 +251,8 @@ export class GeminiLiveAPI {
       activityHandling: this.activityHandling,
       turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
     };
+
+    setup.sessionResumption = { transparent: true };
 
     if (this.inputAudioTranscription) {
       (setup as any).inputAudioTranscription = {};

@@ -27,6 +27,8 @@ export default function WikiAIConfigPage() {
   const [voiceName, setVoiceName] = useState<VoiceName>('Kore');
   const [voiceVolume, setVoiceVolume] = useState(80);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  const [wakeWordText, setWakeWordText] = useState('Psycho');
+  const [chatName, setChatName] = useState('Assistente');
   const [publicMode, setPublicMode] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function WikiAIConfigPage() {
           setVoiceName((config.voice_name as VoiceName) || 'Kore');
           setVoiceVolume((config.voice_volume as number) || 80);
           setWakeWordEnabled((config.wake_word as boolean) || false);
+          setWakeWordText((config.wake_word_text as string) || 'Psycho');
+          setChatName((config.chat_name as string) || 'Assistente');
           setPublicMode((config.public_mode as boolean) || false);
         }
         setLoading(false);
@@ -65,6 +69,8 @@ export default function WikiAIConfigPage() {
           voice_name: voiceName,
           voice_volume: voiceVolume,
           wake_word: wakeWordEnabled,
+          wake_word_text: wakeWordText,
+          chat_name: chatName,
           public_mode: publicMode,
         },
       })
@@ -137,6 +143,18 @@ export default function WikiAIConfigPage() {
             </p>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="chatName">Nome do Chat</Label>
+            <Input
+              id="chatName"
+              value={chatName}
+              onChange={(e) => setChatName(e.target.value)}
+              placeholder="Assistente"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nome exibido na interface do chat (texto e voz).
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="prompt">System Prompt</Label>
             <Textarea
               id="prompt"
@@ -197,7 +215,7 @@ export default function WikiAIConfigPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-sm">Wake Word</p>
-              <p className="text-xs text-muted-foreground">Ativar por &ldquo;Psycho&rdquo;</p>
+              <p className="text-xs text-muted-foreground">Ativar assistente por comando de voz</p>
             </div>
             <input
               type="checkbox"
@@ -205,6 +223,18 @@ export default function WikiAIConfigPage() {
               onChange={(e) => setWakeWordEnabled(e.target.checked)}
               className="h-5 w-5 rounded border-gray-300"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="wakeWordText">Palavra de Ativação</Label>
+            <Input
+              id="wakeWordText"
+              value={wakeWordText}
+              onChange={(e) => setWakeWordText(e.target.value)}
+              placeholder="Psycho"
+            />
+            <p className="text-xs text-muted-foreground">
+              Palavra dita para ativar o assistente de voz.
+            </p>
           </div>
           <div className="flex items-center justify-between">
             <div>

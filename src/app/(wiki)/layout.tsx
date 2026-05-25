@@ -3,9 +3,8 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose } from 'lucide-react';
+import { Loader2, Search, House, MessageCircle, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
@@ -39,11 +38,9 @@ function WikiLayoutContent({
   const router = useRouter();
   const pathname = usePathname();
   const { data, loading } = useWikiData();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const tenant = data?.tenant || null;
@@ -59,15 +56,9 @@ function WikiLayoutContent({
     e.preventDefault();
     if (!searchQuery.trim()) return;
     router.push(`/w/${slug}?search=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchOpen(false);
+    setSearchExpanded(false);
     setSearchQuery('');
   }, [searchQuery, slug, router]);
-
-  useEffect(() => {
-    if (searchOpen && searchRef.current) {
-      searchRef.current.focus();
-    }
-  }, [searchOpen]);
 
   useEffect(() => {
     if (searchExpanded && searchInputRef.current) {
@@ -79,7 +70,7 @@ function WikiLayoutContent({
     const handleKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setSearchOpen((v) => !v);
+        setSearchExpanded((v) => !v);
       }
     };
     window.addEventListener('keydown', handleKey);
@@ -109,21 +100,13 @@ function WikiLayoutContent({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
-        {/* Sidebar toggle */}
+        {/* Sidebar toggle — mobile & desktop */}
         <button
-          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden md:flex"
+          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
         >
-          {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </button>
-
-        {/* Mobile menu toggle */}
-        <button
-          className="md:hidden rounded-md p-1.5 text-muted-foreground hover:text-foreground"
-          onClick={() => setSearchOpen(!searchOpen)}
-        >
-          <PanelLeft className="h-5 w-5" />
+          {sidebarCollapsed ? <PanelLeft className="h-5 w-5 md:h-4 md:w-4" /> : <PanelLeftClose className="h-5 w-5 md:h-4 md:w-4" />}
         </button>
 
         {/* Wiki name → hub */}
@@ -137,7 +120,7 @@ function WikiLayoutContent({
         <div className="mx-2 h-5 w-px bg-border" />
 
         {/* Hero nav */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5">
           <Link
             href={`/w/${slug}`}
             className={`rounded-md p-2 transition-colors ${
@@ -160,61 +143,46 @@ function WikiLayoutContent({
           >
             <MessageCircle className="h-4 w-4" />
           </Link>
+          {/* Search — in nav, works on mobile & desktop */}
+          <button
+            onClick={() => setSearchExpanded((v) => !v)}
+            onMouseEnter={() => setSearchExpanded(true)}
+            className={`rounded-md p-2 transition-colors ${
+              searchExpanded
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+            title="Buscar (Cmd+K)"
+          >
+            <Search className="h-4 w-4" />
+          </button>
           <VoiceChat tenantSlug={slug} mode="header" />
         </nav>
 
-        {searchExpanded ? (
-          <form onSubmit={handleSearch} className="relative max-w-sm flex-1 hidden md:block">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        {/* Inline search field — expands when toggled */}
+        <div className={`relative flex-1 transition-all duration-200 ease-in-out overflow-hidden ${
+          searchExpanded ? 'max-w-xs opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'
+        }`}>
+          <form onSubmit={handleSearch} className="relative w-full">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               ref={searchInputRef}
-              placeholder="Buscar... (Cmd+K)"
-              className="pl-8 h-9 bg-muted"
+              placeholder="Buscar na wiki..."
+              className="pl-8 h-9 bg-muted w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onBlur={() => { if (!searchQuery) setSearchExpanded(false); }}
+              onBlur={() => {
+                setTimeout(() => {
+                  if (!searchQuery) setSearchExpanded(false);
+                }, 200);
+              }}
             />
           </form>
-        ) : (
-          <div className="flex-1" />
-        )}
-
-        {/* Search toggle */}
-        <button
-          onClick={() => setSearchExpanded(!searchExpanded)}
-          className={`rounded-md p-2 transition-colors hidden md:flex ${
-            searchExpanded
-              ? 'text-primary bg-primary/10'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-          }`}
-          title="Buscar"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-      </header>
-
-      {/* Mobile search overlay */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm md:hidden">
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <form onSubmit={handleSearch} className="flex-1 relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  ref={searchRef}
-                  placeholder="Buscar na wiki..."
-                  className="pl-10 h-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </form>
-              <Button variant="ghost" size="icon" onClick={() => setSearchOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
         </div>
-      )}
+
+        {/* Spacer when search is not expanded */}
+        {!searchExpanded && <div className="flex-1" />}
+      </header>
 
       <div className="flex flex-1">
         <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
