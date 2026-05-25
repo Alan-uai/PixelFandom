@@ -207,16 +207,32 @@ export class AudioStreamer {
 }
 
 export class AudioPlayer {
-  private context: AudioContext | null = null;
+  context: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private isReady = false;
 
+  constructor() {
+    try {
+      this.context = new AudioContext({ sampleRate: 24000 });
+      console.log(`[AudioPlayer] AudioContext criado, state: ${this.context.state}`);
+    } catch (err) {
+      console.error('[AudioPlayer] Erro ao criar AudioContext:', err);
+    }
+  }
+
   async init() {
-    this.context = new AudioContext({ sampleRate: 24000 });
-    await this.context.audioWorklet.addModule(
-      '/audio-processors/playback.worklet.js'
-    );
+    if (!this.context) {
+      throw new Error('AudioContext não foi criado');
+    }
+    try {
+      await this.context.audioWorklet.addModule(
+        '/audio-processors/playback.worklet.js'
+      );
+    } catch (err) {
+      console.error('[AudioPlayer] Erro ao carregar worklet:', err);
+      throw err;
+    }
 
     this.gainNode = this.context.createGain();
     this.gainNode.gain.value = 1;
@@ -228,24 +244,35 @@ export class AudioPlayer {
     );
     this.workletNode.connect(this.gainNode);
     this.isReady = true;
+    console.log('[AudioPlayer] Pronto, state:', this.context.state);
   }
 
   async playBase64(base64: string) {
-    if (!this.isReady || !this.workletNode) return;
-    if (this.context?.state === 'suspended') {
-      await this.context.resume();
+    if (!this.isReady || !this.workletNode) {
+      console.warn('[AudioPlayer] playBase64 ignorado: player não pronto');
+      return;
     }
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+    try {
+      if (this.context?.state === 'suspended') {
+        console.log('[AudioPlayer] Resumindo AudioContext...');
+        await this.context.resume();
+        console.log('[AudioPlayer] AudioContext resumed, state:', this.context.state);
+      }
+
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const int16 = new Int16Array(bytes.buffer);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) {
+        float32[i] = int16[i] / 32768;
+      }
+      this.workletNode.port.postMessage({ type: 'audio', data: float32 });
+    } catch (err) {
+      console.error('[AudioPlayer] Erro em playBase64:', err);
     }
-    const int16 = new Int16Array(bytes.buffer);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) {
-      float32[i] = int16[i] / 32768;
-    }
-    this.workletNode.port.postMessage({ type: 'audio', data: float32 });
   }
 
   interrupt() {

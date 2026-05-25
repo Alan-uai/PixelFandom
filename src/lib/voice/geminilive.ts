@@ -146,12 +146,15 @@ export class GeminiLiveAPI {
     };
 
     this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        this.handleMessage(data);
-      } catch {
-        /* ignore binary */
+      if (typeof event.data === 'string') {
+        try {
+          const data = JSON.parse(event.data);
+          this.handleMessage(data);
+        } catch (e) {
+          console.warn('[GeminiLive] Falha ao parsear mensagem de texto:', e, event.data.substring(0, 120));
+        }
       }
+      /* binary (audio) frames ignored — handled via modelTurn audio parts */
     };
 
     this.ws.onclose = (event: CloseEvent) => {
@@ -264,46 +267,50 @@ export class GeminiLiveAPI {
   }
 
   private handleMessage(data: any) {
-    if ('setupComplete' in data) {
-      this.setupComplete = true;
-      this.handlers.onSetupComplete?.();
-      return;
-    }
-
-    if (data.serverContent) {
-      const content = data.serverContent;
-
-      if (content.interrupted) {
-        this.handlers.onInterrupt?.();
+    try {
+      if ('setupComplete' in data) {
+        this.setupComplete = true;
+        this.handlers.onSetupComplete?.();
         return;
       }
 
-      if (content.turnComplete) {
-        this.handlers.onTurnComplete?.();
-        return;
-      }
+      if (data.serverContent) {
+        const content = data.serverContent;
 
-      if (content.modelTurn) {
-        for (const part of content.modelTurn.parts || []) {
-          if (part.inlineData?.mimeType?.startsWith('audio/')) {
-            this.handlers.onAudio?.(part.inlineData.data);
-          }
-          if (part.text) {
-            this.handlers.onText?.(part.text);
+        if (content.interrupted) {
+          this.handlers.onInterrupt?.();
+          return;
+        }
+
+        if (content.turnComplete) {
+          this.handlers.onTurnComplete?.();
+          return;
+        }
+
+        if (content.modelTurn) {
+          for (const part of content.modelTurn.parts || []) {
+            if (part.inlineData?.mimeType?.startsWith('audio/')) {
+              this.handlers.onAudio?.(part.inlineData.data);
+            }
+            if (part.text) {
+              this.handlers.onText?.(part.text);
+            }
           }
         }
       }
-    }
 
-    if (data.toolCall) {
-      const calls: ToolCall[] = (data.toolCall.functionCalls || []).map(
-        (fc: any) => ({
-          id: fc.id,
-          name: fc.name,
-          args: fc.args || {},
-        })
-      );
-      this.handlers.onToolCall?.(calls);
+      if (data.toolCall) {
+        const calls: ToolCall[] = (data.toolCall.functionCalls || []).map(
+          (fc: any) => ({
+            id: fc.id,
+            name: fc.name,
+            args: fc.args || {},
+          })
+        );
+        this.handlers.onToolCall?.(calls);
+      }
+    } catch (e) {
+      console.error('[GeminiLive] Erro em handleMessage:', e);
     }
   }
 }

@@ -32,6 +32,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
   const [transcripts, setTranscripts] = useState<{ id: string; text: string; isUser: boolean }[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [audioChunkCount, setAudioChunkCount] = useState(0);
 
   const apiRef = useRef<GeminiLiveAPI | null>(null);
   const streamerRef = useRef<AudioStreamer | null>(null);
@@ -106,8 +107,14 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
           setIsMicOn(false);
         },
         onAudio: async (base64) => {
+          console.log(`[Voice] onAudio chamado, base64 length: ${base64.length}, player ready: ${playerRef.current !== null}`);
+          setAudioChunkCount((c) => c + 1);
           setStatus('speaking');
-          await player.playBase64(base64);
+          try {
+            await player.playBase64(base64);
+          } catch (err) {
+            console.error('[Voice] Erro em playBase64:', err);
+          }
         },
         onText: (text) => {
           addTranscript(text, false);
@@ -140,9 +147,16 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
           }
         },
         onSetupComplete: () => {
-          setIsMicOn(true);
           setStatus('listening');
-          startMic(streamer, api);
+          startMic(streamer, api).then(() => {
+            setIsMicOn(true);
+          }).catch((err) => {
+            console.error('[Voice] Erro ao iniciar microfone:', err);
+            setIsMicOn(false);
+            setErrorMessage('Microfone não disponível. Use o campo de texto abaixo.');
+            addTranscript('[Microfone indisponível — modo texto ativado]', false);
+            api.sendTextMessage('Olá!');
+          });
         },
       });
 
@@ -182,9 +196,13 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
       setStatus('connected');
     } else {
       if (streamerRef.current && apiRef.current) {
-        startMic(streamerRef.current, apiRef.current);
-        setIsMicOn(true);
-        setStatus('listening');
+        startMic(streamerRef.current, apiRef.current).then(() => {
+          setIsMicOn(true);
+          setStatus('listening');
+        }).catch((err) => {
+          console.error('[Voice] Erro ao ligar microfone:', err);
+          setErrorMessage('Microfone não disponível.');
+        });
       }
     }
   }, [isMicOn]);
