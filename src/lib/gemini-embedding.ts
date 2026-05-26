@@ -2,7 +2,7 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const EMBEDDING_MODEL = 'gemini-embedding-2-preview';
 const DIMENSIONS = 1536;
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string, signal?: AbortSignal): Promise<number[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not set');
 
@@ -16,6 +16,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         content: { parts: [{ text: text.slice(0, 8000) }] },
         outputDimensionality: DIMENSIONS,
       }),
+      signal: signal ?? AbortSignal.timeout(10_000),
     }
   );
 

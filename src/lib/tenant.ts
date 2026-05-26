@@ -21,6 +21,10 @@ function cacheKey(domain: string): string {
   return `domain:${domain.toLowerCase()}`;
 }
 
+function cacheKeySlug(slug: string): string {
+  return `slug:${slug.toLowerCase()}`;
+}
+
 export async function getTenantByDomain(domain: string): Promise<Tenant | null> {
   const key = cacheKey(domain);
   const cached = getCached(key);
@@ -39,6 +43,10 @@ export async function getTenantByDomain(domain: string): Promise<Tenant | null> 
 }
 
 export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
+  const key = cacheKeySlug(slug);
+  const cached = getCached(key);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from('tenants')
     .select('*')
@@ -46,6 +54,8 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
     .single();
 
   if (error || !data) return null;
+
+  setCache(key, data);
   return data;
 }
 

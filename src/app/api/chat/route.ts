@@ -24,12 +24,18 @@ REGRAS:
 - Use português brasileiro
 `;
 
+const FALLBACK_CHAIN = (
+  process.env.FALLBACK_CHAIN ||
+  'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
+).split(',').map((m) => m.trim()).filter(Boolean);
+
 async function retrieveContext(
   message: string,
-  tenantSlug: string
+  tenantSlug: string,
+  signal?: AbortSignal
 ): Promise<string> {
   try {
-    const embedding = await generateEmbedding(message);
+    const embedding = await generateEmbedding(message, signal);
     const embStr = `[${embedding.join(',')}]`;
 
     const { supabase } = await import('@/supabase');
@@ -105,7 +111,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const context = await retrieveContext(message, tenantSlug);
+    const abortCtx = new AbortController();
+
+    const contextPromise = retrieveContext(message, tenantSlug, abortCtx.signal);
+
+    const context = await Promise.race([
+      contextPromise,
+      new Promise<string>((resolve) => {
+        setTimeout(() => {
+          abortCtx.abort();
+          resolve('');
+        }, 5000);
+      }),
+    ]);
+
     const ragPrompt = context
       ? `${systemPrompt}
 
@@ -120,6 +139,10 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       { role: 'user', content: message },
     ];
 
+    const modelsToTry = model
+      ? [model, ...FALLBACK_CHAIN.filter((m) => m !== model)]
+      : FALLBACK_CHAIN;
+
     const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -128,7 +151,15 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         'HTTP-Referer': 'https://pixelfandom.vercel.app',
         'X-Title': 'PixelFandom',
       },
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({
+        model: modelsToTry[0],
+        models: modelsToTry,
+        route: 'fallback',
+        messages,
+        stream: true,
+        stream_options: { include_usage: true },
+      }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!orRes.ok) {
@@ -141,6 +172,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
+    let lineBuffer = '';
 
     const readableStream = new ReadableStream({
       async start(controller) {
@@ -150,11 +182,30 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
             if (done) break;
 
             const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n').filter((l) => l.startsWith('data: '));
+            lineBuffer += chunk;
+
+            const lines = lineBuffer.split('\n');
+            lineBuffer = lines.pop() || '';
 
             for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
               const data = line.slice(6);
               if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                if (content) {
+                  controller.enqueue(new TextEncoder().encode(content));
+                }
+              } catch {
+                // skip malformed JSON lines
+              }
+            }
+          }
+
+          if (lineBuffer.startsWith('data: ')) {
+            const data = lineBuffer.slice(6);
+            if (data !== '[DONE]') {
               try {
                 const parsed = JSON.parse(data);
                 const content = parsed.choices?.[0]?.delta?.content || '';
@@ -164,6 +215,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
               } catch {}
             }
           }
+
           controller.close();
         } catch (error) {
           controller.error(error);

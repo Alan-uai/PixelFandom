@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const CATEGORY_LABELS: Record<string, string> = {
+  weapons: 'Weapons',
+  armors: 'Armors',
+  rings: 'Rings',
+  potions: 'Potions',
+  upgrades: 'Upgrades',
+  worlds: 'Worlds',
+  enemies: 'Enemies',
+  bosses: 'Bosses',
+  codes: 'Codes',
+  'crafting-recipes': 'Crafting Recipes',
+}
+
+function categoryLabel(tag: string): string {
+  return CATEGORY_LABELS[tag] || tag.charAt(0).toUpperCase() + tag.slice(1)
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -54,7 +71,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const results = Array.from(merged.values()).slice(0, 10)
+    const results = Array.from(merged.values()).slice(0, 10).map((article) => {
+      const tag = article.tags?.[0] || null
+      return {
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        summary: article.summary,
+        tags: article.tags,
+        image_url: article.image_url,
+        updated_at: article.updated_at,
+        category: tag ? { tag, label: categoryLabel(tag) } : null,
+      }
+    })
 
     return NextResponse.json({ results })
   } catch (error) {

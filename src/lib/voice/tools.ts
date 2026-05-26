@@ -142,19 +142,32 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
     ),
 
     new FunctionCallTool(
+      'navigateToHome',
+      'Navigate to the wiki home page, which shows the wiki hero, description, article count, and recent articles. Use this when the user wants to "see everything", "show the wiki", "go home", or explore the wiki overview.',
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        ctx.navigate(`/w/${ctx.tenantSlug}`)
+        return { result: { success: true, page: 'home' } }
+      }
+    ),
+
+    new FunctionCallTool(
       'navigateToPage',
-      'Navigate to a specific page or article in the wiki.',
+      'Navigate to a specific article or item page in the wiki (e.g. "nightmare-blade", "fire-sword"). Use the slug returned by search tools. The wiki will render the full article or item view.',
       {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'The path to navigate to (e.g. "articles/my-article")' },
+          slug: { type: 'string', description: 'The article or item slug to navigate to (e.g. "nightmare-blade", "battle-axe")' },
         },
       },
-      async (params: { path: string }) => {
-        ctx.navigate(`/w/${ctx.tenantSlug}/${params.path}`)
-        return { result: { success: true, path: params.path } }
+      async (params: { slug: string }) => {
+        ctx.navigate(`/w/${ctx.tenantSlug}/${params.slug}`)
+        return { result: { success: true, slug: params.slug } }
       },
-      ['path']
+      ['slug']
     ),
 
     new FunctionCallTool(
@@ -201,14 +214,14 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
         return {
           result: {
             message: `I can help you with:
-- Search wiki articles
-- Read article contents
-- Navigate between pages
-- List all articles
+- Search wiki articles and items
+- Read article and item contents
+- Navigate to the wiki home page
+- Navigate to specific articles and items
+- List all articles with categories
+- Show wiki overview (count, collections, tags)
 - Switch to another wiki
-- Adjust volume
-- Change voice
-- Clear conversation`,
+- Adjust volume, change voice, clear conversation`,
           },
         }
       }

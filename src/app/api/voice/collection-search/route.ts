@@ -21,7 +21,16 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ results: data || [] })
+    const results = (data || []).map((item: any) => {
+      const name = item?.name || item?.data?.name || ''
+      const itemSlug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+      return { ...item, slug: itemSlug || item.id }
+    })
+
+    return NextResponse.json({ results })
   } catch (error) {
     console.error('Voice collection search error:', error)
     return NextResponse.json({ error: 'Collection search failed' }, { status: 500 })
