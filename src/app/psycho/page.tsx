@@ -9,7 +9,7 @@ const PSYCHO_URL =
   (typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:8000'
-    : '/psycho/');
+    : '/psycho-app/');
 
 export default function PsychoPage() {
   const [loading, setLoading] = useState(true);

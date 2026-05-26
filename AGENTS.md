@@ -31,7 +31,7 @@
 - `supabase/migrations/` — 001→007 sequential SQL migrations
 - `data/pixel-blade/` — static game data JSON fallback
 - `psycho/` — cloned repo, unmodified source (Vite+React frontend + Python aiohttp backend)
-- `public/psycho/` — built Psycho frontend served statically by Next.js
+- `public/psycho-app/` — built Psycho frontend served statically by Next.js
 - `@/*` alias → `src/`
 
 ## Multi-tenant
