@@ -1,7 +1,5 @@
 import type { VoiceName } from './geminilive'
 
-// ─── Base Tool Class ─────────────────────────────────────────
-
 export class FunctionCallTool {
   name: string
   description: string
@@ -41,8 +39,6 @@ export class FunctionCallTool {
   }
 }
 
-// ─── Tool Callbacks Context ──────────────────────────────────
-
 export interface ToolContext {
   tenantSlug: string
   volume: number
@@ -60,37 +56,22 @@ export interface ToolContext {
   fetchWithSlug: (path: string, params: Record<string, string>) => Promise<any>
 }
 
-// ─── Wiki Tools ──────────────────────────────────────────────
-
 export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
   return [
     new FunctionCallTool(
-      'searchWikiContent',
-      'Search wiki articles by title, summary, content, and tags. Returns matching articles with basic info.',
-      {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'The search query to find relevant wiki content' },
-        },
-      },
-      async (params: { query: string }) => {
-        try {
-          const data = await ctx.fetchWithSlug('/api/search', { q: params.query })
-          return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [] } }
-        } catch (e) {
-          return { result: { error: 'Search failed', wiki: [], collection: [] } }
-        }
-      },
-      ['query']
-    ),
+      'searchWiki',
+      `Search ALL wiki content and game item data at once. 
+Returns { wiki: [...], collection: [...] }.
 
-    new FunctionCallTool(
-      'searchCollectionItems',
-      'Search game/item data (weapons, armors, rings, bosses, enemies, etc.) in the current wiki. Returns item names, descriptions, and stats.',
+wiki[] = articles with title, summary, text content, tags. Use for lore, guides, strategies.
+collection[] = game items (weapons, armors, rings, enemies, bosses, upgrades, potions, recipes) with COMPLETE RAW STATS in the "data" field.
+
+IMPORTANT: collection[].data contains REAL attributes like damage_min, damage_max, ability, element, crit_chance, attack_speed, tier, rarity, knockback, enemy_type, boss_type, attacks, strategy, weakness, difficulty, hp_level, speed_level, strength_level, xp_drop, coin_drop, world_name, chapters, etc.
+Always read the actual numbers from data and NEVER invent stats the user asks about. If data lacks a specific field, say the info is not available rather than inventing.`,
       {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'What item or data to search for (e.g. "fire sword", "boss", "ring")' },
+          query: { type: 'string', description: 'The search query — can be a weapon name, enemy type, boss name, category, or any question about wiki content' },
         },
       },
       async (params: { query: string }) => {
@@ -106,7 +87,7 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 
     new FunctionCallTool(
       'getWikiInfo',
-      'Get wiki metadata including article count, available collections/categories, and all tags used across articles.',
+      'Get wiki metadata: article count, available collections/categories (weapons, armors, rings, enemies, bosses, upgrades, potions, worlds, codes, crafting-recipes), and all content tags used across articles.',
       {
         type: 'object',
         properties: {},
@@ -123,11 +104,11 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 
     new FunctionCallTool(
       'getWikiArticle',
-      'Get the full content of a specific wiki article by its slug.',
+      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) if a matching game item exists. Use this to read full article text or get detailed item statistics.',
       {
         type: 'object',
         properties: {
-          slug: { type: 'string', description: 'The slug or URL-friendly identifier of the article' },
+          slug: { type: 'string', description: 'The article slug (e.g. "steel-sword", "goblin-king"). Use the slug returned by searchWiki.' },
         },
       },
       async (params: { slug: string }) => {
@@ -143,7 +124,7 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 
     new FunctionCallTool(
       'navigateToHome',
-      'Navigate to the wiki home page, which shows the wiki hero, description, article count, and recent articles. Use this when the user wants to "see everything", "show the wiki", "go home", or explore the wiki overview.',
+      'Navigate to the wiki home page. Use when the user wants to "see everything", "show the wiki", "go home", or explore the wiki overview.',
       {
         type: 'object',
         properties: {},
@@ -169,11 +150,11 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 
     new FunctionCallTool(
       'navigateToPage',
-      'Navigate to a specific article or item page in the wiki (e.g. "nightmare-blade", "fire-sword"). Use the slug returned by search tools. The wiki will render the full article or item view.',
+      'Navigate to a specific article or item detail page in the wiki (e.g. "nightmare-blade", "goblin-king"). Use the slug returned by searchWiki or getWikiArticle.',
       {
         type: 'object',
         properties: {
-          slug: { type: 'string', description: 'The article or item slug to navigate to (e.g. "nightmare-blade", "battle-axe")' },
+          slug: { type: 'string', description: 'The article or item slug to navigate to' },
         },
       },
       async (params: { slug: string }) => {
@@ -185,7 +166,7 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 
     new FunctionCallTool(
       'listWikiArticles',
-      'List all available articles in the current wiki.',
+      'List all available wiki articles with their titles, slugs, tags, and summaries.',
       {
         type: 'object',
         properties: {},
@@ -227,12 +208,11 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
         return {
           result: {
             message: `I can help you with:
-- Search wiki articles and items
-- Read article and item contents
-- Navigate to the wiki home page
-- Navigate to specific articles and items
-- List all articles with categories
-- Show wiki overview (count, collections, tags)
+- Search wiki articles AND game items with stats (damage, abilities, elements, etc.)
+- Read full article content and item details with raw numbers
+- Navigate to wiki pages and item pages
+- List all articles
+- Show wiki overview (collections, tags, article count)
 - Switch to another wiki
 - Adjust volume, change voice, clear conversation`,
           },
