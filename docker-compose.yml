@@ -5,35 +5,8 @@ services:
       dockerfile: Dockerfile.nextjs
     ports:
       - "9002:9002"
-    depends_on:
-      psycho-backend:
-        condition: service_started
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - PSYCHO_BACKEND_URL=http://psycho-backend:8000
-    networks:
-      - psychofandom
-
-  psycho-backend:
-    build:
-      context: ./psycho
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-    volumes:
-      - psycho-data:/app/backend
-    command: python server.py
-    networks:
-      - psychofandom
-
-volumes:
-  psycho-data:
-
-networks:
-  psychofandom:
-    driver: bridge

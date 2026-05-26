@@ -1,9 +1,6 @@
 /** @type {import('postcss-load-config').Config} */
 const config = {
-  plugins:
-    process.cwd().includes('psycho')
-      ? {}
-      : { tailwindcss: {} },
+  plugins: { tailwindcss: {} },
 };
 
 export default config;

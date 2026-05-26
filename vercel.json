@@ -7,7 +7,7 @@
   },
   "rewrites": [
     { "source": "/api/token", "destination": "/api/token" },
-    { "source": "/psycho-app/(.*)", "destination": "/psycho-app/$1" },
+
     { "source": "/audio-processors/(.*)", "destination": "/audio-processors/$1" },
     { "source": "/(.*)", "destination": "/$1" }
   ]

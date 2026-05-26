@@ -10,10 +10,8 @@
 | Action | Command | Notes |
 |--------|---------|-------|
 | Dev server | `npm run dev` | Port **9002**, uses Turbopack |
-| Dev (Psycho backend) | `npm run dev:psycho` | Python aiohttp on port **8000** — run alongside `npm run dev` |
 | Build | `npm run build` | Sets `NODE_ENV=production` before `next build` |
-| Build (Psycho frontend) | `npm run build:psycho` | Builds Vite app with `--base=/psycho-app/` → `public/psycho-app/` + sobrescreve worklets em `public/audio-processors/` |
-| Docker (full stack) | `docker compose up --build` | Sobe Next.js (9002) + Psycho Python backend (8000) |
+| Docker | `docker compose up --build` | Sobe Next.js (9002) |
 | Lint | `npm run lint` | `next lint` |
 | Typecheck | `npm run typecheck` | `tsc --noEmit` |
 | No tests | — | Playwright in devDeps but no test script configured |
@@ -31,12 +29,8 @@
 - `src/supabase/` — Supabase client, typed Database defs, auth provider, hooks
 - `supabase/migrations/` — 001→007 sequential SQL migrations
 - `data/pixel-blade/` — static game data JSON fallback
-- `psycho/` — cloned repo, unmodified source (Vite+React frontend + Python aiohttp backend). **Não modificar** — código deve ficar idêntico ao repositório `Hashzin-0/Psycho`.
-- `public/psycho-app/` — built Psycho frontend served statically por Next.js em `/psycho-app/`
-- `public/audio-processors/` — worklets do Psycho (sobrescrevem os originais do PixelFandom)
-- `api/token.py` — Python serverless function do Psycho para Vercel
-- `docker-compose.yml` — orquestra Next.js + Psycho backend
-- `Dockerfile.nextjs` — build do Next.js para Docker
+- `public/audio-processors/` — worklets de áudio para o sistema de voz
+- `api/token.py` — serverless function para gerar tokens Gemini Live API
 - `@/*` alias → `src/`
 
 ## Multi-tenant
@@ -49,8 +43,7 @@
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, `FALLBACK_CHAIN` (comma-separated model list)
 `VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)
 `VERCEL_PROJECT_ID` — ID do projeto Vercel
-`GEMINI_API_KEY` — Google Gemini API key (Psycho voice AI)
-`PSYCHO_BACKEND_URL` — URL do backend Python do Psycho (default: `http://localhost:8000`)
+`GEMINI_API_KEY` — Google Gemini API key (sistema de voz)
 
 ## Important files
 - `docs/ai-rules.md` — strict agent behavior rules (Portuguese). Follow when editing code.

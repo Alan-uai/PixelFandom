@@ -1,4 +1,4 @@
-export const DEFAULT_WAKE_WORDS = ['psycho', 'psyco'];
+export const DEFAULT_WAKE_WORDS = ['xwiki'];
 
 type WakeWordCallback = () => void;
 

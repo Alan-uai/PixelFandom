@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   ArrowRight,
   BookOpen,
-  Brain,
   Cpu,
   Globe,
   Users,
@@ -218,13 +217,14 @@ export default function Home() {
   );
 }
 
-const features = [
-  {
-    icon: Brain,
-    title: 'Psycho — IA Terapêutica',
-    description: 'Assistente multiagente com suporte psicológico e gastronomia via Gemini Live.',
-    href: '/psycho' as const,
-  },
+type FeatureItem = {
+  icon: typeof BookOpen;
+  title: string;
+  description: string;
+  href?: string;
+};
+
+const features: FeatureItem[] = [
   {
     icon: BookOpen,
     title: 'Editor Poderoso',

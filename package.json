@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
-    "dev:psycho": "cd psycho && python server.py",
     "build": "NODE_ENV=production next build",
-    "build:psycho": "cd psycho/frontend && npx vite build --base=/psycho-app/ && cp -r dist/* ../../public/psycho-app/ && cp ../../psycho/frontend/public/audio-processors/*.worklet.js ../../public/audio-processors/",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
