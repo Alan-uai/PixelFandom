@@ -1,316 +1,419 @@
-export type ResponseModality = 'AUDIO' | 'TEXT';
-
 export type VoiceName = 'Puck' | 'Kore' | 'Charon' | 'Fenrir' | 'Aoede';
 
-export type ActivityDetectionConfig = {
-  disabled: boolean;
-  silenceDurationMs: number;
-  prefixPaddingMs: number;
-  endOfSpeechSensitivity: string;
-  startOfSpeechSensitivity: string;
-};
+export enum MultimodalLiveResponseType {
+  TEXT = "TEXT",
+  AUDIO = "AUDIO",
+  SETUP_COMPLETE = "SETUP COMPLETE",
+  INTERRUPTED = "INTERRUPTED",
+  TURN_COMPLETE = "TURN COMPLETE",
+  TOOL_CALL = "TOOL_CALL",
+  ERROR = "ERROR",
+  INPUT_TRANSCRIPTION = "INPUT_TRANSCRIPTION",
+  OUTPUT_TRANSCRIPTION = "OUTPUT_TRANSCRIPTION",
+  SESSION_RESUMPTION_UPDATE = "SESSION_RESUMPTION_UPDATE",
+}
 
-type MessageHandler = {
-  onOpen?: () => void;
-  onClose?: () => void;
-  onError?: (error: Event) => void;
-  onAudio?: (base64: string) => void;
-  onText?: (text: string) => void;
-  onInterrupt?: () => void;
-  onTurnComplete?: () => void;
-  onToolCall?: (calls: ToolCall[]) => void;
-  onSetupComplete?: () => void;
-};
+export interface TranscriptionData {
+  text: string
+  finished: boolean
+}
 
-type ToolCall = {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-};
+export interface ResponseMessage {
+  type: MultimodalLiveResponseType
+  data: any
+  endOfTurn: boolean
+}
 
-type ToolDeclaration = {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-};
+export interface FunctionCallArg {
+  name: string
+  id?: string
+  args?: Record<string, any>
+}
+
+export interface FunctionCallDefinition {
+  name: string
+  description: string
+  parameters: Record<string, any>
+  requiredParameters?: string[]
+}
+
+export interface FunctionResponse {
+  id?: string
+  name: string
+  response: { result?: any; error?: string }
+}
+
+export interface ActivityDetectionConfig {
+  disabled: boolean
+  silence_duration_ms: number
+  prefix_padding_ms: number
+  end_of_speech_sensitivity: string
+  start_of_speech_sensitivity: string
+}
+
+function parseResponseMessages(data: any): ResponseMessage[] {
+  const responses: ResponseMessage[] = []
+  const serverContent = data?.serverContent
+  const parts = serverContent?.modelTurn?.parts
+
+  try {
+    if (data?.setupComplete) {
+      responses.push({ type: MultimodalLiveResponseType.SETUP_COMPLETE, data: "", endOfTurn: false })
+      return responses
+    }
+
+    if (data?.toolCall) {
+      responses.push({ type: MultimodalLiveResponseType.TOOL_CALL, data: data.toolCall, endOfTurn: false })
+      return responses
+    }
+
+    if (parts?.length) {
+      for (const part of parts) {
+        if (part.inlineData) {
+          responses.push({ type: MultimodalLiveResponseType.AUDIO, data: part.inlineData.data, endOfTurn: false })
+        } else if (part.text) {
+          responses.push({ type: MultimodalLiveResponseType.TEXT, data: part.text, endOfTurn: false })
+        }
+      }
+    }
+
+    if (serverContent?.inputTranscription) {
+      responses.push({
+        type: MultimodalLiveResponseType.INPUT_TRANSCRIPTION,
+        data: { text: serverContent.inputTranscription.text || "", finished: serverContent.inputTranscription.finished || false },
+        endOfTurn: false,
+      })
+    }
+
+    if (serverContent?.outputTranscription) {
+      responses.push({
+        type: MultimodalLiveResponseType.OUTPUT_TRANSCRIPTION,
+        data: { text: serverContent.outputTranscription.text || "", finished: serverContent.outputTranscription.finished || false },
+        endOfTurn: false,
+      })
+    }
+
+    if (serverContent?.interrupted) {
+      responses.push({ type: MultimodalLiveResponseType.INTERRUPTED, data: "", endOfTurn: false })
+    }
+
+    if (serverContent?.turnComplete) {
+      responses.push({ type: MultimodalLiveResponseType.TURN_COMPLETE, data: "", endOfTurn: true })
+    }
+
+    if (data?.sessionResumptionUpdate) {
+      responses.push({
+        type: MultimodalLiveResponseType.SESSION_RESUMPTION_UPDATE,
+        data: data.sessionResumptionUpdate,
+        endOfTurn: false,
+      })
+    }
+  } catch (err) {
+    console.log("Error parsing response data: ", err, data)
+  }
+
+  return responses
+}
 
 export class GeminiLiveAPI {
-  private ws: WebSocket | null = null;
-  private token: string | null = null;
-  private handlers: MessageHandler;
-  private connected = false;
-  private setupComplete = false;
-  private toolDeclarations: ToolDeclaration[] = [];
-
-  voiceName: VoiceName = 'Kore';
-  temperature = 1.0;
-  responseModalities: ResponseModality[] = ['AUDIO'];
-  isThinkingMode = false;
-  thinkingBudget = 1024;
-  inputAudioTranscription = false;
-  outputAudioTranscription = false;
+  token: string
+  model: string
+  modelUri: string
+  responseModalities: string[] = ["AUDIO"]
+  systemInstructions = ""
+  baseSystemInstructions = ""
+  googleGrounding = false
+  voiceName: VoiceName = 'Kore'
+  temperature = 1.0
+  isThinkingMode = false
+  inputAudioTranscription = false
+  outputAudioTranscription = false
+  enableFunctionCalls = false
+  functions: any[] = []
+  functionsMap: Record<string, any> = {}
+  previousImage: string | null = null
+  totalBytesSent = 0
 
   automaticActivityDetection: ActivityDetectionConfig = {
     disabled: false,
-    silenceDurationMs: 1500,
-    prefixPaddingMs: 400,
-    endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH',
-    startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
-  };
-
-  activityHandling = 'ACTIVITY_HANDLING_UNSPECIFIED';
-
-  constructor(handlers: MessageHandler) {
-    this.handlers = handlers;
+    silence_duration_ms: 1500,
+    prefix_padding_ms: 400,
+    end_of_speech_sensitivity: "END_SENSITIVITY_UNSPECIFIED",
+    start_of_speech_sensitivity: "START_SENSITIVITY_HIGH",
   }
+
+  activityHandling = "START_OF_ACTIVITY_INTERRUPTS"
 
   setPublicMode(enabled: boolean) {
     if (enabled) {
       this.automaticActivityDetection = {
         ...this.automaticActivityDetection,
-        silenceDurationMs: 2500,
-        endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
-        startOfSpeechSensitivity: 'START_SENSITIVITY_LOW',
-      };
+        silence_duration_ms: 2500,
+        end_of_speech_sensitivity: "END_SENSITIVITY_LOW",
+        start_of_speech_sensitivity: "START_SENSITIVITY_LOW",
+      }
     } else {
       this.automaticActivityDetection = {
         ...this.automaticActivityDetection,
-        silenceDurationMs: 1500,
-        endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH',
-        startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
-      };
+        silence_duration_ms: 1500,
+        end_of_speech_sensitivity: "END_SENSITIVITY_UNSPECIFIED",
+        start_of_speech_sensitivity: "START_SENSITIVITY_HIGH",
+      }
     }
-    this.sendSessionUpdate({
-      realtimeInputConfig: {
-        automaticActivityDetection: this.getVADConfig(),
-        activityHandling: this.activityHandling,
-      },
-    });
+    if (this.connected) {
+      this.sendSessionUpdate({
+        realtimeInputConfig: {
+          automaticActivityDetection: {
+            disabled: this.automaticActivityDetection.disabled,
+            silenceDurationMs: this.automaticActivityDetection.silence_duration_ms,
+            prefixPaddingMs: this.automaticActivityDetection.prefix_padding_ms,
+            endOfSpeechSensitivity: this.automaticActivityDetection.end_of_speech_sensitivity,
+            startOfSpeechSensitivity: this.automaticActivityDetection.start_of_speech_sensitivity,
+          },
+          activityHandling: this.activityHandling,
+        },
+      })
+    }
+  }
+
+  serviceUrl: string
+  connected = false
+  webSocket: WebSocket | null = null
+  lastSetupMessage: any = null
+
+  onReceiveResponse: (message: ResponseMessage) => void = () => {}
+  onOpen: () => void = () => {}
+  onClose: () => void = () => {}
+  onError: (message: string) => void = () => {}
+  onSetupComplete: () => void = () => {}
+  onSessionResumptionUpdate: (update: any) => void = () => {}
+
+  constructor(token: string, model: string) {
+    this.token = token
+    this.model = model
+    this.modelUri = `models/${this.model}`
+    this.serviceUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${this.token}`
+  }
+
+  setProjectId(_projectId: string) {}
+
+  setSystemInstructions(newInstructions: string) {
+    this.systemInstructions = newInstructions
+  }
+
+  setGoogleGrounding(enabled: boolean) {
+    this.googleGrounding = enabled
+  }
+
+  setResponseModalities(modalities: string[]) {
+    this.responseModalities = modalities
   }
 
   setVoice(voiceName: VoiceName) {
-    this.voiceName = voiceName;
-    this.sendSessionUpdate({
-      generationConfig: {
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
-        },
-      },
-    });
-  }
-
-  setThinkingMode(enabled: boolean, budget = 1024) {
-    this.isThinkingMode = enabled;
-    this.thinkingBudget = budget;
-    this.sendSessionUpdate({
-      generationConfig: {
-        thinkingConfig: { thinkingBudget: enabled ? budget : 0 },
-      },
-    });
-  }
-
-  setTools(tools: ToolDeclaration[]) {
-    this.toolDeclarations = tools;
-  }
-
-  private getVADConfig() {
-    return {
-      disabled: this.automaticActivityDetection.disabled,
-      silenceDurationMs: this.automaticActivityDetection.silenceDurationMs,
-      prefixPaddingMs: this.automaticActivityDetection.prefixPaddingMs,
-      endOfSpeechSensitivity: this.automaticActivityDetection.endOfSpeechSensitivity,
-      startOfSpeechSensitivity: this.automaticActivityDetection.startOfSpeechSensitivity,
-    };
-  }
-
-  private sendSessionUpdate(config: Record<string, unknown>) {
-    if (this.connected && this.setupComplete && this.ws) {
-      this.ws.send(JSON.stringify({ session_update: config }));
-    }
-  }
-
-  async connect(systemInstruction?: string) {
-    const res = await fetch('/api/token', { method: 'POST' });
-    if (!res.ok) throw new Error('Failed to get token');
-    const { token } = await res.json();
-    this.token = token;
-
-    const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${token}`;
-
-    this.ws = new WebSocket(url);
-
-    this.ws.onopen = () => {
-      this.connected = true;
-      this.sendSetup(systemInstruction);
-      this.handlers.onOpen?.();
-    };
-
-    this.ws.onmessage = (event) => {
-      if (typeof event.data === 'string') {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleMessage(data);
-        } catch (e) {
-          console.warn('[GeminiLive] Falha ao parsear mensagem de texto:', e, event.data.substring(0, 120));
-        }
-      }
-      /* binary (audio) frames ignored — handled via modelTurn audio parts */
-    };
-
-    this.ws.onclose = (event: CloseEvent) => {
-      console.warn(`WebSocket fechado: code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean}`);
-      this.connected = false;
-      this.setupComplete = false;
-      this.handlers.onClose?.();
-    };
-
-    this.ws.onerror = (error) => {
-      this.connected = false;
-      this.setupComplete = false;
-      this.handlers.onError?.(error);
-    };
-  }
-
-  disconnect() {
-    this.connected = false;
-    this.setupComplete = false;
-    this.ws?.close();
-    this.ws = null;
-  }
-
-  sendAudioMessage(base64Audio: string) {
-    if (!this.connected || !this.setupComplete || !this.ws) return;
-    this.ws.send(
-      JSON.stringify({
-        realtimeInput: {
-          audio: {
-            data: base64Audio,
-            mimeType: 'audio/pcm;rate=16000',
+    this.voiceName = voiceName
+    if (this.connected) {
+      this.sendSessionUpdate({
+        generationConfig: {
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
+            },
           },
         },
       })
-    );
+    }
+  }
+
+  sendSessionUpdate(updateConfig: Record<string, any>) {
+    this.sendMessage({ session_update: updateConfig })
+  }
+
+  setThinkingMode(enabled: boolean, budget = 1024) {
+    this.isThinkingMode = enabled
+    if (this.connected) {
+      this.sendSessionUpdate({
+        generationConfig: {
+          thinkingConfig: { thinkingBudget: enabled ? budget : 0 },
+        },
+      })
+    }
+  }
+
+  setInputAudioTranscription(enabled: boolean) {
+    this.inputAudioTranscription = enabled
+  }
+
+  setOutputAudioTranscription(enabled: boolean) {
+    this.outputAudioTranscription = enabled
+  }
+
+  setEnableFunctionCalls(enabled: boolean) {
+    this.enableFunctionCalls = enabled
+  }
+
+  addFunction(newFunction: any) {
+    this.functions.push(newFunction)
+    this.functionsMap[newFunction.name] = newFunction
+  }
+
+  callFunction(functionName: string, parameters: any) {
+    return this.functionsMap[functionName]?.runFunction(parameters)
+  }
+
+  connect() {
+    this.setupWebSocketToService()
+  }
+
+  disconnect() {
+    if (this.webSocket) {
+      this.webSocket.close()
+      this.connected = false
+    }
+  }
+
+  sendMessage(message: any) {
+    if (this.webSocket?.readyState === WebSocket.OPEN) {
+      this.webSocket.send(JSON.stringify(message))
+    }
+  }
+
+  private async onReceiveMessage(messageEvent: MessageEvent) {
+    let jsonData: string
+    if (messageEvent.data instanceof Blob) {
+      jsonData = await messageEvent.data.text()
+    } else if (messageEvent.data instanceof ArrayBuffer) {
+      jsonData = new TextDecoder().decode(messageEvent.data)
+    } else {
+      jsonData = messageEvent.data
+    }
+
+    try {
+      const messageData = JSON.parse(jsonData)
+      const responses = parseResponseMessages(messageData)
+      for (const response of responses) {
+        if (response.type === MultimodalLiveResponseType.SETUP_COMPLETE) {
+          this.onSetupComplete()
+        }
+        if (response.type === MultimodalLiveResponseType.SESSION_RESUMPTION_UPDATE) {
+          this.onSessionResumptionUpdate(response.data)
+        }
+        this.onReceiveResponse(response)
+      }
+    } catch (err) {
+      console.error("Error parsing JSON message:", err, jsonData)
+    }
+  }
+
+  private setupWebSocketToService() {
+    this.webSocket = new WebSocket(this.serviceUrl)
+
+    this.webSocket.onclose = (event: CloseEvent) => {
+      console.warn(`WebSocket fechado: code=${event.code}, reason=${event.reason}, wasClean=${event.wasClean}`)
+      this.connected = false
+      this.onClose()
+    }
+
+    this.webSocket.onerror = () => {
+      this.connected = false
+      this.onError("Connection error")
+    }
+
+    this.webSocket.onopen = () => {
+      this.connected = true
+      this.totalBytesSent = 0
+      this.sendInitialSetupMessages()
+      this.onOpen()
+    }
+
+    this.webSocket.onmessage = this.onReceiveMessage.bind(this)
+  }
+
+  private getFunctionDefinitions() {
+    return this.functions.map((f: any) => f.getDefinition())
+  }
+
+  private sendInitialSetupMessages() {
+    const tools = this.getFunctionDefinitions()
+
+    const sessionSetupMessage: any = {
+      setup: {
+        model: this.modelUri,
+        generationConfig: {
+          responseModalities: this.responseModalities,
+          temperature: this.temperature,
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: this.voiceName },
+            },
+          },
+        },
+        systemInstruction: { parts: [{ text: this.systemInstructions }] },
+        tools: [{ functionDeclarations: tools }],
+        realtimeInputConfig: {
+          automaticActivityDetection: {
+            disabled: this.automaticActivityDetection.disabled,
+            silenceDurationMs: this.automaticActivityDetection.silence_duration_ms,
+            prefixPaddingMs: this.automaticActivityDetection.prefix_padding_ms,
+            endOfSpeechSensitivity: this.automaticActivityDetection.end_of_speech_sensitivity,
+            startOfSpeechSensitivity: this.automaticActivityDetection.start_of_speech_sensitivity,
+          },
+          activityHandling: this.activityHandling,
+          turnCoverage: "TURN_INCLUDES_ONLY_ACTIVITY",
+        },
+      },
+    }
+
+    sessionSetupMessage.setup.sessionResumption = {
+      transparent: true,
+    }
+
+    if (this.inputAudioTranscription) {
+      sessionSetupMessage.setup.inputAudioTranscription = {}
+    }
+    if (this.outputAudioTranscription) {
+      sessionSetupMessage.setup.outputAudioTranscription = {}
+    }
+    if (this.googleGrounding) {
+      sessionSetupMessage.setup.tools = [{ google_search: {} }]
+    }
+
+    this.lastSetupMessage = sessionSetupMessage
+    this.sendMessage(sessionSetupMessage)
   }
 
   sendTextMessage(text: string) {
-    if (!this.connected || !this.setupComplete || !this.ws) return;
-    this.ws.send(
-      JSON.stringify({
-        realtimeInput: { text },
-      })
-    );
+    this.sendMessage({ realtimeInput: { text } })
   }
 
-  sendToolResponse(id: string, name: string, response: unknown) {
-    if (!this.connected || !this.setupComplete || !this.ws) return;
-    this.ws.send(
-      JSON.stringify({
-        toolResponse: {
-          functionResponses: [
-            {
-              id,
-              name,
-              response: { result: response },
-            },
-          ],
-        },
-      })
-    );
+  sendToolResponse(functionResponses: FunctionResponse[]) {
+    this.sendMessage({ toolResponse: { functionResponses } })
   }
 
-  get isConnected() {
-    return this.connected;
+  sendRealtimeInputMessage(data: string, mimeType: string) {
+    const blob = { mimeType, data }
+    const message: any = { realtimeInput: {} }
+    if (mimeType.startsWith("audio/")) {
+      message.realtimeInput.audio = blob
+    } else if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+      message.realtimeInput.video = blob
+    }
+    this.sendMessage(message)
+    this.addToBytesSent(data)
   }
 
-  private sendSetup(systemInstruction?: string) {
-    if (!this.ws) return;
-
-    const setup: Record<string, unknown> = {
-      model: 'models/gemini-3.1-flash-live-preview',
-      generationConfig: {
-        responseModalities: this.responseModalities,
-        temperature: this.temperature,
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } },
-        },
-      },
-    };
-
-    setup.tools = [{ functionDeclarations: this.toolDeclarations }];
-
-    if (systemInstruction) {
-      setup.systemInstruction = {
-        parts: [{ text: systemInstruction }],
-      };
-    }
-
-    if (this.isThinkingMode) {
-      (setup.generationConfig as Record<string, unknown>).thinkingConfig = {
-        thinkingBudget: this.thinkingBudget,
-      };
-    }
-
-    setup.realtimeInputConfig = {
-      automaticActivityDetection: this.getVADConfig(),
-      activityHandling: this.activityHandling,
-      turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY',
-    };
-
-    if (this.inputAudioTranscription) {
-      (setup as any).inputAudioTranscription = {};
-    }
-    if (this.outputAudioTranscription) {
-      (setup as any).outputAudioTranscription = {};
-    }
-
-    this.ws.send(JSON.stringify({ setup }));
+  private addToBytesSent(data: string) {
+    this.totalBytesSent += new TextEncoder().encode(data).length
   }
 
-  private handleMessage(data: any) {
-    try {
-      if ('setupComplete' in data) {
-        this.setupComplete = true;
-        this.handlers.onSetupComplete?.();
-        return;
-      }
+  getBytesSent() {
+    return this.totalBytesSent
+  }
 
-      if (data.serverContent) {
-        const content = data.serverContent;
+  sendAudioMessage(base64PCM: string) {
+    this.sendRealtimeInputMessage(base64PCM, "audio/pcm;rate=16000")
+  }
 
-        if (content.interrupted) {
-          this.handlers.onInterrupt?.();
-          return;
-        }
-
-        if (content.turnComplete) {
-          this.handlers.onTurnComplete?.();
-          return;
-        }
-
-        if (content.modelTurn) {
-          for (const part of content.modelTurn.parts || []) {
-            if (part.inlineData?.mimeType?.startsWith('audio/')) {
-              this.handlers.onAudio?.(part.inlineData.data);
-            }
-            if (part.text) {
-              this.handlers.onText?.(part.text);
-            }
-          }
-        }
-      }
-
-      if (data.toolCall) {
-        const calls: ToolCall[] = (data.toolCall.functionCalls || []).map(
-          (fc: any) => ({
-            id: fc.id,
-            name: fc.name,
-            args: fc.args || {},
-          })
-        );
-        this.handlers.onToolCall?.(calls);
-      }
-    } catch (e) {
-      console.error('[GeminiLive] Erro em handleMessage:', e);
-    }
+  sendImageMessage(base64Image: string, mimeType = "image/jpeg") {
+    this.sendRealtimeInputMessage(base64Image, mimeType)
   }
 }
