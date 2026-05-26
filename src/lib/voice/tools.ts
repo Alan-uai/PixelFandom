@@ -75,10 +75,10 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
       },
       async (params: { query: string }) => {
         try {
-          const data = await ctx.fetchWithSlug('/api/voice/search', { q: params.query })
-          return { result: data }
+          const data = await ctx.fetchWithSlug('/api/search', { q: params.query })
+          return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [] } }
         } catch (e) {
-          return { result: { error: 'Search failed', results: [] } }
+          return { result: { error: 'Search failed', wiki: [], collection: [] } }
         }
       },
       ['query']
@@ -95,10 +95,10 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
       },
       async (params: { query: string }) => {
         try {
-          const data = await ctx.fetchWithSlug('/api/voice/collection-search', { q: params.query })
-          return { result: data }
+          const data = await ctx.fetchWithSlug('/api/search', { q: params.query })
+          return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [] } }
         } catch (e) {
-          return { result: { error: 'Collection search failed', results: [] } }
+          return { result: { error: 'Search failed', wiki: [], collection: [] } }
         }
       },
       ['query']

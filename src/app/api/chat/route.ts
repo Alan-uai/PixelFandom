@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
-import { generateEmbedding } from '@/lib/gemini-embedding';
+import { searchAll, formatSearchContext } from '@/lib/search';
 
 const SECTION_PROMPT = `
 FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
@@ -29,64 +29,6 @@ const FALLBACK_CHAIN = (
   'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
 ).split(',').map((m) => m.trim()).filter(Boolean);
 
-async function retrieveContext(
-  message: string,
-  tenantSlug: string,
-  signal?: AbortSignal
-): Promise<string> {
-  try {
-    const embedding = await generateEmbedding(message, signal);
-    const embStr = `[${embedding.join(',')}]`;
-
-    const { supabase } = await import('@/supabase');
-
-    const [wikiRes, collectionRes] = await Promise.all([
-      supabase.rpc('get_wiki_data', {
-        p_slug: tenantSlug,
-        p_search: message,
-        p_embedding: embStr,
-      }),
-      supabase.rpc('search_collection_items', {
-        p_tenant_slug: tenantSlug,
-        p_embedding: embStr,
-        p_search: message,
-        p_limit: 5,
-      }),
-    ]);
-
-    const parts: string[] = [];
-
-    const wikiResults = (wikiRes.data?.search_results as any[]) || [];
-    if (wikiResults.length > 0) {
-      parts.push('--- Artigos do Wiki ---');
-      for (const r of wikiResults.slice(0, 3)) {
-        const content = r.content ? (r.content as string).replace(/<[^>]+>/g, '').slice(0, 1000) : '';
-        parts.push(`Título: ${r.title}\nResumo: ${r.summary || ''}\n${content ? `Conteúdo: ${content}` : ''}`);
-      }
-    }
-
-    const collectionResults = (collectionRes.data as any[]) || [];
-    if (collectionResults.length > 0) {
-      parts.push('--- Itens do Jogo ---');
-      for (const item of collectionResults.slice(0, 5)) {
-        const data = item.data || {};
-        const stats = Object.entries(data)
-          .filter(([k]) => !['name', 'description'].includes(k))
-          .map(([k, v]) => `  ${k}: ${v}`)
-          .join('\n');
-        parts.push(`Item: ${item.name || data.name || 'Sem nome'}
-Coleção: ${item.collection_name || ''}
-Descrição: ${item.description || data.description || ''}
-${stats ? `Stats:\n${stats}` : ''}`);
-      }
-    }
-
-    return parts.join('\n\n');
-  } catch {
-    return '';
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
@@ -113,7 +55,17 @@ export async function POST(request: NextRequest) {
 
     const abortCtx = new AbortController();
 
-    const contextPromise = retrieveContext(message, tenantSlug, abortCtx.signal);
+    const contextPromise = (async () => {
+      if (!tenantSlug) return '';
+      try {
+        const result = await searchAll(tenantSlug, message, {
+          signal: abortCtx.signal,
+        });
+        return formatSearchContext(result);
+      } catch {
+        return '';
+      }
+    })();
 
     const context = await Promise.race([
       contextPromise,
@@ -153,7 +105,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       },
       body: JSON.stringify({
         model: modelsToTry[0],
-        models: modelsToTry,
+        models: modelsToTry.slice(0, 3),
         route: 'fallback',
         messages,
         stream: true,
