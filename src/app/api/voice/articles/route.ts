@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('wiki_articles')
-      .select('id, title, slug, summary, updated_at')
+      .select('id, title, slug, summary, tags, updated_at')
       .eq('tenant_id', tenant.id)
       .order('title')
       .limit(100);

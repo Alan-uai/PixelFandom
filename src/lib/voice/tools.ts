@@ -66,7 +66,7 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
   return [
     new FunctionCallTool(
       'searchWikiContent',
-      'Search wiki articles semantically for relevant content. Returns titles, summaries, and slugs.',
+      'Search wiki articles by title, summary, content, and tags. Returns matching articles with basic info.',
       {
         type: 'object',
         properties: {
@@ -85,8 +85,45 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
     ),
 
     new FunctionCallTool(
+      'searchCollectionItems',
+      'Search game/item data (weapons, armors, rings, bosses, enemies, etc.) in the current wiki. Returns item names, descriptions, and stats.',
+      {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'What item or data to search for (e.g. "fire sword", "boss", "ring")' },
+        },
+      },
+      async (params: { query: string }) => {
+        try {
+          const data = await ctx.fetchWithSlug('/api/voice/collection-search', { q: params.query })
+          return { result: data }
+        } catch (e) {
+          return { result: { error: 'Collection search failed', results: [] } }
+        }
+      },
+      ['query']
+    ),
+
+    new FunctionCallTool(
+      'getWikiInfo',
+      'Get wiki metadata including article count, available collections/categories, and all tags used across articles.',
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        try {
+          const data = await ctx.fetchWithSlug('/api/voice/wiki-info', {})
+          return { result: data }
+        } catch (e) {
+          return { result: { error: 'Failed to get wiki info' } }
+        }
+      }
+    ),
+
+    new FunctionCallTool(
       'getWikiArticle',
-      'Get the full content of a specific wiki article by its slug or title.',
+      'Get the full content of a specific wiki article by its slug.',
       {
         type: 'object',
         properties: {
