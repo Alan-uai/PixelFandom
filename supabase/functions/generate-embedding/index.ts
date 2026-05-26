@@ -1,5 +1,5 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { withSupabase } from "@supabase/server";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const EMBEDDING_MODEL = "gemini-embedding-2-preview";
@@ -28,9 +28,38 @@ async function generateEmbedding(text: string, apiKey: string): Promise<number[]
   return data.embedding.values;
 }
 
+function unauthorized(msg = "Invalid credentials"): Response {
+  return new Response(JSON.stringify({ message: msg, code: "INVALID_CREDENTIALS" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export default {
-  fetch: withSupabase({ auth: ["secret"] }, async (req, ctx) => {
+  fetch: async (req: Request): Promise<Response> => {
     try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      if (!supabaseUrl) {
+        console.error("SUPABASE_URL not set");
+        return new Response("Server configuration error", { status: 500 });
+      }
+
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!serviceKey) {
+        console.error("SUPABASE_SERVICE_ROLE_KEY not set");
+        return new Response("Server configuration error", { status: 500 });
+      }
+
+      const triggerSecret = Deno.env.get("TRIGGER_SECRET");
+      const apiKey = req.headers.get("apikey");
+      if (!apiKey || apiKey !== (triggerSecret || serviceKey)) {
+        return unauthorized();
+      }
+
+      const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+
       const geminiKey = Deno.env.get("GEMINI_API_KEY");
       if (!geminiKey) {
         return new Response("GEMINI_API_KEY not set", { status: 500 });
@@ -68,9 +97,9 @@ export default {
 
       const embedding = await generateEmbedding(text, geminiKey);
 
-      const { error } = await ctx.supabaseAdmin
+      const { error } = await supabaseAdmin
         .from(table)
-        .update({ embedding: `[${embedding.join(",")}]` })
+        .update({ embedding })
         .eq("id", record.id);
 
       if (error) {
@@ -85,5 +114,5 @@ export default {
         status: 500,
       });
     }
-  }),
+  },
 };

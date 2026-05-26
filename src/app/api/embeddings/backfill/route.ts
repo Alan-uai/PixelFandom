@@ -1,21 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateEmbedding } from '@/lib/gemini-embedding';
 
-const BATCH_DELAY_MS = 100;
+const BATCH_DELAY_MS = 150;
 const DEFAULT_LIMIT = 50;
+const SUPABASE_PROJECT_REF = 'fwvqliiudwwwubtlxpen';
+
+async function execSql(sql: string): Promise<void> {
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) throw new Error('SUPABASE_ACCESS_TOKEN not set');
+
+  const res = await fetch(
+    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: sql }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`SQL error: ${err}`);
+  }
+}
+
+async function updateArticleEmbedding(id: string, embedding: string) {
+  const sql = `UPDATE wiki_articles SET embedding = '${embedding}'::vector(1536) WHERE id = '${id}'`;
+  await execSql(sql);
+}
+
+async function updateCollectionItemEmbedding(id: string, embedding: string) {
+  const sql = `UPDATE collection_items SET embedding = '${embedding}'::vector(1536) WHERE id = '${id}'`;
+  await execSql(sql);
+}
+
+async function countPending(): Promise<{ wiki: number; collection: number }> {
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) return { wiki: 0, collection: 0 };
+
+  const res = await fetch(
+    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `SELECT (SELECT COUNT(*) FROM wiki_articles WHERE embedding IS NULL) AS wiki, (SELECT COUNT(*) FROM collection_items WHERE embedding IS NULL) AS collection;`,
+      }),
+    }
+  );
+
+  if (!res.ok) return { wiki: 0, collection: 0 };
+  const data = await res.json();
+  return { wiki: Number(data[0]?.wiki ?? 0), collection: Number(data[0]?.collection ?? 0) };
+}
 
 export async function GET() {
-  const { supabase } = await import('@/supabase');
-
-  const [wikiCount, collectionCount] = await Promise.all([
-    supabase.from('wiki_articles').select('id', { count: 'exact', head: true }).is('embedding', null),
-    supabase.from('collection_items').select('id', { count: 'exact', head: true }).is('embedding', null),
-  ]);
-
+  const counts = await countPending();
   return NextResponse.json({
-    wiki_articles: wikiCount.count ?? 0,
-    collection_items: collectionCount.count ?? 0,
-    total: (wikiCount.count ?? 0) + (collectionCount.count ?? 0),
+    wiki_articles: counts.wiki,
+    collection_items: counts.collection,
+    total: counts.wiki + counts.collection,
   });
 }
 
@@ -23,25 +73,47 @@ export async function POST(request: NextRequest) {
   const { limit = DEFAULT_LIMIT } = await request.json().catch(() => ({}));
   const maxItems = Math.min(Math.max(1, Number(limit)), 200);
 
-  const { supabase } = await import('@/supabase');
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) {
+    return NextResponse.json({ error: 'SUPABASE_ACCESS_TOKEN not configured' }, { status: 500 });
+  }
 
-  const [wikiRows, collectionRows] = await Promise.all([
-    supabase
-      .from('wiki_articles')
-      .select('id, tenant_id, title, summary, content')
-      .is('embedding', null)
-      .limit(maxItems),
-    supabase
-      .from('collection_items')
-      .select('id, collection_id, data')
-      .is('embedding', null)
-      .limit(maxItems),
-  ]);
+  const fetchRes = await fetch(
+    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `SELECT id, tenant_id, title, summary, content FROM wiki_articles WHERE embedding IS NULL LIMIT ${maxItems};`,
+      }),
+    }
+  );
+
+  const wikiRows: Array<{ id: string; tenant_id: string; title: string | null; summary: string | null; content: string | null }> = fetchRes.ok ? await fetchRes.json() : [];
+
+  const fetchRes2 = await fetch(
+    `https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `SELECT id, data FROM collection_items WHERE embedding IS NULL LIMIT ${maxItems};`,
+      }),
+    }
+  );
+
+  const collectionRows: Array<{ id: string; data: any }> = fetchRes2.ok ? await fetchRes2.json() : [];
 
   const processed: string[] = [];
   const failed: { id: string; table: string; error: string }[] = [];
 
-  for (const article of wikiRows.data ?? []) {
+  for (const article of wikiRows) {
     try {
       const text = [article.title, article.summary, article.content]
         .filter(Boolean)
@@ -54,16 +126,13 @@ export async function POST(request: NextRequest) {
       }
 
       const embedding = await generateEmbedding(text);
-      const { error: updateError } = await supabase
-        .from('wiki_articles')
-        .update({ embedding: `[${embedding.join(',')}]` })
-        .eq('id', article.id)
-        .eq('tenant_id', article.tenant_id);
+      const embStr = embedding.join(',');
 
-      if (updateError) {
-        failed.push({ id: article.id, table: 'wiki_articles', error: updateError.message });
-      } else {
+      try {
+        await updateArticleEmbedding(article.id, embStr);
         processed.push(`wiki:${article.id}`);
+      } catch (updateErr) {
+        failed.push({ id: article.id, table: 'wiki_articles', error: String(updateErr) });
       }
 
       await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
@@ -72,9 +141,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  for (const item of collectionRows.data ?? []) {
+  for (const item of collectionRows) {
     try {
-      const data = (item.data as Record<string, unknown>) || {};
+      const data = typeof item.data === 'object' ? item.data : {};
       const text = [data.name, data.description]
         .filter(Boolean)
         .join(' ')
@@ -86,15 +155,13 @@ export async function POST(request: NextRequest) {
       }
 
       const embedding = await generateEmbedding(text);
-      const { error: updateError } = await supabase
-        .from('collection_items')
-        .update({ embedding: `[${embedding.join(',')}]` })
-        .eq('id', item.id);
+      const embStr = embedding.join(',');
 
-      if (updateError) {
-        failed.push({ id: item.id, table: 'collection_items', error: updateError.message });
-      } else {
+      try {
+        await updateCollectionItemEmbedding(item.id, embStr);
         processed.push(`collection:${item.id}`);
+      } catch (updateErr) {
+        failed.push({ id: item.id, table: 'collection_items', error: String(updateErr) });
       }
 
       await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
