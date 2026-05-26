@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Send, Bot, Headphones, Volume2 } from 'lucide-react';
+import { Loader2, Save, Send, Bot, Headphones, Volume2, Upload, ImageIcon } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 import type { VoiceName } from '@/lib/voice/geminilive';
+import { ensureStorageBuckets } from '@/lib/storage';
 
 export default function WikiAIConfigPage() {
   const params = useParams();
@@ -30,6 +31,9 @@ export default function WikiAIConfigPage() {
   const [wakeWordText, setWakeWordText] = useState('Psycho');
   const [chatName, setChatName] = useState('Assistente');
   const [publicMode, setPublicMode] = useState(false);
+  const [botLogo, setBotLogo] = useState('');
+  const [uploadingBotLogo, setUploadingBotLogo] = useState(false);
+  const botLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase
@@ -50,10 +54,39 @@ export default function WikiAIConfigPage() {
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
           setPublicMode((config.public_mode as boolean) || false);
+          setBotLogo((config.bot_logo as string) || '');
         }
         setLoading(false);
       });
   }, [slug]);
+
+  const handleBotLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBotLogo(true);
+    try {
+      await ensureStorageBuckets();
+      const filePath = `bot-logos/${slug}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('wiki-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wiki-images')
+        .getPublicUrl(filePath);
+
+      setBotLogo(publicUrl);
+      toast({ title: 'Logo do bot enviado!' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro no upload', description: error.message });
+    } finally {
+      setUploadingBotLogo(false);
+      if (botLogoInputRef.current) botLogoInputRef.current.value = '';
+    }
+  };
 
   const handleSave = async () => {
     if (!tenant) return;
@@ -72,6 +105,7 @@ export default function WikiAIConfigPage() {
           wake_word_text: wakeWordText,
           chat_name: chatName,
           public_mode: publicMode,
+          bot_logo: botLogo,
         },
       })
       .eq('id', tenant.id);
@@ -153,6 +187,44 @@ export default function WikiAIConfigPage() {
             <p className="text-xs text-muted-foreground">
               Nome exibido na interface do chat (texto e voz).
             </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Logo do Bot</Label>
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                {botLogo ? (
+                  <img src={botLogo} alt="Bot Logo" className="object-cover w-full h-full" />
+                ) : (
+                  <Bot className="h-8 w-8 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="file"
+                  ref={botLogoInputRef}
+                  onChange={handleBotLogoUpload}
+                  style={{ display: 'none' }}
+                  accept="image/*"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => botLogoInputRef.current?.click()}
+                  disabled={uploadingBotLogo}
+                >
+                  {uploadingBotLogo ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {uploadingBotLogo ? 'Enviando...' : 'Enviar Logo'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  JPEG, PNG ou GIF. Recomendado: 256x256.
+                </p>
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="prompt">System Prompt</Label>

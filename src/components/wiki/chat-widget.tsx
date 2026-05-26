@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, X, GripVertical } from 'lucide-react';
+import { MessageCircle, X, GripVertical, Bot } from 'lucide-react';
 import WikiChat from './wiki-chat';
 
 const LS_VISIBLE = 'pixelfandom:chat-visible';
@@ -47,6 +47,23 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
   const [visible, setVisible] = useState(loadVisible);
   const [dragging, setDragging] = useState(false);
   const [pos, setPos] = useState<Position | null>(loadPosition);
+  const [botLogo, setBotLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    import('@/supabase').then(({ supabase }) => {
+      supabase
+        .from('tenants')
+        .select('ai_config')
+        .eq('slug', tenantSlug)
+        .single()
+        .then(({ data }) => {
+          if (data?.ai_config) {
+            const config = data.ai_config as Record<string, unknown>;
+            if (config.bot_logo) setBotLogo(config.bot_logo as string);
+          }
+        });
+    });
+  }, [tenantSlug]);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressing = useRef(false);
@@ -166,7 +183,14 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
       {open && !dragging && (
         <div className="absolute bottom-14 right-0 w-80 h-96 bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
-            <span className="text-sm font-medium">Assistente da Wiki</span>
+            <span className="text-sm font-medium flex items-center gap-2">
+              {botLogo ? (
+                <img src={botLogo} alt="" className="h-5 w-5 rounded-full" />
+              ) : (
+                <Bot className="h-4 w-4 text-primary" />
+              )}
+              Assistente da Wiki
+            </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setVisible(false)}

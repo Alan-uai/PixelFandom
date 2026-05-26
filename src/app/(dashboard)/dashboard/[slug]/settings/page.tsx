@@ -26,6 +26,9 @@ export default function WikiSettingsPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase
@@ -39,6 +42,7 @@ export default function WikiSettingsPage() {
           setName(data.name);
           setDescription(data.description || '');
           setLogoUrl(data.logo_url || '');
+          setCoverImageUrl((data as any).cover_image || '');
         }
         setLoading(false);
       });
@@ -72,11 +76,39 @@ export default function WikiSettingsPage() {
     }
   };
 
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      await ensureStorageBuckets();
+      const filePath = `wiki-covers/${slug}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('wiki-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wiki-images')
+        .getPublicUrl(filePath);
+
+      setCoverImageUrl(publicUrl);
+      toast({ title: 'Capa enviada!' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro no upload', description: error.message });
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase
       .from('tenants')
-      .update({ name, description, logo_url: logoUrl || null })
+      .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null })
       .eq('slug', slug);
 
     if (error) {
@@ -184,6 +216,44 @@ export default function WikiSettingsPage() {
                 onChange={(e) => setLogoUrl(e.target.value)}
                 placeholder="https://exemplo.com/logo.png"
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Capa da Wiki</Label>
+            <div className="flex items-start gap-4">
+              <div className="w-40 h-24 rounded-lg border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                {coverImageUrl ? (
+                  <img src={coverImageUrl} alt="Capa" className="object-cover w-full h-full" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  onChange={handleCoverUpload}
+                  style={{ display: 'none' }}
+                  accept="image/*"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={uploadingCover}
+                >
+                  {uploadingCover ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {uploadingCover ? 'Enviando...' : 'Enviar Capa'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.
+                </p>
+              </div>
             </div>
           </div>
           <Button onClick={handleSave} disabled={saving}>

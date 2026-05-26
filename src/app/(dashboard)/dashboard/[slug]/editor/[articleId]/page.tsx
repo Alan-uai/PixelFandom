@@ -559,6 +559,7 @@ function EditPageContent() {
                                 field.onChange(json);
                                 }}
                                 placeholder="Escreva o conteúdo do artigo..."
+                                articleId={articleId}
                             />
                             </FormControl>
                             <FormMessage />

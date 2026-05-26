@@ -282,6 +282,17 @@ export default function WikiPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Cover Image */}
+      {(tenant as any).cover_image && (
+        <div className="rounded-xl overflow-hidden mb-8 border">
+          <img
+            src={(tenant as any).cover_image}
+            alt=""
+            className="w-full h-48 md:h-64 lg:h-72 object-cover"
+          />
+        </div>
+      )}
+
       {/* Hero */}
       <div className="mb-10">
         <div className="flex items-center gap-4 mb-4">

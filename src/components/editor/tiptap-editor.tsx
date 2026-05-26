@@ -22,16 +22,19 @@ import {
   Link,
   Undo,
   Redo,
+  Upload,
+  Loader2,
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type TiptapEditorProps = {
   content: string;
   onChange: (html: string, json: string) => void;
   placeholder?: string;
+  articleId?: string;
 };
 
-export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
+export default function TiptapEditor({ content, onChange, placeholder, articleId }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -55,12 +58,51 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     },
   });
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [slug, setSlug] = useState('');
+
+  useEffect(() => {
+    const parts = window.location.pathname.split('/');
+    const dashIdx = parts.indexOf('dashboard');
+    if (dashIdx !== -1 && parts[dashIdx + 1]) {
+      setSlug(parts[dashIdx + 1]);
+    }
+  }, []);
+
   const handleImageUpload = useCallback(() => {
     const url = window.prompt('URL da imagem:');
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run();
     }
   }, [editor]);
+
+  const handleImageFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    setUploadingImage(true);
+    try {
+      const { ensureStorageBuckets } = await import('@/lib/storage');
+      const { supabase } = await import('@/supabase');
+      await ensureStorageBuckets();
+      const filePath = articleId
+        ? `${articleId}/${Date.now()}-${file.name}`
+        : `tiptap-images/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('wiki-assets')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('wiki-assets')
+        .getPublicUrl(filePath);
+      editor.chain().focus().setImage({ src: publicUrl }).run();
+    } catch (err: any) {
+      console.error('Erro ao enviar imagem:', err);
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  }, [editor, articleId]);
 
   const handleLinkAdd = useCallback(() => {
     const url = window.prompt('URL do link:');
@@ -127,6 +169,16 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
 
         <Divider />
 
+        <input
+          type="file"
+          ref={imageInputRef}
+          onChange={handleImageFileUpload}
+          style={{ display: 'none' }}
+          accept="image/*"
+        />
+        <ToolbarButton onClick={() => imageInputRef.current?.click()}>
+          {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        </ToolbarButton>
         <ToolbarButton onClick={handleImageUpload}>
           <Image className="h-4 w-4" />
         </ToolbarButton>

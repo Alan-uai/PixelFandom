@@ -66,31 +66,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 px-4 border-t">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-12">
-            Tudo que você precisa
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {features.map((f) => {
-              const card = (
-                <Card key={f.title} className={f.href ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}>
-                  <CardHeader>
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                      <f.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-base">{f.title}</CardTitle>
-                    <CardDescription>{f.description}</CardDescription>
-                  </CardHeader>
-                </Card>
-              );
-              return f.href ? <Link key={f.title} href={f.href}>{card}</Link> : card;
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Public Wikis — Carrossel Horizontal */}
       <section className="py-16 px-4 border-t">
         <div className="max-w-6xl mx-auto">
@@ -185,6 +160,31 @@ export default function Home() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-4 border-t">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-12">
+            Tudo que você precisa
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {features.map((f) => {
+              const card = (
+                <Card key={f.title} className={f.href ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}>
+                  <CardHeader>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                      <f.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <CardTitle className="text-base">{f.title}</CardTitle>
+                    <CardDescription>{f.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+              return f.href ? <Link key={f.title} href={f.href}>{card}</Link> : card;
+            })}
+          </div>
         </div>
       </section>
 
