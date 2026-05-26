@@ -28,10 +28,9 @@ class handler(BaseHTTPRequestHandler):
                 }
             )
 
-            body = json.dumps({
-                "token": token.name,
-                "expires_at": expire_time.isoformat(),
-            })
+            body = json.dumps(
+                {"token": token.name, "expires_at": expire_time.isoformat()}
+            )
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")

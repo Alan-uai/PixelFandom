@@ -1,47 +1,67 @@
+/**
+ * Audio Playback Worklet Processor for playing PCM audio.
+ * Uses an offset tracker instead of slice() to avoid allocations
+ * on the real-time audio thread.
+ */
+
 class PCMProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.queue = [];
-    this.port.onmessage = (e) => {
-      if (e.data.type === 'audio') {
-        this.queue.push(e.data.data);
-      } else if (e.data.type === 'interrupt') {
-        this.queue = [];
+    this.audioQueue = [];
+    this.currentOffset = 0; // Track position in current buffer (avoids slice())
+
+    this.port.onmessage = (event) => {
+      if (event.data === "interrupt") {
+        // Clear the queue on interrupt
+        this.audioQueue = [];
+        this.currentOffset = 0;
+      } else if (event.data instanceof Float32Array) {
+        // Add audio data to the queue
+        this.audioQueue.push(event.data);
       }
     };
   }
 
-  process(inputs, outputs) {
+  process(inputs, outputs, parameters) {
     const output = outputs[0];
-    if (!output || !output[0]) return true;
+    if (output.length === 0) return true;
 
     const channel = output[0];
-    const available = this.queue.reduce((sum, buf) => sum + buf.length, 0);
+    let outputIndex = 0;
 
-    if (available === 0) {
-      channel.fill(0);
-      return true;
-    }
+    // Fill the output buffer from the queue
+    while (outputIndex < channel.length && this.audioQueue.length > 0) {
+      const currentBuffer = this.audioQueue[0];
 
-    let written = 0;
-    while (written < channel.length && this.queue.length > 0) {
-      const buf = this.queue[0];
-      const toCopy = Math.min(buf.length, channel.length - written);
-      channel.set(buf.subarray(0, toCopy), written);
-      written += toCopy;
-      if (toCopy < buf.length) {
-        this.queue[0] = buf.subarray(toCopy);
-      } else {
-        this.queue.shift();
+      if (!currentBuffer || currentBuffer.length === 0) {
+        this.audioQueue.shift();
+        this.currentOffset = 0;
+        continue;
+      }
+
+      const remainingOutput = channel.length - outputIndex;
+      const remainingBuffer = currentBuffer.length - this.currentOffset;
+      const copyLength = Math.min(remainingOutput, remainingBuffer);
+
+      // Copy audio data to output using offset (no slice allocation)
+      for (let i = 0; i < copyLength; i++) {
+        channel[outputIndex++] = currentBuffer[this.currentOffset++];
+      }
+
+      // If we've consumed the entire buffer, move to the next one
+      if (this.currentOffset >= currentBuffer.length) {
+        this.audioQueue.shift();
+        this.currentOffset = 0;
       }
     }
 
-    if (written < channel.length) {
-      channel.fill(0, written);
+    // Fill remaining output with silence
+    while (outputIndex < channel.length) {
+      channel[outputIndex++] = 0;
     }
 
     return true;
   }
 }
 
-registerProcessor('pcm-playback-processor', PCMProcessor);
+registerProcessor("pcm-processor", PCMProcessor);
