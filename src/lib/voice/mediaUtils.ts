@@ -240,7 +240,7 @@ export class AudioPlayer {
 
     this.workletNode = new AudioWorkletNode(
       this.context,
-      'pcm-playback-processor'
+      'pcm-processor'
     );
     this.workletNode.connect(this.gainNode);
     this.isReady = true;
@@ -269,14 +269,14 @@ export class AudioPlayer {
       for (let i = 0; i < int16.length; i++) {
         float32[i] = int16[i] / 32768;
       }
-      this.workletNode.port.postMessage({ type: 'audio', data: float32 });
+      this.workletNode.port.postMessage(float32);
     } catch (err) {
       console.error('[AudioPlayer] Erro em playBase64:', err);
     }
   }
 
   interrupt() {
-    this.workletNode?.port.postMessage({ type: 'interrupt' });
+    this.workletNode?.port.postMessage('interrupt');
   }
 
   setVolume(volume: number) {
