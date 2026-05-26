@@ -155,6 +155,19 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
     ),
 
     new FunctionCallTool(
+      'navigateToHub',
+      'Navigate to the PixelFandom Hub (main page listing all wikis). Use when the user asks to go back to the hub, see all wikis, or go to PixelFandom.',
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        ctx.navigate('https://pixelfandom.vercel.app/')
+        return { result: { success: true, page: 'hub' } }
+      }
+    ),
+
+    new FunctionCallTool(
       'navigateToPage',
       'Navigate to a specific article or item page in the wiki (e.g. "nightmare-blade", "fire-sword"). Use the slug returned by search tools. The wiki will render the full article or item view.',
       {
