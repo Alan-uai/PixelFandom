@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   ArrowRight,
   BookOpen,
+  Brain,
   Cpu,
   Globe,
   Users,
@@ -73,17 +74,20 @@ export default function Home() {
             Tudo que você precisa
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {features.map((f) => (
-              <Card key={f.title}>
-                <CardHeader>
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                    <f.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <CardTitle className="text-base">{f.title}</CardTitle>
-                  <CardDescription>{f.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
+            {features.map((f) => {
+              const card = (
+                <Card key={f.title} className={f.href ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}>
+                  <CardHeader>
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                      <f.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <CardTitle className="text-base">{f.title}</CardTitle>
+                    <CardDescription>{f.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+              return f.href ? <Link key={f.title} href={f.href}>{card}</Link> : card;
+            })}
           </div>
         </div>
       </section>
@@ -215,6 +219,12 @@ export default function Home() {
 }
 
 const features = [
+  {
+    icon: Brain,
+    title: 'Psycho — IA Terapêutica',
+    description: 'Assistente multiagente com suporte psicológico e gastronomia via Gemini Live.',
+    href: '/psycho' as const,
+  },
   {
     icon: BookOpen,
     title: 'Editor Poderoso',

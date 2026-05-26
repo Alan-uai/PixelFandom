@@ -10,7 +10,9 @@
 | Action | Command | Notes |
 |--------|---------|-------|
 | Dev server | `npm run dev` | Port **9002**, uses Turbopack |
+| Dev (Psycho backend) | `npm run dev:psycho` | Python aiohttp on port **8000** — run alongside `npm run dev` |
 | Build | `npm run build` | Sets `NODE_ENV=production` before `next build` |
+| Build (Psycho frontend) | `npm run build:psycho` | Rebuilds Vite app with `--base=/psycho/` + copies to `public/psycho/` |
 | Lint | `npm run lint` | `next lint` |
 | Typecheck | `npm run typecheck` | `tsc --noEmit` |
 | No tests | — | Playwright in devDeps but no test script configured |
@@ -28,6 +30,8 @@
 - `src/supabase/` — Supabase client, typed Database defs, auth provider, hooks
 - `supabase/migrations/` — 001→007 sequential SQL migrations
 - `data/pixel-blade/` — static game data JSON fallback
+- `psycho/` — cloned repo, unmodified source (Vite+React frontend + Python aiohttp backend)
+- `public/psycho/` — built Psycho frontend served statically by Next.js
 - `@/*` alias → `src/`
 
 ## Multi-tenant
