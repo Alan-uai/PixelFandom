@@ -11,7 +11,6 @@ import {
   Globe,
   Users,
   Cpu,
-  Columns3,
   LogOut,
   Loader2,
   BookOpen,
@@ -167,12 +166,10 @@ export default function DashboardLayout({
                     { href: 'members', label: 'Membros', icon: Users },
                     { href: 'ai', label: 'IA', icon: Cpu },
                     { href: 'discord', label: 'Discord', icon: Headphones },
-                    { href: 'collections', label: 'Coleções', icon: Columns3 },
                     { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
                   ]
                 : canEdit
                 ? [
-                    { href: 'collections', label: 'Coleções', icon: Columns3 },
                     { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
                   ]
                 : []

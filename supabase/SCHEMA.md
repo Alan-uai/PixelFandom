@@ -15,6 +15,8 @@ Schema do banco de dados PostgreSQL no Supabase, com migrations de 001 a 007.
 | `005` | **Multi-tenant**: tenants, tenant_members, discord_guilds, custom_collections, collection_items |
 | `006` | Adiciona `tenant_id` às tabelas de app + atualiza RLS |
 | `007` | Seed do tenant Pixel Blade com collections + dados de jogo |
+| `021` | Cleanup, game images |
+| `022` | Tabela user_preferences para sincronizar configurações de voz |
 
 ---
 
@@ -86,6 +88,14 @@ Perfis de usuário vinculados ao Supabase Auth.
 - **PK**: id → auth.users(id) ON DELETE CASCADE
 - **Campos**: username (UK), display_name, email, avatar_url, role ('user', 'admin', 'moderator'), reputation_points
 - **Trigger**: `handle_new_user()` cria profile automaticamente no signup
+
+### user_preferences (migration 022)
+Preferências de usuário sincronizadas entre dispositivos.
+- **PK**: id (UUID)
+- **FK**: user_id → auth.users(id) ON DELETE CASCADE
+- **UK**: user_id
+- **Campos**: preferences (JSONB), created_at, updated_at
+- **RLS**: cada usuário vê/apenas suas próprias preferências
 
 ---
 

@@ -49,6 +49,21 @@ export default function NewWikiPage() {
       .from('tenant_members')
       .insert({ tenant_id: tenant.id, user_id: user.id, role: 'owner' });
 
+    // Auto-criar domínio .vercel.app (não bloqueante)
+    try {
+      const domainRes = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auto', tenantSlug: slug }),
+      });
+      const domainData = await domainRes.json();
+      if (!domainData.error && domainData.domain) {
+        toast({ title: 'Domínio criado', description: `${domainData.domain} configurado para sua wiki.` });
+      }
+    } catch {
+      // Falha na criação do domínio não bloqueia a wiki
+    }
+
     toast({ title: 'Wiki criada!', description: 'Sua wiki foi criada com sucesso.' });
     router.push(`/dashboard/${slug}/settings`);
   };

@@ -6,7 +6,6 @@ import { supabase } from '@/supabase';
 export type WikiData = {
   tenant: Record<string, any> | null;
   articles: any[];
-  collections: any[];
   article: Record<string, any> | null;
   search_results: any[];
 };
@@ -48,6 +47,7 @@ export function WikiDataProvider({
     });
 
     if (err) {
+      console.error('[WikiDataProvider] get_wiki RPC error:', err.message, err);
       setError(err.message);
       setData(null);
     } else {

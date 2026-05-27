@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Volume2, Save, Mic, Headphones, Ear } from 'lucide-react'
+import { Volume2, Save, Mic, Headphones, Ear, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useUser, supabase } from '@/supabase'
 
 type Settings = {
   userName: string
@@ -71,6 +72,7 @@ export default function VoicePage() {
   const slug = params?.slug as string
   const { data, loading } = useWikiData()
   const { toast } = useToast()
+  const { user } = useUser()
   const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {}
 
   const [settings, setSettings] = useState<Settings>(() => ({
@@ -78,6 +80,24 @@ export default function VoicePage() {
     voice: (aiConfig.voice_name as VoiceName) || loadSettings().voice,
     volume: (aiConfig.voice_volume as number) || loadSettings().volume,
   }))
+  const [saving, setSaving] = useState(false)
+  const [synced, setSynced] = useState(false)
+
+  useEffect(() => {
+    if (!user || synced) return
+    ;(async () => {
+      const { data } = await supabase
+        .from('user_preferences')
+        .select('preferences')
+        .eq('user_id', user.id)
+        .single()
+      if (data?.preferences) {
+        const cloud = data.preferences as Partial<Settings>
+        setSettings((prev) => ({ ...prev, ...cloud }))
+      }
+      setSynced(true)
+    })()
+  }, [user, synced])
 
   useEffect(() => {
     saveSettings(settings)
@@ -87,9 +107,28 @@ export default function VoicePage() {
     setSettings((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleSave = () => {
-    saveSettings(settings)
-    toast({ title: 'Configurações salvas!', description: 'As alterações serão usadas na próxima conexão.' })
+  const handleSave = async () => {
+    if (!user) {
+      saveSettings(settings)
+      toast({ title: 'Configurações salvas localmente', description: 'Faça login para sincronizar entre dispositivos.' })
+      return
+    }
+
+    setSaving(true)
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert(
+        { user_id: user.id, preferences: settings, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: error.message })
+    } else {
+      saveSettings(settings)
+      toast({ title: 'Configurações salvas!', description: 'Preferências sincronizadas com a nuvem.' })
+    }
+    setSaving(false)
   }
 
   const lang = settings.userLang as 'pt' | 'en' | 'es'
@@ -313,9 +352,9 @@ export default function VoicePage() {
       </Card>
 
       <div className="flex justify-center">
-        <Button onClick={handleSave} size="lg">
-          <Save className="mr-2 h-4 w-4" />
-          Salvar Configurações
+        <Button onClick={handleSave} disabled={saving} size="lg">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {saving ? 'Salvando...' : 'Salvar Configurações'}
         </Button>
       </div>
     </div>

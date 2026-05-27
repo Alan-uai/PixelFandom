@@ -133,43 +133,17 @@ export default function WikiPage() {
   // ── Article view ──
   if (articleSlug) {
     let article = wiki.article;
-    let collectionItemData: Record<string, any> | null = null;
-    let collectionType: string | null = null;
-
-    if (!article) {
-      for (const collection of wiki.collections || []) {
-        for (const item of collection.items || []) {
-          const itemData = item.data as Record<string, any>;
-          const name = itemData?.name || itemData?.title || itemData?.world_name || itemData?.code || '';
-          const itemSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          if (itemSlug === articleSlug) {
-            collectionItemData = itemData;
-            collectionType = collection.slug;
-            article = {
-              title: name,
-              content: '',
-              summary: itemData?.description || null,
-              tags: null,
-              image_url: null,
-              updated_at: item.updated_at,
-              id: item.id,
-            } as any;
-            break;
-          }
-        }
-        if (article) break;
-      }
-    }
 
     // Detect if the article content is raw collection JSON (from seed data, not TipTap)
-    const isCollectionItem = collectionItemData !== null ||
-      (article?.content && typeof article.content === 'string' &&
-        (article.content.trim().startsWith('{"name"') ||
-         article.content.trim().startsWith('{"code"') ||
-         article.content.trim().startsWith('{"item_name"')));
+    const isCollectionItem =
+      article?.content && typeof article.content === 'string' &&
+      (article.content.trim().startsWith('{"name"') ||
+       article.content.trim().startsWith('{"code"') ||
+       article.content.trim().startsWith('{"item_name"'));
 
-    // Parse the raw JSON content from RPC if not from collection fallback
-    if (!collectionItemData && article?.content && isCollectionItem) {
+    // Parse the raw JSON content from RPC
+    let collectionItemData: Record<string, any> | null = null;
+    if (article?.content && isCollectionItem) {
       try {
         const parsed = JSON.parse(article.content);
         if (parsed && typeof parsed === 'object' && !parsed.type) {
@@ -195,7 +169,6 @@ export default function WikiPage() {
             {collectionItemData ? (
               <CollectionItemView
                 data={collectionItemData}
-                collectionType={collectionType || undefined}
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
               />

@@ -107,6 +107,29 @@ export async function listDomains(): Promise<string[]> {
   return (data?.domains || []).map((d: any) => d.name);
 }
 
+export async function addDomainWithRetry(baseSlug: string): Promise<{ domain: string; status: DomainStatus }> {
+  const suffixes = ['', '-pf'];
+  for (let i = 1; i <= 10; i++) {
+    suffixes.push(`-pf-${i}`);
+  }
+
+  for (const suffix of suffixes) {
+    const domain = `${baseSlug}${suffix}.vercel.app`;
+    try {
+      const status = await addDomain(domain);
+      return { domain, status };
+    } catch (err: any) {
+      const msg = err.message?.toLowerCase() || '';
+      if (msg.includes('already in use') || msg.includes('already assigned') || msg.includes('already exists')) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error('Nenhum domínio .vercel.app disponível encontrado');
+}
+
 export function formatInstructions(status: DomainStatus): string[] {
   const lines: string[] = [];
 

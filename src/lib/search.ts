@@ -12,18 +12,6 @@ export interface WikiSearchItem {
   match_type: 'semantic' | 'fulltext';
 }
 
-export interface CollectionSearchItem {
-  id: string;
-  collection_id: string;
-  collection_name: string;
-  collection_slug: string;
-  name: string | null;
-  description: string | null;
-  data: Record<string, unknown>;
-  score: number;
-  match_type: 'semantic' | 'fulltext';
-}
-
 export interface GameSearchItem {
   source_type: string;
   id: string;
@@ -40,7 +28,7 @@ export interface GameSearchItem {
 
 export interface SearchAllResult {
   wiki: WikiSearchItem[];
-  collection: CollectionSearchItem[];
+  collection: any[];
   game_items: GameSearchItem[];
 }
 
@@ -107,8 +95,6 @@ export async function searchAll(
     })
   );
 
-  const collection: CollectionSearchItem[] = [];
-
   const allData = allRes.data as { results?: any[] } | null;
   const game_items: GameSearchItem[] = (allData?.results ?? []).map(
     (r: any) => ({
@@ -126,7 +112,7 @@ export async function searchAll(
     })
   );
 
-  return { wiki, collection, game_items };
+  return { wiki, collection: [], game_items };
 }
 
 export function formatSearchContext(result: SearchAllResult): string {
