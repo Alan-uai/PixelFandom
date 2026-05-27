@@ -31,16 +31,4 @@ export async function getWikiData(slug: string, search?: string) {
   } | null;
 }
 
-export async function updateArticleEmbedding(articleId: string, tenantId: string, content: string) {
-  try {
-    await fetch('/api/embeddings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: content.slice(0, 8000), articleId, tenantId }),
-    });
-  } catch {
-    // non-critical
-  }
-}
-
 

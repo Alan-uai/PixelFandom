@@ -81,25 +81,22 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: `SELECT id, tenant_id, title, summary, content FROM wiki_articles WHERE embedding IS NULL LIMIT ${maxItems};`,
+        query: `SELECT id, tenant_id, slug FROM wiki_articles WHERE embedding IS NULL LIMIT ${maxItems};`,
       }),
     }
   );
 
-  const wikiRows: Array<{ id: string; tenant_id: string; title: string | null; summary: string | null; content: string | null }> = fetchRes.ok ? await fetchRes.json() : [];
+  const wikiRows: Array<{ id: string; tenant_id: string; slug: string | null }> = fetchRes.ok ? await fetchRes.json() : [];
 
   const processed: string[] = [];
   const failed: { id: string; table: string; error: string }[] = [];
 
   for (const article of wikiRows) {
     try {
-      const text = [article.title, article.summary, article.content]
-        .filter(Boolean)
-        .join(' ')
-        .slice(0, 8000);
+      const text = article.slug?.trim();
 
       if (!text) {
-        failed.push({ id: article.id, table: 'wiki_articles', error: 'No text' });
+        failed.push({ id: article.id, table: 'wiki_articles', error: 'No slug' });
         continue;
       }
 
