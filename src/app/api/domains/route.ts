@@ -197,6 +197,36 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Nenhum domínio configurado' }, { status: 400 });
         }
 
+        // Check if any other tenant already has this domain
+        const { data: dup } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('custom_domain', targetDomain)
+          .neq('id', tenant.id)
+          .maybeSingle();
+
+        if (dup) {
+          return NextResponse.json({ error: 'Este domínio já está em uso por outra wiki' }, { status: 409 });
+        }
+
+        // .vercel.app domains are auto-provisioned by Vercel
+        if (targetDomain.endsWith('.vercel.app')) {
+          const res = NextResponse.json({
+            status: 'checked',
+            domain: targetDomain,
+            verified: true,
+            configured: true,
+            nameservers: [],
+            intendedNameservers: [],
+            cname: null,
+            cnameResolves: true,
+            conflict: false,
+            pending: false,
+          });
+          cookieModifications.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+          return res;
+        }
+
         let config;
         try {
           config = await getDomainConfig(targetDomain);

@@ -45,14 +45,14 @@ export async function addDomain(domain: string): Promise<DomainStatus> {
 
   return {
     name: domain,
-    verified: false,
-    configured: false,
+    verified: data?.verified ?? false,
+    configured: data?.configured ?? false,
     nameservers: data?.nameservers || [],
     intendedNameservers: data?.intendedNameservers || [],
     cname: data?.cname || null,
-    cnameResolves: false,
+    cnameResolves: data?.cnameResolves ?? false,
     conflict: !!data?.conflict,
-    pending: true,
+    pending: !(data?.verified ?? false),
   };
 }
 

@@ -46,6 +46,16 @@ function WikiLayoutContent({
   const tenant = data?.tenant || null;
   const isChatPage = pathname === `/w/${slug}/chat`;
   const isVoicePage = pathname === `/w/${slug}/voice`;
+  const [redirecting, setRedirecting] = useState(false);
+
+  useEffect(() => {
+    if (!tenant?.custom_domain || typeof window === 'undefined') return;
+    const currentHost = window.location.hostname;
+    if (currentHost === tenant.custom_domain || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
+    setRedirecting(true);
+    const subPath = pathname.replace(`/w/${slug}`, '') || '/';
+    window.location.href = `https://${tenant.custom_domain}${subPath}${window.location.search}`;
+  }, [tenant?.custom_domain, slug, pathname]);
 
   useEffect(() => {
     if (isChatPage || isVoicePage) {
@@ -94,6 +104,14 @@ function WikiLayoutContent({
         <Link href="/" className="mt-4 text-primary hover:underline">
           Voltar para o hub
         </Link>
+      </div>
+    );
+  }
+
+  if (redirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

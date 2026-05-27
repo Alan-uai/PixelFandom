@@ -1,18 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Send, Bot, Headphones, Volume2 } from 'lucide-react';
-import type { VoiceName } from '@/lib/voice/geminilive';
+import { Loader2, Save, Headphones, Mic, MicOff } from 'lucide-react';
+import { WakeWordDetector } from '@/lib/voice/wakeWord';
 
 export default function WikiAIConfigPage() {
   const params = useParams();
@@ -23,13 +22,8 @@ export default function WikiAIConfigPage() {
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState('openai/gpt-4o-mini');
-  const [systemPrompt, setSystemPrompt] = useState('');
-  const [voiceName, setVoiceName] = useState<VoiceName>('Kore');
-  const [voiceVolume, setVoiceVolume] = useState(80);
-  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const [wakeWordText, setWakeWordText] = useState('Psycho');
   const [chatName, setChatName] = useState('Assistente');
-  const [publicMode, setPublicMode] = useState(false);
   const [botLogo, setBotLogo] = useState('');
 
   useEffect(() => {
@@ -44,13 +38,8 @@ export default function WikiAIConfigPage() {
           setEnabled(data.ai_enabled);
           const config = data.ai_config as Record<string, unknown> || {};
           setModel((config.model as string) || 'openai/gpt-4o-mini');
-          setSystemPrompt((config.system_prompt as string) || '');
-          setVoiceName((config.voice_name as VoiceName) || 'Kore');
-          setVoiceVolume((config.voice_volume as number) || 80);
-          setWakeWordEnabled((config.wake_word as boolean) || false);
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
-          setPublicMode((config.public_mode as boolean) || false);
           setBotLogo((config.bot_logo as string) || '');
         }
         setLoading(false);
@@ -66,15 +55,12 @@ export default function WikiAIConfigPage() {
       .update({
         ai_enabled: enabled,
         ai_config: {
+          ...(tenant.ai_config as Record<string, unknown> || {}),
           model,
-          system_prompt: systemPrompt,
-          voice_name: voiceName,
-          voice_volume: voiceVolume,
-          wake_word: wakeWordEnabled,
           wake_word_text: wakeWordText,
           chat_name: chatName,
-          public_mode: publicMode,
           bot_logo: botLogo,
+          wake_word: true,
         },
       })
       .eq('id', tenant.id);
@@ -168,19 +154,6 @@ export default function WikiAIConfigPage() {
             />
             <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="prompt">System Prompt</Label>
-            <Textarea
-              id="prompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              rows={6}
-              placeholder="Você é um assistente especializado em..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Instruções que definem o comportamento e conhecimento do assistente.
-            </p>
-          </div>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
             Salvar Configuração
@@ -194,52 +167,11 @@ export default function WikiAIConfigPage() {
             <Headphones className="h-5 w-5" />
             Agente de Voz
           </CardTitle>
-          <CardDescription>Configure o assistente de voz para a wiki.</CardDescription>
+          <CardDescription>Configure a palavra de ativação do assistente de voz.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="voiceName">Voz do Assistente</Label>
-            <select
-              id="voiceName"
-              value={voiceName}
-              onChange={(e) => setVoiceName(e.target.value as VoiceName)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="Puck">Puck — Equilibrada</option>
-              <option value="Kore">Kore — Brilhante e clara</option>
-              <option value="Charon">Charon — Grave e acolhedora</option>
-              <option value="Fenrir">Fenrir — Forte e assertiva</option>
-              <option value="Aoede">Aoede — Suave e melódica</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Volume2 className="h-4 w-4" />
-              Volume ({voiceVolume}%)
-            </Label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={voiceVolume}
-              onChange={(e) => setVoiceVolume(Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Wake Word</p>
-              <p className="text-xs text-muted-foreground">Ativar assistente por comando de voz</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={wakeWordEnabled}
-              onChange={(e) => setWakeWordEnabled(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="wakeWordText">Palavra de Ativação</Label>
+            <Label htmlFor="wakeWordText">Nome do Agente (Palavra de Ativação)</Label>
             <Input
               id="wakeWordText"
               value={wakeWordText}
@@ -247,20 +179,8 @@ export default function WikiAIConfigPage() {
               placeholder="Psycho"
             />
             <p className="text-xs text-muted-foreground">
-              Palavra dita para ativar o assistente de voz.
+              Nome usado para ativar o assistente de voz por comando de voz.
             </p>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Modo Público</p>
-              <p className="text-xs text-muted-foreground">Menos sensível a ruídos</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={publicMode}
-              onChange={(e) => setPublicMode(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
           </div>
         </CardContent>
       </Card>
@@ -268,11 +188,14 @@ export default function WikiAIConfigPage() {
       {enabled && (
         <Card>
           <CardHeader>
-            <CardTitle>Testar Assistente</CardTitle>
-            <CardDescription>Faça uma pergunta para testar a configuração.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Mic className="h-5 w-5" />
+              Testar Assistente de Voz
+            </CardTitle>
+            <CardDescription>Teste a palavra de ativação do agente de voz.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChatTest slug={slug} />
+            <WakeWordTest wakeWordText={wakeWordText} />
           </CardContent>
         </Card>
       )}
@@ -280,54 +203,132 @@ export default function WikiAIConfigPage() {
   );
 }
 
-function ChatTest({ slug }: { slug: string }) {
-  const [message, setMessage] = useState('');
-  const [response, setResponse] = useState('');
-  const [loading, setLoading] = useState(false);
+function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
+  const [state, setState] = useState<'idle' | 'requesting' | 'listening' | 'detected'>('idle');
+  const [energy, setEnergy] = useState(0);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const animRef = useRef(0);
+  const detectorRef = useRef<WakeWordDetector | null>(null);
 
-  const handleTest = async () => {
-    if (!message.trim()) return;
-    setLoading(true);
-    setResponse('');
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-slug': slug },
-        body: JSON.stringify({ message }),
-      });
-      if (!res.body) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-        setResponse(text);
-      }
-    } catch {
-      setResponse('Erro ao testar o assistente.');
+  const cleanup = () => {
+    cancelAnimationFrame(animRef.current);
+    audioCtxRef.current?.close();
+    audioCtxRef.current = null;
+    detectorRef.current?.stop();
+    detectorRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
-    setLoading(false);
+    setEnergy(0);
   };
 
+  const startTest = async () => {
+    cleanup();
+    setState('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      streamRef.current = stream;
+
+      const detector = new WakeWordDetector([wakeWordText]);
+      detector.onWakeDetected(() => setState('detected'));
+      await detector.start(stream);
+      detectorRef.current = detector;
+
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+
+      const tick = () => {
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setEnergy(Math.min(avg / 128, 1));
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+
+      setState('listening');
+    } catch {
+      cleanup();
+      setState('idle');
+    }
+  };
+
+  useEffect(() => {
+    return () => cleanup();
+  }, []);
+
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Digite uma mensagem de teste..."
-          onKeyDown={(e) => e.key === 'Enter' && handleTest()}
-        />
-        <Button onClick={handleTest} disabled={loading || !message.trim()} size="sm">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
-      </div>
-      {response && (
-        <div className="flex gap-2 rounded-lg bg-muted p-3">
-          <Bot className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
-          <p className="text-sm whitespace-pre-wrap">{response}</p>
+    <div className="space-y-4">
+      {state === 'idle' && (
+        <div className="flex flex-col items-center gap-3 py-4">
+          <Button onClick={startTest} className="gap-2">
+            <Mic className="h-4 w-4" />
+            Iniciar Teste
+          </Button>
+          <p className="text-sm text-muted-foreground text-center">
+            Clique para testar a palavra de ativação. Será solicitada permissão para usar o microfone.
+          </p>
+        </div>
+      )}
+
+      {state === 'requesting' && (
+        <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Solicitando permissão do microfone...</span>
+        </div>
+      )}
+
+      {state === 'listening' && (
+        <div className="space-y-4 py-2">
+          <div className="flex flex-col items-center gap-2">
+            <Mic className="h-8 w-8 text-primary animate-pulse" />
+            <p className="text-sm font-medium">Ouvindo...</p>
+            <p className="text-sm text-muted-foreground">
+              Diga: <span className="font-semibold text-foreground">&ldquo;{wakeWordText}&rdquo;</span>
+            </p>
+          </div>
+          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-75 rounded-full"
+              style={{ width: `${Math.max(energy * 100, 2)}%` }}
+            />
+          </div>
+          <div className="flex justify-center">
+            <Button variant="outline" size="sm" onClick={cleanup} className="gap-2">
+              <MicOff className="h-4 w-4" />
+              Parar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {state === 'detected' && (
+        <div className="flex flex-col items-center gap-3 py-4">
+          <div className="flex items-center gap-2 text-green-500">
+            <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
+            <span className="font-medium">Palavra de ativação detectada!</span>
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            O assistente de voz está funcionando corretamente.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={cleanup} className="gap-2">
+              <MicOff className="h-4 w-4" />
+              Parar
+            </Button>
+            <Button size="sm" onClick={startTest} className="gap-2">
+              <Mic className="h-4 w-4" />
+              Testar Novamente
+            </Button>
+          </div>
         </div>
       )}
     </div>

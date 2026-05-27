@@ -129,35 +129,40 @@ export default function Home() {
               className="flex gap-4 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {wikis.map((wiki) => (
-                <Link
-                  key={wiki.id}
-                  href={`/w/${wiki.slug}`}
-                  className="snap-start shrink-0 w-[280px]"
-                >
-                  <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        {wiki.logo_url && (
-                          <img src={wiki.logo_url} alt="" className="h-5 w-5 rounded" />
+              {wikis.map((wiki) => {
+                const wikiUrl = wiki.custom_domain
+                  ? `https://${wiki.custom_domain}`
+                  : `/w/${wiki.slug}`;
+                return (
+                  <a
+                    key={wiki.id}
+                    href={wikiUrl}
+                    className="snap-start shrink-0 w-[280px]"
+                  >
+                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          {wiki.logo_url && (
+                            <img src={wiki.logo_url} alt="" className="h-5 w-5 rounded" />
+                          )}
+                          {wiki.name}
+                        </CardTitle>
+                        {wiki.description && (
+                          <CardDescription className="line-clamp-2">
+                            {wiki.description}
+                          </CardDescription>
                         )}
-                        {wiki.name}
-                      </CardTitle>
-                      {wiki.description && (
-                        <CardDescription className="line-clamp-2">
-                          {wiki.description}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Globe className="h-3 w-3 mr-1" />
-                        /w/{wiki.slug}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Globe className="h-3 w-3 mr-1" />
+                          {wiki.custom_domain || `/w/${wiki.slug}`}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
