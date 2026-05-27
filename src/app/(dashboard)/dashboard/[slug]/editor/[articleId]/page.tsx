@@ -12,9 +12,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Loader2, Save, ShieldAlert, Sparkles, Upload, Image as ImageIcon, Text } from 'lucide-react';
+import { Loader2, Save, ShieldAlert, Sparkles, Text } from 'lucide-react';
 
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
@@ -22,34 +23,15 @@ import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
 import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
 import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { supabase } from '@/supabase';
-import { ensureStorageBuckets } from '@/lib/storage';
 
-// Base schema for a generic document
-const genericDocSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, 'O nome é obrigatório.'),
-  // All other fields will be in a single JSON blob
-  jsonData: z.string().refine((val) => {
-    try {
-      JSON.parse(val);
-      return true;
-    } catch {
-      return false;
-    }
-  }, { message: 'JSON inválido.' }),
-});
-
-// Schema for the article form validation (more specific)
 const articleSchema = z.object({
   title: z.string().min(3, 'O título é obrigatório.'),
   summary: z.string().min(10, 'O resumo é obrigatório.'),
   content: z.string().min(20, 'O conteúdo é obrigatório.'),
   tags: z.string().min(1, 'Pelo menos uma tag é necessária.'),
   imageUrl: z.string().optional(),
-  tables: z.string().optional(), // JSON string
+  tables: z.string().optional(),
 });
 
 type ArticleFormData = z.infer<typeof articleSchema>;
@@ -59,35 +41,28 @@ function EditPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  
+
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
   const articleIdParam = Array.isArray(params.articleId) ? params.articleId[0] : params.articleId;
-  const collectionPath = searchParams.get('collectionPath');
   const fromGeneration = searchParams.get('from-generation') === 'true';
-
-  const isGenericCollection = !!collectionPath;
 
   const isNewArticle = articleIdParam === 'new';
   const [articleId, setArticleId] = useState(isNewArticle ? nanoid() : articleIdParam);
-  
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [article, setArticle] = useState<any>(null);
   const [isArticleLoading, setIsArticleLoading] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  
-  // Resolve tenant ID from slug
+
   useEffect(() => {
     if (!slug) return;
     supabase
@@ -101,23 +76,16 @@ function EditPageContent() {
       });
   }, [slug]);
 
-  // Fetch article data from Supabase
   useEffect(() => {
     if (isNewArticle || !tenantId) return;
-    
+
     setIsArticleLoading(true);
-    const table = isGenericCollection ? collectionPath! : 'wiki_articles';
-    
-    const query = supabase
-      .from(table)
+
+    supabase
+      .from('wiki_articles')
       .select('*')
-      .eq('id', articleId);
-
-    if (!isGenericCollection) {
-      query.eq('tenant_id', tenantId);
-    }
-
-    query
+      .eq('id', articleId)
+      .eq('tenant_id', tenantId)
       .single()
       .then(({ data, error }) => {
         if (!error && data) {
@@ -125,7 +93,7 @@ function EditPageContent() {
         }
         setIsArticleLoading(false);
       });
-  }, [articleId, isGenericCollection, collectionPath, isNewArticle, tenantId]);
+  }, [articleId, isNewArticle, tenantId]);
 
   const form = useForm<ArticleFormData>({
     resolver: zodResolver(articleSchema),
@@ -139,80 +107,45 @@ function EditPageContent() {
     },
   });
 
-  const { watch, setValue } = form;
-  const imageUrlValue = watch('imageUrl');
+  const { setValue } = form;
 
   useEffect(() => {
-    if (imageUrlValue) {
-      if (imageUrlValue.startsWith('http')) {
-        setImagePreview(imageUrlValue);
-      } else {
-        const placeholder = PlaceHolderImages.find(p => p.id === imageUrlValue);
-        if (placeholder) {
-          setImagePreview(placeholder.imageUrl);
-        } else {
-          setImagePreview(null);
+    if (isNewArticle && fromGeneration) {
+      const generatedArticleJson = sessionStorage.getItem('generated-wiki-article');
+      if (generatedArticleJson) {
+        try {
+          const generatedArticle = JSON.parse(generatedArticleJson);
+          setArticleId(generatedArticle.id || nanoid());
+          form.reset({
+            title: generatedArticle.title || '',
+            summary: generatedArticle.summary || '',
+            content: generatedArticle.content || '',
+            tags: Array.isArray(generatedArticle.tags) ? generatedArticle.tags.join(', ') : generatedArticle.tags || '',
+            imageUrl: generatedArticle.imageUrl || '',
+            tables: generatedArticle.tables ? JSON.stringify(generatedArticle.tables, null, 2) : '',
+          });
+          sessionStorage.removeItem('generated-wiki-article');
+        } catch (error) {
+          console.error("Erro ao analisar artigo gerado:", error);
+          toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar o artigo gerado pela IA.' });
         }
       }
-    } else {
-      setImagePreview(null);
     }
-  }, [imageUrlValue]);
-
-  // Handle pre-filling form from sessionStorage if redirected from generation
-  useEffect(() => {
-      if (isNewArticle && fromGeneration) {
-          const generatedArticleJson = sessionStorage.getItem('generated-wiki-article');
-          if (generatedArticleJson) {
-              try {
-                  const generatedArticle = JSON.parse(generatedArticleJson);
-                  // Use the generated ID or create a new one
-                  setArticleId(generatedArticle.id || nanoid());
-                  form.reset({
-                      title: generatedArticle.title || '',
-                      summary: generatedArticle.summary || '',
-                      content: generatedArticle.content || '',
-                      tags: Array.isArray(generatedArticle.tags) ? generatedArticle.tags.join(', ') : generatedArticle.tags || '',
-                      imageUrl: generatedArticle.imageUrl || '',
-                      tables: generatedArticle.tables ? JSON.stringify(generatedArticle.tables, null, 2) : '',
-                  });
-                  // Clean up sessionStorage
-                  sessionStorage.removeItem('generated-wiki-article');
-              } catch (error) {
-                  console.error("Erro ao analisar artigo gerado:", error);
-                  toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível carregar o artigo gerado pela IA.' });
-              }
-          }
-      }
   }, [isNewArticle, fromGeneration, form, toast]);
 
-
-  // When doc data loads, populate the form
   useEffect(() => {
     if (article) {
-        if (isGenericCollection) {
-            const { id, ...dataToEdit } = article;
-            form.reset({
-                title: dataToEdit.name || article.id, 
-                summary: `Editando item ${article.id} de ${collectionPath}`,
-                content: 'Os dados para este item são gerenciados no campo de Tabelas (JSON) abaixo.',
-                tags: collectionPath?.split('/').join(', ') || '',
-                tables: JSON.stringify(dataToEdit, null, 2),
-                imageUrl: dataToEdit.imageUrl || ''
-            });
-        } else {
-            form.reset({
-                title: article.title,
-                summary: article.summary,
-                content: article.content,
-                tags: Array.isArray(article.tags) ? article.tags.join(', ') : '',
-                imageUrl: article.imageUrl,
-                tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
-            });
-        }
+      form.reset({
+        title: article.title,
+        summary: article.summary,
+        content: article.content,
+        tags: Array.isArray(article.tags) ? article.tags.join(', ') : '',
+        imageUrl: article.imageUrl,
+        tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
+      });
     }
-  }, [article, form, isGenericCollection, collectionPath]);
-  
+  }, [article, form]);
+
   const handleGenerateTags = async () => {
     setIsGeneratingTags(true);
     const { title, summary } = form.getValues();
@@ -261,66 +194,33 @@ function EditPageContent() {
     toast({ title: 'Processando arquivo...', description: 'A IA está extraindo o texto. Isso pode levar um momento.' });
 
     try {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const fileDataUri = reader.result as string;
-            
-            const result = await extractTextFromFile({ fileDataUri, extractionType });
-            
-            if (result.extractedText) {
-                if (extractionType === 'markdown') {
-                    setValue('content', result.extractedText);
-                } else if (extractionType === 'json') {
-                    setValue('tables', result.extractedText);
-                }
-                toast({ title: 'Texto Extraído!', description: `O campo de ${extractionType === 'markdown' ? 'conteúdo' : 'tabelas'} foi preenchido.` });
-            } else {
-                throw new Error('A IA não retornou texto.');
-            }
-        };
-        reader.onerror = (error) => {
-            throw error;
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const fileDataUri = reader.result as string;
+
+        const result = await extractTextFromFile({ fileDataUri, extractionType });
+
+        if (result.extractedText) {
+          if (extractionType === 'markdown') {
+            setValue('content', result.extractedText);
+          } else if (extractionType === 'json') {
+            setValue('tables', result.extractedText);
+          }
+          toast({ title: 'Texto Extraído!', description: `O campo de ${extractionType === 'markdown' ? 'conteúdo' : 'tabelas'} foi preenchido.` });
+        } else {
+          throw new Error('A IA não retornou texto.');
         }
+      };
+      reader.onerror = (error) => {
+        throw error;
+      }
     } catch (error) {
       console.error(`Erro ao extrair texto para ${extractionType}:`, error);
       toast({ variant: 'destructive', title: 'Erro na Extração', description: 'Não foi possível extrair o texto do arquivo.' });
     } finally {
       setIsExtracting(false);
-      if(fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    toast({ title: 'Enviando imagem...', description: 'A imagem está sendo enviada para o armazenamento.' });
-
-    try {
-      await ensureStorageBuckets();
-      const filePath = `${articleId}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('wiki-assets')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('wiki-assets')
-        .getPublicUrl(filePath);
-      
-      setValue('imageUrl', publicUrl);
-      setImagePreview(publicUrl);
-
-      toast({ title: 'Imagem Enviada!', description: 'A nova imagem do artigo foi salva.' });
-    } catch (error) {
-      console.error('Erro ao enviar imagem:', error);
-      toast({ variant: 'destructive', title: 'Erro no Upload', description: 'Não foi possível enviar a imagem.' });
-    } finally {
-      setIsUploadingImage(false);
-      if(imageInputRef.current) imageInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -350,62 +250,42 @@ function EditPageContent() {
 
   const onSubmit = async (values: ArticleFormData) => {
     setIsSaving(true);
-    
+
     try {
       const now = new Date().toISOString();
-      let dataToSave: any;
-
-      if (isGenericCollection) {
-         try {
-            dataToSave = JSON.parse(values.tables || '{}');
-            dataToSave.id = articleId;
-            dataToSave.name = values.title;
-         } catch (e) {
-            toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON no campo Tabelas é inválida.' });
-            setIsSaving(false);
-            return;
-         }
-      } else {
-          let parsedTables = article?.tables;
-          if(values.tables) {
-              try {
-                  parsedTables = JSON.parse(values.tables);
-              } catch (e) {
-                  toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON das tabelas é inválida.' });
-                  setIsSaving(false);
-                  return;
-              }
-          }
-          dataToSave = {
-              id: articleId,
-              title: values.title,
-              summary: values.summary,
-              content: values.content,
-              tags: values.tags.split(',').map(tag => tag.trim()),
-              imageUrl: values.imageUrl || '',
-              tables: parsedTables,
-              updated_at: now
-          };
-      }
-      
-      if (isNewArticle) {
-        dataToSave.created_at = now;
-        if (!isGenericCollection && tenantId) {
-          dataToSave.tenant_id = tenantId;
+      let parsedTables = article?.tables;
+      if (values.tables) {
+        try {
+          parsedTables = JSON.parse(values.tables);
+        } catch (e) {
+          toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON das tabelas é inválida.' });
+          setIsSaving(false);
+          return;
         }
       }
 
-      const table = isGenericCollection ? collectionPath! : 'wiki_articles';
+      const dataToSave = {
+        id: articleId,
+        title: values.title,
+        summary: values.summary,
+        content: values.content,
+        tags: values.tags.split(',').map(tag => tag.trim()),
+        imageUrl: values.imageUrl || '',
+        tables: parsedTables,
+        updated_at: now,
+        ...(isNewArticle ? { created_at: now, tenant_id: tenantId } : {}),
+      };
+
       const { error } = await supabase
-        .from(table)
+        .from('wiki_articles')
         .upsert(dataToSave, { onConflict: 'id' });
 
       if (error) throw error;
 
-      toast({ title: 'Sucesso!', description: `O item foi ${isNewArticle ? 'criado' : 'atualizado'}.` });
-      
+      toast({ title: 'Sucesso!', description: `O artigo foi ${isNewArticle ? 'criado' : 'atualizado'}.` });
+
       if (isNewArticle) {
-        router.push(isGenericCollection && collectionPath ? `/admin/manage-content` : '/admin-chat');
+        router.push('/admin-chat');
       }
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -434,27 +314,13 @@ function EditPageContent() {
       </div>
     );
   }
-  
-  if (isNewArticle && isGenericCollection && !collectionPath) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center">
-        <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
-        <h1 className="text-2xl font-bold">Erro de Caminho</h1>
-        <p className="text-muted-foreground mt-2">O caminho da coleção é necessário para criar um novo item. Volte e tente novamente.</p>
-      </div>
-    );
-  }
-
-  const formTitle = isNewArticle 
-    ? (fromGeneration ? `Revisar Artigo Gerado pela IA` : `Criando Novo Item em ${isGenericCollection ? collectionPath : 'Wiki'}`)
-    : `Editando: ${article?.name || article?.title || 'Carregando...'}`;
 
   return (
     <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>{formTitle}</CardTitle>
-          <CardDescription>Faça as alterações abaixo e clique em salvar. {isGenericCollection && "Todos os dados do item são editados no campo JSON."}</CardDescription>
+          <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
+          <CardDescription>Faça as alterações abaixo e clique em salvar.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -466,7 +332,7 @@ function EditPageContent() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{isGenericCollection ? 'Nome / ID' : 'Título'}</FormLabel>
+                    <FormLabel>Título</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -475,170 +341,133 @@ function EditPageContent() {
                 )}
               />
 
-              {!isGenericCollection && (
-                <>
-                    <FormField
-                        control={form.control}
-                        name="summary"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Resumo</FormLabel>
-                            <div className="flex gap-2">
-                            <FormControl>
-                                <Textarea {...field} className="min-h-[100px]" />
-                            </FormControl>
-                            <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-                                {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                Gerar
-                            </Button>
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    
-                    <FormItem>
-                        <FormLabel>Imagem do Artigo</FormLabel>
-                        <div className="flex items-start gap-4">
-                        <div className="w-32 h-32 relative rounded-md border bg-muted overflow-hidden shrink-0">
-                            {imagePreview ? (
-                            <Image src={imagePreview} alt="Pré-visualização do artigo" layout="fill" objectFit="cover" />
-                            ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                <ImageIcon className="h-8 w-8" />
-                            </div>
-                            )}
-                        </div>
-                        <div className="space-y-4 w-full">
-                            <div>
-                                <input type="file" ref={imageInputRef} onChange={handleImageUpload} style={{ display: 'none' }} accept="image/*" />
-                                <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()} disabled={isUploadingImage} className="w-full">
-                                {isUploadingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                {isUploadingImage ? 'Enviando...' : 'Enviar Nova Imagem'}
-                                </Button>
-                                <p className="text-xs text-muted-foreground mt-2 text-center">Envie uma imagem para o artigo.</p>
-                            </div>
-                            
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">
-                                    Ou
-                                </span>
-                                </div>
-                            </div>
-                            
-                            <FormField
-                                control={form.control}
-                                name="imageUrl"
-                                render={({ field }) => (
-                                <FormItem className='space-y-0'>
-                                    <FormControl>
-                                        <Input placeholder="Cole uma URL ou digite um ID (ex: wiki-1)" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        </div>
-                        </div>
-                    </FormItem>
-                    
-                    <FormField
-                        control={form.control}
-                        name="content"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Conteúdo</FormLabel>
-                            <FormControl>
-                            <TiptapEditor
-                                content={field.value}
-                                onChange={(html, json) => {
-                                field.onChange(json);
-                                }}
-                                placeholder="Escreva o conteúdo do artigo..."
-                                articleId={articleId}
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </>
-              )}
-
-               <FormField
+              <FormField
                 control={form.control}
-                name="tables"
+                name="summary"
                 render={({ field }) => (
                   <FormItem>
-                     <div className="flex items-center justify-between">
-                        <FormLabel>{isGenericCollection ? 'Dados do Item (JSON)' : 'Tabelas (JSON)'}</FormLabel>
-                        <div className='flex gap-2'>
-                          <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={isFormatting}
-                              onClick={handleFormatText}
-                          >
-                              {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                              Formatar Texto
-                          </Button>
-                          <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={isExtracting}
-                              onClick={() => {
-                                  const handler = (e: Event) => {
-                                      handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'json');
-                                      fileInputRef.current?.removeEventListener('change', handler);
-                                  };
-                                  fileInputRef.current?.addEventListener('change', handler);
-                                  fileInputRef.current?.click();
-                              }}
-                          >
-                              {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                              Extrair de Arquivo
-                          </Button>
-                        </div>
-                     </div>
-                    <FormControl>
-                      <Textarea {...field} className="min-h-[250px] font-mono text-xs" />
-                    </FormControl>
-                     <p className="text-xs text-muted-foreground">Cole o texto bruto e clique em "Formatar Texto", extraia de um arquivo, ou edite o JSON diretamente.
-                     </p>
+                    <FormLabel>Resumo</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Textarea {...field} className="min-h-[100px]" />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
+                        {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        Gerar
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              {!isGenericCollection && (
-                <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Tags (separadas por vírgula)</FormLabel>
-                        <div className="flex gap-2">
-                        <FormControl>
-                            <Input {...field} />
-                        </FormControl>
-                        <Button type="button" variant="outline" onClick={handleGenerateTags} disabled={isGeneratingTags}>
-                            {isGeneratingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                            Gerar Tags
-                        </Button>
-                        </div>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              )}
 
-              <Button type="submit" disabled={isSaving || isExtracting || isUploadingImage || isFormatting}>
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagem do Artigo</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        bucket="wiki-assets"
+                        pathPrefix={articleId}
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Conteúdo</FormLabel>
+                    <FormControl>
+                      <TiptapEditor
+                        content={field.value}
+                        onChange={(html, json) => {
+                          field.onChange(json);
+                        }}
+                        placeholder="Escreva o conteúdo do artigo..."
+                        articleId={articleId}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tables"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Tabelas (JSON)</FormLabel>
+                      <div className='flex gap-2'>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isFormatting}
+                          onClick={handleFormatText}
+                        >
+                          {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
+                          Formatar Texto
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isExtracting}
+                          onClick={() => {
+                            const handler = (e: Event) => {
+                              handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'json');
+                              fileInputRef.current?.removeEventListener('change', handler);
+                            };
+                            fileInputRef.current?.addEventListener('change', handler);
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
+                          Extrair de Arquivo
+                        </Button>
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Textarea {...field} className="min-h-[250px] font-mono text-xs" />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Cole o texto bruto e clique em "Formatar Texto", extraia de um arquivo, ou edite o JSON diretamente.</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags (separadas por vírgula)</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={handleGenerateTags} disabled={isGeneratingTags}>
+                        {isGeneratingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Gerar Tags
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Salvar Alterações
               </Button>
@@ -651,9 +480,9 @@ function EditPageContent() {
 }
 
 export default function EditArticlePage() {
-    return (
-        <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-            <EditPageContent />
-        </Suspense>
-    );
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <EditPageContent />
+    </Suspense>
+  );
 }

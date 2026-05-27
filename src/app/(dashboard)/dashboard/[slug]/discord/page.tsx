@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Upload, Plus, Trash2, Bot, ImageIcon } from 'lucide-react';
-import type { Tenant, DiscordGuild } from '@/supabase/client';
-import { ensureStorageBuckets } from '@/lib/storage';
+import { Loader2, Save, Plus, Trash2, Bot } from 'lucide-react';
 
 interface DiscordConfig {
   bot_name?: string;
@@ -27,11 +26,10 @@ export default function WikiDiscordPage() {
   const slug = params.slug as string;
   const { toast } = useToast();
 
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [guilds, setGuilds] = useState<DiscordGuild[]>([]);
+  const [tenant, setTenant] = useState<any>(null);
+  const [guilds, setGuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [enabled, setEnabled] = useState(false);
   const [botName, setBotName] = useState('');
@@ -43,8 +41,6 @@ export default function WikiDiscordPage() {
     { trigger: '/codes', response: 'Exibe os códigos disponíveis do jogo.' },
     { trigger: '/updatelog', response: 'Exibe o log de atualizações.' },
   ]);
-
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const loadConfig = (config: DiscordConfig) => {
     setEnabled(config.enabled ?? false);
@@ -82,47 +78,16 @@ export default function WikiDiscordPage() {
     })();
   }, [slug]);
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadingAvatar(true);
-    try {
-      await ensureStorageBuckets();
-      const filePath = `discord-avatars/${slug}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('wiki-images')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('wiki-images')
-        .getPublicUrl(filePath);
-
-      setBotAvatar(publicUrl);
-      toast({ title: 'Avatar enviado!' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Erro no upload', description: error.message });
-    } finally {
-      setUploadingAvatar(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = '';
-    }
-  };
-
-  const addCommand = () => {
-    setCommands([...commands, { trigger: '', response: '' }]);
+  const updateCommand = (index: number, field: 'trigger' | 'response', value: string) => {
+    setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, [field]: value } : cmd));
   };
 
   const removeCommand = (index: number) => {
-    setCommands(commands.filter((_, i) => i !== index));
+    setCommands((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateCommand = (index: number, field: 'trigger' | 'response', value: string) => {
-    const updated = commands.map((cmd, i) =>
-      i === index ? { ...cmd, [field]: value } : cmd
-    );
-    setCommands(updated);
+  const addCommand = () => {
+    setCommands((prev) => [...prev, { trigger: '', response: '' }]);
   };
 
   const handleSave = async () => {
@@ -217,40 +182,14 @@ export default function WikiDiscordPage() {
 
           <div className="space-y-2">
             <Label>Avatar do Bot</Label>
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-full border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
-                {botAvatar ? (
-                  <img src={botAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  type="file"
-                  ref={avatarInputRef}
-                  onChange={handleAvatarUpload}
-                  style={{ display: 'none' }}
-                  accept="image/*"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                >
-                  {uploadingAvatar ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
-                  {uploadingAvatar ? 'Enviando...' : 'Enviar Imagem'}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  JPEG, PNG ou GIF. Tamanho recomendado: 512x512.
-                </p>
-              </div>
-            </div>
+            <ImageUpload
+              bucket="wiki-images"
+              pathPrefix={`discord-avatars/${slug}`}
+              value={botAvatar || ''}
+              onChange={(url) => setBotAvatar(url || null)}
+              previewSize="w-16 h-16 rounded-full"
+            />
+            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
           </div>
 
           <div className="space-y-2">

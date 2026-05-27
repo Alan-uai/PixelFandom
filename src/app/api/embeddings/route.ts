@@ -3,7 +3,7 @@ import { generateEmbedding } from '@/lib/gemini-embedding';
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, articleId, tenantId, collectionItemId } = await request.json();
+    const { text, articleId, tenantId } = await request.json();
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
@@ -18,13 +18,6 @@ export async function POST(request: NextRequest) {
         .update({ embedding: `[${embedding.join(',')}]` })
         .eq('id', articleId)
         .eq('tenant_id', tenantId);
-    }
-
-    if (collectionItemId) {
-      await supabase
-        .from('collection_items')
-        .update({ embedding: `[${embedding.join(',')}]` })
-        .eq('id', collectionItemId);
     }
 
     return NextResponse.json({ embedding });

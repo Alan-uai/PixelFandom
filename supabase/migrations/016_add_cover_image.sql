@@ -1,2 +1,0 @@
-ALTER TABLE IF EXISTS tenants
-  ADD COLUMN IF NOT EXISTS cover_image TEXT;

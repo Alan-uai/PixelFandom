@@ -645,70 +645,6 @@ export type Database = {
           created_at?: string;
         };
       };
-      custom_collections: {
-        Row: {
-          id: string;
-          tenant_id: string;
-          name: string;
-          slug: string;
-          description: string | null;
-          schema: Json;
-          icon: string | null;
-          item_count: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          tenant_id: string;
-          name: string;
-          slug: string;
-          description?: string | null;
-          schema?: Json;
-          icon?: string | null;
-          item_count?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          tenant_id?: string;
-          name?: string;
-          slug?: string;
-          description?: string | null;
-          schema?: Json;
-          icon?: string | null;
-          item_count?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      collection_items: {
-        Row: {
-          id: string;
-          collection_id: string;
-          data: Json;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          collection_id: string;
-          data?: Json;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          collection_id?: string;
-          data?: Json;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
     };
   };
 };
@@ -725,5 +661,4 @@ export type Code = Database['public']['Tables']['codes']['Row'];
 export type Tenant = Database['public']['Tables']['tenants']['Row'];
 export type TenantMember = Database['public']['Tables']['tenant_members']['Row'];
 export type DiscordGuild = Database['public']['Tables']['discord_guilds']['Row'];
-export type CustomCollection = Database['public']['Tables']['custom_collections']['Row'];
-export type CollectionItem = Database['public']['Tables']['collection_items']['Row'];
+

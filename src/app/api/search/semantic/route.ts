@@ -16,25 +16,16 @@ export async function GET(request: NextRequest) {
 
     const { supabase } = await import('@/supabase');
 
-    const [wikiRes, collectionRes] = await Promise.all([
-      supabase.rpc('get_wiki_data', {
-        p_slug: slug,
-        p_search: query,
-        p_embedding: `[${embedding.join(',')}]`,
-      }),
-      supabase.rpc('search_collection_items', {
-        p_tenant_slug: slug,
-        p_embedding: `[${embedding.join(',')}]`,
-        p_search: query,
-        p_limit: Math.min(limit, 10),
-      }),
-    ]);
+    const wikiRes = await supabase.rpc('get_wiki_data', {
+      p_slug: slug,
+      p_search: query,
+      p_embedding: `[${embedding.join(',')}]`,
+    });
 
     if (wikiRes.error) throw wikiRes.error;
 
     return NextResponse.json({
       wiki_results: wikiRes.data?.search_results || [],
-      collection_results: collectionRes.data || [],
       query,
     });
   } catch (error) {

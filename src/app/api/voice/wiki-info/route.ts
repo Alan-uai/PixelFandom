@@ -21,16 +21,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    const [{ count: articleCount }, { data: collections }, { data: rawTags }] = await Promise.all([
+    const [{ count: articleCount }, { data: rawTags }] = await Promise.all([
       supabase
         .from('wiki_articles')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id),
-      supabase
-        .from('custom_collections')
-        .select('id, name, slug, description, icon, item_count')
-        .eq('tenant_id', tenant.id)
-        .order('name'),
       supabase
         .from('wiki_articles')
         .select('tags')
@@ -48,7 +43,6 @@ export async function GET(request: NextRequest) {
         description: tenant.description,
       },
       article_count: articleCount || 0,
-      collections: collections || [],
       tags,
     })
   } catch (error) {

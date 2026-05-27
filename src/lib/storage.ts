@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase';
 
-const REQUIRED_BUCKETS = ['wiki-images', 'wiki-assets'] as const;
+const REQUIRED_BUCKETS = ['wiki-images', 'wiki-assets', 'game-items'] as const;
 
 let bucketsEnsured = false;
 let bucketPromise: Promise<void> | null = null;
