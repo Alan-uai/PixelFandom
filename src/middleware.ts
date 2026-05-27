@@ -42,10 +42,16 @@ export async function middleware(request: NextRequest) {
         const data = (await resp.json()) as { slug: string; id: string }[];
         if (data?.length > 0) {
           const url = request.nextUrl.clone();
+          const slug = data[0].slug;
 
-          url.searchParams.set('__tenant_slug', data[0].slug);
+          url.searchParams.set('__tenant_slug', slug);
           url.searchParams.set('__tenant_id', data[0].id);
-          url.pathname = `/w/${data[0].slug}${pathname === '/' ? '' : pathname}`;
+
+          if (pathname.startsWith(`/w/${slug}/`) || pathname === `/w/${slug}`) {
+            url.pathname = pathname;
+          } else {
+            url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
+          }
 
           return NextResponse.rewrite(url);
         }

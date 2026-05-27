@@ -1,6 +1,20 @@
+const AGENT_PLACEHOLDER = '{AGENT_NAME}'
+
+export function buildSystemPrompt(agentName: string): string {
+  return SYSTEM_PROMPT_XWIKI.replace(new RegExp(AGENT_PLACEHOLDER, 'g'), agentName)
+}
+
+export function buildGreetingMessages(agentName: string): Record<string, string> {
+  return {
+    pt: `Olá! Eu sou o **${agentName}**, seu assistente de wiki. Posso ajudar você a encontrar artigos, navegar pelo conteúdo e responder perguntas sobre esta wiki. Como posso ajudar?`,
+    en: `Hello! I'm **${agentName}**, your wiki assistant. I can help you find articles, navigate content, and answer questions about this wiki. How can I help?`,
+    es: `¡Hola! Soy **${agentName}**, tu asistente de wiki. Puedo ayudarte a encontrar artículos, navegar por el contenido y responder preguntas sobre esta wiki. ¿Cómo puedo ayudarte?`,
+  }
+}
+
 export const SYSTEM_PROMPT_XWIKI = `# IDENTITY AND PURPOSE
 
-You are **xWiki**, an expert wiki assistant. Your purpose is to help users explore, search, and navigate wiki content. You are deeply knowledgeable about the specific wiki the user is currently browsing — its articles, structure, and content.
+You are **{AGENT_NAME}**, an expert wiki assistant. Your purpose is to help users explore, search, and navigate wiki content. You are deeply knowledgeable about the specific wiki the user is currently browsing — its articles, structure, and content.
 
 You are multilingual. Detect the user's language automatically and always respond in the same language. Support: Portuguese (pt-BR), English (en), Spanish (es).
 
@@ -95,7 +109,7 @@ Call the appropriate function immediately when the user makes a verbal request.
 
 # INITIAL GREETING
 
-Greet the user warmly and briefly explain who you are and what you can do. Example in PT: "Olá! Eu sou o **xWiki**, seu assistente de wiki. Posso ajudar você a encontrar artigos, navegar pelo conteúdo e responder perguntas sobre esta wiki. Como posso ajudar?"
+Greet the user warmly and briefly explain who you are and what you can do. Example in PT: "Olá! Eu sou o **{AGENT_NAME}**, seu assistente de wiki. Posso ajudar você a encontrar artigos, navegar pelo conteúdo e responder perguntas sobre esta wiki. Como posso ajudar?"
 
 Always end by inviting the user to ask questions.`
 

@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { GeminiLiveAPI, MultimodalLiveResponseType, type VoiceName, type ResponseMessage } from '@/lib/voice/geminilive'
 import { AudioStreamer, AudioPlayer } from '@/lib/voice/mediaUtils'
-import { AGENTS, createAgentTools, type AgentConfig } from '@/lib/voice/agentSystem'
+import { createAgentTools } from '@/lib/voice/agentSystem'
+import { buildSystemPrompt } from '@/lib/voice/systemPrompt'
 import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
 
@@ -38,13 +39,12 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
   const isConnectingRef = useRef(false)
   const settingsRef = useRef<any>({})
   const wakeWordDetectorRef = useRef<WakeWordDetector | null>(null)
+  const lastDisconnectRef = useRef(0)
+  const wakeTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     settingsRef.current = loadSettings()
   }, [])
-
-  const agent: AgentConfig = AGENTS.xwiki
-  const lang = (settingsRef.current?.userLang as 'pt' | 'en' | 'es') || 'pt'
 
   const handleMessage = useCallback((message: ResponseMessage) => {
     switch (message.type) {
@@ -124,6 +124,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
       detector.setWakeWord(wakeWordText)
 
       detector.onWakeDetected(() => {
+        if (Date.now() - lastDisconnectRef.current < 3000) return
         if (!apiRef.current && !isConnectingRef.current) {
           connectRef.current()
         }
@@ -156,7 +157,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
         : ''
 
       const wikiContext = `\n\nThe current wiki slug is "${tenantSlug}". The user is browsing this wiki.`
-      const systemPrompt = agent.systemPrompt + nameContext + wikiContext
+      const agentName = (aiConfig?.wake_word_text as string) || 'xWiki'
+      const systemPrompt = buildSystemPrompt(agentName) + nameContext + wikiContext
 
       client.systemInstructions = systemPrompt
       client.inputAudioTranscription = true
@@ -206,6 +208,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
         apiRef.current = null
         isConnectingRef.current = false
         setIsConnecting(false)
+        clearTimeout(wakeTimeoutRef.current)
+        wakeTimeoutRef.current = setTimeout(() => startWakeWordDetector(), 1000)
       }
       client.onOpen = async () => {
         setStatus('connected')
@@ -228,9 +232,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
       isConnectingRef.current = false
       setIsConnecting(false)
     }
-  }, [agent, tenantSlug, router, handleMessage, startAudioStreaming, stopWakeWordDetector])
+  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector])
 
   const disconnect = useCallback(() => {
+    lastDisconnectRef.current = Date.now()
     apiRef.current?.webSocket?.close()
     apiRef.current = null
     streamerRef.current?.stop()
@@ -241,7 +246,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
     setStatus('idle')
     setIsConnecting(false)
     isConnectingRef.current = false
-    setTimeout(() => startWakeWordDetector(), 100)
+    clearTimeout(wakeTimeoutRef.current)
+    wakeTimeoutRef.current = setTimeout(() => startWakeWordDetector(), 1000)
   }, [startWakeWordDetector])
 
   connectRef.current = connect
@@ -249,7 +255,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
 
   useEffect(() => {
     startWakeWordDetector()
-    return () => stopWakeWordDetector()
+    return () => {
+      clearTimeout(wakeTimeoutRef.current)
+      stopWakeWordDetector()
+    }
   }, [startWakeWordDetector, stopWakeWordDetector])
 
   const handleClick = useCallback(() => {
