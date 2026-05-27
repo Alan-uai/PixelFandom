@@ -60,18 +60,28 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
   return [
     new FunctionCallTool(
       'searchWiki',
-      `Search ALL wiki content and game item data at once. 
-Returns { wiki: [...], collection: [...] }.
+      `SEARCH all wiki + game data (weapons, armors, enemies, bosses, rings, potions, upgrades).
+
+RETURNS: { wiki: [...], collection: [...], game_items: [...] }
+
+HOW TO SEARCH — CRITICAL:
+- Do NOT search with the user's full question. Extract ONLY the key terms (item name, enemy name, boss name, etc).
+- Example: user says "como obter a espada noturna" → search query must be "espada noturna" (the item name), NOT the full sentence.
+- Example: user says "qual a fraqueza do goblin rei" → search query must be "goblin rei" NOT "qual a fraqueza do goblin rei".
+- Example: user says "necro flash" → search WILL find "Necro Flask" because fuzzy/partial matching is enabled across all fields.
+- The search engine now scans ALL tables + ALL text columns automatically with fuzzy matching (pg_trgm). So even partial/typo'd queries work.
 
 wiki[] = articles with title, summary, text content, tags. Use for lore, guides, strategies.
-collection[] = game items (weapons, armors, rings, enemies, bosses, upgrades, potions, recipes) with COMPLETE RAW STATS in the "data" field.
+collection[] = game items with COMPLETE RAW STATS in the "data" field.
 
-IMPORTANT: collection[].data contains REAL attributes like damage_min, damage_max, ability, element, crit_chance, attack_speed, tier, rarity, knockback, enemy_type, boss_type, attacks, strategy, weakness, difficulty, hp_level, speed_level, strength_level, xp_drop, coin_drop, world_name, chapters, etc.
+game_items[] = RESULTS FROM ALL GAME TABLES (weapons, armors, enemies, bosses, rings, potions, upgrades) with raw data.
+
+IMPORTANT: All items contain REAL attributes like damage_min, damage_max, ability, element, crit_chance, attack_speed, tier, rarity, knockback, enemy_type, boss_type, attacks, strategy, weakness, difficulty, hp_level, speed_level, strength_level, xp_drop, coin_drop, world_name, chapters, obtain_method, craft_cost, craft_materials, etc.
 Always read the actual numbers from data and NEVER invent stats the user asks about. If data lacks a specific field, say the info is not available rather than inventing.`,
       {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'The search query — can be a weapon name, enemy type, boss name, category, or any question about wiki content' },
+          query: { type: 'string', description: 'EXTRACTED key search term — just the item/boss/enemy/armor NAME or short keyword. NOT the full user question.' },
         },
       },
       async (params: { query: string }) => {
