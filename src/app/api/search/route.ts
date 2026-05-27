@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Search error:', error);
     return NextResponse.json(
-      { error: 'Search failed', wiki: [], collection: [] },
+      { error: 'Search failed', wiki: [], collection: [], game_items: [] },
       { status: 500 }
     );
   }

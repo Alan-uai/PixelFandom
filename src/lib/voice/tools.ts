@@ -88,9 +88,9 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
       async (params: { query: string }) => {
         try {
           const data = await ctx.fetchWithSlug('/api/search', { q: params.query })
-          return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [] } }
+          return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [], game_items: data.game_items ?? [] } }
         } catch (e) {
-          return { result: { error: 'Search failed', wiki: [], collection: [] } }
+          return { result: { error: 'Search failed', wiki: [], collection: [], game_items: [] } }
         }
       },
       ['query']

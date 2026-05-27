@@ -79,17 +79,11 @@ export async function searchAll(
 
   const { supabase } = await import('@/supabase');
 
-  const [wikiRes, collectionRes, allRes] = await Promise.all([
+  const [wikiRes, allRes] = await Promise.all([
     supabase.rpc('get_wiki_data', {
       p_slug: slug,
       p_search: primaryQuery,
       p_embedding: embStr,
-    }),
-    supabase.rpc('search_collection_items', {
-      p_tenant_slug: slug,
-      p_embedding: embStr,
-      p_search: primaryQuery,
-      p_limit: limit,
     }),
     supabase.rpc('search_all', {
       p_tenant_slug: slug,
@@ -113,19 +107,7 @@ export async function searchAll(
     })
   );
 
-  const collection: CollectionSearchItem[] = ((collectionRes.data || []) as any[]).map(
-    (r: any) => ({
-      id: r.id,
-      collection_id: r.collection_id,
-      collection_name: r.collection_name,
-      collection_slug: r.collection_slug,
-      name: r.name,
-      description: r.description,
-      data: r.data ?? {},
-      score: r.score ?? 0,
-      match_type: r.match_type ?? 'fulltext',
-    })
-  );
+  const collection: CollectionSearchItem[] = [];
 
   const allData = allRes.data as { results?: any[] } | null;
   const game_items: GameSearchItem[] = (allData?.results ?? []).map(
@@ -161,21 +143,6 @@ export function formatSearchContext(result: SearchAllResult): string {
           content ? `Conteúdo: ${content}` : ''
         }`
       );
-    }
-  }
-
-  if (result.collection.length > 0) {
-    parts.push('--- Itens do Jogo (Coleções) ---');
-    for (const item of result.collection.slice(0, 5)) {
-      const data = item.data ?? {};
-      const stats = Object.entries(data)
-        .filter(([k]) => !['name', 'description'].includes(k))
-        .map(([k, v]) => `  ${k}: ${v}`)
-        .join('\n');
-      parts.push(`Item: ${item.name || 'Sem nome'}
-Coleção: ${item.collection_name || ''}
-Descrição: ${item.description || ''}
-${stats ? `Stats:\n${stats}` : ''}`);
     }
   }
 
