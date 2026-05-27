@@ -2,11 +2,15 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import { useWikiData } from '@/context/wiki-provider';
+import { supabase } from '@/supabase';
+
+const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
 export default function WikiPage() {
   const params = useParams();
@@ -22,6 +26,73 @@ export default function WikiPage() {
 
   const tenant = wiki?.tenant;
   const articles = wiki?.articles;
+
+  // ── Fetch individual article by slug (not provided by WikiDataProvider)
+  const [fetchedArticle, setFetchedArticle] = useState<any>(null);
+  const [fetchingArticle, setFetchingArticle] = useState(false);
+
+  useEffect(() => {
+    if (!articleSlug || !tenant?.id) return;
+
+    let cancelled = false;
+
+    const doFetch = async () => {
+      setFetchingArticle(true);
+      setFetchedArticle(null);
+
+      // 1. Try wiki_articles by slug
+      const { data: wikiArticle } = await supabase
+        .from('wiki_articles')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('slug', articleSlug)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (wikiArticle) {
+        setFetchedArticle(wikiArticle);
+        setFetchingArticle(false);
+        return;
+      }
+
+      // 2. Try each game table by slugified name
+      const searchName = articleSlug.replace(/-/g, ' ');
+
+      for (const table of GAME_TABLES) {
+        const { data } = await supabase
+          .from(table)
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .ilike('name', searchName)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (data) {
+          setFetchedArticle({ ...data, _source_table: table });
+          setFetchingArticle(false);
+          return;
+        }
+      }
+
+      // 3. Try codes table (uses 'code' field)
+      const { data: codeItem } = await supabase
+        .from('codes')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .ilike('code', articleSlug)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setFetchedArticle(codeItem ? { ...codeItem, _source_table: 'codes' } : null);
+        setFetchingArticle(false);
+      }
+    };
+
+    doFetch();
+    return () => { cancelled = true; };
+  }, [articleSlug, tenant?.id]);
 
   if (loading) {
     return (
@@ -132,18 +203,20 @@ export default function WikiPage() {
 
   // ── Article view ──
   if (articleSlug) {
-    let article = wiki.article;
+    const article = fetchedArticle;
+    const isGameItem = article?._source_table;
+    const fromWikiArticle = article && !isGameItem;
 
     // Detect if the article content is raw collection JSON (from seed data, not TipTap)
-    const isCollectionItem =
-      article?.content && typeof article.content === 'string' &&
+    const isRawJsonContent =
+      fromWikiArticle && typeof article.content === 'string' &&
       (article.content.trim().startsWith('{"name"') ||
        article.content.trim().startsWith('{"code"') ||
        article.content.trim().startsWith('{"item_name"'));
 
-    // Parse the raw JSON content from RPC
+    // Parse the raw JSON content from wiki_articles
     let collectionItemData: Record<string, any> | null = null;
-    if (article?.content && isCollectionItem) {
+    if (fromWikiArticle && isRawJsonContent) {
       try {
         const parsed = JSON.parse(article.content);
         if (parsed && typeof parsed === 'object' && !parsed.type) {
@@ -164,11 +237,15 @@ export default function WikiPage() {
           Voltar para home
         </Link>
 
-        {article ? (
+        {fetchingArticle ? (
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : article ? (
           <>
-            {collectionItemData ? (
+            {isGameItem || collectionItemData ? (
               <CollectionItemView
-                data={collectionItemData}
+                data={isGameItem ? article : collectionItemData!}
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
               />

@@ -5,7 +5,7 @@ const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|audio-processors).*)'],
 };
 
 export async function middleware(request: NextRequest) {
