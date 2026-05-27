@@ -197,7 +197,7 @@ function WikiLayoutContent({
         </main>
       </div>
       {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
-      <FloatingVoiceOrb tenantSlug={slug} />
+      <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} />
     </div>
   );
 }

@@ -53,6 +53,7 @@ export interface ToolContext {
   startMic: () => void
   stopMic: () => void
   addTranscript: (text: string, isUser: boolean) => void
+  onEndSession: () => void
   fetchWithSlug: (path: string, params: Record<string, string>) => Promise<any>
 }
 
@@ -340,6 +341,21 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
         return { result: { message: 'Notification sent' } }
       },
       ['message']
+    ),
+
+    new FunctionCallTool(
+      'endSession',
+      `End the voice session and close the microphone. 
+Use this when the user says goodbye, wants to hang up, or asks to end the conversation.
+Examples: "tchau", "falou", "pode ir", "pode desligar", "até logo", "bye", "já era", "fechou", "é isso", "valeu", "obrigado por hoje", "nos vemos", "até mais", "see you", "goodbye", "adiós", "hasta luego", "chao".`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        ctx.onEndSession()
+        return { result: { action: 'end_session', message: 'Sessão encerrada. Até logo!' } }
+      }
     ),
   ]
 }

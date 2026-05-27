@@ -4,12 +4,14 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { GeminiLiveAPI, MultimodalLiveResponseType, type VoiceName, type ResponseMessage } from '@/lib/voice/geminilive'
 import { AudioStreamer, AudioPlayer } from '@/lib/voice/mediaUtils'
 import { AGENTS, createAgentTools, type AgentConfig } from '@/lib/voice/agentSystem'
+import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
 
 type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'
 
 type Props = {
   tenantSlug: string
+  aiConfig?: Record<string, unknown>
 }
 
 const STORAGE_KEY = 'pixelfandom:voice-settings'
@@ -22,7 +24,7 @@ function loadSettings() {
   return {}
 }
 
-export default function FloatingVoiceOrb({ tenantSlug }: Props) {
+export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
   const router = useRouter()
 
   const [status, setStatus] = useState<OrbStatus>('idle')
@@ -35,6 +37,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
   const playerRef = useRef<AudioPlayer | null>(null)
   const isConnectingRef = useRef(false)
   const settingsRef = useRef<any>({})
+  const wakeWordDetectorRef = useRef<WakeWordDetector | null>(null)
 
   useEffect(() => {
     settingsRef.current = loadSettings()
@@ -102,8 +105,40 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
     }
   }, [])
 
+  const stopWakeWordDetector = useCallback(() => {
+    wakeWordDetectorRef.current?.stop()
+    wakeWordDetectorRef.current = null
+  }, [])
+
+  const connectRef = useRef<() => Promise<void>>(async () => {})
+  const disconnectRef = useRef<() => void>(() => {})
+
+  const startWakeWordDetector = useCallback(async () => {
+    const settings = loadSettings()
+    if (!settings.wakeWordEnabled) return
+    if (wakeWordDetectorRef.current?.active) return
+
+    try {
+      const detector = new WakeWordDetector()
+      const wakeWordText = (aiConfig?.wake_word_text as string) || 'xWiki'
+      detector.setWakeWord(wakeWordText)
+
+      detector.onWakeDetected(() => {
+        if (!apiRef.current && !isConnectingRef.current) {
+          connectRef.current()
+        }
+      })
+
+      await detector.start()
+      wakeWordDetectorRef.current = detector
+    } catch {
+      // wake word detector failed to start — silent
+    }
+  }, [aiConfig])
+
   const connect = useCallback(async () => {
     if (apiRef.current || isConnectingRef.current) return
+    stopWakeWordDetector()
     isConnectingRef.current = true
     setIsConnecting(true)
     setStatus('connecting')
@@ -146,6 +181,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
         startMic: () => startAudioStreaming(),
         stopMic: () => streamerRef.current?.stop(),
         addTranscript: () => {},
+        onEndSession: () => disconnectRef.current(),
         fetchWithSlug: async (path, params) => {
           const url = new URL(path, window.location.origin)
           Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
@@ -192,7 +228,7 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
       isConnectingRef.current = false
       setIsConnecting(false)
     }
-  }, [agent, tenantSlug, router, handleMessage, startAudioStreaming])
+  }, [agent, tenantSlug, router, handleMessage, startAudioStreaming, stopWakeWordDetector])
 
   const disconnect = useCallback(() => {
     apiRef.current?.webSocket?.close()
@@ -205,7 +241,16 @@ export default function FloatingVoiceOrb({ tenantSlug }: Props) {
     setStatus('idle')
     setIsConnecting(false)
     isConnectingRef.current = false
-  }, [])
+    setTimeout(() => startWakeWordDetector(), 100)
+  }, [startWakeWordDetector])
+
+  connectRef.current = connect
+  disconnectRef.current = disconnect
+
+  useEffect(() => {
+    startWakeWordDetector()
+    return () => stopWakeWordDetector()
+  }, [startWakeWordDetector, stopWakeWordDetector])
 
   const handleClick = useCallback(() => {
     if (apiRef.current || isMicOn || isConnectingRef.current) {

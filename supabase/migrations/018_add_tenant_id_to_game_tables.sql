@@ -1,12 +1,91 @@
--- Migration 017: Search Overhaul — fuzzy + multi-table search
-CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+-- Migration 018: Add tenant_id to game data tables + update search_all
 
-CREATE OR REPLACE FUNCTION slugify(text)
-RETURNS text LANGUAGE sql IMMUTABLE STRICT AS $$
-  SELECT lower(regexp_replace(regexp_replace($1, '[^a-zA-Z0-9\s-]', '', 'g'), '\s+', '-', 'g'))
-$$;
+-- =====================================================
+-- Add tenant_id to all game tables
+-- =====================================================
 
--- Unified search across all game tables with fuzzy + partial matching
+-- 1. weapons
+ALTER TABLE weapons ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE weapons SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE weapons ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_weapons_tenant ON weapons(tenant_id);
+
+-- 2. armors
+ALTER TABLE armors ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE armors SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE armors ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_armors_tenant ON armors(tenant_id);
+
+-- 3. rings
+ALTER TABLE rings ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE rings SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE rings ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_rings_tenant ON rings(tenant_id);
+
+-- 4. enemies
+ALTER TABLE enemies ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE enemies SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE enemies ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_enemies_tenant ON enemies(tenant_id);
+
+-- 5. bosses
+ALTER TABLE bosses ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE bosses SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE bosses ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_bosses_tenant ON bosses(tenant_id);
+
+-- 6. potions
+ALTER TABLE potions ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE potions SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE potions ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_potions_tenant ON potions(tenant_id);
+
+-- 7. upgrades
+ALTER TABLE upgrades ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE upgrades SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE upgrades ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_upgrades_tenant ON upgrades(tenant_id);
+
+-- 8. worlds
+ALTER TABLE worlds ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE worlds SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE worlds ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_worlds_tenant ON worlds(tenant_id);
+
+-- 9. codes
+ALTER TABLE codes ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE codes SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE codes ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_codes_tenant ON codes(tenant_id);
+
+-- 10. crafting_recipes
+ALTER TABLE crafting_recipes ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE crafting_recipes SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE crafting_recipes ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_crafting_recipes_tenant ON crafting_recipes(tenant_id);
+
+-- 11. resources
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE resources SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE resources ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_resources_tenant ON resources(tenant_id);
+
+-- 12. build_presets
+ALTER TABLE build_presets ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE build_presets SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE build_presets ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_build_presets_tenant ON build_presets(tenant_id);
+
+-- 13. weapon_abilities
+ALTER TABLE weapon_abilities ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE;
+UPDATE weapon_abilities SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
+ALTER TABLE weapon_abilities ALTER COLUMN tenant_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_weapon_abilities_tenant ON weapon_abilities(tenant_id);
+
+-- =====================================================
+-- Recreate search_all with tenant_id filtering
+-- =====================================================
+
 CREATE OR REPLACE FUNCTION search_all(
   p_tenant_slug TEXT,
   p_query TEXT,
@@ -25,9 +104,8 @@ BEGIN
     RETURN jsonb_build_object('results', '[]'::jsonb);
   END IF;
 
-  -- Limpa stopwords comuns em PT/BR da query
   v_clean := regexp_replace(p_query,
-    '(como|obter|qual|onde|quais|tem|para|uma|um|dos|das|com|que|são|sao|este|esta|isso|isto|essa|esse|para|mais|muito|bem|vai|pode|fazer|acha|era|foi|seus|suas|seu|sua|pelo|pela|entre|num|numa|na|no|da|do|em|de|e|a|o|as|os|ao|aos|às|dum|duma|duns|dumas|daquele|daquela|naquele|naquela|naquilo|àquele|àquela|àquilo|neste|nesta|nisso|nesse|nessa|naquilo|nesse|nessa|naquilo|ou|se|me|te|lhe|nos|vos|lhes|ele|ela|eles|elas|nós|vós|eu|tu|voce|você|nos|minha|meu|tua|teu|sua|seu|nossa|nosso|dela|dele|deles|delas|aqui|ali|lá|cá|sim|não|nao|ja|já|só|so|ainda|sempre|nunca|tambem|também|apenas|agora|depois|antes|hoje|ontem|amanhã|amanha|enquanto|durante|ate|até|sem|sob|sobre|trás|tras|detras|detrás|frente|atras|atrás|apos|após|contra|perante|segundo|conforme|consoante|mediante|salvo|exceto|menos|fora|fora|afora|dentro|fora|cerca|acerca|acima|abaixo|adiante|adiante|além|alem|alem|ao_lado|em_volta|em_torno|através|atraves|através|apesar|conquanto|embora|posto|porquanto|pois|porque|por_que|porquê|porque|ja_que|já_que|uma_vez|visto|dado|devido|graças|obrigado|obrigada|obrigado|obrigada|obrigado|obrigada|obrigado|obrigada)\s+',
+    '(como|obter|qual|onde|quais|tem|para|uma|um|dos|das|com|que|são|sao|este|esta|isso|isto|essa|esse|para|mais|muito|bem|vai|pode|fazer|acha|era|foi|seus|suas|seu|sua|pelo|pela|entre|num|numa|na|no|da|do|em|de|e|a|o|as|os|ao|aos|às|dum|duma|duns|dumas|daquele|daquela|naquele|naquela|naquilo|àquele|àquela|àquilo|neste|nesta|nisso|nesse|nessa|naquilo|ou|se|me|te|lhe|nos|vos|lhes|ele|ela|eles|elas|nós|vós|eu|tu|voce|você|nos|minha|meu|tua|teu|sua|seu|nossa|nosso|dela|dele|deles|delas|aqui|ali|lá|cá|sim|não|nao|ja|já|só|so|ainda|sempre|nunca|tambem|também|apenas|agora|depois|antes|hoje|ontem|amanhã|amanha|enquanto|durante|ate|até|sem|sob|sobre|trás|tras|detras|detrás|frente|atras|atrás|apos|após|contra|perante|segundo|conforme|consoante|mediante|salvo|exceto|menos|fora|afora|dentro|cerca|acerca|acima|abaixo|adiante|além|alem|ao_lado|em_volta|em_torno|através|atraves|apesar|conquanto|embora|posto|porquanto|pois|porque|por_que|porquê|ja_que|já_que|uma_vez|visto|dado|devido|graças|obrigado)\s+',
     '', 'gi');
   v_clean := trim(v_clean);
   IF v_clean = '' THEN v_clean := trim(p_query); END IF;
@@ -92,7 +170,8 @@ BEGIN
        + CASE WHEN COALESCE(notes, '') ILIKE '%' || v_clean || '%' THEN 2 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM weapons WHERE (
+    FROM weapons
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(obtain_method, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(weapon_type, '') ILIKE '%' || v_clean || '%'
@@ -112,7 +191,8 @@ BEGIN
        + CASE WHEN COALESCE(notes, '') ILIKE '%' || v_clean || '%' THEN 2 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM armors WHERE (
+    FROM armors
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(obtain_method, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(world_name, '') ILIKE '%' || v_clean || '%'
@@ -132,7 +212,8 @@ BEGIN
        + CASE WHEN weakness::text ILIKE '%' || v_clean || '%' THEN 2 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM enemies WHERE (
+    FROM enemies
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(world_name, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(enemy_type, '') ILIKE '%' || v_clean || '%'
@@ -153,7 +234,8 @@ BEGIN
        + CASE WHEN weakness::text ILIKE '%' || v_clean || '%' THEN 2 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM bosses WHERE (
+    FROM bosses
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(world_name, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(description, '') ILIKE '%' || v_clean || '%'
@@ -172,7 +254,8 @@ BEGIN
        + CASE WHEN COALESCE(obtain_method, '') ILIKE '%' || v_clean || '%' THEN 6 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM rings WHERE (
+    FROM rings
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(description, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(obtain_method, '') ILIKE '%' || v_clean || '%'
@@ -187,7 +270,8 @@ BEGIN
       (CASE WHEN name ILIKE '%' || v_clean || '%' THEN 10 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM potions WHERE (
+    FROM potions
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR extensions.word_similarity(v_clean, COALESCE(name, '')) > 0.2
     )
@@ -203,7 +287,8 @@ BEGIN
        + CASE WHEN COALESCE(category, '') ILIKE '%' || v_clean || '%' THEN 2 ELSE 0 END)
       + COALESCE((extensions.word_similarity(v_clean, COALESCE(name, '')) * 8)::int, 0)
       AS rank, 'fulltext' AS match_type, updated_at
-    FROM upgrades WHERE (
+    FROM upgrades
+    WHERE tenant_id = v_tenant_id AND (
       name ILIKE '%' || v_clean || '%'
       OR COALESCE(description, '') ILIKE '%' || v_clean || '%'
       OR COALESCE(effect, '') ILIKE '%' || v_clean || '%'

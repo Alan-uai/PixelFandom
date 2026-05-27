@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Volume2, Save, Mic, Headphones } from 'lucide-react'
+import { Volume2, Save, Mic, Headphones, Ear } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 type Settings = {
@@ -245,6 +245,36 @@ export default function VoicePage() {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Ear className="h-5 w-5" />
+            Ativação por Voz
+          </CardTitle>
+          <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg bg-muted/50 px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-1">Palavra de ativação configurada pelo admin</p>
+            <p className="text-sm font-mono font-semibold text-primary">
+              {(aiConfig.wake_word_text as string) || 'xWiki'}
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Wake Word</p>
+              <p className="text-xs text-muted-foreground">Diga a palavra de ativação seguida da sua mensagem</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.wakeWordEnabled}
+              onChange={(e) => update('wakeWordEnabled', e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300"
+            />
+          </div>
         </CardContent>
       </Card>
 

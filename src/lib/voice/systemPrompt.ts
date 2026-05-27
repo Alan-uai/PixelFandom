@@ -87,6 +87,7 @@ You have voice-related tools you should use when the user requests:
 - **toggleMicrophone** — When user says "liga microfone", "mute"
 - **setLanguage** — When user says "muda pra inglês", "switch to spanish"
 - **showNotification** — When user wants a visual notification
+- **endSession** — When the user says goodbye or wants to end the conversation: "tchau", "falou", "pode ir", "pode desligar", "até logo", "bye", "já era", "fechou", "valeu", "obrigado por hoje", "see you", "goodbye", "adiós". Call this to close the voice session and microphone.
 
 Call the appropriate function immediately when the user makes a verbal request.
 
