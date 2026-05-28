@@ -3,9 +3,14 @@ import { getGameData, getUpdateLog } from '@/supabase';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
-const FALLBACK_CHAIN = (process.env.FALLBACK_CHAIN ||
+const DEFAULT_FALLBACK_CHAIN = (process.env.FALLBACK_CHAIN ||
   'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
 ).split(',').map(m => m.trim()).filter(Boolean);
+
+export interface OpenRouterConfig {
+  apiKey?: string;
+  fallbackChain?: string[];
+}
 
 export const GENERIC_ERROR_MESSAGE = 'Desculpe não pude te responder, porém acredito que @suporte pode te ajudar';
 
@@ -39,13 +44,14 @@ const TOOLS = [getGameDataToolDef, getUpdateLogToolDef];
 
 async function openRouterFetch(
   body: Record<string, unknown>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  apiKey?: string
 ): Promise<Response> {
   return fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey || process.env.OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'https://pixelfandom.vercel.app',
       'X-Title': 'PixelFandom',
     },
@@ -56,11 +62,13 @@ async function openRouterFetch(
 
 async function withFallback<T>(
   fn: (model: string) => Promise<T>,
-  preferredModel?: string
+  preferredModel?: string,
+  customChain?: string[]
 ): Promise<T> {
+  const chain = customChain && customChain.length > 0 ? customChain : DEFAULT_FALLBACK_CHAIN;
   const modelsToTry = preferredModel
-    ? [preferredModel, ...FALLBACK_CHAIN.filter((m) => m !== preferredModel)]
-    : [...FALLBACK_CHAIN];
+    ? [preferredModel, ...chain.filter((m) => m !== preferredModel)]
+    : [...chain];
 
   let lastError: any;
   for (const model of modelsToTry) {
@@ -79,11 +87,13 @@ export async function chat({
   model,
   temperature = 0.7,
   maxTokens,
+  config,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  config?: OpenRouterConfig;
 }) {
   return withFallback(async (currentModel) => {
     const res = await openRouterFetch({
@@ -91,11 +101,11 @@ export async function chat({
       messages,
       temperature,
       max_tokens: maxTokens,
-    });
+    }, undefined, config?.apiKey);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
     return data.choices[0].message.content;
-  }, model);
+  }, model, config?.fallbackChain);
 }
 
 export async function chatStructured({
@@ -103,11 +113,13 @@ export async function chatStructured({
   model,
   temperature = 0.7,
   responseFormat = 'json_object',
+  config,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
   temperature?: number;
   responseFormat?: string;
+  config?: OpenRouterConfig;
 }) {
   return withFallback(async (currentModel) => {
     const res = await openRouterFetch({
@@ -115,11 +127,11 @@ export async function chatStructured({
       messages,
       temperature,
       response_format: { type: responseFormat },
-    });
+    }, undefined, config?.apiKey);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
     return data.choices[0].message.content;
-  }, model);
+  }, model, config?.fallbackChain);
 }
 
 export async function chatWithTools({
@@ -128,12 +140,14 @@ export async function chatWithTools({
   temperature = 0.7,
   tools = TOOLS,
   maxToolRounds = 5,
+  config,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
   temperature?: number;
   tools?: any[];
   maxToolRounds?: number;
+  config?: OpenRouterConfig;
 }) {
   return withFallback(async (currentModel) => {
     let currentMessages = [...messages];
@@ -145,7 +159,7 @@ export async function chatWithTools({
         messages: currentMessages,
         temperature,
         tools,
-      });
+      }, undefined, config?.apiKey);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
 
@@ -182,26 +196,31 @@ export async function chatWithTools({
     }
 
     return { content: 'Maximum tool rounds reached.', toolResults };
-  }, model);
+  }, model, config?.fallbackChain);
 }
 
 export async function chatStreamSSE({
   messages,
   model,
   temperature = 0.7,
+  config,
 }: {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   model?: string;
   temperature?: number;
+  config?: OpenRouterConfig;
 }) {
+  const chain = config?.fallbackChain && config.fallbackChain.length > 0 ? config.fallbackChain : DEFAULT_FALLBACK_CHAIN;
   const modelsToTry = model
-    ? [model, ...FALLBACK_CHAIN.filter((m) => m !== model)]
-    : [...FALLBACK_CHAIN];
+    ? [model, ...chain.filter((m) => m !== model)]
+    : [...chain];
 
   for (const currentModel of modelsToTry) {
     try {
       const res = await openRouterFetch(
-        { model: currentModel, messages, temperature, stream: true }
+        { model: currentModel, messages, temperature, stream: true },
+        undefined,
+        config?.apiKey
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.body;

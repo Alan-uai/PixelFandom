@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
     const requestTenant = getTenantFromRequest(request);
     let systemPrompt = `${SCHEMA_PROMPT}\n\n${SECTION_PROMPT}`;
     let model = 'openai/gpt-4o-mini';
+    let customApiKey = '';
+    let fallbackChain: string[] = [];
     let tenantSlug = requestTenant?.slug || '';
 
     if (requestTenant?.slug) {
@@ -95,6 +97,8 @@ export async function POST(request: NextRequest) {
           systemPrompt = `${userPrompt}\n\n${SCHEMA_PROMPT}\n\n${SECTION_PROMPT}`;
         }
         model = (config.model as string) || model;
+        customApiKey = (config.custom_api_key as string) || '';
+        fallbackChain = (config.fallback_chain as string[]) || [];
       }
     }
 
@@ -136,15 +140,18 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       { role: 'user', content: message },
     ];
 
+    const effectiveFallbackChain = fallbackChain.length > 0 ? fallbackChain : FALLBACK_CHAIN;
     const modelsToTry = model
-      ? [model, ...FALLBACK_CHAIN.filter((m) => m !== model)]
-      : FALLBACK_CHAIN;
+      ? [model, ...effectiveFallbackChain.filter((m) => m !== model)]
+      : effectiveFallbackChain;
+
+    const apiKey = customApiKey || process.env.OPENROUTER_API_KEY || '';
 
     const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'HTTP-Referer': 'https://pixelfandom.vercel.app',
         'X-Title': 'PixelFandom',
       },
