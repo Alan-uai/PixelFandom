@@ -10,7 +10,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Headphones, Mic, MicOff } from 'lucide-react';
+import { Loader2, Save, Check, Headphones, Mic, MicOff } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 
 export default function WikiAIConfigPage() {
@@ -20,6 +20,15 @@ export default function WikiAIConfigPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedFeedback, setSavedFeedback] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const initialRef = useRef({
+    enabled: false,
+    model: 'openai/gpt-4o-mini',
+    wakeWordText: 'Psycho',
+    chatName: 'Assistente',
+    botLogo: '',
+  });
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState('openai/gpt-4o-mini');
   const [wakeWordText, setWakeWordText] = useState('Psycho');
@@ -41,10 +50,23 @@ export default function WikiAIConfigPage() {
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
           setBotLogo((config.bot_logo as string) || '');
+          initialRef.current = {
+            enabled: data.ai_enabled,
+            model: (config.model as string) || 'openai/gpt-4o-mini',
+            wakeWordText: (config.wake_word_text as string) || 'Psycho',
+            chatName: (config.chat_name as string) || 'Assistente',
+            botLogo: (config.bot_logo as string) || '',
+          };
         }
         setLoading(false);
       });
   }, [slug]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!tenant) return;
@@ -68,7 +90,10 @@ export default function WikiAIConfigPage() {
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
-      toast({ title: 'Configuração de IA salva!' });
+      initialRef.current = { enabled, model, wakeWordText, chatName, botLogo };
+      setSavedFeedback(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
     }
     setSaving(false);
   };
@@ -80,6 +105,13 @@ export default function WikiAIConfigPage() {
       </div>
     );
   }
+
+  const isDirty =
+    enabled !== initialRef.current.enabled ||
+    model !== initialRef.current.model ||
+    wakeWordText !== initialRef.current.wakeWordText ||
+    chatName !== initialRef.current.chatName ||
+    botLogo !== initialRef.current.botLogo;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -154,10 +186,17 @@ export default function WikiAIConfigPage() {
             />
             <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Salvar Configuração
-          </Button>
+          {savedFeedback ? (
+            <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+              <Check className="h-4 w-4" />
+              Configurações salvas!
+            </div>
+          ) : isDirty ? (
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar Configuração
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
 

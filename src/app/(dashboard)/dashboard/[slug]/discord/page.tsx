@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Plus, Trash2, Bot } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Trash2, Bot } from 'lucide-react';
 
 interface DiscordConfig {
   bot_name?: string;
@@ -30,6 +30,17 @@ export default function WikiDiscordPage() {
   const [guilds, setGuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedFeedback, setSavedFeedback] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const initialRef = useRef({
+    enabled: false,
+    botName: '',
+    botAvatar: null as string | null,
+    prefix: '!',
+    status: 'online' as 'online' | 'idle' | 'dnd' | 'invisible',
+    welcomeMessage: '',
+    commands: [] as { trigger: string; response: string }[],
+  });
 
   const [enabled, setEnabled] = useState(false);
   const [botName, setBotName] = useState('');
@@ -49,9 +60,19 @@ export default function WikiDiscordPage() {
     setPrefix(config.prefix ?? '!');
     setStatus(config.status ?? 'online');
     setWelcomeMessage(config.welcome_message ?? '');
-    if (config.custom_commands && config.custom_commands.length > 0) {
-      setCommands(config.custom_commands);
-    }
+    const loadedCommands = config.custom_commands && config.custom_commands.length > 0
+      ? config.custom_commands
+      : [{ trigger: '/codes', response: 'Exibe os códigos disponíveis do jogo.' }, { trigger: '/updatelog', response: 'Exibe o log de atualizações.' }];
+    setCommands(loadedCommands);
+    initialRef.current = {
+      enabled: config.enabled ?? false,
+      botName: config.bot_name ?? '',
+      botAvatar: config.bot_avatar ?? null,
+      prefix: config.prefix ?? '!',
+      status: config.status ?? 'online',
+      welcomeMessage: config.welcome_message ?? '',
+      commands: loadedCommands,
+    };
   };
 
   useEffect(() => {
@@ -77,6 +98,12 @@ export default function WikiDiscordPage() {
       setLoading(false);
     })();
   }, [slug]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const updateCommand = (index: number, field: 'trigger' | 'response', value: string) => {
     setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, [field]: value } : cmd));
@@ -112,7 +139,10 @@ export default function WikiDiscordPage() {
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
-      toast({ title: 'Configuração do Discord salva!' });
+      initialRef.current = { enabled, botName, botAvatar, prefix, status, welcomeMessage, commands };
+      setSavedFeedback(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
     }
     setSaving(false);
   };
@@ -128,6 +158,15 @@ export default function WikiDiscordPage() {
   if (!tenant) {
     return <p className="text-muted-foreground">Wiki não encontrada.</p>;
   }
+
+  const isDirty =
+    enabled !== initialRef.current.enabled ||
+    botName !== initialRef.current.botName ||
+    botAvatar !== initialRef.current.botAvatar ||
+    prefix !== initialRef.current.prefix ||
+    status !== initialRef.current.status ||
+    welcomeMessage !== initialRef.current.welcomeMessage ||
+    JSON.stringify(commands) !== JSON.stringify(initialRef.current.commands);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -318,14 +357,21 @@ export default function WikiDiscordPage() {
         </Card>
       )}
 
-      <Button onClick={handleSave} disabled={saving}>
-        {saving ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        ) : (
-          <Save className="h-4 w-4 mr-2" />
-        )}
-        Salvar Configuração
-      </Button>
+      {savedFeedback ? (
+        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+          <Check className="h-4 w-4" />
+          Configurações salvas!
+        </div>
+      ) : isDirty ? (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          Salvar Configuração
+        </Button>
+      ) : null}
     </div>
   );
 }

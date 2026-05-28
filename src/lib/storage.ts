@@ -1,32 +1,6 @@
-import { supabase } from '@/supabase';
-
-const REQUIRED_BUCKETS = ['wiki-images', 'wiki-assets', 'game-items'] as const;
-
-let bucketsEnsured = false;
-let bucketPromise: Promise<void> | null = null;
+// Buckets are now created via migration 027_storage_buckets_and_rls.sql.
+// This function is kept as a noop for backwards compatibility with callers.
 
 export async function ensureStorageBuckets(): Promise<void> {
-  if (bucketsEnsured) return;
-  if (bucketPromise) return bucketPromise;
-
-  bucketPromise = (async () => {
-    try {
-      const { data: existing } = await supabase.storage.listBuckets();
-      const existingNames = new Set(existing?.map((b) => b.name) || []);
-
-      for (const bucket of REQUIRED_BUCKETS) {
-        if (!existingNames.has(bucket)) {
-          await supabase.storage.createBucket(bucket, {
-            public: true,
-            fileSizeLimit: 10485760,
-          });
-        }
-      }
-      bucketsEnsured = true;
-    } catch {
-      // silent fail – buckets may already exist
-    }
-  })();
-
-  return bucketPromise;
+  // noop — buckets are guaranteed by migration
 }

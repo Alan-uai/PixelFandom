@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Upload, ImageIcon, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
+import { useToast } from '@/hooks/use-toast';
 
 type Props = {
   bucket?: string;
@@ -26,6 +27,7 @@ export function ImageUpload({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,6 +50,11 @@ export function ImageUpload({
       onChange(publicUrl);
     } catch (error) {
       console.error('Upload error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro no upload',
+        description: 'Não foi possível enviar a imagem. Verifique se está logado e tente novamente.',
+      });
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';

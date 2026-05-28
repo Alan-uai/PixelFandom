@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Check } from 'lucide-react';
 
 export default function WikiSettingsPage() {
   const params = useParams();
@@ -20,6 +20,9 @@ export default function WikiSettingsPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedFeedback, setSavedFeedback] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -38,10 +41,22 @@ export default function WikiSettingsPage() {
           setDescription(data.description || '');
           setLogoUrl(data.logo_url || '');
           setCoverImageUrl((data as any).cover_image || '');
+          initialRef.current = {
+            name: data.name,
+            description: data.description || '',
+            logoUrl: data.logo_url || '',
+            coverImageUrl: (data as any).cover_image || '',
+          };
         }
         setLoading(false);
       });
   }, [slug]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -53,7 +68,10 @@ export default function WikiSettingsPage() {
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
-      toast({ title: 'Salvo!', description: 'Configurações atualizadas.' });
+      initialRef.current = { name, description, logoUrl, coverImageUrl };
+      setSavedFeedback(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
     }
     setSaving(false);
   };
@@ -69,6 +87,12 @@ export default function WikiSettingsPage() {
   if (!tenant) {
     return <p className="text-muted-foreground">Wiki não encontrada.</p>;
   }
+
+  const isDirty =
+    name !== initialRef.current.name ||
+    description !== initialRef.current.description ||
+    logoUrl !== initialRef.current.logoUrl ||
+    coverImageUrl !== initialRef.current.coverImageUrl;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -126,10 +150,17 @@ export default function WikiSettingsPage() {
             />
             <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Salvar
-          </Button>
+          {savedFeedback ? (
+            <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+              <Check className="h-4 w-4" />
+              Configurações salvas!
+            </div>
+          ) : isDirty ? (
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Loader2, Save, ShieldAlert, Sparkles, Text } from 'lucide-react';
+import { Loader2, Save, Check, ShieldAlert, Sparkles, Text } from 'lucide-react';
 
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
@@ -43,10 +43,18 @@ function EditPageContent() {
   const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [savedFeedback, setSavedFeedback] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
@@ -282,10 +290,22 @@ function EditPageContent() {
 
       if (error) throw error;
 
-      toast({ title: 'Sucesso!', description: `O artigo foi ${isNewArticle ? 'criado' : 'atualizado'}.` });
-
       if (isNewArticle) {
+        toast({ title: 'Sucesso!', description: 'O artigo foi criado.' });
         router.push('/admin-chat');
+      } else {
+        const valuesToReset = {
+          title: values.title,
+          summary: values.summary,
+          content: values.content,
+          tags: values.tags,
+          imageUrl: values.imageUrl || '',
+          tables: values.tables || '',
+        };
+        form.reset(valuesToReset);
+        setSavedFeedback(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
       }
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -467,10 +487,17 @@ function EditPageContent() {
                 )}
               />
 
-              <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Salvar Alterações
-              </Button>
+              {savedFeedback ? (
+                <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+                  <Check className="h-4 w-4" />
+                  Configurações salvas!
+                </div>
+              ) : form.formState.isDirty ? (
+                <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Alterações
+                </Button>
+              ) : null}
             </form>
           </Form>
         </CardContent>

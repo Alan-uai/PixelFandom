@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Tags, FileText } from 'lucide-react';
+import { Calendar, Tags, FileText, ImageIcon } from 'lucide-react';
 
 type Article = {
   id: string;
@@ -30,15 +30,19 @@ export default function WikiGrid({ articles, tenantSlug }: Props) {
             href={href}
             className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col"
           >
-            {article.image_url && (
-              <div className="aspect-video overflow-hidden">
+            <div className="aspect-video overflow-hidden">
+              {article.image_url ? (
                 <img
                   src={article.image_url}
                   alt={article.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-              </div>
-            )}
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                  <ImageIcon className="h-8 w-8" />
+                </div>
+              )}
+            </div>
 
             <div className="flex flex-col flex-1 p-4">
               <h3 className="font-semibold text-base group-hover:text-primary transition-colors line-clamp-2">

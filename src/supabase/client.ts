@@ -559,6 +559,7 @@ export type Database = {
           slug: string;
           custom_domain: string | null;
           logo_url: string | null;
+          cover_image: string | null;
           description: string | null;
           theme: Json;
           ai_enabled: boolean;
@@ -574,6 +575,7 @@ export type Database = {
           slug: string;
           custom_domain?: string | null;
           logo_url?: string | null;
+          cover_image?: string | null;
           description?: string | null;
           theme?: Json;
           ai_enabled?: boolean;
@@ -589,6 +591,7 @@ export type Database = {
           slug?: string;
           custom_domain?: string | null;
           logo_url?: string | null;
+          cover_image?: string | null;
           description?: string | null;
           theme?: Json;
           ai_enabled?: boolean;
