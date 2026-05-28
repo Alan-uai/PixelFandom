@@ -19,15 +19,16 @@
 ## Build quirks
 - `next.config.ts`: `ignoreBuildErrors: true` and `ignoreDuringBuilds: true` — build **will not catch** TS/ESLint errors. Rely on `npm run typecheck` and `npm run lint` separately.
 - Recommended order: `lint -> typecheck -> build`
+- Dev API proxy: routes under `/api/{token,rag,session,sessions,mood,goals,profile,profiles,settings,agents,wellington}` rewrite to `$PSYCHO_BACKEND_URL` (default `http://localhost:8000`)
 
 ## Structure
 - `src/app/` route groups: `(marketing)/`, `(wiki)/`, `(dashboard)/` — each with its own layout
 - Wiki pages: `/w/[slug]/[[...path]]` (catch-all, tenant-scoped)
-- Dashboard: `/dashboard/[slug]/{ai, collections, domains, editor, members, settings}/`
+- Dashboard: `/dashboard/{new,[slug]/{ai,discord,domains,editor,members,settings}}`
 - API: `/api/chat` (OpenRouter streaming), `/api/tenants`
 - Auth callback: `/auth/callback`
 - `src/supabase/` — Supabase client, typed Database defs, auth provider, hooks
-- `supabase/migrations/` — 001→007 sequential SQL migrations
+- `supabase/migrations/` — 021→030 sequential SQL migrations
 - `data/pixel-blade/` — static game data JSON fallback
 - `public/audio-processors/` — worklets de áudio para o sistema de voz
 - `api/token.py` — serverless function para gerar tokens Gemini Live API
@@ -41,6 +42,7 @@
 
 ## Key env vars
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, `FALLBACK_CHAIN` (comma-separated model list)
+`PSYCHO_BACKEND_URL` — Python backend URL for dev API proxy (default `http://localhost:8000`)
 `VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)
 `VERCEL_PROJECT_ID` — ID do projeto Vercel
 `GEMINI_API_KEY` — Google Gemini API key (sistema de voz)

@@ -10,8 +10,9 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Headphones, Mic, MicOff } from 'lucide-react';
+import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
+import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 export default function WikiAIConfigPage() {
   const params = useParams();
@@ -113,15 +114,19 @@ export default function WikiAIConfigPage() {
     chatName !== initialRef.current.chatName ||
     botLogo !== initialRef.current.botLogo;
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Assistente IA</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure o assistente inteligente da sua wiki.
-        </p>
-      </div>
+  const sections = [
+    { id: 'activation', label: 'Ativação', icon: Power },
+    { id: 'model', label: 'Configuração do Modelo', icon: Cpu },
+    { id: 'voice', label: 'Agente de Voz', icon: Headphones },
+    { id: 'test', label: 'Testar Assistente de Voz', icon: Mic },
+  ];
 
+  return (
+    <div className="flex gap-6">
+      <PageSubNav sections={sections} />
+      <div className="flex-1 max-w-2xl mx-auto space-y-6">
+
+      <section id="activation">
       <Card>
         <CardHeader>
           <CardTitle>Ativação</CardTitle>
@@ -144,7 +149,9 @@ export default function WikiAIConfigPage() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="model">
       <Card>
         <CardHeader>
           <CardTitle>Configuração do Modelo</CardTitle>
@@ -186,20 +193,23 @@ export default function WikiAIConfigPage() {
             />
             <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
           </div>
-          {savedFeedback ? (
-            <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-              <Check className="h-4 w-4" />
-              Configurações salvas!
-            </div>
-          ) : isDirty ? (
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar Configuração
-            </Button>
-          ) : null}
         </CardContent>
       </Card>
 
+      {savedFeedback ? (
+        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+          <Check className="h-4 w-4" />
+          Configurações salvas!
+        </div>
+      ) : isDirty ? (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+          Salvar Configuração
+        </Button>
+      ) : null}
+      </section>
+
+      <section id="voice">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -223,7 +233,9 @@ export default function WikiAIConfigPage() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="test">
       {enabled && (
         <Card>
           <CardHeader>
@@ -238,6 +250,8 @@ export default function WikiAIConfigPage() {
           </CardContent>
         </Card>
       )}
+      </section>
+      </div>
     </div>
   );
 }

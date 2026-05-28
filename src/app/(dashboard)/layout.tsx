@@ -20,6 +20,7 @@ import {
   Headphones,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { DashboardHero } from '@/components/dashboard/dashboard-hero';
 
 export default function DashboardLayout({
   children,
@@ -72,6 +73,21 @@ export default function DashboardLayout({
       </div>
     );
   }
+
+  const navItems = canManage
+    ? [
+        { href: 'settings', label: 'Configurações', icon: Settings },
+        { href: 'domains', label: 'Domínios', icon: Globe },
+        { href: 'members', label: 'Membros', icon: Users },
+        { href: 'ai', label: 'IA', icon: Cpu },
+        { href: 'discord', label: 'Discord', icon: Headphones },
+        { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+      ]
+    : canEdit
+    ? [
+        { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+      ]
+    : [];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -159,21 +175,7 @@ export default function DashboardLayout({
               </button>
             </div>
             <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-              {(canManage
-                ? [
-                    { href: 'settings', label: 'Configurações', icon: Settings },
-                    { href: 'domains', label: 'Domínios', icon: Globe },
-                    { href: 'members', label: 'Membros', icon: Users },
-                    { href: 'ai', label: 'IA', icon: Cpu },
-                    { href: 'discord', label: 'Discord', icon: Headphones },
-                    { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
-                  ]
-                : canEdit
-                ? [
-                    { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
-                  ]
-                : []
-              ).map((item) => {
+              {navItems.map((item) => {
                 const Icon = item.icon;
                 const href = `/dashboard/${wikiSlug}/${item.href}`;
                 return (
@@ -198,6 +200,9 @@ export default function DashboardLayout({
 
         <main className="flex-1 overflow-auto">
           <div className="p-6 max-w-6xl mx-auto">
+            {isWikiPage && (
+              <DashboardHero wikiSlug={wikiSlug} items={navItems} currentPath={pathname} />
+            )}
             {children}
           </div>
         </main>

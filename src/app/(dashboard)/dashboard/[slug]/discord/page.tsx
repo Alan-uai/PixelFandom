@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Trash2, Bot } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Trash2, Bot, Power, MessageSquare, Terminal, Server } from 'lucide-react';
+import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 interface DiscordConfig {
   bot_name?: string;
@@ -168,19 +169,24 @@ export default function WikiDiscordPage() {
     welcomeMessage !== initialRef.current.welcomeMessage ||
     JSON.stringify(commands) !== JSON.stringify(initialRef.current.commands);
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Bot do Discord</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure o bot do Discord da sua wiki.
-        </p>
-      </div>
+  const sections = [
+    { id: 'status', label: 'Status do Bot', icon: Power },
+    { id: 'identity', label: 'Identidade do Bot', icon: Bot },
+    { id: 'messages', label: 'Prefixo e Mensagens', icon: MessageSquare },
+    { id: 'commands', label: 'Comandos Personalizados', icon: Terminal },
+    { id: 'servers', label: 'Servidores Conectados', icon: Server },
+  ];
 
+  return (
+    <div className="flex gap-6">
+      <PageSubNav sections={sections} />
+      <div className="flex-1 max-w-2xl mx-auto space-y-6">
+
+      <section id="status">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
+            <Power className="h-5 w-5" />
             Status do Bot
           </CardTitle>
           <CardDescription>Ligue ou desligue o bot do Discord.</CardDescription>
@@ -202,7 +208,9 @@ export default function WikiDiscordPage() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="identity">
       <Card>
         <CardHeader>
           <CardTitle>Identidade do Bot</CardTitle>
@@ -247,7 +255,9 @@ export default function WikiDiscordPage() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="messages">
       <Card>
         <CardHeader>
           <CardTitle>Prefixo e Mensagens</CardTitle>
@@ -278,7 +288,9 @@ export default function WikiDiscordPage() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="commands">
       <Card>
         <CardHeader>
           <CardTitle>Comandos Personalizados</CardTitle>
@@ -320,7 +332,9 @@ export default function WikiDiscordPage() {
           </Button>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="servers">
       {guilds.length > 0 && (
         <Card>
           <CardHeader>
@@ -356,6 +370,7 @@ export default function WikiDiscordPage() {
           </CardContent>
         </Card>
       )}
+      </section>
 
       {savedFeedback ? (
         <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
@@ -372,6 +387,7 @@ export default function WikiDiscordPage() {
           Salvar Configuração
         </Button>
       ) : null}
+      </div>
     </div>
   );
 }

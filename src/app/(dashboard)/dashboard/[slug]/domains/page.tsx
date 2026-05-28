@@ -15,8 +15,10 @@ import {
   RefreshCw,
   AlertTriangle,
   ExternalLink,
+  Link,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
+import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 type DomainInfo = {
   verified: boolean;
@@ -130,15 +132,17 @@ export default function WikiDomainsPage() {
 
   const badge = statusBadge();
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Domínios</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie os domínios da sua wiki.
-        </p>
-      </div>
+  const sections = [
+    { id: 'default-url', label: 'URL Padrão', icon: Globe },
+    { id: 'custom-domain', label: 'Domínio Personalizado', icon: Link },
+  ];
 
+  return (
+    <div className="flex gap-6">
+      <PageSubNav sections={sections} />
+      <div className="flex-1 max-w-2xl mx-auto space-y-6">
+
+      <section id="default-url">
       {/* Default URL Card */}
       <Card>
         <CardHeader>
@@ -157,7 +161,9 @@ export default function WikiDomainsPage() {
           </a>
         </CardContent>
       </Card>
+      </section>
 
+      <section id="custom-domain">
       {/* Custom Domain Card */}
       <Card>
         <CardHeader>
@@ -282,6 +288,8 @@ export default function WikiDomainsPage() {
           )}
         </CardContent>
       </Card>
+      </section>
+      </div>
     </div>
   );
 }

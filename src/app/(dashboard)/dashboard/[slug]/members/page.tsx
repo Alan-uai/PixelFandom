@@ -95,13 +95,7 @@ export default function WikiMembersPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Membros</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie quem tem acesso à sua wiki.
-        </p>
-      </div>
-
+      <section id="members">
       <Card>
         <CardHeader>
           <CardTitle>Membros ({members.length})</CardTitle>
@@ -160,6 +154,7 @@ export default function WikiMembersPage() {
           })}
         </CardContent>
       </Card>
+      </section>
     </div>
   );
 }

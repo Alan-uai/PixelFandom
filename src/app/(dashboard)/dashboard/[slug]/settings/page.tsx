@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp } from 'lucide-react';
+import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 export default function WikiSettingsPage() {
   const params = useParams();
@@ -94,15 +95,18 @@ export default function WikiSettingsPage() {
     logoUrl !== initialRef.current.logoUrl ||
     coverImageUrl !== initialRef.current.coverImageUrl;
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure o nome, descrição e identidade visual da wiki.
-        </p>
-      </div>
+  const sections = [
+    { id: 'basic-info', label: 'Informações Básicas', icon: Info },
+    { id: 'logo', label: 'Logo', icon: Image },
+    { id: 'cover', label: 'Capa', icon: ImageUp },
+  ];
 
+  return (
+    <div className="flex gap-6">
+      <PageSubNav sections={sections} />
+      <div className="flex-1 max-w-2xl mx-auto space-y-6">
+
+      <section id="basic-info">
       <Card>
         <CardHeader>
           <CardTitle>Informações Básicas</CardTitle>
@@ -127,42 +131,60 @@ export default function WikiSettingsPage() {
               rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Logo da Wiki</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`wiki-logos/${slug}`}
-              value={logoUrl}
-              onChange={setLogoUrl}
-              previewSize="w-20 h-20"
-            />
-            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 256x256.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Capa da Wiki</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`wiki-covers/${slug}`}
-              value={coverImageUrl}
-              onChange={setCoverImageUrl}
-              previewSize="w-40 h-24"
-            />
-            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
-          </div>
-          {savedFeedback ? (
-            <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-              <Check className="h-4 w-4" />
-              Configurações salvas!
-            </div>
-          ) : isDirty ? (
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar
-            </Button>
-          ) : null}
         </CardContent>
       </Card>
+      </section>
+
+      <section id="logo">
+      <Card>
+        <CardHeader>
+          <CardTitle>Logo da Wiki</CardTitle>
+          <CardDescription>Imagem de perfil da sua wiki.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`wiki-logos/${slug}`}
+            value={logoUrl}
+            onChange={setLogoUrl}
+            previewSize="w-20 h-20"
+          />
+          <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 256x256.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      <section id="cover">
+      <Card>
+        <CardHeader>
+          <CardTitle>Capa da Wiki</CardTitle>
+          <CardDescription>Imagem de capa da sua wiki.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`wiki-covers/${slug}`}
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            previewSize="w-40 h-24"
+          />
+          <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      {savedFeedback ? (
+        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+          <Check className="h-4 w-4" />
+          Configurações salvas!
+        </div>
+      ) : isDirty ? (
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+          Salvar
+        </Button>
+      ) : null}
+      </div>
     </div>
   );
 }
