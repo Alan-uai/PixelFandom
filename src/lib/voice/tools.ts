@@ -62,6 +62,9 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
     new FunctionCallTool(
       'searchWiki',
       `SEARCH all wiki + game data (weapons, armors, enemies, bosses, rings, potions, upgrades).
+Search is run against EVERY text column across ALL tables for EVERY extracted term,
+then results are merged and deduplicated. So "grasslands weapons" searches for
+"grasslands" AND "weapons" separately — items matching both have highest rank.
 
 RETURNS: { wiki: [...], collection: [...], game_items: [...] }
 
@@ -72,10 +75,18 @@ HOW TO SEARCH — CRITICAL:
 - Example: user says "necro flash" → search WILL find "Necro Flask" because fuzzy/partial matching is enabled across all fields.
 - The search engine now scans ALL tables + ALL text columns automatically with fuzzy matching (pg_trgm). So even partial/typo\'d queries work.
 
-wiki[] = articles with title, summary, text content, tags. Use for lore, guides, strategies.
-collection[] = game items with COMPLETE RAW STATS in the "data" field.
+IMPORTANT — WHERE TO READ RESULTS:
+- game_items[] is the PRIMARY data source. It contains ALL matching items from ALL tables
+  (wiki_articles, weapons, armors, enemies, bosses, rings, potions, upgrades).
+  Even wiki articles appear in game_items with source_type = "wiki_article".
+- wiki[] is SUPPLEMENTARY — contains article text content for lore/guides/strategies.
+  Most of the time you only need game_items[].
+- collection[] is legacy and always empty.
 
-game_items[] = RESULTS FROM ALL GAME TABLES (weapons, armors, enemies, bosses, rings, potions, upgrades) with raw data.
+- Source type tells you what it is: "wiki_article", "weapon", "armor", "enemy",
+  "boss", "ring", "potion", "upgrade".
+- If you find something in game_items with source_type = "wiki_article",
+  you can also read its raw_data (parsed from the article content) for game stats.
 
 NEVER HALLUCINATE:
 - Read the ACTUAL numbers from "raw_data". If raw_data is null or a field is missing, say the info is NOT AVAILABLE — NEVER invent stats, damage, abilities, weaknesses, or any data.
@@ -119,7 +130,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'getWikiArticle',
-      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) IF the article has structured game data. If item_stats is null, the article has no game stats — do not invent any. Read the article text content but never fabricate numbers.',
+      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) IF the article has structured game data. If item_stats is null, the article has no game stats — do not invent any. Read the article text content but never fabricate numbers. PREFER searchWiki over this tool for finding items — getWikiArticle is only for reading full article text after you have the slug.',
       {
         type: 'object',
         properties: {

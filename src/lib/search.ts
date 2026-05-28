@@ -52,6 +52,20 @@ function extractItemNames(query: string): string[] {
   return [...new Set([cleaned, ...phrases, ...names])];
 }
 
+function mergeGameResults(arrays: GameSearchItem[][]): GameSearchItem[] {
+  const map = new Map<string, GameSearchItem>();
+  for (const items of arrays) {
+    for (const item of items) {
+      const key = `${item.source_type}:${item.id}`;
+      const existing = map.get(key);
+      if (!existing || item.rank > existing.rank) {
+        map.set(key, item);
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => b.rank - a.rank);
+}
+
 export async function searchAll(
   slug: string,
   query: string,
@@ -73,18 +87,31 @@ export async function searchAll(
 
   const wikiPromise = supabase.rpc('get_wiki_data', {
     p_slug: slug,
-    p_search: embedding ? '' : primaryQuery,
+    p_search: primaryQuery,
     p_embedding: embedding ? `[${embedding.join(',')}]` : null,
   });
 
-  const allPromise = supabase.rpc('search_all', {
-    p_tenant_slug: slug,
-    p_query: primaryQuery,
-    p_limit: limit * 3,
-    p_embedding: null,
-  });
+  const searchPromises = terms.map(term =>
+    supabase.rpc('search_all', {
+      p_tenant_slug: slug,
+      p_query: term,
+      p_limit: limit * 3,
+      p_embedding: null,
+    })
+  );
 
-  const [wikiRes, allRes] = await Promise.all([wikiPromise, allPromise]);
+  if (primaryQuery !== terms[0]) {
+    searchPromises.push(
+      supabase.rpc('search_all', {
+        p_tenant_slug: slug,
+        p_query: query,
+        p_limit: limit * 3,
+        p_embedding: null,
+      })
+    );
+  }
+
+  const [wikiRes, ...searchResults] = await Promise.all([wikiPromise, ...searchPromises]);
 
   const wiki: WikiSearchItem[] = ((wikiRes.data?.search_results as any[]) || []).map(
     (r: any) => ({
@@ -100,24 +127,29 @@ export async function searchAll(
     })
   );
 
-  const allData = allRes.data as { results?: any[] } | null;
-  const game_items: GameSearchItem[] = (allData?.results ?? []).map(
-    (r: any) => ({
-      source_type: r.source_type,
-      id: r.id,
-      name: r.name ?? '',
-      description: r.description ?? '',
-      slug: r.slug ?? '',
-      tags: r.tags ?? null,
-      collection_name: r.collection_name ?? null,
-      collection_slug: r.collection_slug ?? null,
-      raw_data: r.raw_data ?? null,
-      rank: r.rank ?? 0,
-      match_type: r.match_type ?? 'fulltext',
-    })
-  );
+  const allGameItems: GameSearchItem[][] = [];
+  for (const res of searchResults) {
+    const data = res.data as { results?: any[] } | null;
+    if (data?.results) {
+      allGameItems.push(
+        data.results.map((r: any) => ({
+          source_type: r.source_type,
+          id: r.id,
+          name: r.name ?? '',
+          description: r.description ?? '',
+          slug: r.slug ?? '',
+          tags: r.tags ?? null,
+          collection_name: r.collection_name ?? null,
+          collection_slug: r.collection_slug ?? null,
+          raw_data: r.raw_data ?? null,
+          rank: r.rank ?? 0,
+          match_type: r.match_type ?? 'fulltext',
+        }))
+      );
+    }
+  }
 
-  return { wiki, collection: [], game_items };
+  return { wiki, collection: [], game_items: mergeGameResults(allGameItems) };
 }
 
 export function formatSearchContext(result: SearchAllResult): string {
