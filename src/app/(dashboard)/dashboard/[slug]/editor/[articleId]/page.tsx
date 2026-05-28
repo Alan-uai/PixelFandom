@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Loader2, Save, Check, ShieldAlert, Sparkles, Text } from 'lucide-react';
+import { Loader2, Save, Check, ShieldAlert, Sparkles, Text, History } from 'lucide-react';
 
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
@@ -49,6 +49,9 @@ function EditPageContent() {
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [changeSummary, setChangeSummary] = useState('');
+  const [versions, setVersions] = useState<any[]>([]);
+  const [showVersions, setShowVersions] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -151,6 +154,15 @@ function EditPageContent() {
         imageUrl: article.imageUrl,
         tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
       });
+      supabase
+        .from('article_versions')
+        .select('*')
+        .eq('article_id', article.id)
+        .order('version_number', { ascending: false })
+        .limit(50)
+        .then(({ data }) => {
+          if (data) setVersions(data);
+        });
     }
   }, [article, form]);
 
@@ -284,11 +296,20 @@ function EditPageContent() {
         ...(isNewArticle ? { created_at: now, tenant_id: tenantId } : {}),
       };
 
-      const { error } = await supabase
+      const { error: upsertError } = await supabase
         .from('wiki_articles')
         .upsert(dataToSave, { onConflict: 'id' });
 
-      if (error) throw error;
+      if (upsertError) throw upsertError;
+
+      if (changeSummary.trim() && !isNewArticle) {
+        try {
+          supabase.rpc('update_last_version_summary', {
+            p_article_id: articleId,
+            p_summary: changeSummary.trim(),
+          }).then();
+        } catch {}
+      }
 
       if (isNewArticle) {
         toast({ title: 'Sucesso!', description: 'O artigo foi criado.' });
@@ -304,8 +325,18 @@ function EditPageContent() {
         };
         form.reset(valuesToReset);
         setSavedFeedback(true);
+        setChangeSummary('');
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+        supabase
+          .from('article_versions')
+          .select('*')
+          .eq('article_id', articleId)
+          .order('version_number', { ascending: false })
+          .limit(50)
+          .then(({ data }) => {
+            if (data) setVersions(data);
+          });
       }
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -487,17 +518,52 @@ function EditPageContent() {
                 )}
               />
 
-              {savedFeedback ? (
-                <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-                  <Check className="h-4 w-4" />
-                  Configurações salvas!
+              <div className="space-y-2 border-t pt-4">
+                <label className="text-xs text-muted-foreground font-medium">Resumo da Alteração (opcional)</label>
+                <textarea
+                  value={changeSummary}
+                  onChange={(e) => setChangeSummary(e.target.value)}
+                  placeholder="Descreva brevemente o que mudou..."
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-xs resize-none h-16 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                {!isNewArticle && versions.length > 0 && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowVersions(!showVersions)} className="gap-2">
+                    <History className="h-4 w-4" />
+                    Histórico ({versions.length})
+                  </Button>
+                )}
+
+                {savedFeedback ? (
+                  <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+                    <Check className="h-4 w-4" />
+                    Salvo!
+                  </div>
+                ) : form.formState.isDirty ? (
+                  <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar Alterações
+                  </Button>
+                ) : null}
+              </div>
+
+              {showVersions && versions.length > 0 && (
+                <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
+                  {versions.map((v: any) => (
+                    <div key={v.id} className="p-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">v{v.version_number}</span>
+                        <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString('pt-BR')}</span>
+                      </div>
+                      {v.change_summary && v.change_summary !== 'Auto-saved' && (
+                        <p className="text-muted-foreground mt-1">{v.change_summary}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ) : form.formState.isDirty ? (
-                <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Salvar Alterações
-                </Button>
-              ) : null}
+              )}
             </form>
           </Form>
         </CardContent>

@@ -30,8 +30,8 @@ const DEFAULT_FREE_MODELS: FreeModel[] = [
 ];
 
 const DEFAULT_GEMINI_FREE_MODELS: FreeModel[] = [
-  { id: 'gemini-3.1-flash-preview', name: 'Gemini 3.1 Flash Preview', context_length: 1_000_000 },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', context_length: 1_000_000 },
+  { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite', context_length: 1_000_000 },
   { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro', context_length: 2_000_000 },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', context_length: 1_000_000 },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', context_length: 2_000_000 },
@@ -49,13 +49,14 @@ export default function WikiAIConfigPage() {
   const initialRef = useRef({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
+    primaryProvider: 'openrouter' as 'openrouter' | 'gemini',
     model: 'openai/gpt-4o-mini',
     modelSource: 'free' as 'free' | 'custom',
     customModel: '',
     customApiKey: '',
     fallbackChain: [] as string[],
     fallbackSource: 'free' as 'free' | 'custom',
-    geminiModel: 'gemini-3.1-flash-preview',
+    geminiModel: 'gemini-2.0-flash',
     geminiModelSource: 'free' as 'free' | 'custom',
     geminiCustomModel: '',
     geminiCustomApiKey: '',
@@ -74,7 +75,7 @@ export default function WikiAIConfigPage() {
   const [customApiKey, setCustomApiKey] = useState('');
   const [fallbackChain, setFallbackChain] = useState<string[]>([]);
   const [fallbackSource, setFallbackSource] = useState<'free' | 'custom'>('free');
-  const [geminiModel, setGeminiModel] = useState('gemini-3.1-flash-preview');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
   const [geminiModelSource, setGeminiModelSource] = useState<'free' | 'custom'>('free');
   const [geminiCustomModel, setGeminiCustomModel] = useState('');
   const [geminiCustomApiKey, setGeminiCustomApiKey] = useState('');
@@ -84,8 +85,11 @@ export default function WikiAIConfigPage() {
   const [chatName, setChatName] = useState('Assistente');
   const [botLogo, setBotLogo] = useState('');
 
+  const [primaryProvider, setPrimaryProvider] = useState<'openrouter' | 'gemini'>('openrouter');
   const [freeModels, setFreeModels] = useState<FreeModel[]>(DEFAULT_FREE_MODELS);
   const [loadingModels, setLoadingModels] = useState(true);
+  const [geminiFreeModels, setGeminiFreeModels] = useState<FreeModel[]>([]);
+  const [loadingGeminiModels, setLoadingGeminiModels] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -111,6 +115,9 @@ export default function WikiAIConfigPage() {
           const savedProvider = (config.provider as string) || 'openrouter';
           setProvider(savedProvider as 'openrouter' | 'gemini' | 'hybrid');
 
+          const savedPrimaryProvider = (config.primary_provider as string) || 'openrouter';
+          setPrimaryProvider(savedPrimaryProvider as 'openrouter' | 'gemini');
+
           const savedModel = (config.model as string) || 'openai/gpt-4o-mini';
           const savedCustomApiKey = (config.custom_api_key as string) || '';
           const savedFallbackChain = (config.fallback_chain as string[]) || [];
@@ -125,13 +132,13 @@ export default function WikiAIConfigPage() {
           setFallbackChain(savedFallbackChain);
           setFallbackSource(savedFallbackSource);
 
-          const savedGeminiModel = (config.gemini_model as string) || 'gemini-3.1-flash-preview';
+          const savedGeminiModel = (config.gemini_model as string) || 'gemini-2.0-flash';
           const savedGeminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
           const savedGeminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
           const isCustomGemini = savedGeminiCustomApiKey && !isGeminiFreeModel(savedGeminiModel);
           const savedGeminiFallbackSource = savedGeminiCustomApiKey ? 'custom' : 'free';
 
-          setGeminiModel(isCustomGemini ? 'gemini-3.1-flash-preview' : savedGeminiModel);
+          setGeminiModel(isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel);
           setGeminiCustomModel(isCustomGemini ? savedGeminiModel : '');
           setGeminiModelSource(isCustomGemini ? 'custom' : 'free');
           setGeminiCustomApiKey(savedGeminiCustomApiKey);
@@ -145,13 +152,14 @@ export default function WikiAIConfigPage() {
           initialRef.current = {
             enabled: data.ai_enabled,
             provider: savedProvider as any,
+            primaryProvider: savedPrimaryProvider as any,
             model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
             modelSource: isCustomModel ? 'custom' : 'free',
             customModel: isCustomModel ? savedModel : '',
             customApiKey: savedCustomApiKey,
             fallbackChain: savedFallbackChain,
             fallbackSource: savedFallbackSource,
-            geminiModel: isCustomGemini ? 'gemini-3.1-flash-preview' : savedGeminiModel,
+            geminiModel: isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel,
             geminiCustomModel: isCustomGemini ? savedGeminiModel : '',
             geminiModelSource: isCustomGemini ? 'custom' : 'free',
             geminiCustomApiKey: savedGeminiCustomApiKey,
@@ -199,7 +207,8 @@ export default function WikiAIConfigPage() {
   }
 
   function isGeminiFreeModel(modelId: string) {
-    return DEFAULT_GEMINI_FREE_MODELS.some((m) => m.id === modelId);
+    const list = geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS;
+    return list.some((m) => m.id === modelId);
   }
 
   const resolvedModel = modelSource === 'custom' ? customModel : model;
@@ -220,6 +229,7 @@ export default function WikiAIConfigPage() {
           ai_config: {
             ...(tenant.ai_config as Record<string, unknown> || {}),
             provider,
+            primary_provider: primaryProvider,
             model: resolvedModel,
             custom_api_key: effectiveApiKey,
             fallback_chain: fallbackChain,
@@ -240,13 +250,14 @@ export default function WikiAIConfigPage() {
         initialRef.current = {
           enabled,
           provider,
+          primaryProvider,
           model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
           modelSource,
           customModel,
           customApiKey: effectiveApiKey,
           fallbackChain,
           fallbackSource,
-          geminiModel: geminiModelSource === 'custom' ? 'gemini-3.1-flash-preview' : geminiModel,
+          geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
           geminiModelSource,
           geminiCustomModel,
           geminiCustomApiKey: effectiveGeminiApiKey,
@@ -282,6 +293,7 @@ export default function WikiAIConfigPage() {
   const isDirty =
     enabled !== initialRef.current.enabled ||
     provider !== initialRef.current.provider ||
+    primaryProvider !== initialRef.current.primaryProvider ||
     resolvedModel !== (initialRef.current.modelSource === 'custom' ? initialRef.current.customModel : initialRef.current.model) ||
     modelSource !== initialRef.current.modelSource ||
     customModel !== initialRef.current.customModel ||
@@ -363,9 +375,35 @@ export default function WikiAIConfigPage() {
             <p className="text-xs text-muted-foreground">
               {provider === 'openrouter' && 'Usa OpenRouter com fallback entre modelos.'}
               {provider === 'gemini' && 'Usa diretamente a API Gemini do Google.'}
-              {provider === 'hybrid' && 'Tenta OpenRouter primeiro; se falhar, usa Gemini como fallback.'}
+              {provider === 'hybrid' && 'Tenta o provedor primário; se falhar, usa o outro como fallback.'}
             </p>
           </div>
+
+          {provider === 'hybrid' && (
+            <div className="space-y-2">
+              <Label>Provedor Primário (Híbrido)</Label>
+              <div className="flex gap-2">
+                {(['openrouter', 'gemini'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPrimaryProvider(p)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      primaryProvider === p ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    {p === 'openrouter' ? <Globe className="h-3.5 w-3.5" /> : <Cpu className="h-3.5 w-3.5" />}
+                    {p === 'openrouter' ? 'OpenRouter' : 'Gemini'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {primaryProvider === 'openrouter'
+                  ? 'Tenta OpenRouter primeiro; se falhar, usa Gemini.'
+                  : 'Tenta Gemini primeiro; se falhar, usa OpenRouter.'}
+              </p>
+            </div>
+          )}
 
           {showOpenRouter && (
             <>
@@ -581,7 +619,7 @@ export default function WikiAIConfigPage() {
                     onChange={(e) => setGeminiModel(e.target.value)}
                     className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
-                    {DEFAULT_GEMINI_FREE_MODELS.map((m) => (
+                    {(geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS).map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name} ({m.id}) — {formatContext(m.context_length)}
                       </option>
@@ -636,7 +674,7 @@ export default function WikiAIConfigPage() {
 
                 {geminiFallbackSource === 'free' ? (
                   <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border p-2">
-                    {DEFAULT_GEMINI_FREE_MODELS.map((m) => (
+                    {(geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS).map((m) => (
                       <label
                         key={m.id}
                         className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"

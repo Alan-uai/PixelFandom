@@ -180,9 +180,10 @@ export async function POST(request: NextRequest) {
     let model = 'openai/gpt-4o-mini';
     let customApiKey = '';
     let fallbackChain: string[] = [];
-    let geminiModel = 'gemini-3.1-flash-preview';
+    let geminiModel = 'gemini-2.0-flash';
     let geminiCustomApiKey = '';
     let geminiFallbackChain: string[] = [];
+    let primaryProvider = 'openrouter';
     let tenantSlug = requestTenant?.slug || '';
 
     if (requestTenant?.slug) {
@@ -200,6 +201,7 @@ export async function POST(request: NextRequest) {
         geminiModel = (config.gemini_model as string) || geminiModel;
         geminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
         geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
+        primaryProvider = (config.primary_provider as string) || 'openrouter';
       }
     }
 
