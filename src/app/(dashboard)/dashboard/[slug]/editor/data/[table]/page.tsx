@@ -9,6 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   Loader2,
   Plus,
@@ -21,6 +27,7 @@ import {
   Check,
   PlusCircle,
   ImageIcon,
+  CalendarIcon,
 } from 'lucide-react';
 
 const tableLabels: Record<string, string> = {
@@ -60,6 +67,28 @@ const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding
 const imageColumnNames = ['image_url', 'image', 'icon_url', 'cover_url', 'logo_url'];
 
 const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision'];
+
+const dateColumnNames = ['verified_date', 'expired_date', 'release_date', 'event_date'];
+const systemDateColumns = ['created_at', 'updated_at'];
+
+function getColumnDataType(col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined {
+  return columns?.find((c) => c.column_name === col)?.data_type;
+}
+
+function isDateColumn(col: string, dataType?: string): boolean {
+  if (systemDateColumns.includes(col)) return false;
+  if (dataType === 'date') return true;
+  if (dataType?.startsWith('timestamp')) return true;
+  if (dateColumnNames.includes(col)) return true;
+  if (col.endsWith('_date')) return true;
+  return false;
+}
+
+function isTimeColumn(col: string, dataType?: string): boolean {
+  if (dataType === 'time without time zone' || dataType === 'time') return true;
+  if (col.endsWith('_time') || col === 'time') return true;
+  return false;
+}
 
 interface Row {
   [key: string]: unknown;
@@ -338,6 +367,8 @@ export default function DataTablePage() {
   ) => {
     if (col === 'embedding' || col.startsWith('embedding')) return null;
 
+    const dataType = getColumnDataType(col, tableColumns);
+
     if (isImageColumn(col)) {
       return (
         <ImageUpload
@@ -349,17 +380,58 @@ export default function DataTablePage() {
       );
     }
 
-    if (isBoolean) {
+    const isBool = isBoolean || dataType === 'boolean';
+
+    if (isBool) {
       return (
         <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+          <Switch
             checked={value === 'true'}
-            onChange={(e) => onChange(col, String(e.target.checked))}
-            className="h-4 w-4 rounded border-gray-300"
+            onCheckedChange={(checked) => onChange(col, String(checked))}
           />
           <span className="text-xs text-muted-foreground">{value === 'true' ? 'Sim' : 'Não'}</span>
         </div>
+      );
+    }
+
+    if (isDateColumn(col, dataType)) {
+      const date = value ? parse(value, 'yyyy-MM-dd', new Date()) : undefined;
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                'w-full justify-start text-left font-normal h-8 text-sm',
+                !date && 'text-muted-foreground'
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, 'dd/MM/yyyy') : <span>Selecionar data</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(selectedDate) => {
+                onChange(col, selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '');
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      );
+    }
+
+    if (isTimeColumn(col, dataType)) {
+      return (
+        <input
+          type="time"
+          value={value}
+          onChange={(e) => onChange(col, e.target.value)}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 h-8"
+        />
       );
     }
 

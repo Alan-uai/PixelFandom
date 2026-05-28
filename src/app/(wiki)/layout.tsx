@@ -87,7 +87,9 @@ function WikiLayoutContent({
         if (data?.floatingIslands) {
           setFloatingIslands(data.floatingIslands);
         }
-      } catch {}
+      } catch (err) {
+        console.error('[WikiLayout] Failed to fetch floating islands:', err);
+      }
     })();
   }, [tenant?.id]);
 

@@ -30,9 +30,16 @@ export interface BlockDefinition {
 
 // ── Floating Islands ──
 
-export type FloatingIslandType = 'raid-timer' | 'video-list' | 'category-table' | 'wiki-list';
+export type FloatingIslandType = 'multi-timer' | 'queue-timer' | 'video-list' | 'category-table' | 'wiki-list' | 'carousel' | 'list';
 
 export type FloatingIslandPosition = 'left' | 'center' | 'right';
+
+export interface IslandMedia {
+  type: 'image' | 'gif' | 'video' | 'link';
+  url: string;
+  /** always: exibe sempre que a ilha está aberta | on-trigger: exibe só no disparo do evento */
+  displayMode: 'always' | 'on-trigger';
+}
 
 export interface FloatingIslandConfig {
   id: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { FloatingIslandConfig } from '@/components/page-builder/types';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
@@ -26,6 +26,10 @@ export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBa
     setActiveId((prev) => (prev === id ? null : id));
   };
 
+  const handleAutoExpand = useCallback((id: string) => {
+    setActiveId(id);
+  }, []);
+
   const renderIsland = (island: FloatingIslandConfig | null) => {
     if (!island) return <div />;
     return (
@@ -33,6 +37,7 @@ export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBa
         island={island}
         isExpanded={activeId === island.id}
         onToggle={() => handleToggle(island.id)}
+        onAutoExpand={() => handleAutoExpand(island.id)}
         basePath={basePath}
       />
     );

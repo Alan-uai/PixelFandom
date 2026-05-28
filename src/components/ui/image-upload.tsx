@@ -69,6 +69,7 @@ export function ImageUpload({
         .getPublicUrl(filePath);
 
       onChange(publicUrl);
+      toast({ title: 'Imagem enviada', description: 'A imagem foi enviada com sucesso.' });
     } catch (error) {
       console.error('Upload error:', error);
       toast({

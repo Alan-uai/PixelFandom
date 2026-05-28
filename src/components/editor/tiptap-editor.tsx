@@ -98,6 +98,8 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       editor.chain().focus().setImage({ src: publicUrl }).run();
     } catch (err: any) {
       console.error('Erro ao enviar imagem:', err);
+      const { toast } = await import('@/hooks/use-toast');
+      toast({ variant: 'destructive', title: 'Erro no upload', description: 'Não foi possível enviar a imagem para o editor.' });
     } finally {
       setUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = '';

@@ -290,7 +290,7 @@ function EditPageContent() {
         summary: values.summary,
         content: values.content,
         tags: values.tags.split(',').map(tag => tag.trim()),
-        imageUrl: values.imageUrl || '',
+        imageUrl: values.imageUrl || null,
         tables: parsedTables,
         updated_at: now,
         ...(isNewArticle ? { created_at: now, tenant_id: tenantId } : {}),
@@ -320,7 +320,7 @@ function EditPageContent() {
           summary: values.summary,
           content: values.content,
           tags: values.tags,
-          imageUrl: values.imageUrl || '',
+          imageUrl: values.imageUrl || undefined,
           tables: values.tables || '',
         };
         form.reset(valuesToReset);
@@ -339,8 +339,11 @@ function EditPageContent() {
           });
       }
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
+      const errDetails = (error as any)?.details || (error as any)?.hint || '';
       console.error('Erro ao salvar:', error);
-      toast({ variant: 'destructive', title: 'Erro ao Salvar', description: 'Não foi possível salvar os dados no Supabase.' });
+      console.error('Detalhes do erro:', { message: errMsg, details: errDetails });
+      toast({ variant: 'destructive', title: 'Erro ao Salvar', description: errMsg });
     } finally {
       setIsSaving(false);
     }

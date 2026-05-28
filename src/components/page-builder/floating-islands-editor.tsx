@@ -2,20 +2,67 @@
 
 import { useState, useCallback } from 'react';
 import { nanoid } from 'nanoid';
-import { Plus, Trash2, ChevronDown, ChevronUp, Timer, Video, Table2, List } from 'lucide-react';
-import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition } from './types';
+import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List, Image as ImageIcon, ListOrdered } from 'lucide-react';
+import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia } from './types';
 
 const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.ComponentType<{ className?: string }>; defaultConfig: Record<string, unknown> }[] = [
-  { type: 'raid-timer', label: 'Timer Raid', icon: Timer, defaultConfig: { targetDate: '', label: 'Próximo Raid', raidName: '' } },
+  {
+    type: 'multi-timer',
+    label: 'Cronômetro Múltiplo',
+    icon: Clock,
+    defaultConfig: {
+      events: [{ name: 'Evento', targetDate: '', displayDuration: 10 }],
+      displayFormat: 'parallel',
+      media: null,
+    },
+  },
+  {
+    type: 'queue-timer',
+    label: 'Cronômetro Sequencial',
+    icon: Timer,
+    defaultConfig: {
+      items: [{ name: 'Item', time: '14:00' }],
+      displayFormat: 'sequential',
+      media: null,
+    },
+  },
   { type: 'video-list', label: 'Lista de Vídeos', icon: Video, defaultConfig: { items: [] } },
   { type: 'category-table', label: 'Tabela Categorias', icon: Table2, defaultConfig: { headers: ['#', 'Item'], rows: [] } },
   { type: 'wiki-list', label: 'Lista Wiki', icon: List, defaultConfig: { items: [] } },
+  {
+    type: 'carousel',
+    label: 'Carrossel',
+    icon: ImageIcon,
+    defaultConfig: {
+      direction: 'horizontal',
+      autoPlay: false,
+      interval: 5,
+      items: [{ imageUrl: '', text: '', link: '' }],
+    },
+  },
+  {
+    type: 'list',
+    label: 'Lista',
+    icon: ListOrdered,
+    defaultConfig: {
+      style: 'standard',
+      bulletIcon: '•',
+      items: [{ text: '', link: '' }],
+    },
+  },
 ];
 
 const POSITIONS: { value: FloatingIslandPosition; label: string }[] = [
   { value: 'left', label: 'Esquerda' },
   { value: 'center', label: 'Centro' },
   { value: 'right', label: 'Direita' },
+];
+
+const MEDIA_TYPES: { value: IslandMedia['type']; label: string }[] = [
+  { value: 'image', label: 'Imagem' },
+  { value: 'gif', label: 'GIF' },
+  { value: 'video', label: 'Vídeo' },
+  { value: 'link', label: 'Link' },
 ];
 
 interface FloatingIslandsEditorProps {
@@ -31,13 +78,14 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
     const usedPositions = new Set(islands.map((i) => i.position));
     const avail = POSITIONS.find((p) => !usedPositions.has(p.value));
     if (!avail) return;
+    const def = ISLAND_TYPES[0];
     const newIsland: FloatingIslandConfig = {
       id: nanoid(),
       position: avail.value,
-      type: 'raid-timer',
+      type: def.type,
       title: 'Nova Ilha',
       enabled: true,
-      config: { targetDate: '', label: 'Próximo Raid', raidName: '' },
+      config: { ...def.defaultConfig },
     };
     onChange([...islands, newIsland]);
     setExpandedId(newIsland.id);
@@ -68,6 +116,12 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
     } else {
       updateConfig(id, { ...island.config, [key]: value });
     }
+  };
+
+  const handleMediaChange = (id: string, media: IslandMedia | null) => {
+    const island = islands.find((i) => i.id === id);
+    if (!island) return;
+    updateConfig(id, { ...island.config, media });
   };
 
   const usedPositions = new Set(islands.map((i) => i.position));
@@ -182,7 +236,7 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
                       Configuração
                     </p>
-                    <ConfigFields island={island} onChange={handleFieldChange} />
+                    <ConfigFields island={island} onChange={handleFieldChange} onMediaChange={handleMediaChange} />
                   </div>
                 </div>
               )}
@@ -203,45 +257,141 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ── Media editor ──
+
+function MediaEditor({
+  media,
+  onChange,
+}: {
+  media: IslandMedia | null | undefined;
+  onChange: (m: IslandMedia | null) => void;
+}) {
+  const enabled = !!media;
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">Mídia do Evento</p>
+        <button
+          onClick={() => onChange(enabled ? null : { type: 'image', url: '', displayMode: 'on-trigger' })}
+          className="text-xs text-primary hover:underline"
+        >
+          {enabled ? 'Remover' : 'Adicionar'}
+        </button>
+      </div>
+      {enabled && media && (
+        <div className="space-y-2">
+          <Field label="Tipo">
+            <select
+              value={media.type}
+              onChange={(e) => onChange({ ...media, type: e.target.value as IslandMedia['type'] })}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+            >
+              {MEDIA_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="URL">
+            <input
+              type="url"
+              value={media.url}
+              onChange={(e) => onChange({ ...media, url: e.target.value })}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+              placeholder="https://..."
+            />
+          </Field>
+          <Field label="Aparição">
+            <select
+              value={media.displayMode}
+              onChange={(e) => onChange({ ...media, displayMode: e.target.value as 'always' | 'on-trigger' })}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+            >
+              <option value="on-trigger">Ao evento (dispara no horário)</option>
+              <option value="always">Visível sempre</option>
+            </select>
+          </Field>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Config fields per type ──
+
 function ConfigFields({
   island,
   onChange,
+  onMediaChange,
 }: {
   island: FloatingIslandConfig;
   onChange: (id: string, key: string, value: unknown) => void;
+  onMediaChange: (id: string, media: IslandMedia | null) => void;
 }) {
   const id = island.id;
 
   switch (island.type) {
-    case 'raid-timer':
+    case 'multi-timer':
       return (
-        <div className="space-y-2">
-          <Field label="Nome do Raid">
-            <input
-              type="text"
-              value={(island.config.raidName as string) || ''}
-              onChange={(e) => onChange(id, 'raidName', e.target.value)}
+        <div className="space-y-3">
+          <Field label="Formato de Exibição">
+            <select
+              value={(island.config.displayFormat as string) || 'parallel'}
+              onChange={(e) => onChange(id, 'displayFormat', e.target.value)}
               className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-              placeholder="Ex: Lord of the Dead"
-            />
+            >
+              <option value="parallel">Paralelo (rotação)</option>
+              <option value="carousel">Carrossel</option>
+              <option value="list">Lista</option>
+            </select>
           </Field>
-          <Field label="Label">
-            <input
-              type="text"
-              value={(island.config.label as string) || ''}
-              onChange={(e) => onChange(id, 'label', e.target.value)}
+          <ArrayEditor
+            items={(island.config.events as any[]) || []}
+            fields={[
+              { key: 'name', label: 'Nome', placeholder: 'Ex: Evento Aniversário' },
+              { key: 'targetDate', label: 'Data/Hora', type: 'datetime-local', placeholder: '' },
+              { key: 'displayDuration', label: 'Duração (seg)', type: 'number', placeholder: '10' },
+            ]}
+            onChange={(items) => onChange(id, 'events', items)}
+            emptyLabel="Nenhum evento"
+            addLabel="Adicionar Evento"
+            maxItems={5}
+          />
+          <MediaEditor
+            media={(island.config.media as IslandMedia | null) || undefined}
+            onChange={(m) => onMediaChange(id, m)}
+          />
+        </div>
+      );
+
+    case 'queue-timer':
+      return (
+        <div className="space-y-3">
+          <Field label="Formato de Exibição">
+            <select
+              value={(island.config.displayFormat as string) || 'sequential'}
+              onChange={(e) => onChange(id, 'displayFormat', e.target.value)}
               className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-              placeholder="Ex: Próximo Raid"
-            />
+            >
+              <option value="sequential">Sequencial (próximo)</option>
+              <option value="carousel">Carrossel</option>
+              <option value="list">Lista</option>
+            </select>
           </Field>
-          <Field label="Data Alvo">
-            <input
-              type="datetime-local"
-              value={(island.config.targetDate as string) || ''}
-              onChange={(e) => onChange(id, 'targetDate', e.target.value)}
-              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-            />
-          </Field>
+          <ArrayEditor
+            items={(island.config.items as any[]) || []}
+            fields={[
+              { key: 'name', label: 'Nome', placeholder: 'Ex: Lord of the Dead' },
+              { key: 'time', label: 'Horário', type: 'time', placeholder: '14:00' },
+            ]}
+            onChange={(items) => onChange(id, 'items', items)}
+            emptyLabel="Nenhum item"
+            addLabel="Adicionar Item"
+          />
+          <MediaEditor
+            media={(island.config.media as IslandMedia | null) || undefined}
+            onChange={(m) => onMediaChange(id, m)}
+          />
         </div>
       );
 
@@ -298,10 +448,107 @@ function ConfigFields({
         />
       );
 
+    case 'carousel':
+      return (
+        <div className="space-y-3">
+          <Field label="Direção">
+            <select
+              value={(island.config.direction as string) || 'horizontal'}
+              onChange={(e) => onChange(id, 'direction', e.target.value)}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+            >
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </Field>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`autoplay-${id}`}
+              checked={!!island.config.autoPlay}
+              onChange={(e) => onChange(id, 'autoPlay', e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor={`autoplay-${id}`} className="text-xs text-muted-foreground">Auto-play</label>
+          </div>
+          {(island.config.autoPlay as boolean) && (
+            <Field label="Intervalo (segundos)">
+              <input
+                type="number"
+                value={(island.config.interval as number) || 5}
+                onChange={(e) => onChange(id, 'interval', Number(e.target.value))}
+                min={1}
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+              />
+            </Field>
+          )}
+          <ArrayEditor
+            items={(island.config.items as any[]) || []}
+            fields={[
+              { key: 'imageUrl', label: 'Imagem URL', placeholder: 'https://...' },
+              { key: 'videoUrl', label: 'Vídeo URL', placeholder: 'https://...' },
+              { key: 'text', label: 'Texto', placeholder: 'Legenda ou descrição' },
+              { key: 'link', label: 'Link', placeholder: 'https://...' },
+            ]}
+            onChange={(items) => onChange(id, 'items', items)}
+            emptyLabel="Nenhum slide"
+            addLabel="Adicionar Slide"
+          />
+        </div>
+      );
+
+    case 'list':
+      return (
+        <div className="space-y-3">
+          <Field label="Estilo">
+            <select
+              value={(island.config.style as string) || 'standard'}
+              onChange={(e) => onChange(id, 'style', e.target.value)}
+              className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+            >
+              <option value="standard">Padrão</option>
+              <option value="numbered">Enumerada</option>
+              <option value="topic">Tópico</option>
+            </select>
+          </Field>
+          {(island.config.style as string) === 'topic' && (
+            <Field label="Ícone do Tópico">
+              <div className="flex gap-1.5 flex-wrap">
+                {['•', '♦', '★', '♥', '×', '∆'].map((icon) => (
+                  <button
+                    key={icon}
+                    onClick={() => onChange(id, 'bulletIcon', icon)}
+                    className={`h-7 w-7 rounded-md border text-sm flex items-center justify-center transition-colors ${
+                      (island.config.bulletIcon as string) === icon
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+          <ArrayEditor
+            items={(island.config.items as any[]) || []}
+            fields={[
+              { key: 'text', label: 'Texto', placeholder: 'Texto do item' },
+              { key: 'link', label: 'Link (opcional)', placeholder: 'https://...' },
+            ]}
+            onChange={(items) => onChange(id, 'items', items)}
+            emptyLabel="Nenhum item"
+            addLabel="Adicionar Item"
+          />
+        </div>
+      );
+
     default:
       return null;
   }
 }
+
+// ── Array editor (generic) ──
 
 function ArrayEditor({
   items,
@@ -310,15 +557,20 @@ function ArrayEditor({
   onChange,
   emptyLabel,
   addLabel,
+  maxItems,
 }: {
   items: any[];
-  fields?: { key: string; label: string; placeholder: string }[];
+  fields?: { key: string; label: string; type?: string; placeholder: string }[];
   simple?: boolean;
   onChange: (items: any[]) => void;
   emptyLabel: string;
   addLabel: string;
+  maxItems?: number;
 }) {
+  const canAdd = maxItems ? items.length < maxItems : true;
+
   const addItem = () => {
+    if (!canAdd) return;
     if (simple) {
       onChange([...items, '']);
     } else if (fields) {
@@ -362,7 +614,7 @@ function ArrayEditor({
                 fields.map((f) => (
                   <input
                     key={f.key}
-                    type="text"
+                    type={f.type || 'text'}
                     value={item[f.key] || ''}
                     onChange={(e) => updateItem(index, f.key, e.target.value)}
                     className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
@@ -380,13 +632,15 @@ function ArrayEditor({
           </div>
         ))}
       </div>
-      <button
-        onClick={addItem}
-        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-      >
-        <Plus className="h-3 w-3" />
-        {addLabel}
-      </button>
+      {canAdd && (
+        <button
+          onClick={addItem}
+          className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+        >
+          <Plus className="h-3 w-3" />
+          {addLabel} {maxItems ? `(${items.length}/${maxItems})` : ''}
+        </button>
+      )}
     </div>
   );
 }
