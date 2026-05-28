@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function parseContentToJson(content: string | null): Record<string, unknown> | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -30,7 +43,8 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (wikiArticle) {
-      return NextResponse.json({ article: wikiArticle });
+      const item_stats = parseContentToJson(wikiArticle.content);
+      return NextResponse.json({ article: wikiArticle, item_stats });
     }
 
     const { data: byId } = await supabase
@@ -41,10 +55,11 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (byId) {
-      return NextResponse.json({ article: byId });
+      const item_stats = parseContentToJson(byId.content);
+      return NextResponse.json({ article: byId, item_stats });
     }
 
-    return NextResponse.json({ article: null });
+    return NextResponse.json({ article: null, item_stats: null });
   } catch (error) {
     console.error('Voice article error:', error);
     return NextResponse.json({ error: 'Failed to get article' }, { status: 500 });

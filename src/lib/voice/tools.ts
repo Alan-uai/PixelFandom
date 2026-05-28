@@ -66,19 +66,23 @@ export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
 RETURNS: { wiki: [...], collection: [...], game_items: [...] }
 
 HOW TO SEARCH — CRITICAL:
-- Do NOT search with the user's full question. Extract ONLY the key terms (item name, enemy name, boss name, etc).
+- Do NOT search with the user\'s full question. Extract ONLY the key terms (item name, enemy name, boss name, etc).
 - Example: user says "como obter a espada noturna" → search query must be "espada noturna" (the item name), NOT the full sentence.
 - Example: user says "qual a fraqueza do goblin rei" → search query must be "goblin rei" NOT "qual a fraqueza do goblin rei".
 - Example: user says "necro flash" → search WILL find "Necro Flask" because fuzzy/partial matching is enabled across all fields.
-- The search engine now scans ALL tables + ALL text columns automatically with fuzzy matching (pg_trgm). So even partial/typo'd queries work.
+- The search engine now scans ALL tables + ALL text columns automatically with fuzzy matching (pg_trgm). So even partial/typo\'d queries work.
 
 wiki[] = articles with title, summary, text content, tags. Use for lore, guides, strategies.
 collection[] = game items with COMPLETE RAW STATS in the "data" field.
 
 game_items[] = RESULTS FROM ALL GAME TABLES (weapons, armors, enemies, bosses, rings, potions, upgrades) with raw data.
 
-IMPORTANT: All items contain REAL attributes like damage_min, damage_max, ability, element, crit_chance, attack_speed, tier, rarity, knockback, enemy_type, boss_type, attacks, strategy, weakness, difficulty, hp_level, speed_level, strength_level, xp_drop, coin_drop, world_name, chapters, obtain_method, craft_cost, craft_materials, etc.
-Always read the actual numbers from data and NEVER invent stats the user asks about. If data lacks a specific field, say the info is not available rather than inventing.`,
+NEVER HALLUCINATE:
+- Read the ACTUAL numbers from "raw_data". If raw_data is null or a field is missing, say the info is NOT AVAILABLE — NEVER invent stats, damage, abilities, weaknesses, or any data.
+- If a field exists, read its exact value. Do not calculate, estimate, or modify it.
+- If search returns empty, say "não encontrei" / "not found". Do not describe a made-up item.
+- Accuracy matters more than being helpful. A wrong stat is worse than saying "I don\'t know".`,
+
       {
         type: 'object',
         properties: {
@@ -98,7 +102,7 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
 
     new FunctionCallTool(
       'getWikiInfo',
-      'Get wiki metadata: article count, available collections/categories (weapons, armors, rings, enemies, bosses, upgrades, potions, worlds, codes, crafting-recipes), and all content tags used across articles.',
+      'Get wiki metadata: total article count, per-tag counts (tag_counts: { potions: 4, weapons: 30 }), available collections/categories, and all tags. Use for answering "how many articles", "how many potions", "what categories exist". Never invent counts — read the actual numbers from the response.',
       {
         type: 'object',
         properties: {},
@@ -115,7 +119,7 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
 
     new FunctionCallTool(
       'getWikiArticle',
-      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) if a matching game item exists. Use this to read full article text or get detailed item statistics.',
+      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) IF the article has structured game data. If item_stats is null, the article has no game stats — do not invent any. Read the article text content but never fabricate numbers.',
       {
         type: 'object',
         properties: {
@@ -177,14 +181,18 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
 
     new FunctionCallTool(
       'listWikiArticles',
-      'List all available wiki articles with their titles, slugs, tags, and summaries.',
+      'List wiki articles. Use optional "tag" parameter to filter by category (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Without tag, returns all articles. Use with getWikiInfo tag_counts to list items by category.',
       {
         type: 'object',
-        properties: {},
+        properties: {
+          tag: { type: 'string', description: 'Optional: filter by tag/category (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Without this, lists ALL articles.' },
+        },
       },
-      async () => {
+      async (params: { tag?: string }) => {
         try {
-          const data = await ctx.fetchWithSlug('/api/voice/articles', {})
+          const queryParams: Record<string, string> = {}
+          if (params.tag) queryParams.tag = params.tag
+          const data = await ctx.fetchWithSlug('/api/voice/articles', queryParams)
           return { result: data }
         } catch (e) {
           return { result: { error: 'Failed to list articles', articles: [] } }
@@ -221,9 +229,9 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
             message: `I can help you with:
 - Search wiki articles AND game items with stats (damage, abilities, elements, etc.)
 - Read full article content and item details with raw numbers
+- List articles by category (potions, weapons, armors, etc.)
 - Navigate to wiki pages and item pages
-- List all articles
-- Show wiki overview (collections, tags, article count)
+- Show wiki overview (categories with counts, tags, article count)
 - Switch to another wiki
 - Adjust volume, change voice, clear conversation`,
           },

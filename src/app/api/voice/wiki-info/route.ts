@@ -33,7 +33,14 @@ export async function GET(request: NextRequest) {
         .not('tags', 'is', null),
     ])
 
-    const tags = [...new Set((rawTags || []).flatMap((r) => r.tags || []))].sort()
+    const uniqueTags = [...new Set((rawTags || []).flatMap((r) => r.tags || []))].sort()
+
+    const tagCounts: Record<string, number> = {}
+    for (const row of rawTags || []) {
+      for (const tag of row.tags || []) {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1
+      }
+    }
 
     return NextResponse.json({
       wiki: {
@@ -43,7 +50,8 @@ export async function GET(request: NextRequest) {
         description: tenant.description,
       },
       article_count: articleCount || 0,
-      tags,
+      tags: uniqueTags,
+      tag_counts: tagCounts,
     })
   } catch (error) {
     console.error('Voice wiki info error:', error)

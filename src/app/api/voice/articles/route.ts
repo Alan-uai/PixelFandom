@@ -4,6 +4,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
+    const tagFilter = searchParams.get('tag');
 
     if (!slug) {
       return NextResponse.json({ error: 'slug required' }, { status: 400 });
@@ -21,12 +22,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('wiki_articles')
       .select('id, title, slug, summary, tags, updated_at')
-      .eq('tenant_id', tenant.id)
-      .order('title')
-      .limit(100);
+      .eq('tenant_id', tenant.id);
+
+    if (tagFilter) {
+      query = query.contains('tags', [tagFilter]);
+    }
+
+    const { data, error } = await query.order('title').limit(100);
 
     if (error) throw error;
 
