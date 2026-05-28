@@ -178,9 +178,9 @@ export default function WikiDiscordPage() {
   ];
 
   return (
-    <div className="flex gap-6">
+    <div className="flex">
       <PageSubNav sections={sections} />
-      <div className="flex-1 max-w-2xl mx-auto space-y-6">
+      <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="status">
       <Card>

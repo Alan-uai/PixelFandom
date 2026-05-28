@@ -94,7 +94,7 @@ export default function WikiMembersPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
       <section id="members">
       <Card>
         <CardHeader>

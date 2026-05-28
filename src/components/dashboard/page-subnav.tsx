@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { PanelLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { usePageSubNav } from '@/components/dashboard/page-subnav-context';
 
 interface Section {
   id: string;
@@ -16,24 +17,8 @@ interface PageSubNavProps {
 }
 
 export function PageSubNav({ sections }: PageSubNavProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed } = usePageSubNav();
   const [activeId, setActiveId] = useState(sections[0]?.id);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stored = localStorage.getItem('page-subnav-collapsed');
-      if (stored === 'true') setCollapsed(true);
-    } catch {}
-  }, []);
-
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try {
-      localStorage.setItem('page-subnav-collapsed', String(next));
-    } catch {}
-  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -66,25 +51,18 @@ export function PageSubNav({ sections }: PageSubNavProps) {
   return (
     <aside
       className={cn(
-        'sticky top-20 shrink-0 self-start border-r bg-muted/30 flex flex-col transition-all duration-200',
+        'sticky top-[66px] shrink-0 self-start border-r bg-muted/30 flex flex-col transition-all duration-200',
         collapsed ? 'w-12' : 'w-48'
       )}
     >
-      <div className="flex items-center gap-1 p-3">
-        {!collapsed && (
-          <p className="px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider truncate flex-1">
+      {!collapsed && (
+        <div className="px-4 pt-3 pb-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
             Seções
           </p>
-        )}
-        <button
-          onClick={toggle}
-          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          title={collapsed ? 'Expandir seções' : 'Recolher seções'}
-        >
-          {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </button>
-      </div>
-      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+        </div>
+      )}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1 pt-2">
         {sections.map((s) => {
           const Icon = s.icon;
           const isActive = activeId === s.id;

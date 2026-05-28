@@ -336,7 +336,7 @@ function EditPageContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
