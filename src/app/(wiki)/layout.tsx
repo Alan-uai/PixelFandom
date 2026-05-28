@@ -11,6 +11,7 @@ import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { MAIN_DOMAIN } from '@/lib/constants';
 
 export default function WikiLayout({
@@ -165,6 +166,10 @@ function WikiLayoutContent({
         </nav>
 
         <div className="flex-1" />
+
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+        </div>
       </header>
 
       {showTitleStrip && (

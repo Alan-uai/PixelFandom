@@ -21,6 +21,7 @@ import {
   Download,
   FileText,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { LayoutGroup, motion } from 'framer-motion';
 import { PageSubNavProvider, usePageSubNav } from '@/components/dashboard/page-subnav-context';
 
@@ -166,6 +167,7 @@ export default function DashboardLayout({
         <div className="flex-1" />
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[120px]">
             {user.email || user.id.slice(0, 12)}
           </span>

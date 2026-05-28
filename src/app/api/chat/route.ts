@@ -3,6 +3,7 @@ import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
 import { chatStreamGemini } from '@/lib/gemini-chat';
+import { createClient } from '@/supabase/server';
 
 const SCHEMA_PROMPT = `
 ## ESTRUTURA DO BANCO DE DADOS
@@ -169,7 +170,7 @@ async function streamOpenRouter(
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const { message, session_id } = await request.json();
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -185,9 +186,11 @@ export async function POST(request: NextRequest) {
     let geminiFallbackChain: string[] = [];
     let primaryProvider = 'openrouter';
     let tenantSlug = requestTenant?.slug || '';
+    let tenantId: string | null = null;
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
+      tenantId = tenant?.id || null;
       if (tenant?.ai_enabled && tenant.ai_config) {
         const config = tenant.ai_config as Record<string, unknown>;
         let userPrompt = (config.system_prompt as string) || '';
@@ -242,6 +245,21 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       { role: 'system', content: ragPrompt },
       { role: 'user', content: message },
     ];
+
+    // Save user message to DB if session_id provided
+    if (session_id) {
+      try {
+        const supabase = await createClient();
+        await supabase.from('chat_messages').insert({
+          session_id,
+          role: 'user',
+          content: message,
+          provider: 'text',
+        });
+      } catch (e) {
+        console.error('Failed to save user message:', e);
+      }
+    }
 
     if (provider === 'gemini') {
       const geminiApiKey = geminiCustomApiKey || process.env.GEMINI_API_KEY;

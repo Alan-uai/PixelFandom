@@ -11,8 +11,8 @@ DECLARE
 BEGIN
   FOREACH tbl IN ARRAY tables
   LOOP
-    EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS embedding VECTOR(1536);', tbl);
-    EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);', tbl, tbl);
+    EXECUTE format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS embedding extensions.VECTOR(1536);', tbl);
+    EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_embedding ON %I USING ivfflat (embedding extensions.vector_cosine_ops) WITH (lists = 100);', tbl, tbl);
   END LOOP;
 END;
 $$;
@@ -36,7 +36,7 @@ DECLARE
   v_tenant_id UUID;
   v_results JSONB;
   v_clean TEXT;
-  v_embedding_vector VECTOR(1536);
+  v_embedding_vector extensions.VECTOR(1536);
 BEGIN
   SELECT id INTO v_tenant_id FROM tenants WHERE slug = p_tenant_slug;
   IF v_tenant_id IS NULL THEN
@@ -45,7 +45,7 @@ BEGIN
 
   IF p_embedding IS NOT NULL AND p_embedding <> '' THEN
     BEGIN
-      v_embedding_vector := p_embedding::VECTOR(1536);
+      v_embedding_vector := p_embedding::extensions.VECTOR(1536);
     EXCEPTION WHEN OTHERS THEN
       v_embedding_vector := NULL;
     END;

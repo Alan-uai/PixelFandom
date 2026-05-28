@@ -7,6 +7,7 @@ import { createAgentTools } from '@/lib/voice/agentSystem'
 import { buildSystemPrompt } from '@/lib/voice/systemPrompt'
 import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/supabase'
 
 type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'
 
@@ -43,8 +44,25 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const wakeWordDetectorRef = useRef<WakeWordDetector | null>(null)
   const disconnectIntentionalRef = useRef(false)
 
+  const voiceSessionIdRef = useRef<string | null>(null)
+  const turnTranscriptsRef = useRef<string[]>([])
+
   useEffect(() => {
     settingsRef.current = loadSettings()
+  }, [])
+
+  const saveVoiceSessionMessage = useCallback(async (role: string, content: string) => {
+    const sid = voiceSessionIdRef.current
+    if (!sid) return
+    try {
+      await fetch(`/api/chat/sessions/${sid}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role, content, provider: 'voice', metadata: { transcribed: true } }],
+        }),
+      })
+    } catch {}
   }, [])
 
   const handleMessage = useCallback(async (message: ResponseMessage) => {
@@ -55,8 +73,29 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         playerRef.current?.playBase64(message.data)
         break
       case MultimodalLiveResponseType.OUTPUT_TRANSCRIPTION:
+        if (message.data?.text && message.data?.finished) {
+          saveVoiceSessionMessage('assistant', message.data.text)
+        }
+        break
+      case MultimodalLiveResponseType.INPUT_TRANSCRIPTION:
+        if (message.data?.text && message.data?.finished) {
+          saveVoiceSessionMessage('user', message.data.text)
+        }
         break
       case MultimodalLiveResponseType.SETUP_COMPLETE:
+        break
+      case MultimodalLiveResponseType.TURN_COMPLETE:
+        break
+      case MultimodalLiveResponseType.SESSION_RESUMPTION_UPDATE:
+        if (message.data?.handle) {
+          const sid = voiceSessionIdRef.current
+          if (sid) {
+            await supabase
+              .from('chat_sessions')
+              .update({ gemini_resumption_handle: message.data.handle })
+              .eq('id', sid)
+          }
+        }
         break
       case MultimodalLiveResponseType.TOOL_CALL: {
         const functionCalls = message.data.functionCalls
@@ -76,7 +115,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         playerRef.current?.interrupt()
         break
     }
-  }, [])
+  }, [saveVoiceSessionMessage])
 
   const startAudioStreaming = useCallback(async () => {
     try {
@@ -152,6 +191,34 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
 
       const client = new GeminiLiveAPI(token, 'gemini-3.1-flash-live-preview')
 
+      // Create voice session in DB
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('slug', tenantSlug)
+          .single()
+
+        if (tenant) {
+          const sessionRes = await fetch('/api/chat/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenant_id: tenant.id,
+              title: `Conversa de voz - ${new Date().toLocaleString('pt-BR')}`,
+              provider: 'voice',
+              model: 'gemini-3.1-flash-live-preview',
+              voice_name: settingsRef.current.voice || 'Kore',
+            }),
+          })
+          if (sessionRes.ok) {
+            const session = await sessionRes.json()
+            voiceSessionIdRef.current = session.id
+          }
+        }
+      }
+
       const nameContext = settingsRef.current.userName?.trim()
         ? `\n\nThe user's name is "${settingsRef.current.userName.trim()}". Always address them by this name naturally.`
         : ''
@@ -217,6 +284,17 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         apiRef.current = null
         isConnectingRef.current = false
         setIsConnecting(false)
+
+        // Archive voice session
+        const sid = voiceSessionIdRef.current
+        if (sid) {
+          supabase
+            .from('chat_sessions')
+            .update({ status: 'archived' })
+            .eq('id', sid)
+            .then(() => { voiceSessionIdRef.current = null })
+        }
+
         if (!disconnectIntentionalRef.current) {
           startWakeWordDetector()
         }

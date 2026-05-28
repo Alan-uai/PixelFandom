@@ -32,13 +32,13 @@ SET search_path = 'public, extensions'
 AS $BODY$
 DECLARE
     v_query TEXT;
-    v_embedding_vector VECTOR(1536);
+    v_embedding_vector extensions.VECTOR(1536);
 BEGIN
     v_query := p_query;
 
     IF p_embedding IS NOT NULL AND p_embedding <> '' THEN
         BEGIN
-            v_embedding_vector := p_embedding::VECTOR(1536);
+            v_embedding_vector := p_embedding::extensions.VECTOR(1536);
         EXCEPTION WHEN OTHERS THEN
             v_embedding_vector := NULL;
         END;

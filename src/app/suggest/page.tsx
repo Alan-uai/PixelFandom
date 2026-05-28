@@ -6,16 +6,50 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { supabase } from '@/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Suggest() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Suggest:', { title, content });
-    setTitle('');
-    setContent('');
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from('content_suggestions')
+        .insert({
+          title,
+          content,
+          user_id: user?.id || null,
+          user_email: user?.email || null,
+          status: 'pending',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sugestão enviada!',
+        description: 'Obrigado! Sua sugestão será revisada pela equipe.',
+      });
+
+      setTitle('');
+      setContent('');
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao enviar',
+        description: err.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,7 +95,9 @@ export default function Suggest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Button type="submit" className="w-full">Submit Suggestion</Button>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Enviando...' : 'Submit Suggestion'}
+              </Button>
             </motion.div>
           </form>
         </Card>
