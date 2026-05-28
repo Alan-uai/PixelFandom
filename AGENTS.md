@@ -4,7 +4,7 @@
 - **Next.js 15** (App Router, Turbopack), React 18, TypeScript 5
 - **Supabase** (Postgres, Auth, RLS) — skills auto-loaded via `skills-lock.json`
 - **shadcn/ui** (Radix primitives), **Tailwind CSS v3**, **Zustand**, **TipTap**
-- **OpenRouter** (AI chat with model fallback chain)
+- **OpenRouter** + **Gemini** (dual LLM provider system — tenant-level hybrid)
 
 ## Commands
 | Action | Command | Notes |
@@ -25,7 +25,7 @@
 - `src/app/` route groups: `(marketing)/`, `(wiki)/`, `(dashboard)/` — each with its own layout
 - Wiki pages: `/w/[slug]/[[...path]]` (catch-all, tenant-scoped)
 - Dashboard: `/dashboard/{new,[slug]/{ai,discord,domains,editor,members,settings}}`
-- API: `/api/chat` (OpenRouter streaming), `/api/tenants`
+- API: `/api/chat` (provedor híbrido OpenRouter + Gemini), `/api/tenants`
 - Auth callback: `/auth/callback`
 - `src/supabase/` — Supabase client, typed Database defs, auth provider, hooks
 - `supabase/migrations/` — 021→030 sequential SQL migrations
@@ -45,7 +45,7 @@
 `PSYCHO_BACKEND_URL` — Python backend URL for dev API proxy (default `http://localhost:8000`)
 `VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)
 `VERCEL_PROJECT_ID` — ID do projeto Vercel
-`GEMINI_API_KEY` — Google Gemini API key (sistema de voz)
+`GEMINI_API_KEY` — Google Gemini API key (sistema de voz e chat de texto)
 
 ## Safety rules
 - **NUNCA** exclua, modifique ou sobrescreva arquivos `.env*`. Eles contêm credenciais de produção.

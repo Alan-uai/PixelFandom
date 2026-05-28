@@ -75,6 +75,7 @@ export default function DataTablePage() {
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const label = tableLabels[table] || table;
   const primary = primaryColumns[table] || [];
@@ -88,29 +89,42 @@ export default function DataTablePage() {
 
   const fetchRows = useCallback(async () => {
     if (!tenantId) return;
-    const { data } = await supabase
+    setFetchError(null);
+    const { data, error } = await supabase
       .from(table)
       .select('*')
       .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
-    if (data) setRows(data as Row[]);
+      .order('updated_at', { ascending: false });
+    if (error) {
+      console.error(`[data/${table}] fetch error:`, error);
+      setFetchError(error.message);
+      toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
+    } else if (data) {
+      setRows(data as Row[]);
+    }
     setLoading(false);
-  }, [table, tenantId]);
+  }, [table, tenantId, toast]);
 
   useEffect(() => {
     (async () => {
-      const { data: tenant } = await supabase
+      const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
         .select('id')
         .eq('slug', slug)
-        .single();
-      if (tenant) {
+        .maybeSingle();
+      if (tenantError) {
+        console.error('[data] tenant lookup error:', tenantError);
+        setFetchError(tenantError.message);
+        toast({ variant: 'destructive', title: 'Erro ao buscar tenant', description: tenantError.message });
+        setLoading(false);
+      } else if (tenant) {
         setTenantId(tenant.id);
       } else {
+        setFetchError(`Tenant com slug "${slug}" não encontrado.`);
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, toast]);
 
   useEffect(() => {
     if (tenantId) fetchRows();
@@ -266,6 +280,18 @@ export default function DataTablePage() {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (fetchError && rows.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">{label}</h1>
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          <p className="font-medium mb-1">Erro ao carregar dados</p>
+          <p className="font-mono text-xs opacity-80">{fetchError}</p>
+        </div>
       </div>
     );
   }

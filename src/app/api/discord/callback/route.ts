@@ -75,8 +75,7 @@ export async function GET(request: NextRequest) {
   }
 
   response.cookies.set('discord_user_id', user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false,
     sameSite: 'lax',
     maxAge: tokens.expires_in,
     path: '/',

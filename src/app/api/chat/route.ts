@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
+import { chatStreamGemini } from '@/lib/gemini-chat';
 
 const SCHEMA_PROMPT = `
 ## ESTRUTURA DO BANCO DE DADOS
@@ -74,6 +75,98 @@ const FALLBACK_CHAIN = (
   'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
 ).split(',').map((m) => m.trim()).filter(Boolean);
 
+const STREAM_HEADERS = {
+  'Content-Type': 'text/plain; charset=utf-8',
+  'Cache-Control': 'no-cache',
+  'Connection': 'keep-alive',
+};
+
+async function streamOpenRouter(
+  messages: { role: string; content: string }[],
+  modelsToTry: string[],
+  apiKey: string
+): Promise<ReadableStream> {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://pixelfandom.vercel.app',
+      'X-Title': 'PixelFandom',
+    },
+    body: JSON.stringify({
+      model: modelsToTry[0],
+      models: modelsToTry.slice(0, 3),
+      route: 'fallback',
+      messages,
+      stream: true,
+      stream_options: { include_usage: true },
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
+  }
+
+  const stream = res.body;
+  if (!stream) throw new Error('No response body');
+
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let lineBuffer = '';
+
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          lineBuffer += chunk;
+
+          const lines = lineBuffer.split('\n');
+          lineBuffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              if (content) {
+                controller.enqueue(new TextEncoder().encode(content));
+              }
+            } catch {
+              // skip malformed JSON lines
+            }
+          }
+        }
+
+        if (lineBuffer.startsWith('data: ')) {
+          const data = lineBuffer.slice(6);
+          if (data !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              if (content) {
+                controller.enqueue(new TextEncoder().encode(content));
+              }
+            } catch {}
+          }
+        }
+
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
@@ -83,9 +176,13 @@ export async function POST(request: NextRequest) {
 
     const requestTenant = getTenantFromRequest(request);
     let systemPrompt = `${SCHEMA_PROMPT}\n\n${SECTION_PROMPT}`;
+    let provider = 'openrouter';
     let model = 'openai/gpt-4o-mini';
     let customApiKey = '';
     let fallbackChain: string[] = [];
+    let geminiModel = 'gemini-3.1-flash-preview';
+    let geminiCustomApiKey = '';
+    let geminiFallbackChain: string[] = [];
     let tenantSlug = requestTenant?.slug || '';
 
     if (requestTenant?.slug) {
@@ -96,9 +193,13 @@ export async function POST(request: NextRequest) {
         if (userPrompt) {
           systemPrompt = `${userPrompt}\n\n${SCHEMA_PROMPT}\n\n${SECTION_PROMPT}`;
         }
+        provider = (config.provider as string) || 'openrouter';
         model = (config.model as string) || model;
         customApiKey = (config.custom_api_key as string) || '';
         fallbackChain = (config.fallback_chain as string[]) || [];
+        geminiModel = (config.gemini_model as string) || geminiModel;
+        geminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
+        geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
       }
     }
 
@@ -140,6 +241,22 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       { role: 'user', content: message },
     ];
 
+    if (provider === 'gemini') {
+      const geminiApiKey = geminiCustomApiKey || process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        throw new Error('GEMINI_API_KEY not configured');
+      }
+      const stream = await chatStreamGemini({
+        messages,
+        model: geminiModel,
+        config: {
+          apiKey: geminiApiKey,
+          fallbackChain: geminiFallbackChain,
+        },
+      });
+      return new NextResponse(stream, { headers: STREAM_HEADERS });
+    }
+
     const effectiveFallbackChain = fallbackChain.length > 0 ? fallbackChain : FALLBACK_CHAIN;
     const modelsToTry = model
       ? [model, ...effectiveFallbackChain.filter((m) => m !== model)]
@@ -147,95 +264,35 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
     const apiKey = customApiKey || process.env.OPENROUTER_API_KEY || '';
 
-    const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://pixelfandom.vercel.app',
-        'X-Title': 'PixelFandom',
-      },
-      body: JSON.stringify({
-        model: modelsToTry[0],
-        models: modelsToTry.slice(0, 3),
-        route: 'fallback',
-        messages,
-        stream: true,
-        stream_options: { include_usage: true },
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-
-    if (!orRes.ok) {
-      const errData = await orRes.json().catch(() => null);
-      throw new Error(errData?.error?.message || `OpenRouter error (${orRes.status})`);
-    }
-
-    const stream = orRes.body;
-    if (!stream) throw new Error('No response body');
-
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let lineBuffer = '';
-
-    const readableStream = new ReadableStream({
-      async start(controller) {
+    try {
+      if (provider === 'hybrid') {
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            lineBuffer += chunk;
-
-            const lines = lineBuffer.split('\n');
-            lineBuffer = lines.pop() || '';
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const data = line.slice(6);
-              if (data === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content || '';
-                if (content) {
-                  controller.enqueue(new TextEncoder().encode(content));
-                }
-              } catch {
-                // skip malformed JSON lines
-              }
-            }
-          }
-
-          if (lineBuffer.startsWith('data: ')) {
-            const data = lineBuffer.slice(6);
-            if (data !== '[DONE]') {
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content || '';
-                if (content) {
-                  controller.enqueue(new TextEncoder().encode(content));
-                }
-              } catch {}
-            }
-          }
-
-          controller.close();
-        } catch (error) {
-          controller.error(error);
+          const stream = await streamOpenRouter(messages, modelsToTry, apiKey);
+          return new NextResponse(stream, { headers: STREAM_HEADERS });
+        } catch (orError) {
+          console.warn('OpenRouter failed, trying Gemini fallback:', orError);
+          const geminiApiKey = geminiCustomApiKey || process.env.GEMINI_API_KEY;
+          if (!geminiApiKey) throw orError;
+          const stream = await chatStreamGemini({
+            messages,
+            model: geminiModel,
+            config: {
+              apiKey: geminiApiKey,
+              fallbackChain: geminiFallbackChain,
+            },
+          });
+          return new NextResponse(stream, { headers: STREAM_HEADERS });
         }
-      },
-    });
+      }
 
-    return new NextResponse(readableStream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+      const stream = await streamOpenRouter(messages, modelsToTry, apiKey);
+      return new NextResponse(stream, { headers: STREAM_HEADERS });
+    } catch (error) {
+      console.error('Chat error:', error);
+      return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+    }
   } catch (error) {
-    console.error('OpenRouter error:', error);
+    console.error('Chat error:', error);
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
   }
 }

@@ -160,7 +160,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col flex-1 max-w-3xl mx-auto w-full">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
           <Bot className="h-6 w-6 text-primary" />

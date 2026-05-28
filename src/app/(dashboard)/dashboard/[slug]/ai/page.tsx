@@ -29,6 +29,14 @@ const DEFAULT_FREE_MODELS: FreeModel[] = [
   { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', context_length: 131072 },
 ];
 
+const DEFAULT_GEMINI_FREE_MODELS: FreeModel[] = [
+  { id: 'gemini-3.1-flash-preview', name: 'Gemini 3.1 Flash Preview', context_length: 1_000_000 },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', context_length: 1_000_000 },
+  { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro', context_length: 2_000_000 },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', context_length: 1_000_000 },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', context_length: 2_000_000 },
+];
+
 export default function WikiAIConfigPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -40,24 +48,38 @@ export default function WikiAIConfigPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const initialRef = useRef({
     enabled: false,
+    provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
     model: 'openai/gpt-4o-mini',
     modelSource: 'free' as 'free' | 'custom',
     customModel: '',
     customApiKey: '',
     fallbackChain: [] as string[],
     fallbackSource: 'free' as 'free' | 'custom',
+    geminiModel: 'gemini-3.1-flash-preview',
+    geminiModelSource: 'free' as 'free' | 'custom',
+    geminiCustomModel: '',
+    geminiCustomApiKey: '',
+    geminiFallbackChain: [] as string[],
+    geminiFallbackSource: 'free' as 'free' | 'custom',
     wakeWordText: 'Psycho',
     chatName: 'Assistente',
     botLogo: '',
   });
 
   const [enabled, setEnabled] = useState(false);
+  const [provider, setProvider] = useState<'openrouter' | 'gemini' | 'hybrid'>('openrouter');
   const [model, setModel] = useState('openai/gpt-4o-mini');
   const [modelSource, setModelSource] = useState<'free' | 'custom'>('free');
   const [customModel, setCustomModel] = useState('');
   const [customApiKey, setCustomApiKey] = useState('');
   const [fallbackChain, setFallbackChain] = useState<string[]>([]);
   const [fallbackSource, setFallbackSource] = useState<'free' | 'custom'>('free');
+  const [geminiModel, setGeminiModel] = useState('gemini-3.1-flash-preview');
+  const [geminiModelSource, setGeminiModelSource] = useState<'free' | 'custom'>('free');
+  const [geminiCustomModel, setGeminiCustomModel] = useState('');
+  const [geminiCustomApiKey, setGeminiCustomApiKey] = useState('');
+  const [geminiFallbackChain, setGeminiFallbackChain] = useState<string[]>([]);
+  const [geminiFallbackSource, setGeminiFallbackSource] = useState<'free' | 'custom'>('free');
   const [wakeWordText, setWakeWordText] = useState('Psycho');
   const [chatName, setChatName] = useState('Assistente');
   const [botLogo, setBotLogo] = useState('');
@@ -86,6 +108,9 @@ export default function WikiAIConfigPage() {
           setEnabled(data.ai_enabled);
           const config = data.ai_config as Record<string, unknown> || {};
 
+          const savedProvider = (config.provider as string) || 'openrouter';
+          setProvider(savedProvider as 'openrouter' | 'gemini' | 'hybrid');
+
           const savedModel = (config.model as string) || 'openai/gpt-4o-mini';
           const savedCustomApiKey = (config.custom_api_key as string) || '';
           const savedFallbackChain = (config.fallback_chain as string[]) || [];
@@ -99,18 +124,39 @@ export default function WikiAIConfigPage() {
           setCustomApiKey(savedCustomApiKey);
           setFallbackChain(savedFallbackChain);
           setFallbackSource(savedFallbackSource);
+
+          const savedGeminiModel = (config.gemini_model as string) || 'gemini-3.1-flash-preview';
+          const savedGeminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
+          const savedGeminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
+          const isCustomGemini = savedGeminiCustomApiKey && !isGeminiFreeModel(savedGeminiModel);
+          const savedGeminiFallbackSource = savedGeminiCustomApiKey ? 'custom' : 'free';
+
+          setGeminiModel(isCustomGemini ? 'gemini-3.1-flash-preview' : savedGeminiModel);
+          setGeminiCustomModel(isCustomGemini ? savedGeminiModel : '');
+          setGeminiModelSource(isCustomGemini ? 'custom' : 'free');
+          setGeminiCustomApiKey(savedGeminiCustomApiKey);
+          setGeminiFallbackChain(savedGeminiFallbackChain);
+          setGeminiFallbackSource(savedGeminiFallbackSource);
+
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
           setBotLogo((config.bot_logo as string) || '');
 
           initialRef.current = {
             enabled: data.ai_enabled,
+            provider: savedProvider as any,
             model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
             modelSource: isCustomModel ? 'custom' : 'free',
             customModel: isCustomModel ? savedModel : '',
             customApiKey: savedCustomApiKey,
             fallbackChain: savedFallbackChain,
             fallbackSource: savedFallbackSource,
+            geminiModel: isCustomGemini ? 'gemini-3.1-flash-preview' : savedGeminiModel,
+            geminiCustomModel: isCustomGemini ? savedGeminiModel : '',
+            geminiModelSource: isCustomGemini ? 'custom' : 'free',
+            geminiCustomApiKey: savedGeminiCustomApiKey,
+            geminiFallbackChain: savedGeminiFallbackChain,
+            geminiFallbackSource: savedGeminiFallbackSource,
             wakeWordText: (config.wake_word_text as string) || 'Psycho',
             chatName: (config.chat_name as string) || 'Assistente',
             botLogo: (config.bot_logo as string) || '',
@@ -152,13 +198,19 @@ export default function WikiAIConfigPage() {
     return freeModels.some((m) => m.id === modelId);
   }
 
+  function isGeminiFreeModel(modelId: string) {
+    return DEFAULT_GEMINI_FREE_MODELS.some((m) => m.id === modelId);
+  }
+
   const resolvedModel = modelSource === 'custom' ? customModel : model;
+  const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
 
   const handleSave = async () => {
     if (!tenant) return;
     setSaving(true);
 
     const effectiveApiKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
+    const effectiveGeminiApiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
 
     try {
       const { error } = await supabase
@@ -167,9 +219,13 @@ export default function WikiAIConfigPage() {
           ai_enabled: enabled,
           ai_config: {
             ...(tenant.ai_config as Record<string, unknown> || {}),
+            provider,
             model: resolvedModel,
             custom_api_key: effectiveApiKey,
-            fallback_chain: fallbackSource === 'custom' ? fallbackChain : fallbackChain,
+            fallback_chain: fallbackChain,
+            gemini_model: resolvedGeminiModel,
+            gemini_custom_api_key: effectiveGeminiApiKey,
+            gemini_fallback_chain: geminiFallbackChain,
             wake_word_text: wakeWordText,
             chat_name: chatName,
             bot_logo: botLogo,
@@ -183,12 +239,19 @@ export default function WikiAIConfigPage() {
       } else {
         initialRef.current = {
           enabled,
+          provider,
           model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
           modelSource,
           customModel,
           customApiKey: effectiveApiKey,
           fallbackChain,
           fallbackSource,
+          geminiModel: geminiModelSource === 'custom' ? 'gemini-3.1-flash-preview' : geminiModel,
+          geminiModelSource,
+          geminiCustomModel,
+          geminiCustomApiKey: effectiveGeminiApiKey,
+          geminiFallbackChain,
+          geminiFallbackSource,
           wakeWordText,
           chatName,
           botLogo,
@@ -213,16 +276,24 @@ export default function WikiAIConfigPage() {
     );
   }
 
-  const needsCustomKey = modelSource === 'custom' || fallbackSource === 'custom';
+  const showOpenRouter = provider === 'openrouter' || provider === 'hybrid';
+  const showGemini = provider === 'gemini' || provider === 'hybrid';
 
   const isDirty =
     enabled !== initialRef.current.enabled ||
+    provider !== initialRef.current.provider ||
     resolvedModel !== (initialRef.current.modelSource === 'custom' ? initialRef.current.customModel : initialRef.current.model) ||
     modelSource !== initialRef.current.modelSource ||
     customModel !== initialRef.current.customModel ||
     customApiKey !== initialRef.current.customApiKey ||
     JSON.stringify(fallbackChain) !== JSON.stringify(initialRef.current.fallbackChain) ||
     fallbackSource !== initialRef.current.fallbackSource ||
+    resolvedGeminiModel !== (initialRef.current.geminiModelSource === 'custom' ? initialRef.current.geminiCustomModel : initialRef.current.geminiModel) ||
+    geminiModelSource !== initialRef.current.geminiModelSource ||
+    geminiCustomModel !== initialRef.current.geminiCustomModel ||
+    geminiCustomApiKey !== initialRef.current.geminiCustomApiKey ||
+    JSON.stringify(geminiFallbackChain) !== JSON.stringify(initialRef.current.geminiFallbackChain) ||
+    geminiFallbackSource !== initialRef.current.geminiFallbackSource ||
     wakeWordText !== initialRef.current.wakeWordText ||
     chatName !== initialRef.current.chatName ||
     botLogo !== initialRef.current.botLogo;
@@ -268,158 +339,347 @@ export default function WikiAIConfigPage() {
       <Card>
         <CardHeader>
           <CardTitle>Configuração do Modelo</CardTitle>
-          <CardDescription>Escolha o modelo de IA e personalize o comportamento.</CardDescription>
+          <CardDescription>Escolha o provedor de IA, modelo e personalize o comportamento.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
 
           <div className="space-y-2">
-            <Label>Chave de API Própria (opcional)</Label>
-            <div className="relative">
-              <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="password"
-                value={customApiKey}
-                onChange={(e) => setCustomApiKey(e.target.value)}
-                placeholder="sk-or-..."
-                className="pl-10 h-8 text-xs font-mono"
-              />
+            <Label>Provedor</Label>
+            <div className="flex gap-2">
+              {(['openrouter', 'gemini', 'hybrid'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setProvider(p)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                    provider === p ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  {p === 'openrouter' ? <Globe className="h-3.5 w-3.5" /> : p === 'gemini' ? <Cpu className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
+                  {p === 'openrouter' ? 'OpenRouter' : p === 'gemini' ? 'Gemini Nativo' : 'Híbrido'}
+                </button>
+              ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              Sua chave OpenRouter. Necessária para modelos pagos/custom. Se vazia, usamos a chave padrão do sistema (modelos gratuitos).
+              {provider === 'openrouter' && 'Usa OpenRouter com fallback entre modelos.'}
+              {provider === 'gemini' && 'Usa diretamente a API Gemini do Google.'}
+              {provider === 'hybrid' && 'Tenta OpenRouter primeiro; se falhar, usa Gemini como fallback.'}
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Modelo</Label>
-            <div className="flex gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setModelSource('free')}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                  modelSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                }`}
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Gratuito (padrão)
-              </button>
-              <button
-                type="button"
-                onClick={() => setModelSource('custom')}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                  modelSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                }`}
-              >
-                <Key className="h-3.5 w-3.5" />
-                Custom (minha chave)
-              </button>
-            </div>
+          {showOpenRouter && (
+            <>
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                OpenRouter
+              </h4>
 
-            {modelSource === 'free' ? (
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {loadingModels && freeModels.length === 0 ? (
-                  <option value="">Carregando modelos...</option>
-                ) : (
-                  freeModels.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.id}) — {formatContext(m.context_length)}
-                    </option>
-                  ))
-                )}
-              </select>
-            ) : (
-              <Input
-                value={customModel}
-                onChange={(e) => setCustomModel(e.target.value)}
-                placeholder="openai/gpt-4o"
-                className="h-8 text-xs"
-              />
-            )}
-            <p className="text-xs text-muted-foreground">
-              {modelSource === 'free'
-                ? 'Modelos gratuitos disponíveis via OpenRouter.'
-                : 'Digite o ID completo do modelo (ex: openai/gpt-4o, anthropic/claude-3-opus). Requer chave de API própria acima.'}
-            </p>
-          </div>
-
-          <div className="border-t pt-4 space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              Chain de Fallback
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Modelos extras para tentar caso o principal falhe. Selecione quantos quiser.
-            </p>
-
-            <div className="flex gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setFallbackSource('free')}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                  fallbackSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                }`}
-              >
-                <Globe className="h-3.5 w-3.5" />
-                Gratuito (padrão)
-              </button>
-              <button
-                type="button"
-                onClick={() => setFallbackSource('custom')}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                  fallbackSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                }`}
-              >
-                <Key className="h-3.5 w-3.5" />
-                Custom (minha chave)
-              </button>
-            </div>
-
-            {fallbackSource === 'free' ? (
-              <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border p-2">
-                {freeModels.map((m) => (
-                  <label
-                    key={m.id}
-                    className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={fallbackChain.includes(m.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFallbackChain([...fallbackChain, m.id]);
-                        } else {
-                          setFallbackChain(fallbackChain.filter((id) => id !== m.id));
-                        }
-                      }}
-                      className="h-3.5 w-3.5 rounded border-gray-300"
-                    />
-                    <span className="flex-1 truncate">{m.name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length)}</span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Input
-                  value={fallbackChain.join(', ')}
-                  onChange={(e) => {
-                    const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-                    setFallbackChain(models);
-                  }}
-                  placeholder="modelo1, modelo2, modelo3"
-                  className="h-8 text-xs"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Digite os IDs separados por vírgula. Requer chave de API própria.
+              <div className="space-y-2">
+                <Label>Chave de API Própria (opcional)</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    value={customApiKey}
+                    onChange={(e) => setCustomApiKey(e.target.value)}
+                    placeholder="sk-or-..."
+                    className="pl-10 h-8 text-xs font-mono"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Sua chave OpenRouter. Necessária para modelos pagos. Se vazia, usamos a chave padrão do sistema.
                 </p>
               </div>
-            )}
-          </div>
 
-          <div className="space-y-2">
+              <div className="space-y-2">
+                <Label>Modelo</Label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setModelSource('free')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      modelSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Gratuito (padrão)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModelSource('custom')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      modelSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Custom (minha chave)
+                  </button>
+                </div>
+
+                {modelSource === 'free' ? (
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {loadingModels && freeModels.length === 0 ? (
+                      <option value="">Carregando modelos...</option>
+                    ) : (
+                      freeModels.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.id}) — {formatContext(m.context_length)}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                ) : (
+                  <Input
+                    value={customModel}
+                    onChange={(e) => setCustomModel(e.target.value)}
+                    placeholder="openai/gpt-4o"
+                    className="h-8 text-xs"
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {modelSource === 'free'
+                    ? 'Modelos gratuitos disponíveis via OpenRouter.'
+                    : 'Digite o ID completo do modelo (ex: openai/gpt-4o). Requer chave de API própria.'}
+                </p>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                  Chain de Fallback (OpenRouter)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Modelos extras para tentar caso o principal falhe.
+                </p>
+
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setFallbackSource('free')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      fallbackSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Gratuito (padrão)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFallbackSource('custom')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      fallbackSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Custom (minha chave)
+                  </button>
+                </div>
+
+                {fallbackSource === 'free' ? (
+                  <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border p-2">
+                    {freeModels.map((m) => (
+                      <label
+                        key={m.id}
+                        className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={fallbackChain.includes(m.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFallbackChain([...fallbackChain, m.id]);
+                            } else {
+                              setFallbackChain(fallbackChain.filter((id) => id !== m.id));
+                            }
+                          }}
+                          className="h-3.5 w-3.5 rounded border-gray-300"
+                        />
+                        <span className="flex-1 truncate">{m.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length)}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Input
+                      value={fallbackChain.join(', ')}
+                      onChange={(e) => {
+                        const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+                        setFallbackChain(models);
+                      }}
+                      placeholder="modelo1, modelo2, modelo3"
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Digite os IDs separados por vírgula. Requer chave de API própria.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            </>
+          )}
+
+          {showGemini && (
+            <>
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Cpu className="h-4 w-4" />
+                Gemini (Google)
+              </h4>
+
+              <div className="space-y-2">
+                <Label>Chave de API Própria (opcional)</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    value={geminiCustomApiKey}
+                    onChange={(e) => setGeminiCustomApiKey(e.target.value)}
+                    placeholder="AIza..."
+                    className="pl-10 h-8 text-xs font-mono"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Sua chave Gemini API. Se vazia, usamos a chave padrão do sistema.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Modelo</Label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setGeminiModelSource('free')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      geminiModelSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Gratuito (padrão)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGeminiModelSource('custom')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      geminiModelSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Custom (minha chave)
+                  </button>
+                </div>
+
+                {geminiModelSource === 'free' ? (
+                  <select
+                    value={geminiModel}
+                    onChange={(e) => setGeminiModel(e.target.value)}
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {DEFAULT_GEMINI_FREE_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.id}) — {formatContext(m.context_length)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={geminiCustomModel}
+                    onChange={(e) => setGeminiCustomModel(e.target.value)}
+                    placeholder="gemini-2.0-flash"
+                    className="h-8 text-xs"
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {geminiModelSource === 'free'
+                    ? 'Modelos gratuitos disponíveis via API Gemini.'
+                    : 'Digite o ID do modelo Gemini (ex: gemini-2.0-flash). Requer chave de API própria.'}
+                </p>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                  Chain de Fallback (Gemini)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Modelos extras para tentar caso o principal falhe.
+                </p>
+
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setGeminiFallbackSource('free')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      geminiFallbackSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Gratuito (padrão)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGeminiFallbackSource('custom')}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                      geminiFallbackSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                    }`}
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Custom (minha chave)
+                  </button>
+                </div>
+
+                {geminiFallbackSource === 'free' ? (
+                  <div className="max-h-40 overflow-y-auto space-y-1 rounded-lg border p-2">
+                    {DEFAULT_GEMINI_FREE_MODELS.map((m) => (
+                      <label
+                        key={m.id}
+                        className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={geminiFallbackChain.includes(m.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setGeminiFallbackChain([...geminiFallbackChain, m.id]);
+                            } else {
+                              setGeminiFallbackChain(geminiFallbackChain.filter((id) => id !== m.id));
+                            }
+                          }}
+                          className="h-3.5 w-3.5 rounded border-gray-300"
+                        />
+                        <span className="flex-1 truncate">{m.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length)}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Input
+                      value={geminiFallbackChain.join(', ')}
+                      onChange={(e) => {
+                        const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+                        setGeminiFallbackChain(models);
+                      }}
+                      placeholder="modelo1, modelo2, modelo3"
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Digite os IDs separados por vírgula. Requer chave de API própria.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            </>
+          )}
+
+          <div className="border-t pt-4 space-y-2">
             <Label htmlFor="chatName">Nome do Chat</Label>
             <Input
               id="chatName"

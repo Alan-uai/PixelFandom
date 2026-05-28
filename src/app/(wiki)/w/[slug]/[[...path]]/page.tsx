@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, FileText, Calendar, Tag, Search as SearchIcon, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import { useWikiData } from '@/context/wiki-provider';
 import { supabase } from '@/supabase';
+import { useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
 import { MAIN_DOMAIN } from '@/lib/constants';
 
@@ -19,7 +20,6 @@ export default function WikiPage() {
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const path = params?.path as string[] | undefined;
-  const search = searchParams?.get('search');
   const view = searchParams?.get('view');
   const articleSlug = path?.join('/') || null;
   const isGrid = view !== 'list';
@@ -28,6 +28,16 @@ export default function WikiPage() {
 
   const tenant = wiki?.tenant;
   const articles = wiki?.articles;
+  const { searchQuery, setSearchQuery } = useWikiSearch();
+
+  // Sync ?search= URL param to context on mount
+  useEffect(() => {
+    const urlSearch = searchParams?.get('search');
+    if (urlSearch && !searchQuery) {
+      setSearchQuery(urlSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Fetch individual article by slug (not provided by WikiDataProvider)
   const [fetchedArticle, setFetchedArticle] = useState<any>(null);
@@ -125,90 +135,6 @@ export default function WikiPage() {
         <HubLink className="text-primary hover:underline text-sm font-medium" isExternal={errorIsExternal}>
           Voltar para o hub
         </HubLink>
-      </div>
-    );
-  }
-
-  // ── Search mode (client-side) ──
-  if (search) {
-    const q = search.toLowerCase();
-    const results = (articles || []).filter((a: any) =>
-      a.title?.toLowerCase().includes(q) ||
-      a.summary?.toLowerCase().includes(q)
-    );
-
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <SearchIcon className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">
-              Resultados para &ldquo;{search}&rdquo;
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {results?.length || 0} artigo{(results?.length || 0) !== 1 ? 's' : ''} encontrado{(results?.length || 0) !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-
-        {results && results.length > 0 ? (
-          <div className="space-y-3">
-            {results.map((article: any) => (
-              <Link
-                key={article.id}
-                href={`/w/${slug}/${article.slug || article.id}`}
-                className="group block rounded-xl border bg-card p-5 hover:border-primary/30 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start gap-4">
-                  {article.image_url && (
-                    <div className="hidden sm:block w-20 h-20 rounded-lg overflow-hidden shrink-0">
-                      <img src={article.image_url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h2 className="font-semibold group-hover:text-primary transition-colors">
-                      {article.title}
-                    </h2>
-                    {article.summary && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {article.summary}
-                      </p>
-                    )}
-                    {article.tags && article.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {article.tags.slice(0, 3).map((tag: string) => (
-                          <span key={tag} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 rounded-xl border bg-card">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-1">Nenhum resultado</h2>
-            <p className="text-sm text-muted-foreground">
-              Tente termos diferentes ou mais genéricos.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-8">
-          <Link
-            href={`/w/${slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para home
-          </Link>
-        </div>
       </div>
     );
   }
@@ -340,7 +266,13 @@ export default function WikiPage() {
     );
   }
 
-  const recentArticles = articles?.slice(0, 6) || [];
+  const allArticles = articles || [];
+  const displayArticles = searchQuery
+    ? allArticles.filter((a: any) =>
+        a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : allArticles;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -383,7 +315,7 @@ export default function WikiPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Artigos Recentes
+              {searchQuery ? `Resultados (${displayArticles.length})` : 'Artigos Recentes'}
             </h2>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <LayoutGrid className={`h-4 w-4 ${isGrid ? 'text-primary' : ''}`} />
@@ -392,32 +324,42 @@ export default function WikiPage() {
             </div>
           </div>
 
-          {isGrid ? (
-            <WikiGrid articles={articles} tenantSlug={slug} />
+          {displayArticles.length > 0 ? (
+            isGrid ? (
+              <WikiGrid articles={displayArticles} tenantSlug={slug} />
+            ) : (
+              <div className="space-y-2">
+                {displayArticles.map((article: any) => (
+                  <Link
+                    key={article.id}
+                    href={`/w/${slug}/${article.slug || article.id}`}
+                    className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
+                  >
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
+                      {article.title}
+                    </span>
+                    {article.tags && article.tags.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        {article.tags[0]}
+                      </span>
+                    )}
+                    {article.updated_at && (
+                      <span className="text-[11px] text-muted-foreground hidden md:inline">
+                        {new Date(article.updated_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )
           ) : (
-            <div className="space-y-2">
-              {articles.map((article: any) => (
-                <Link
-                  key={article.id}
-                  href={`/w/${slug}/${article.slug || article.id}`}
-                  className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
-                >
-                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
-                    {article.title}
-                  </span>
-                  {article.tags && article.tags.length > 0 && (
-                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                      {article.tags[0]}
-                    </span>
-                  )}
-                  {article.updated_at && (
-                    <span className="text-[11px] text-muted-foreground hidden md:inline">
-                      {new Date(article.updated_at).toLocaleDateString('pt-BR')}
-                    </span>
-                  )}
-                </Link>
-              ))}
+            <div className="text-center py-16 rounded-xl border bg-card">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-1">Nenhum resultado</h2>
+              <p className="text-sm text-muted-foreground">
+                Nenhum artigo encontrado para &ldquo;{searchQuery}&rdquo;
+              </p>
             </div>
           )}
         </>

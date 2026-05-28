@@ -8,7 +8,7 @@ export default function WikiChatPage() {
   const slug = params.slug as string;
 
   return (
-    <div>
+    <div className="flex flex-col flex-1">
       <WikiChat tenantSlug={slug} />
     </div>
   );

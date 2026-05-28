@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, House, MessageCircle, PanelLeft, PanelLeftClose, ExternalLink, Gamepad2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useParams, usePathname } from 'next/navigation';
+import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose, Gamepad2 } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
+import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
 import { MAIN_DOMAIN } from '@/lib/constants';
 
@@ -25,7 +25,9 @@ export default function WikiLayout({
 
   return (
     <WikiDataProvider slug={slug}>
-      <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+      <WikiSearchProvider>
+        <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+      </WikiSearchProvider>
     </WikiDataProvider>
   );
 }
@@ -37,17 +39,18 @@ function WikiLayoutContent({
   slug: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const { data, loading } = useWikiData();
-  const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const tenant = data?.tenant || null;
+  const isHome = pathname === `/w/${slug}`;
   const isChatPage = pathname === `/w/${slug}/chat`;
   const isVoicePage = pathname === `/w/${slug}/voice`;
+  const isArticle = !isHome && !isChatPage && !isVoicePage;
+  const hasSidebar = isChatPage || isArticle;
+  const showTitleStrip = !isVoicePage;
+
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
 
@@ -69,36 +72,7 @@ function WikiLayoutContent({
     window.location.href = `https://${tenant.custom_domain}${subPath}${window.location.search}`;
   }, [tenant?.custom_domain, slug, pathname]);
 
-  useEffect(() => {
-    if (isChatPage || isVoicePage) {
-      setSidebarCollapsed(true);
-    }
-  }, [isChatPage, isVoicePage]);
-
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    router.push(`/w/${slug}?search=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchExpanded(false);
-    setSearchQuery('');
-  }, [searchQuery, slug, router]);
-
-  useEffect(() => {
-    if (searchExpanded && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [searchExpanded]);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchExpanded((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  const toggleSidebar = () => setSidebarCollapsed((v) => !v);
 
   if (loading) {
     return (
@@ -131,16 +105,6 @@ function WikiLayoutContent({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
-        {/* Sidebar toggle — mobile & desktop */}
-        <button
-          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-        >
-          {sidebarCollapsed ? <PanelLeft className="h-5 w-5 md:h-4 md:w-4" /> : <PanelLeftClose className="h-5 w-5 md:h-4 md:w-4" />}
-        </button>
-
-        {/* Wiki name → hub */}
         <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
           {tenant.logo_url && (
             <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
@@ -150,7 +114,6 @@ function WikiLayoutContent({
 
         <div className="mx-2 h-5 w-px bg-border" />
 
-        {/* Hero nav */}
         <nav className="flex items-center gap-0.5">
           <Link
             href={`/w/${slug}`}
@@ -174,19 +137,6 @@ function WikiLayoutContent({
           >
             <MessageCircle className="h-4 w-4" />
           </Link>
-          {/* Search — in nav, works on mobile & desktop */}
-          <button
-            onClick={() => setSearchExpanded((v) => !v)}
-            onMouseEnter={() => setSearchExpanded(true)}
-            className={`rounded-md p-2 transition-colors ${
-              searchExpanded
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title="Buscar (Cmd+K)"
-          >
-            <Search className="h-4 w-4" />
-          </button>
           <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
 
           {(tenant as any)?.discord_url && (
@@ -214,44 +164,75 @@ function WikiLayoutContent({
           )}
         </nav>
 
-        {/* Inline search field — expands when toggled */}
-        <div className={`relative flex-1 transition-all duration-200 ease-in-out overflow-hidden ${
-          searchExpanded ? 'max-w-xs opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'
-        }`}>
-          <form onSubmit={handleSearch} className="relative w-full">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              ref={searchInputRef}
-              placeholder="Buscar na wiki..."
-              className="pl-8 h-9 bg-muted w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onBlur={() => {
-                setTimeout(() => {
-                  if (!searchQuery) setSearchExpanded(false);
-                }, 200);
-              }}
-            />
-          </form>
-        </div>
-
-        {/* Spacer when search is not expanded */}
-        {!searchExpanded && <div className="flex-1" />}
+        <div className="flex-1" />
       </header>
 
+      {showTitleStrip && (
+        <div className="flex items-center border-b bg-background/50">
+          {isHome ? (
+            <HomeTitleStrip />
+          ) : hasSidebar ? (
+            <>
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center w-12 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
+                title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+              >
+                {sidebarCollapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+              </button>
+              <div className="flex-1 flex items-center justify-center pr-12">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                  {isChatPage ? 'Assistente IA' : 'Artigos'}
+                </span>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
       <div className="flex flex-1">
-        <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
-          <WikiSidebar
-            tenantSlug={slug}
-            collapsed={sidebarCollapsed}
-          />
-        </Suspense>
+        {hasSidebar && (
+          <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
+            <WikiSidebar
+              tenantSlug={slug}
+              collapsed={sidebarCollapsed}
+            />
+          </Suspense>
+        )}
         <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
           {children}
         </main>
       </div>
       {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
       <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} />
+    </div>
+  );
+}
+
+function HomeTitleStrip() {
+  const { searchQuery, setSearchQuery } = useWikiSearch();
+
+  return (
+    <div className="flex items-center gap-2 px-3 flex-1 h-7">
+      <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium shrink-0">
+        Buscar na wiki
+      </span>
+      <input
+        type="text"
+        placeholder="Digite para filtrar..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="flex-1 bg-transparent border-none outline-none text-[10px] text-foreground placeholder:text-muted-foreground/50 min-w-0"
+      />
+      {searchQuery && (
+        <button
+          onClick={() => setSearchQuery('')}
+          className="text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
