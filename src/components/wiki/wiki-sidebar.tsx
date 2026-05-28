@@ -9,6 +9,7 @@ import {
   X, Hash, BookOpen
 } from 'lucide-react';
 import { useWikiData } from '@/context/wiki-provider';
+import { useWikiPath } from '@/hooks/use-wiki-path';
 
 type SidebarArticle = {
   id: string;
@@ -27,6 +28,7 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data, loading } = useWikiData();
+  const { basePath, articlePath, homePath, isSubdomain } = useWikiPath(tenantSlug);
   const [articleCollapsed, setArticleCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -35,10 +37,12 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
   const articles: SidebarArticle[] = (data?.articles || []) as SidebarArticle[];
 
   const currentSlug = useMemo(() => {
-    const base = `/w/${tenantSlug}/`;
-    if (!pathname.startsWith(base)) return '';
-    return pathname.slice(base.length);
-  }, [pathname, tenantSlug]);
+    if (pathname === `/w/${tenantSlug}` || pathname === '/') return '';
+    const wikiBase = `/w/${tenantSlug}/`;
+    if (pathname.startsWith(wikiBase)) return pathname.slice(wikiBase.length);
+    if (isSubdomain && pathname.startsWith('/') && pathname !== '/') return pathname.slice(1);
+    return '';
+  }, [pathname, tenantSlug, isSubdomain]);
 
   const categories = useMemo(() => {
     const map = new Map<string, SidebarArticle[]>();
@@ -71,7 +75,7 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
     );
   }
 
-  const isHome = pathname === `/w/${tenantSlug}`;
+  const isHome = pathname === `/w/${tenantSlug}` || pathname === '/';
 
   return (
     <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 transition-all duration-200">
@@ -124,12 +128,12 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
                 </p>
               ) : (
                 filteredArticles.map((article) => {
-                  const articlePath = article.slug || article.id;
-                  const isActive = currentSlug === articlePath;
+                  const articleSlug = article.slug || article.id;
+                  const isActive = currentSlug === articleSlug;
                   return (
                     <Link
                       key={article.id}
-                      href={`/w/${tenantSlug}/${articlePath}`}
+                      href={articlePath(articleSlug)}
                       className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
                         isActive
                           ? 'bg-primary/10 text-primary font-medium'
@@ -176,12 +180,12 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
                     {isCategoryActive && (
                       <div className="ml-2 space-y-0.5">
                         {catArticles.map((article) => {
-                          const articlePath = article.slug || article.id;
-                          const isActive = currentSlug === articlePath;
+                          const articleSlug = article.slug || article.id;
+                          const isActive = currentSlug === articleSlug;
                           return (
                             <Link
                               key={article.id}
-                              href={`/w/${tenantSlug}/${articlePath}`}
+                              href={articlePath(articleSlug)}
                               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
                                 isActive
                                   ? 'bg-primary/10 text-primary font-medium'

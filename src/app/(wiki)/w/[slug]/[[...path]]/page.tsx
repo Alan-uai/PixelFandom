@@ -13,6 +13,8 @@ import { useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import { MAIN_DOMAIN } from '@/lib/constants';
+import { useWikiPath } from '@/hooks/use-wiki-path';
+import { CommentsSection } from '@/components/comments/comments-section';
 
 const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
@@ -24,6 +26,7 @@ export default function WikiPage() {
   const view = searchParams?.get('view');
   const articleSlug = path?.join('/') || null;
   const isGrid = view !== 'list';
+  const { basePath, homePath, articlePath: wikiArticlePath } = useWikiPath(slug);
 
   const { data: wiki, loading } = useWikiData();
 
@@ -186,7 +189,7 @@ export default function WikiPage() {
     return (
       <article className="max-w-3xl mx-auto">
         <Link
-          href={`/w/${slug}`}
+          href={homePath}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
         >
           <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -261,6 +264,14 @@ export default function WikiPage() {
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <WikiContent content={article.content} />
                 </div>
+
+                <div className="mt-12 pt-8 border-t">
+                  <CommentsSection
+                    articleId={article.id}
+                    tenantId={tenant.id}
+                    tenantSlug={slug}
+                  />
+                </div>
               </>
             )}
           </>
@@ -272,7 +283,7 @@ export default function WikiPage() {
               Esta página ainda não foi criada ou o link pode estar incorreto.
             </p>
             <Link
-              href={`/w/${slug}`}
+              href={homePath}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               Ver artigos disponíveis
@@ -295,7 +306,7 @@ export default function WikiPage() {
   if (!articleSlug && landingLayout && !loadingLayout) {
     return (
       <div>
-        <PageRenderer layout={landingLayout} tenant={tenant} />
+        <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
       </div>
     );
   }
@@ -352,13 +363,13 @@ export default function WikiPage() {
 
           {displayArticles.length > 0 ? (
             isGrid ? (
-              <WikiGrid articles={displayArticles} tenantSlug={slug} />
+              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} />
             ) : (
               <div className="space-y-2">
                 {displayArticles.map((article: any) => (
                   <Link
                     key={article.id}
-                    href={`/w/${slug}/${article.slug || article.id}`}
+                    href={wikiArticlePath(article.slug || article.id)}
                     className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
                   >
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />

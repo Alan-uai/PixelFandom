@@ -6,6 +6,8 @@ import {
   DragEndEvent,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -15,7 +17,7 @@ import { nanoid } from 'nanoid';
 import { BlockToolbar, BLOCK_DEFINITIONS } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
-import { Save, Loader2, Check } from 'lucide-react';
+import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import type { BlockConfig, BlockType, PageLayout } from './types';
 
 interface PageBuilderEditorProps {
@@ -31,7 +33,9 @@ export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEdit
   const [saved, setSaved] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor)
   );
 
   const selectedBlock = blocks.find((b) => b.id === selectedId) || null;
@@ -107,11 +111,38 @@ export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEdit
     setSaving(false);
   };
 
+  const [showMobileToolbar, setShowMobileToolbar] = useState(false);
+  const [showMobileConfig, setShowMobileConfig] = useState(false);
+
   return (
-    <div className="flex h-full">
-      <div className="w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
+    <div className="flex h-full relative">
+      {/* Desktop toolbar */}
+      <div className="hidden md:block w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
         <BlockToolbar />
       </div>
+
+      {/* Mobile toolbar toggle */}
+      <div className="md:hidden fixed bottom-20 left-4 z-50">
+        <button
+          onClick={() => setShowMobileToolbar((v) => !v)}
+          className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
+        >
+          {showMobileToolbar ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+        </button>
+      </div>
+
+      {/* Mobile toolbar panel */}
+      {showMobileToolbar && (
+        <div className="md:hidden fixed inset-x-0 bottom-0 z-40 max-h-[50vh] rounded-t-xl border bg-background shadow-2xl p-4 overflow-y-auto">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium">Adicionar Bloco</span>
+            <button onClick={() => setShowMobileToolbar(false)}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <BlockToolbar />
+        </div>
+      )}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <PagePreview
@@ -131,11 +162,38 @@ export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEdit
       </DndContext>
 
       {selectedBlock && (
-        <BlockConfigPanel
-          block={selectedBlock}
-          onUpdate={handleUpdateBlock}
-          onClose={() => setSelectedId(null)}
-        />
+        <>
+          {/* Desktop config panel */}
+          <div className="hidden md:block">
+            <BlockConfigPanel
+              block={selectedBlock}
+              onUpdate={handleUpdateBlock}
+              onClose={() => setSelectedId(null)}
+            />
+          </div>
+
+          {/* Mobile config toggle */}
+          <button
+            onClick={() => setShowMobileConfig(true)}
+            className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
+          >
+            <PanelRightOpen className="h-5 w-5" />
+          </button>
+
+          {/* Mobile config panel overlay */}
+          {showMobileConfig && (
+            <div className="md:hidden fixed inset-0 z-50 flex">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileConfig(false)} />
+              <div className="relative ml-auto w-80 max-w-[85vw] h-full bg-background border-l shadow-2xl overflow-y-auto">
+                <BlockConfigPanel
+                  block={selectedBlock}
+                  onUpdate={handleUpdateBlock}
+                  onClose={() => { setShowMobileConfig(false); setSelectedId(null); }}
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {blocks.length > 0 && (

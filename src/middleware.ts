@@ -74,30 +74,47 @@ export async function middleware(request: NextRequest) {
 
     // Cache miss — fetch from Supabase
     try {
-      const resp = await fetch(
+      const headers = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` };
+
+      let tenantData: { slug: string; id: string }[] | undefined;
+
+      const customDomainResp = await fetch(
         `${SUPA_URL}/rest/v1/tenants?custom_domain=eq.${encodeURIComponent(host)}&select=slug,id`,
-        { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
+        { headers }
       );
 
-      if (resp.ok) {
-        const data = (await resp.json()) as { slug: string; id: string }[];
-        if (data?.length > 0) {
-          const url = request.nextUrl.clone();
-          const slug = data[0].slug;
+      if (customDomainResp.ok) {
+        tenantData = (await customDomainResp.json()) as { slug: string; id: string }[];
+      }
 
-          url.searchParams.set('__tenant_slug', slug);
-          url.searchParams.set('__tenant_id', data[0].id);
-
-          if (pathname.startsWith(`/w/${slug}/`) || pathname === `/w/${slug}`) {
-            url.pathname = pathname;
-          } else {
-            url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
-          }
-
-          const response = NextResponse.rewrite(url);
-          setCachedTenant(response, slug, data[0].id);
-          return response;
+      // Fallback for Vercel preview domains: try matching host subdomain as slug
+      if (!tenantData?.length && host.endsWith('.vercel.app')) {
+        const subdomain = host.replace('.vercel.app', '');
+        const fallbackResp = await fetch(
+          `${SUPA_URL}/rest/v1/tenants?slug=eq.${encodeURIComponent(subdomain)}&select=slug,id`,
+          { headers }
+        );
+        if (fallbackResp.ok) {
+          tenantData = (await fallbackResp.json()) as { slug: string; id: string }[];
         }
+      }
+
+      if (tenantData && tenantData.length > 0) {
+        const url = request.nextUrl.clone();
+        const slug = tenantData[0].slug;
+
+        url.searchParams.set('__tenant_slug', slug);
+        url.searchParams.set('__tenant_id', tenantData[0].id);
+
+        if (pathname.startsWith(`/w/${slug}/`) || pathname === `/w/${slug}`) {
+          url.pathname = pathname;
+        } else {
+          url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
+        }
+
+        const response = NextResponse.rewrite(url);
+        setCachedTenant(response, slug, tenantData[0].id);
+        return response;
       }
     } catch {
       // Tenant lookup failed — pass through

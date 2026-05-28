@@ -3,6 +3,7 @@ import type { PageLayout } from '../types';
 interface PageRendererProps {
   layout: PageLayout;
   tenant: Record<string, unknown>;
+  basePath?: string;
 }
 
 const BLOCK_STYLES: Record<string, React.CSSProperties> = {
@@ -16,21 +17,21 @@ const BLOCK_STYLES: Record<string, React.CSSProperties> = {
   'rich-text': { padding: '32px 16px' },
 };
 
-export function PageRenderer({ layout, tenant }: PageRendererProps) {
+export function PageRenderer({ layout, tenant, basePath = '' }: PageRendererProps) {
   if (!layout?.blocks?.length) return null;
 
   return (
     <div className="max-w-5xl mx-auto">
       {layout.blocks.map((block) => (
         <div key={block.id} style={BLOCK_STYLES[block.type] || { padding: '32px 16px' }}>
-          <RenderBlock block={block} tenant={tenant} />
+          <RenderBlock block={block} tenant={tenant} basePath={basePath} />
         </div>
       ))}
     </div>
   );
 }
 
-function RenderBlock({ block, tenant }: { block: any; tenant: Record<string, unknown> }) {
+function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<string, unknown>; basePath?: string }) {
   const config = block.config || {};
 
   switch (block.type) {
@@ -84,7 +85,7 @@ function RenderBlock({ block, tenant }: { block: any; tenant: Record<string, unk
             {(config.articles as any[] || []).map((article: any, i: number) => (
               <a
                 key={i}
-                href={`/w/${tenant.slug}/${article.slug || article.id}`}
+                href={`${basePath}/${article.slug || article.id}`}
                 className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors block"
               >
                 <p className="font-medium text-sm truncate">{article.title}</p>

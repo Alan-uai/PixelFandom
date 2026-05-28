@@ -13,6 +13,7 @@ import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context
 import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { MAIN_DOMAIN } from '@/lib/constants';
+import { useWikiPath } from '@/hooks/use-wiki-path';
 
 export default function WikiLayout({
   children,
@@ -43,11 +44,12 @@ function WikiLayoutContent({
   const pathname = usePathname();
   const { data, loading } = useWikiData();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { basePath } = useWikiPath(slug);
 
   const tenant = data?.tenant || null;
-  const isHome = pathname === `/w/${slug}`;
-  const isChatPage = pathname === `/w/${slug}/chat`;
-  const isVoicePage = pathname === `/w/${slug}/voice`;
+  const isHome = pathname === `/w/${slug}` || pathname === '/';
+  const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
+  const isVoicePage = pathname === `/w/${slug}/voice` || pathname === '/voice';
   const isArticle = !isHome && !isChatPage && !isVoicePage;
   const hasSidebar = isChatPage || isArticle;
   const showTitleStrip = !isVoicePage;
@@ -69,8 +71,7 @@ function WikiLayoutContent({
     const currentHost = window.location.hostname;
     if (currentHost === tenant.custom_domain || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
     setRedirecting(true);
-    const subPath = pathname.replace(`/w/${slug}`, '') || '/';
-    window.location.href = `https://${tenant.custom_domain}${subPath}${window.location.search}`;
+    window.location.href = `https://${tenant.custom_domain}${window.location.search}`;
   }, [tenant?.custom_domain, slug, pathname]);
 
   const toggleSidebar = () => setSidebarCollapsed((v) => !v);
@@ -117,9 +118,9 @@ function WikiLayoutContent({
 
         <nav className="flex items-center gap-0.5">
           <Link
-            href={`/w/${slug}`}
+            href={basePath || '/'}
             className={`rounded-md p-2 transition-colors ${
-              pathname === `/w/${slug}`
+              isHome
                 ? 'text-primary bg-primary/10'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
@@ -128,7 +129,7 @@ function WikiLayoutContent({
             <House className="h-4 w-4" />
           </Link>
           <Link
-            href={`/w/${slug}/chat`}
+            href={`${basePath}/chat`}
             className={`rounded-md p-2 transition-colors ${
               isChatPage
                 ? 'text-primary bg-primary/10'

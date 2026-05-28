@@ -106,6 +106,7 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
     document.cookie = 'discord_user_id=; max-age=0; path=/';
     document.cookie = 'discord_user_name=; max-age=0; path=/';
     document.cookie = 'discord_user_avatar=; max-age=0; path=/';
+    document.cookie = 'discord_selected_guild=; max-age=0; path=/';
     setState({
       connected: false,
       user: null,
@@ -130,16 +131,11 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (state.connected && state.guilds.length === 0) {
-      refreshGuilds();
-    }
-  }, [state.connected, state.guilds.length, refreshGuilds]);
-
   const selectGuild = useCallback(async (guildId: string) => {
     const guild = state.guilds.find((g) => g.id === guildId);
     if (!guild) return;
     setState((prev) => ({ ...prev, selectedGuild: guild, loading: true }));
+    document.cookie = `discord_selected_guild=${guildId}; path=/; max-age=86400; SameSite=Lax`;
 
     try {
       const [channelsRes, rolesRes] = await Promise.all([
@@ -161,6 +157,21 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({ ...prev, error: 'Erro ao buscar dados do servidor', loading: false }));
     }
   }, [state.guilds]);
+
+  useEffect(() => {
+    if (state.connected && state.guilds.length === 0) {
+      refreshGuilds();
+    }
+  }, [state.connected, state.guilds.length, refreshGuilds]);
+
+  useEffect(() => {
+    if (state.guilds.length > 0 && !state.selectedGuild) {
+      const savedGuildId = getCookie('discord_selected_guild');
+      if (savedGuildId && state.guilds.some((g) => g.id === savedGuildId)) {
+        selectGuild(savedGuildId);
+      }
+    }
+  }, [state.guilds.length, state.selectedGuild, selectGuild]);
 
   return (
     <GuildDataContext.Provider value={{ ...state, connect, disconnect, selectGuild, refreshGuilds }}>

@@ -54,7 +54,7 @@ function SortableBlock({
       className={`group relative rounded-xl border-2 transition-colors ${isSelected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'}`}
       onClick={onSelect}
     >
-      <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           {...attributes}
           {...listeners}

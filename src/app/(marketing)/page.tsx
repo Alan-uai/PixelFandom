@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
@@ -22,6 +24,9 @@ export default function Home() {
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Tenant[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     supabase
@@ -38,6 +43,24 @@ export default function Home() {
         setLoading(false);
       });
   }, []);
+
+  // Debounced wiki search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(`/api/wikis/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+        if (res.ok) setSearchResults(await res.json());
+      } catch {} finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -63,6 +86,58 @@ export default function Home() {
               Saiba Mais
             </Link>
           </Button>
+        </div>
+      </section>
+
+      {/* Search Public Wikis */}
+      <section className="py-10 px-4 border-t">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-xl font-semibold mb-2">Encontre uma wiki</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar wikis públicas por nome ou descrição..."
+              className="w-full h-12 rounded-xl border bg-background pl-10 pr-4 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchResults.length > 0 && (
+            <div className="mt-4 grid gap-2 text-left">
+              {searchResults.map((wiki) => (
+                <Link
+                  key={wiki.id}
+                  href={`/w/${wiki.slug}`}
+                  className="flex items-center gap-3 rounded-lg border p-3 hover:border-primary/30 hover:bg-muted/50 transition-all"
+                >
+                  {wiki.logo_url ? (
+                    <img src={wiki.logo_url} alt="" className="h-8 w-8 rounded" />
+                  ) : (
+                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{wiki.name}</p>
+                    {wiki.description && (
+                      <p className="text-xs text-muted-foreground truncate">{wiki.description}</p>
+                    )}
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </Link>
+              ))}
+            </div>
+          )}
+          {searchQuery && searchResults.length === 0 && !searchLoading && (
+            <p className="text-sm text-muted-foreground mt-4">Nenhuma wiki encontrada para &ldquo;{searchQuery}&rdquo;</p>
+          )}
         </div>
       </section>
 

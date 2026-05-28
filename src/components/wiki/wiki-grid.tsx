@@ -15,14 +15,15 @@ type Article = {
 
 type Props = {
   articles: Article[];
-  tenantSlug: string;
+  basePath: string;
+  tenantSlug?: string;
 };
 
-export default function WikiGrid({ articles, tenantSlug }: Props) {
+export default function WikiGrid({ articles, basePath }: Props) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
       {articles.map((article) => {
-        const href = `/w/${tenantSlug}/${article.slug || article.id}`;
+        const href = `${basePath}/${article.slug || article.id}`;
 
         return (
           <Link
