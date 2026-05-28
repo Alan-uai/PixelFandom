@@ -13,6 +13,8 @@ type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' 
 type Props = {
   tenantSlug: string
   aiConfig?: Record<string, unknown>
+  discordUrl?: string
+  gameUrl?: string
 }
 
 const STORAGE_KEY = 'pixelfandom:voice-settings'
@@ -25,7 +27,7 @@ function loadSettings() {
   return {}
 }
 
-export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
+export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl }: Props) {
   const router = useRouter()
 
   const [status, setStatus] = useState<OrbStatus>('idle')
@@ -172,6 +174,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
 
       const tools = createAgentTools({
         tenantSlug,
+        discordUrl,
+        gameUrl,
         volume: settingsRef.current.volume ?? 80,
         voiceName: (settingsRef.current.voice as VoiceName) || 'Kore',
         language: settingsRef.current.userLang || 'pt',

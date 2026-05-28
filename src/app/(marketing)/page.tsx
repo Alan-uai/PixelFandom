@@ -139,26 +139,38 @@ export default function Home() {
                     href={wikiUrl}
                     className="snap-start shrink-0 w-[280px]"
                   >
-                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          {wiki.logo_url && (
-                            <img src={wiki.logo_url} alt="" className="h-5 w-5 rounded" />
+                    <Card
+                      className="h-full transition-colors cursor-pointer relative overflow-hidden"
+                      style={wiki.cover_image ? {
+                        backgroundImage: `url(${wiki.cover_image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      } : undefined}
+                    >
+                      {wiki.cover_image && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+                      )}
+                      <div className="relative z-10">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-base text-white">
+                            {wiki.logo_url && (
+                              <img src={wiki.logo_url} alt="" className="h-5 w-5 rounded" />
+                            )}
+                            {wiki.name}
+                          </CardTitle>
+                          {wiki.description && (
+                            <CardDescription className="line-clamp-2 text-white/80">
+                              {wiki.description}
+                            </CardDescription>
                           )}
-                          {wiki.name}
-                        </CardTitle>
-                        {wiki.description && (
-                          <CardDescription className="line-clamp-2">
-                            {wiki.description}
-                          </CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <Globe className="h-3 w-3 mr-1" />
-                          {wiki.custom_domain || `/w/${wiki.slug}`}
-                        </div>
-                      </CardContent>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center text-xs text-white/60">
+                            <Globe className="h-3 w-3 mr-1" />
+                            {wiki.custom_domain || `/w/${wiki.slug}`}
+                          </div>
+                        </CardContent>
+                      </div>
                     </Card>
                   </a>
                 );

@@ -565,6 +565,8 @@ export type Database = {
           ai_enabled: boolean;
           ai_config: Json;
           discord_config: Json;
+          discord_url: string | null;
+          game_url: string | null;
           is_public: boolean;
           created_at: string;
           updated_at: string;
@@ -581,6 +583,8 @@ export type Database = {
           ai_enabled?: boolean;
           ai_config?: Json;
           discord_config?: Json;
+          discord_url?: string | null;
+          game_url?: string | null;
           is_public?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -597,6 +601,8 @@ export type Database = {
           ai_enabled?: boolean;
           ai_config?: Json;
           discord_config?: Json;
+          discord_url?: string | null;
+          game_url?: string | null;
           is_public?: boolean;
           created_at?: string;
           updated_at?: string;

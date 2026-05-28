@@ -89,69 +89,82 @@ export default function DashboardPage() {
         {tenants.map((tenant) => {
           const s = stats[tenant.id];
           return (
-            <Card key={tenant.id} className="relative">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    {tenant.logo_url && (
-                      <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
-                    )}
-                    <div>
-                      <CardTitle className="text-base">{tenant.name}</CardTitle>
-                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mt-1">
-                        {tenant.role}
-                      </span>
+            <Card
+              key={tenant.id}
+              className="relative overflow-hidden"
+              style={tenant.cover_image ? {
+                backgroundImage: `url(${tenant.cover_image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              } : undefined}
+            >
+              {tenant.cover_image && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+              )}
+              <div className="relative z-10">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      {tenant.logo_url && (
+                        <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
+                      )}
+                      <div>
+                        <CardTitle className="text-base text-white">{tenant.name}</CardTitle>
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mt-1">
+                          {tenant.role}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 min-h-[2.5rem]">
-                  {tenant.description || 'Sem descrição'}
-                </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-white/80 line-clamp-2 mb-4 min-h-[2.5rem]">
+                    {tenant.description || 'Sem descrição'}
+                  </p>
 
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  {s && (
-                    <>
+                  <div className="flex items-center gap-4 text-sm text-white/60 mb-4">
+                    {s && (
+                      <>
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5" />
+                          {s.articles} artigos
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {s.members} membros
+                        </span>
+                      </>
+                    )}
+                    {tenant.custom_domain && (
                       <span className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" />
-                        {s.articles} artigos
+                        <Globe className="h-3.5 w-3.5" />
+                        Domínio
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {s.members} membros
-                      </span>
-                    </>
-                  )}
-                  {tenant.custom_domain && (
-                    <span className="flex items-center gap-1">
-                      <Globe className="h-3.5 w-3.5" />
-                      Domínio
-                    </span>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/dashboard/${tenant.slug}/settings`}>
-                      <Settings className="h-3.5 w-3.5 mr-1.5" />
-                      Configurar
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/dashboard/${tenant.slug}/editor/new`}>
-                      <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                      Novo Artigo
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/w/${tenant.slug}`}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      Ver
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/${tenant.slug}/settings`}>
+                        <Settings className="h-3.5 w-3.5 mr-1.5" />
+                        Configurar
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/${tenant.slug}/editor/new`}>
+                        <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                        Novo Artigo
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/w/${tenant.slug}`}>
+                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                        Ver
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </div>
             </Card>
           );
         })}

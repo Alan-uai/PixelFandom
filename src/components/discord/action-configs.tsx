@@ -1,25 +1,65 @@
 'use client';
 
+import { useState, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, GripVertical, ChevronUp, ChevronDown, Code2 } from 'lucide-react';
 import { EmbedBuilder } from './embed-builder';
 import type { BotAction, BotActionType } from './types';
 import { ACTION_LABELS, ACTION_TYPE_CATEGORIES } from './types';
+import { VariablePicker } from './variable-picker';
+
+function insertAtCursor(textarea: HTMLTextAreaElement | null, text: string): string {
+  if (!textarea) return text;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const before = textarea.value.substring(0, start);
+  const after = textarea.value.substring(end);
+  const newValue = before + text + after;
+  requestAnimationFrame(() => {
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
+  });
+  return newValue;
+}
 
 function MessagePayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  const [showVars, setShowVars] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleInsertVariable = useCallback((syntax: string) => {
+    const newContent = insertAtCursor(contentRef.current, syntax);
+    if (newContent) onChange({ ...payload, content: newContent });
+    else onChange({ ...payload, content: (payload.content ?? '') + syntax });
+  }, [payload, onChange]);
+
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <Label className="text-xs">Conteúdo da Mensagem</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Conteúdo da Mensagem</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowVars(!showVars)}
+            className="h-6 text-[10px] gap-1"
+          >
+            <Code2 className="h-3 w-3" />
+            {'{ }'}
+          </Button>
+        </div>
         <textarea
+          ref={contentRef}
           value={payload.content ?? ''}
           onChange={(e) => onChange({ ...payload, content: e.target.value })}
           rows={3}
           className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
           placeholder="Texto da mensagem (markdown suportado)..."
         />
+        {showVars && (
+          <VariablePicker onInsert={handleInsertVariable} onClose={() => setShowVars(false)} />
+        )}
       </div>
       <div className="space-y-1">
         <Label className="text-xs">Embeds</Label>
@@ -270,6 +310,15 @@ function CreateRolePayloadForm({ payload, onChange }: { payload: Record<string, 
 }
 
 function ExecuteWebhookPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  const [showVars, setShowVars] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleInsertVariable = useCallback((syntax: string) => {
+    const newContent = insertAtCursor(contentRef.current, syntax);
+    if (newContent) onChange({ ...payload, content: newContent });
+    else onChange({ ...payload, content: (payload.content ?? '') + syntax });
+  }, [payload, onChange]);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -293,14 +342,29 @@ function ExecuteWebhookPayloadForm({ payload, onChange }: { payload: Record<stri
         </div>
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Conteúdo</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Conteúdo</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowVars(!showVars)}
+            className="h-6 text-[10px] gap-1"
+          >
+            <Code2 className="h-3 w-3" />
+            {'{ }'}
+          </Button>
+        </div>
         <textarea
+          ref={contentRef}
           value={payload.content ?? ''}
           onChange={(e) => onChange({ ...payload, content: e.target.value })}
           rows={2}
           className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
           placeholder="Conteúdo da mensagem via webhook..."
         />
+        {showVars && (
+          <VariablePicker onInsert={handleInsertVariable} onClose={() => setShowVars(false)} />
+        )}
       </div>
     </div>
   );
@@ -358,6 +422,232 @@ function SetBotStatusPayloadForm({ payload, onChange }: { payload: Record<string
         <option value="dnd">Não Perturbe</option>
         <option value="invisible">Invisível</option>
       </select>
+    </div>
+  );
+}
+
+function CreateThreadPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-1 col-span-2">
+        <Label className="text-xs">Nome da Thread</Label>
+        <Input
+          value={payload.name ?? ''}
+          onChange={(e) => onChange({ ...payload, name: e.target.value })}
+          placeholder="Nome da thread"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">ID do Canal</Label>
+        <Input
+          value={payload.channelId ?? ''}
+          onChange={(e) => onChange({ ...payload, channelId: e.target.value })}
+          placeholder="ID do canal pai"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Tipo</Label>
+        <select
+          value={payload.type ?? 'public_thread'}
+          onChange={(e) => onChange({ ...payload, type: e.target.value })}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+        >
+          <option value="public_thread">Thread Pública</option>
+          <option value="private_thread">Thread Privada</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function ChannelIdPayloadForm({ payload, onChange, label }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void; label: string }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        value={payload.channelId ?? ''}
+        onChange={(e) => onChange({ ...payload, channelId: e.target.value })}
+        placeholder="ID do canal"
+        className="h-8 text-xs"
+      />
+    </div>
+  );
+}
+
+function ThreadMemberPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-1">
+        <Label className="text-xs">ID do Canal (Thread)</Label>
+        <Input
+          value={payload.channelId ?? ''}
+          onChange={(e) => onChange({ ...payload, channelId: e.target.value })}
+          placeholder="ID da thread"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">ID do Usuário</Label>
+        <Input
+          value={payload.userId ?? ''}
+          onChange={(e) => onChange({ ...payload, userId: e.target.value })}
+          placeholder="ID do usuário"
+          className="h-8 text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CreateEmojiPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-1">
+        <Label className="text-xs">Nome</Label>
+        <Input
+          value={payload.name ?? ''}
+          onChange={(e) => onChange({ ...payload, name: e.target.value })}
+          placeholder="nome_do_emoji"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">URL da Imagem</Label>
+        <Input
+          value={payload.imageUrl ?? ''}
+          onChange={(e) => onChange({ ...payload, imageUrl: e.target.value })}
+          placeholder="https://cdn.exemplo.com/emoji.png"
+          className="h-8 text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CreateStickerPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Nome</Label>
+          <Input
+            value={payload.name ?? ''}
+            onChange={(e) => onChange({ ...payload, name: e.target.value })}
+            placeholder="Nome do sticker"
+            className="h-8 text-xs"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Tags</Label>
+          <Input
+            value={payload.tags ?? ''}
+            onChange={(e) => onChange({ ...payload, tags: e.target.value })}
+            placeholder="tag1, tag2"
+            className="h-8 text-xs"
+          />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Descrição</Label>
+        <Input
+          value={payload.description ?? ''}
+          onChange={(e) => onChange({ ...payload, description: e.target.value })}
+          placeholder="Descrição do sticker"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">URL da Imagem</Label>
+        <Input
+          value={payload.imageUrl ?? ''}
+          onChange={(e) => onChange({ ...payload, imageUrl: e.target.value })}
+          placeholder="https://cdn.exemplo.com/sticker.png"
+          className="h-8 text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CreateEventPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Nome do Evento</Label>
+          <Input
+            value={payload.name ?? ''}
+            onChange={(e) => onChange({ ...payload, name: e.target.value })}
+            placeholder="Nome do evento"
+            className="h-8 text-xs"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">ID do Canal</Label>
+          <Input
+            value={payload.channelId ?? ''}
+            onChange={(e) => onChange({ ...payload, channelId: e.target.value })}
+            placeholder="ID do canal de voz/stage"
+            className="h-8 text-xs"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Início (ISO)</Label>
+          <Input
+            value={payload.scheduledStart ?? ''}
+            onChange={(e) => onChange({ ...payload, scheduledStart: e.target.value })}
+            placeholder="2025-01-01T20:00:00Z"
+            className="h-8 text-xs font-mono"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Fim (ISO)</Label>
+          <Input
+            value={payload.scheduledEnd ?? ''}
+            onChange={(e) => onChange({ ...payload, scheduledEnd: e.target.value })}
+            placeholder="2025-01-01T22:00:00Z"
+            className="h-8 text-xs font-mono"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Tipo</Label>
+          <select
+            value={payload.entityType ?? 'voice'}
+            onChange={(e) => onChange({ ...payload, entityType: e.target.value })}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="voice">Voz</option>
+            <option value="stage">Stage</option>
+            <option value="external">Externo</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Privacidade</Label>
+          <select
+            value={payload.privacyLevel ?? 'guild_only'}
+            onChange={(e) => onChange({ ...payload, privacyLevel: e.target.value })}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="guild_only">Apenas servidor</option>
+          </select>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Descrição</Label>
+        <textarea
+          value={payload.description ?? ''}
+          onChange={(e) => onChange({ ...payload, description: e.target.value })}
+          rows={2}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="Descrição do evento..."
+        />
+      </div>
     </div>
   );
 }
@@ -581,6 +871,175 @@ export function ActionConfigForm({ action, onChange }: { action: BotAction; onCh
 
     case 'set_bot_status':
       return <SetBotStatusPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'mute_member':
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">ID do Usuário</Label>
+            <Input
+              value={action.payload.userId ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, userId: e.target.value })}
+              placeholder="ID do usuário"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Mutado</Label>
+            <select
+              value={action.payload.mute ? 'true' : 'false'}
+              onChange={(e) => updatePayload({ ...action.payload, mute: e.target.value === 'true' })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+        </div>
+      );
+
+    case 'deafen_member':
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">ID do Usuário</Label>
+            <Input
+              value={action.payload.userId ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, userId: e.target.value })}
+              placeholder="ID do usuário"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Ensurdecer</Label>
+            <select
+              value={action.payload.deafen ? 'true' : 'false'}
+              onChange={(e) => updatePayload({ ...action.payload, deafen: e.target.value === 'true' })}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+        </div>
+      );
+
+    case 'disconnect_member':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">ID do Usuário</Label>
+          <Input
+            value={action.payload.userId ?? ''}
+            onChange={(e) => updatePayload({ ...action.payload, userId: e.target.value })}
+            placeholder="ID do usuário para desconectar"
+            className="h-8 text-xs"
+          />
+        </div>
+      );
+
+    case 'create_thread':
+      return <CreateThreadPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'delete_thread':
+    case 'archive_thread':
+    case 'unarchive_thread':
+    case 'lock_thread':
+    case 'unlock_thread':
+      return <ChannelIdPayloadForm payload={action.payload} onChange={updatePayload} label={ACTION_LABELS[action.type]} />;
+
+    case 'add_thread_member':
+    case 'remove_thread_member':
+      return <ThreadMemberPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'create_emoji':
+      return <CreateEmojiPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'delete_emoji':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">ID do Emoji</Label>
+          <Input
+            value={action.payload.emojiId ?? ''}
+            onChange={(e) => updatePayload({ ...action.payload, emojiId: e.target.value })}
+            placeholder="ID do emoji a ser excluído"
+            className="h-8 text-xs"
+          />
+        </div>
+      );
+
+    case 'create_sticker':
+      return <CreateStickerPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'delete_sticker':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">ID do Sticker</Label>
+          <Input
+            value={action.payload.stickerId ?? ''}
+            onChange={(e) => updatePayload({ ...action.payload, stickerId: e.target.value })}
+            placeholder="ID do sticker a ser excluído"
+            className="h-8 text-xs"
+          />
+        </div>
+      );
+
+    case 'create_event':
+      return <CreateEventPayloadForm payload={action.payload} onChange={updatePayload} />;
+
+    case 'edit_event':
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">ID do Evento</Label>
+            <Input
+              value={action.payload.eventId ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, eventId: e.target.value })}
+              placeholder="ID do evento"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1 col-span-2">
+            <Label className="text-xs">Novo Nome</Label>
+            <Input
+              value={action.payload.name ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, name: e.target.value })}
+              placeholder="Novo nome do evento"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Início (ISO)</Label>
+            <Input
+              value={action.payload.scheduledStart ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, scheduledStart: e.target.value })}
+              placeholder="2025-01-01T20:00:00Z"
+              className="h-8 text-xs font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Fim (ISO)</Label>
+            <Input
+              value={action.payload.scheduledEnd ?? ''}
+              onChange={(e) => updatePayload({ ...action.payload, scheduledEnd: e.target.value })}
+              placeholder="2025-01-01T22:00:00Z"
+              className="h-8 text-xs font-mono"
+            />
+          </div>
+        </div>
+      );
+
+    case 'delete_event':
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs">ID do Evento</Label>
+          <Input
+            value={action.payload.eventId ?? ''}
+            onChange={(e) => updatePayload({ ...action.payload, eventId: e.target.value })}
+            placeholder="ID do evento a ser excluído"
+            className="h-8 text-xs"
+          />
+        </div>
+      );
 
     default:
       return <p className="text-xs text-muted-foreground">Configuração não disponível para {action.type}.</p>;

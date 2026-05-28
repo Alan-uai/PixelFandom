@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,18 +9,20 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil } from 'lucide-react';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
-import { CommandCard } from '@/components/discord/command-card';
+import { GuildDataProvider } from '@/components/discord/guild-data-context';
+import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { createDefaultCommand, migrateOldCommand, type DiscordConfig as DiscordConfigType, type CustomCommand } from '@/components/discord/types';
 
 export default function WikiDiscordPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const router = useRouter();
   const { toast } = useToast();
 
   const [tenant, setTenant] = useState<any>(null);
-  const [guilds, setGuilds] = useState<any[]>([]);
+  const [dbGuilds, setDbGuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
@@ -95,7 +97,7 @@ export default function WikiDiscordPage() {
             .select('*')
             .eq('tenant_id', tenantData.id);
 
-          if (guildsData) setGuilds(guildsData);
+          if (guildsData) setDbGuilds(guildsData);
         }
         setLoading(false);
       } catch (err) {
@@ -112,8 +114,8 @@ export default function WikiDiscordPage() {
     };
   }, []);
 
-  const addCommand = () => {
-    setCommands((prev) => [...prev, createDefaultCommand()]);
+  const toggleCommand = (index: number) => {
+    setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, enabled: !cmd.enabled } : cmd));
   };
 
   const handleSave = async () => {
@@ -171,9 +173,10 @@ export default function WikiDiscordPage() {
     prefix !== initialRef.current.prefix ||
     status !== initialRef.current.status ||
     welcomeMessage !== initialRef.current.welcomeMessage ||
-    JSON.stringify(commands) !== JSON.stringify(initialRef.current.commands);
+    JSON.stringify(commands.map((c) => c.enabled)) !== JSON.stringify(initialRef.current.commands.map((c) => c.enabled));
 
   const sections = [
+    { id: 'discord-login', label: 'Conexão', icon: Server },
     { id: 'status', label: 'Status do Bot', icon: Power },
     { id: 'identity', label: 'Identidade do Bot', icon: Bot },
     { id: 'messages', label: 'Prefixo e Mensagens', icon: MessageSquare },
@@ -182,203 +185,252 @@ export default function WikiDiscordPage() {
   ];
 
   return (
-    <div className="flex">
-      <PageSubNav sections={sections} />
-      <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
+    <GuildDataProvider>
+      <div className="flex">
+        <PageSubNav sections={sections} />
+        <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
 
-      <section id="status">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Power className="h-5 w-5" />
-            Status do Bot
-          </CardTitle>
-          <CardDescription>Ligue ou desligue o bot do Discord.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Bot Ativo</p>
-              <p className="text-sm text-muted-foreground">
-                Quando ativo, o bot responde a comandos no Discord.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
-          </div>
-        </CardContent>
-      </Card>
-      </section>
+        <section id="discord-login">
+          <DiscordLoginGate />
+        </section>
 
-      <section id="identity">
-      <Card>
-        <CardHeader>
-          <CardTitle>Identidade do Bot</CardTitle>
-          <CardDescription>Nome e avatar do bot no Discord.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="botName">Nome do Bot</Label>
-            <Input
-              id="botName"
-              value={botName}
-              onChange={(e) => setBotName(e.target.value)}
-              placeholder="Meu Wiki Bot"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Avatar do Bot</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`discord-avatars/${slug}`}
-              value={botAvatar || ''}
-              onChange={(url) => setBotAvatar(url || null)}
-              previewSize="w-16 h-16 rounded-full"
-            />
-            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="online">Online</option>
-              <option value="idle">Ausente</option>
-              <option value="dnd">Não Perturbe</option>
-              <option value="invisible">Invisível</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="messages">
-      <Card>
-        <CardHeader>
-          <CardTitle>Prefixo e Mensagens</CardTitle>
-          <CardDescription>Configure o prefixo de comandos e mensagem de boas-vindas.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="prefix">Prefixo de Comandos</Label>
-            <Input
-              id="prefix"
-              value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
-              placeholder="!"
-              maxLength={5}
-              className="w-24"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="welcome">Mensagem de Boas-Vindas</Label>
-            <textarea
-              id="welcome"
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Bem-vindo ao servidor!"
-            />
-          </div>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="commands">
-      <Card>
-        <CardHeader>
-          <CardTitle>Comandos Personalizados</CardTitle>
-          <CardDescription>
-            Comandos com triggers e múltiplas ações. Cada comando pode executar ações sequenciais ou paralelas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {commands.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">Nenhum comando personalizado ainda.</p>
-          ) : (
-            <div className="space-y-2">
-              {commands.map((cmd, index) => (
-                <CommandCard
-                  key={cmd.id}
-                  command={cmd}
-                  onChange={(updated) => setCommands((prev) => prev.map((c, i) => i === index ? updated : c))}
-                  onRemove={() => setCommands((prev) => prev.filter((_, i) => i !== index))}
-                />
-              ))}
-            </div>
-          )}
-          <Button variant="outline" onClick={addCommand} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Comando
-          </Button>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="servers">
-      {guilds.length > 0 && (
+        <section id="status">
         <Card>
           <CardHeader>
-            <CardTitle>Servidores Conectados</CardTitle>
-            <CardDescription>Servidores onde o bot está presente.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Power className="h-5 w-5" />
+              Status do Bot
+            </CardTitle>
+            <CardDescription>Ligue ou desligue o bot do Discord.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {guilds.map((guild) => (
-              <div
-                key={guild.guild_id}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <div>
-                  <p className="text-sm font-mono font-medium">{guild.guild_id}</p>
-                  {guild.channel_id && (
-                    <p className="text-xs text-muted-foreground">
-                      Canal: {guild.channel_id}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      guild.bot_enabled ? 'bg-green-500' : 'bg-muted-foreground'
-                    }`}
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    {guild.bot_enabled ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Bot Ativo</p>
+                <p className="text-sm text-muted-foreground">
+                  Quando ativo, o bot responde a comandos no Discord.
+                </p>
               </div>
-            ))}
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300"
+              />
+            </div>
           </CardContent>
         </Card>
-      )}
-      </section>
+        </section>
 
-      {savedFeedback ? (
-        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-          <Check className="h-4 w-4" />
-          Configurações salvas!
+        <section id="identity">
+        <Card>
+          <CardHeader>
+            <CardTitle>Identidade do Bot</CardTitle>
+            <CardDescription>Nome e avatar do bot no Discord.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="botName">Nome do Bot</Label>
+              <Input
+                id="botName"
+                value={botName}
+                onChange={(e) => setBotName(e.target.value)}
+                placeholder="Meu Wiki Bot"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Avatar do Bot</Label>
+              <ImageUpload
+                bucket="wiki-images"
+                pathPrefix={`discord-avatars/${slug}`}
+                value={botAvatar || ''}
+                onChange={(url) => setBotAvatar(url || null)}
+                previewSize="w-16 h-16 rounded-full"
+              />
+              <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="online">Online</option>
+                <option value="idle">Ausente</option>
+                <option value="dnd">Não Perturbe</option>
+                <option value="invisible">Invisível</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+        </section>
+
+        <section id="messages">
+        <Card>
+          <CardHeader>
+            <CardTitle>Prefixo e Mensagens</CardTitle>
+            <CardDescription>Configure o prefixo de comandos e mensagem de boas-vindas.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="prefix">Prefixo de Comandos</Label>
+              <Input
+                id="prefix"
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                placeholder="!"
+                maxLength={5}
+                className="w-24"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="welcome">Mensagem de Boas-Vindas</Label>
+              <textarea
+                id="welcome"
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Bem-vindo ao servidor!"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        </section>
+
+        <section id="commands">
+        <Card>
+          <CardHeader>
+            <CardTitle>Comandos Personalizados</CardTitle>
+            <CardDescription>
+              Ative/desative comandos existentes. Clique em "Editar" para configurar triggers, ações e embeds.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {commands.length === 0 ? (
+              <div className="text-center py-6 space-y-3">
+                <p className="text-sm text-muted-foreground">Nenhum comando personalizado ainda.</p>
+                <Button
+                  variant="default"
+                  onClick={() => router.push(`/dashboard/${slug}/discord/commands/new`)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeiro Comando
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {commands.map((cmd, index) => (
+                  <div
+                    key={cmd.id}
+                    className="flex items-center gap-3 rounded-lg border p-3"
+                  >
+                    <label className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={cmd.enabled}
+                        onChange={() => toggleCommand(index)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                    </label>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{cmd.name || 'Comando sem nome'}</p>
+                      {cmd.description && (
+                        <p className="text-[11px] text-muted-foreground truncate">{cmd.description}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">
+                        {cmd.actions.length} aç{cmd.actions.length === 1 ? 'ão' : 'ões'}
+                        {' · '}
+                        {cmd.executionMode === 'sequential' ? 'sequencial' : 'paralelo'}
+                        {' · '}
+                        {cmd.triggerType === 'mention' ? '@menção' : `${cmd.trigger.filter(Boolean).length} trigger${cmd.trigger.filter(Boolean).length !== 1 ? 's' : ''}`}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/${slug}/discord/commands/${cmd.id}`)}
+                      className="shrink-0 h-8 gap-1"
+                    >
+                      <Pencil className="h-3 w-3" /> Editar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {commands.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/${slug}/discord/commands/new`)}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Comando
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+        </section>
+
+        <section id="servers">
+        {dbGuilds.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Servidores Conectados</CardTitle>
+              <CardDescription>Servidores onde o bot está presente.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dbGuilds.map((guild) => (
+                <div
+                  key={guild.guild_id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="text-sm font-mono font-medium">{guild.guild_id}</p>
+                    {guild.channel_id && (
+                      <p className="text-xs text-muted-foreground">
+                        Canal: {guild.channel_id}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        guild.bot_enabled ? 'bg-green-500' : 'bg-muted-foreground'
+                      }`}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {guild.bot_enabled ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+        </section>
+
+        {savedFeedback ? (
+          <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+            <Check className="h-4 w-4" />
+            Configurações salvas!
+          </div>
+        ) : isDirty ? (
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Salvar Configuração
+          </Button>
+        ) : null}
         </div>
-      ) : isDirty ? (
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Salvar Configuração
-        </Button>
-      ) : null}
       </div>
-    </div>
+    </GuildDataProvider>
   );
 }

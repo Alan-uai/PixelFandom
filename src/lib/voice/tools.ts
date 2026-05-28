@@ -44,6 +44,8 @@ export interface ToolContext {
   volume: number
   voiceName: VoiceName
   language: string
+  discordUrl?: string
+  gameUrl?: string
   setVolume: (v: number) => void
   setVoiceName: (v: VoiceName) => void
   setLanguage: (l: string) => void
@@ -360,6 +362,42 @@ NEVER HALLUCINATE:
         return { result: { message: 'Notification sent' } }
       },
       ['message']
+    ),
+
+    new FunctionCallTool(
+      'navigateToDiscord',
+      `Open the wiki's Discord server invite link in a new tab.
+Use when the user asks to join the Discord, go to Discord, or wants to talk on Discord.
+If no Discord URL is configured, say that this wiki doesn't have a Discord link yet.`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        if (ctx.discordUrl) {
+          window.open(ctx.discordUrl, '_blank', 'noopener,noreferrer')
+          return { result: { success: true, page: 'discord', message: 'Abrindo Discord...' } }
+        }
+        return { result: { success: false, message: 'Esta wiki não possui link do Discord configurado.' } }
+      }
+    ),
+
+    new FunctionCallTool(
+      'navigateToGame',
+      `Open the wiki's game page (e.g. Roblox) in a new tab.
+Use when the user asks to play the game, go to the game, or wants to see the game page.
+If no game URL is configured, say that this wiki doesn't have a game link yet.`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        if (ctx.gameUrl) {
+          window.open(ctx.gameUrl, '_blank', 'noopener,noreferrer')
+          return { result: { success: true, page: 'game', message: 'Abrindo jogo...' } }
+        }
+        return { result: { success: false, message: 'Esta wiki não possui link do jogo configurado.' } }
+      }
     ),
 
     new FunctionCallTool(

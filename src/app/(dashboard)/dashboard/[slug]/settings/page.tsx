@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2 } from 'lucide-react';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 export default function WikiSettingsPage() {
@@ -23,11 +23,13 @@ export default function WikiSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '' });
+  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [discordUrl, setDiscordUrl] = useState('');
+  const [gameUrl, setGameUrl] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -51,11 +53,15 @@ export default function WikiSettingsPage() {
           setDescription(data.description || '');
           setLogoUrl(data.logo_url || '');
           setCoverImageUrl(data.cover_image || '');
+          setDiscordUrl(data.discord_url || '');
+          setGameUrl(data.game_url || '');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
             logoUrl: data.logo_url || '',
             coverImageUrl: data.cover_image || '',
+            discordUrl: data.discord_url || '',
+            gameUrl: data.game_url || '',
           };
         }
         setLoading(false);
@@ -78,13 +84,13 @@ export default function WikiSettingsPage() {
     try {
       const { error } = await supabase
         .from('tenants')
-        .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null })
+        .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null, discord_url: discordUrl || null, game_url: gameUrl || null })
         .eq('slug', slug);
 
       if (error) {
         toast({ variant: 'destructive', title: 'Erro', description: error.message });
       } else {
-        initialRef.current = { name, description, logoUrl, coverImageUrl };
+        initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
@@ -113,12 +119,15 @@ export default function WikiSettingsPage() {
     name !== initialRef.current.name ||
     description !== initialRef.current.description ||
     logoUrl !== initialRef.current.logoUrl ||
-    coverImageUrl !== initialRef.current.coverImageUrl;
+    coverImageUrl !== initialRef.current.coverImageUrl ||
+    discordUrl !== initialRef.current.discordUrl ||
+    gameUrl !== initialRef.current.gameUrl;
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },
     { id: 'logo', label: 'Logo', icon: Image },
     { id: 'cover', label: 'Capa', icon: ImageUp },
+    { id: 'links', label: 'Links', icon: MessageCircle },
   ];
 
   return (
@@ -189,6 +198,40 @@ export default function WikiSettingsPage() {
             previewSize="w-40 h-24"
           />
           <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      <section id="links">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Links Sociais
+          </CardTitle>
+          <CardDescription>Links para o Discord e página do jogo (Roblox).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="discordUrl">Link do Discord</Label>
+            <Input
+              id="discordUrl"
+              type="url"
+              value={discordUrl}
+              onChange={(e) => setDiscordUrl(e.target.value)}
+              placeholder="https://discord.gg/seu-convite"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gameUrl">Link do Jogo (Roblox)</Label>
+            <Input
+              id="gameUrl"
+              type="url"
+              value={gameUrl}
+              onChange={(e) => setGameUrl(e.target.value)}
+              placeholder="https://www.roblox.com/games/..."
+            />
+          </div>
         </CardContent>
       </Card>
       </section>

@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Code2 } from 'lucide-react';
 import type { EmbedPayload, EmbedField } from './types';
+import { VariablePicker } from './variable-picker';
 
 interface Props {
   value?: EmbedPayload[];
@@ -64,16 +66,33 @@ function SingleEmbed({ embed, index, onChange, onRemove }: {
   onChange: (e: EmbedPayload) => void;
   onRemove: () => void;
 }) {
+  const [showVars, setShowVars] = useState(false);
   const update = (partial: Partial<EmbedPayload>) => onChange({ ...embed, ...partial });
 
   return (
     <div className="space-y-3 rounded-lg border p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Embed #{index + 1}</p>
-        <Button variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 text-destructive">
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowVars(!showVars)}
+            className="h-7 text-[10px] gap-1"
+          >
+            <Code2 className="h-3 w-3" />
+            {'{ }'}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 text-destructive">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
+      {showVars && (
+        <div className="mb-2">
+          <VariablePicker mode="copy" onClose={() => setShowVars(false)} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">

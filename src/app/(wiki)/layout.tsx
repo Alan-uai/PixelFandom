@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, House, MessageCircle, PanelLeft, PanelLeftClose } from 'lucide-react';
+import { Loader2, Search, House, MessageCircle, PanelLeft, PanelLeftClose, ExternalLink, Gamepad2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
@@ -188,6 +188,30 @@ function WikiLayoutContent({
             <Search className="h-4 w-4" />
           </button>
           <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
+
+          {(tenant as any)?.discord_url && (
+            <a
+              href={(tenant as any).discord_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Discord"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          )}
+
+          {(tenant as any)?.game_url && (
+            <a
+              href={(tenant as any).game_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Jogo"
+            >
+              <Gamepad2 className="h-4 w-4" />
+            </a>
+          )}
         </nav>
 
         {/* Inline search field — expands when toggled */}
@@ -227,7 +251,7 @@ function WikiLayoutContent({
         </main>
       </div>
       {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
-      <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} />
+      <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} />
     </div>
   );
 }
