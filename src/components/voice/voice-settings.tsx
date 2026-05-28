@@ -17,6 +17,7 @@ export interface Settings {
   publicModeSensitivity: number
   voiceFilterEnabled: boolean
   voiceFilterThreshold: number
+  primaryNavigation: boolean
 }
 
 interface Props {
@@ -249,6 +250,22 @@ export default function VoiceSettings({ open, settings, onClose, onChange }: Pro
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+              {lang === 'pt' ? 'Comportamento' : lang === 'es' ? 'Comportamiento' : 'Behavior'}
+            </label>
+            <div className="space-y-3 bg-slate-800/70 rounded-2xl p-4 border border-slate-700">
+              <Toggle
+                checked={settings.primaryNavigation}
+                onChange={(v) => onChange('primaryNavigation', v)}
+                label={lang === 'pt' ? 'Navegação Primária' : lang === 'es' ? 'Navegación Primaria' : 'Primary Navigation'}
+                desc={lang === 'pt' ? 'Ao encontrar um item, navegue direto para a página antes de mostrar estatísticas'
+                  : lang === 'es' ? 'Al encontrar un elemento, navega directamente a la página antes de mostrar estadísticas'
+                  : 'When finding an item, navigate directly to its page before showing statistics'}
+              />
             </div>
           </div>
 

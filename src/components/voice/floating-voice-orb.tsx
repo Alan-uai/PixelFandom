@@ -156,7 +156,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
 
       const wikiContext = `\n\nThe current wiki slug is "${tenantSlug}". The user is browsing this wiki.`
       const agentName = (aiConfig?.wake_word_text as string) || 'xWiki'
-      const systemPrompt = buildSystemPrompt(agentName) + nameContext + wikiContext
+      let systemPrompt = buildSystemPrompt(agentName) + nameContext + wikiContext
+      if (settingsRef.current.primaryNavigation) {
+        systemPrompt += `\n\nIMPORTANTE — Modo Navegação Primária está ATIVO.\nQuando o usuário perguntar sobre um item ou artigo específico, chame navigateToPage PRIMEIRO para navegar até a página, e só depois descreva as estatísticas e detalhes. A navegação tem prioridade sobre a descrição.`
+      }
 
       client.systemInstructions = systemPrompt
       client.inputAudioTranscription = true

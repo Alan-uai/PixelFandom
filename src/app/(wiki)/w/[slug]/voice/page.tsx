@@ -27,6 +27,7 @@ type Settings = {
   publicModeSensitivity: number
   voiceFilterEnabled: boolean
   voiceFilterThreshold: number
+  primaryNavigation: boolean
 }
 
 const STORAGE_KEY = 'pixelfandom:voice-settings'
@@ -45,6 +46,7 @@ const defaultSettings: Settings = {
   publicModeSensitivity: 5,
   voiceFilterEnabled: false,
   voiceFilterThreshold: 0.78,
+  primaryNavigation: false,
 }
 
 function detectUserLanguage(): string {
@@ -348,6 +350,29 @@ export default function VoicePage() {
               />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Comportamento</CardTitle>
+          <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Navegação Primária</p>
+              <p className="text-xs text-muted-foreground">
+                Ao encontrar um item, navegue direto para a página antes de mostrar estatísticas
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.primaryNavigation}
+              onChange={(e) => update('primaryNavigation', e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300"
+            />
+          </div>
         </CardContent>
       </Card>
 
