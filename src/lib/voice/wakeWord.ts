@@ -33,12 +33,6 @@ export class WakeWordDetector {
       throw new Error('Speech recognition not supported in this browser');
     }
 
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      throw new Error('Microphone permission denied');
-    }
-
     const recognition = new SpeechRecognitionAPI() as {
       continuous: boolean;
       interimResults: boolean;

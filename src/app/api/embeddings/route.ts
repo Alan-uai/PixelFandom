@@ -10,14 +10,25 @@ export async function POST(request: NextRequest) {
 
     const embedding = await generateEmbedding(text);
 
-    const { supabase } = await import('@/supabase');
-
     if (articleId && tenantId) {
-      await supabase
-        .from('wiki_articles')
-        .update({ embedding: `[${embedding.join(',')}]` })
-        .eq('id', articleId)
-        .eq('tenant_id', tenantId);
+      const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supaKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      const res = await fetch(
+        `${supaUrl}/rest/v1/wiki_articles?id=eq.${encodeURIComponent(articleId)}&tenant_id=eq.${encodeURIComponent(tenantId)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: supaKey,
+            Authorization: `Bearer ${supaKey}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ embedding }),
+        }
+      );
+      if (!res.ok) {
+        console.error('Embedding update failed', res.status, await res.text());
+      }
     }
 
     return NextResponse.json({ embedding });

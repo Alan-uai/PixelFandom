@@ -82,7 +82,7 @@ Always read the actual numbers from data and NEVER invent stats the user asks ab
       {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'EXTRACTED key search term — just the item/boss/enemy/armor NAME or short keyword. NOT the full user question.' },
+          query: { type: 'string', description: 'EXTRACTED key search term — use the URL-friendly slug format: lowercase, hyphenated, no spaces. Example: "void-armor" not "void armor". NOT the full user question.' },
         },
       },
       async (params: { query: string }) => {

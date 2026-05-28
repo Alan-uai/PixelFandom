@@ -131,7 +131,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
       await detector.start()
       wakeWordDetectorRef.current = detector
     } catch {
-      // wake word detector failed to start — silent
+      console.warn('WakeWordDetector: failed to start')
     }
   }, [aiConfig])
 

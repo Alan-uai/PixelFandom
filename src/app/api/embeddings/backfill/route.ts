@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateEmbedding } from '@/lib/gemini-embedding';
+import { createClient } from '@supabase/supabase-js';
 
 const BATCH_DELAY_MS = 150;
 const DEFAULT_LIMIT = 50;
 
+function serviceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(url, key);
+}
+
 export async function GET() {
-  const { supabase } = await import('@/supabase');
+  const supabase = serviceClient();
 
   const { count } = await supabase
     .from('wiki_articles')
@@ -19,7 +26,7 @@ export async function POST(request: NextRequest) {
   const { limit = DEFAULT_LIMIT } = await request.json().catch(() => ({}));
   const maxItems = Math.min(Math.max(1, Number(limit)), 200);
 
-  const { supabase } = await import('@/supabase');
+  const supabase = serviceClient();
 
   const { data: wikiRows, error: fetchError } = await supabase
     .from('wiki_articles')
@@ -44,13 +51,11 @@ export async function POST(request: NextRequest) {
       }
 
       const embedding = await generateEmbedding(text);
-      const embStr = embedding.join(',');
 
       const { error: updateError } = await supabase
         .from('wiki_articles')
-        .update({ embedding: `[${embStr}]` })
-        .eq('id', article.id)
-        .eq('tenant_id', article.tenant_id);
+        .update({ embedding })
+        .eq('id', article.id);
 
       if (updateError) {
         failed.push({ id: article.id, table: 'wiki_articles', error: updateError.message });
