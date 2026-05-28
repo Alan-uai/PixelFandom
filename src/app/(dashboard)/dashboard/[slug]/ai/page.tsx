@@ -205,55 +205,21 @@ export default function WikiAIConfigPage() {
 
 function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
   const [state, setState] = useState<'idle' | 'requesting' | 'listening' | 'detected'>('idle');
-  const [energy, setEnergy] = useState(0);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const animRef = useRef(0);
   const detectorRef = useRef<WakeWordDetector | null>(null);
 
   const cleanup = () => {
-    cancelAnimationFrame(animRef.current);
-    audioCtxRef.current?.close();
-    audioCtxRef.current = null;
     detectorRef.current?.stop();
     detectorRef.current = null;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setEnergy(0);
   };
 
   const startTest = async () => {
     cleanup();
     setState('requesting');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
-      streamRef.current = stream;
-
       const detector = new WakeWordDetector([wakeWordText]);
       detector.onWakeDetected(() => setState('detected'));
-      await detector.start(stream);
+      await detector.start();
       detectorRef.current = detector;
-
-      const audioCtx = new AudioContext();
-      audioCtxRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-
-      const tick = () => {
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setEnergy(Math.min(avg / 128, 1));
-        animRef.current = requestAnimationFrame(tick);
-      };
-      tick();
-
       setState('listening');
     } catch {
       cleanup();
@@ -294,12 +260,6 @@ function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
             <p className="text-sm text-muted-foreground">
               Diga: <span className="font-semibold text-foreground">&ldquo;{wakeWordText}&rdquo;</span>
             </p>
-          </div>
-          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-75 rounded-full"
-              style={{ width: `${Math.max(energy * 100, 2)}%` }}
-            />
           </div>
           <div className="flex justify-center">
             <Button variant="outline" size="sm" onClick={cleanup} className="gap-2">

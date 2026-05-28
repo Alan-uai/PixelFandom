@@ -45,6 +45,10 @@
 `VERCEL_PROJECT_ID` — ID do projeto Vercel
 `GEMINI_API_KEY` — Google Gemini API key (sistema de voz)
 
+## Safety rules
+- **NUNCA** exclua, modifique ou sobrescreva arquivos `.env*`. Eles contêm credenciais de produção.
+- Se precisar de uma nova env var, adicione a chave vazia no `.env.example` ou documente neste guia — nunca altere o `.env` existente.
+
 ## Important files
 - `docs/ai-rules.md` — strict agent behavior rules (Portuguese). Follow when editing code.
 - `docs/blueprint.md` — original app concept (legacy reference)

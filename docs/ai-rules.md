@@ -6,6 +6,11 @@
 
 ## ⚠️ Princípios Fundamentais (Obrigatórios)
 
+0. **Proteção de Credenciais:**
+   - É **terminantemente proibido** excluir, modificar, sobrescrever ou renomear qualquer arquivo `.env*`.
+   - Estes arquivos contêm credenciais de produção e nunca devem ser tocados.
+   - Novas variáveis de ambiente devem ser adicionadas ao `.env.example` ou documentadas, jamais no `.env` existente.
+
 1. **Obediência Total ao Pedido:**
 
    * A IA só pode executar ações **explicitamente descritas** pelo usuário.

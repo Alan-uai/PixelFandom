@@ -3,19 +3,11 @@ export const DEFAULT_WAKE_WORDS = ['xwiki'];
 type WakeWordCallback = () => void;
 
 export class WakeWordDetector {
+  private recognition: any;
   private wakeWords: string[];
   private onWake: WakeWordCallback | null = null;
   private isListening = false;
-  private audioContext: AudioContext | null = null;
-  private analyser: AnalyserNode | null = null;
-  private source: MediaStreamAudioSourceNode | null = null;
-  private stream: MediaStream | null = null;
-  private animationId: number | null = null;
-  private consecutiveActivations = 0;
-  private readonly ACTIVATION_THRESHOLD = 0.08;
-  private readonly REQUIRED_CONSECUTIVE = 3;
-  private readonly LOW_FREQ_CUTOFF = 50;
-  private readonly HIGH_FREQ_CUTOFF = 300;
+  private restartTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(wakeWords?: string[]) {
     this.wakeWords = wakeWords || DEFAULT_WAKE_WORDS;
@@ -33,95 +25,82 @@ export class WakeWordDetector {
     this.onWake = callback;
   }
 
-  async start(stream?: MediaStream) {
+  async start() {
     if (this.isListening) return;
 
-    try {
-      if (!stream) {
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-          },
-        });
-      } else {
-        this.stream = stream;
-      }
-
-      this.audioContext = new AudioContext({ sampleRate: 16000 });
-      this.source = this.audioContext.createMediaStreamSource(this.stream);
-
-      this.analyser = this.audioContext.createAnalyser();
-      this.analyser.fftSize = 2048;
-      this.source.connect(this.analyser);
-
-      this.isListening = true;
-      this.detectLoop();
-    } catch {
-      this.isListening = false;
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      throw new Error('Speech recognition not supported in this browser');
     }
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      throw new Error('Microphone permission denied');
+    }
+
+    const recognition = new SpeechRecognitionAPI() as {
+      continuous: boolean;
+      interimResults: boolean;
+      lang: string;
+      maxAlternatives: number;
+      onresult: ((event: any) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+      start(): void;
+      stop(): void;
+      abort(): void;
+    };
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'pt-BR';
+    recognition.maxAlternatives = 3;
+
+    recognition.onresult = (event: any) => {
+      const text = Array.from(event.results as { 0: { transcript: string } }[])
+        .map((r) => r[0].transcript)
+        .join(' ')
+        .toLowerCase();
+
+      if (this.wakeWords.some((w) => text.includes(w))) {
+        this.onWake?.();
+      }
+    };
+
+    recognition.onerror = () => {
+      this.stop();
+    };
+
+    recognition.onend = () => {
+      if (this.isListening) {
+        this.restartTimeout = setTimeout(() => {
+          if (this.isListening) {
+            try { recognition.start(); } catch {}
+          }
+        }, 100);
+      }
+    };
+
+    recognition.start();
+    this.recognition = recognition as any;
+    this.isListening = true;
   }
 
   stop() {
     this.isListening = false;
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
-    this.consecutiveActivations = 0;
-    this.source?.disconnect();
-    this.audioContext?.close();
-    this.stream?.getTracks().forEach((t) => t.stop());
-    this.source = null;
-    this.audioContext = null;
-    this.stream = null;
-    this.analyser = null;
-  }
 
-  private detectLoop() {
-    if (!this.isListening || !this.analyser) return;
-
-    const data = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteFrequencyData(data);
-
-    if (this.detectWakeWordPattern(data)) {
-      this.consecutiveActivations++;
-      if (this.consecutiveActivations >= this.REQUIRED_CONSECUTIVE) {
-        this.onWake?.();
-        this.consecutiveActivations = 0;
-      }
-    } else {
-      this.consecutiveActivations = Math.max(0, this.consecutiveActivations - 1);
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = null;
     }
 
-    this.animationId = requestAnimationFrame(() => this.detectLoop());
-  }
-
-  private detectWakeWordPattern(data: Uint8Array): boolean {
-    const binCount = data.length;
-    const nyquist = 8000;
-    const lowBin = Math.floor((this.LOW_FREQ_CUTOFF / nyquist) * (binCount / 2));
-    const highBin = Math.floor((this.HIGH_FREQ_CUTOFF / nyquist) * (binCount / 2));
-
-    let lowFreqEnergy = 0;
-    let highFreqEnergy = 0;
-
-    for (let i = lowBin; i < highBin && i < binCount; i++) {
-      lowFreqEnergy += data[i];
+    if (this.recognition) {
+      this.recognition.onresult = null;
+      this.recognition.onerror = null;
+      this.recognition.onend = null;
+      try { this.recognition.abort(); } catch {}
+      this.recognition = null;
     }
-
-    const highStart = Math.floor((1000 / nyquist) * (binCount / 2));
-    for (let i = highStart; i < binCount; i++) {
-      highFreqEnergy += data[i];
-    }
-
-    const lowAvg = lowFreqEnergy / (highBin - lowBin);
-    const highAvg = highFreqEnergy / (binCount - highStart);
-
-    const ratio = highAvg > 0 ? lowAvg / highAvg : 0;
-
-    return ratio > this.ACTIVATION_THRESHOLD * 10;
   }
 }

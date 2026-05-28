@@ -39,8 +39,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
   const isConnectingRef = useRef(false)
   const settingsRef = useRef<any>({})
   const wakeWordDetectorRef = useRef<WakeWordDetector | null>(null)
-  const lastDisconnectRef = useRef(0)
-  const wakeTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const disconnectIntentionalRef = useRef(false)
 
   useEffect(() => {
     settingsRef.current = loadSettings()
@@ -124,7 +123,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
       detector.setWakeWord(wakeWordText)
 
       detector.onWakeDetected(() => {
-        if (Date.now() - lastDisconnectRef.current < 3000) return
         if (!apiRef.current && !isConnectingRef.current) {
           connectRef.current()
         }
@@ -208,8 +206,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
         apiRef.current = null
         isConnectingRef.current = false
         setIsConnecting(false)
-        clearTimeout(wakeTimeoutRef.current)
-        wakeTimeoutRef.current = setTimeout(() => startWakeWordDetector(), 1000)
+        if (!disconnectIntentionalRef.current) {
+          startWakeWordDetector()
+        }
+        disconnectIntentionalRef.current = false
       }
       client.onOpen = async () => {
         setStatus('connected')
@@ -235,7 +235,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
   }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector])
 
   const disconnect = useCallback(() => {
-    lastDisconnectRef.current = Date.now()
+    disconnectIntentionalRef.current = true
     apiRef.current?.webSocket?.close()
     apiRef.current = null
     streamerRef.current?.stop()
@@ -246,9 +246,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
     setStatus('idle')
     setIsConnecting(false)
     isConnectingRef.current = false
-    clearTimeout(wakeTimeoutRef.current)
-    wakeTimeoutRef.current = setTimeout(() => startWakeWordDetector(), 1000)
-  }, [startWakeWordDetector])
+  }, [])
 
   connectRef.current = connect
   disconnectRef.current = disconnect
@@ -256,7 +254,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
   useEffect(() => {
     startWakeWordDetector()
     return () => {
-      clearTimeout(wakeTimeoutRef.current)
       stopWakeWordDetector()
     }
   }, [startWakeWordDetector, stopWakeWordDetector])
