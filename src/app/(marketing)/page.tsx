@@ -154,7 +154,7 @@ export default function Home() {
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2 text-base text-white">
                             {wiki.logo_url && (
-                              <img src={wiki.logo_url} alt="" className="h-10 w-10 rounded" />
+                              <img src={wiki.logo_url} alt="" className="h-16 w-16 rounded" />
                             )}
                             {wiki.name}
                           </CardTitle>
