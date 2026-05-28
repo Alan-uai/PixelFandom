@@ -4,6 +4,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get('code');
   const error = searchParams.get('error');
+  const state = searchParams.get('state');
 
   if (error || !code) {
     return NextResponse.redirect(new URL('/dashboard?discord=error', request.url));
@@ -11,9 +12,10 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-  const redirectUri = process.env.DISCORD_REDIRECT_URI;
+  const envRedirect = process.env.DISCORD_REDIRECT_URI;
+  const redirectUri = envRedirect || `${request.nextUrl.origin}/api/discord/callback`;
 
-  if (!clientId || !clientSecret || !redirectUri) {
+  if (!clientId || !clientSecret) {
     return NextResponse.json({ error: 'Discord OAuth not configured' }, { status: 500 });
   }
 
@@ -47,7 +49,12 @@ export async function GET(request: NextRequest) {
 
   const user = await userResponse.json();
 
-  const response = NextResponse.redirect(new URL('/dashboard?discord=connected', request.url));
+  const cookieReturnTo = request.cookies.get('discord_return_to')?.value;
+  const returnTo = cookieReturnTo
+    ? decodeURIComponent(cookieReturnTo)
+    : state || '/dashboard';
+
+  const response = NextResponse.redirect(new URL(`${returnTo}?discord=connected`, request.url));
 
   response.cookies.set('discord_access_token', tokens.access_token, {
     httpOnly: true,

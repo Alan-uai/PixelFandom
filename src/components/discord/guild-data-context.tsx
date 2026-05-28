@@ -88,7 +88,9 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
   }, [checkConnection]);
 
   const connect = useCallback(() => {
-    fetch('/api/discord/authorize')
+    const returnTo = window.location.pathname + window.location.search;
+    document.cookie = `discord_return_to=${encodeURIComponent(returnTo)}; path=/; max-age=300; SameSite=Lax`;
+    fetch(`/api/discord/authorize?return_to=${encodeURIComponent(returnTo)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.url) window.location.href = data.url;
