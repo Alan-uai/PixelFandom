@@ -10,6 +10,8 @@ import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
+import HubLink from '@/components/hub-link';
+import { MAIN_DOMAIN } from '@/lib/constants';
 
 export default function WikiLayout({
   children,
@@ -96,14 +98,25 @@ function WikiLayoutContent({
     );
   }
 
+  const [errorIsExternal, setErrorIsExternal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
+        setErrorIsExternal(true);
+      }
+    }
+  }, []);
+
   if (!tenant) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
         <h1 className="text-2xl font-bold">Wiki não encontrada</h1>
         <p className="text-muted-foreground mt-2">A wiki que você procura não existe.</p>
-        <Link href="/" className="mt-4 text-primary hover:underline">
+        <HubLink className="mt-4 text-primary hover:underline" isExternal={errorIsExternal}>
           Voltar para o hub
-        </Link>
+        </HubLink>
       </div>
     );
   }
@@ -129,12 +142,12 @@ function WikiLayoutContent({
         </button>
 
         {/* Wiki name → hub */}
-        <Link href="/" className="flex items-center gap-2 font-semibold shrink-0">
+        <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
           {tenant.logo_url && (
             <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
           )}
           <span className="text-sm">{tenant.name}</span>
-        </Link>
+        </HubLink>
 
         <div className="mx-2 h-5 w-px bg-border" />
 

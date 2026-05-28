@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const MAIN_DOMAIN = 'pixelfandom.vercel.app';
+import { MAIN_DOMAIN } from '@/lib/constants';
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 

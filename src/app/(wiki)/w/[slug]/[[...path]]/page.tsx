@@ -9,6 +9,8 @@ import CollectionItemView from '@/components/wiki/collection-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import { useWikiData } from '@/context/wiki-provider';
 import { supabase } from '@/supabase';
+import HubLink from '@/components/hub-link';
+import { MAIN_DOMAIN } from '@/lib/constants';
 
 const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
@@ -102,6 +104,17 @@ export default function WikiPage() {
     );
   }
 
+  const [errorIsExternal, setErrorIsExternal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
+        setErrorIsExternal(true);
+      }
+    }
+  }, []);
+
   if (!wiki || !tenant) {
     return (
       <div className="text-center py-20 rounded-xl border bg-card max-w-4xl mx-auto mt-10">
@@ -110,9 +123,9 @@ export default function WikiPage() {
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
           Esta wiki não existe ou o link está incorreto.
         </p>
-        <Link href="/" className="text-primary hover:underline text-sm font-medium">
+        <HubLink className="text-primary hover:underline text-sm font-medium" isExternal={errorIsExternal}>
           Voltar para o hub
-        </Link>
+        </HubLink>
       </div>
     );
   }
