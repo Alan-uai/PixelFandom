@@ -16,6 +16,7 @@ type SidebarArticle = {
   title: string;
   slug: string | null;
   tags: string[] | null;
+  image_url: string | null;
 };
 
 type Props = {
@@ -140,7 +141,11 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                       }`}
                     >
-                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                      {article.image_url ? (
+                        <img src={article.image_url} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                      )}
                       <span className="truncate">{article.title}</span>
                     </Link>
                   );
@@ -192,7 +197,11 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
                                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                             >
-                              <FileText className="h-3.5 w-3.5 shrink-0" />
+                              {article.image_url ? (
+                                <img src={article.image_url} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                              ) : (
+                                <FileText className="h-3.5 w-3.5 shrink-0" />
+                              )}
                               <span className="truncate">{article.title}</span>
                             </Link>
                           );

@@ -88,15 +88,20 @@ export default function DataTablePage() {
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('text');
   const [schemaBusy, setSchemaBusy] = useState(false);
+  const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
 
   const label = tableLabels[table] || table;
   const primary = primaryColumns[table] || [];
 
-  const getColumns = useCallback(async () => {
-    if (!tenantId) return [];
-    const { data } = await supabase.rpc('get_columns', { table_name: table });
-    if (data) return data as { column_name: string; data_type: string }[];
-    return [];
+  const fetchColumns = useCallback(async () => {
+    if (!tenantId) return;
+    const { data, error } = await supabase.rpc('get_table_columns', { p_table: table });
+    if (!error && data) {
+      const result = data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
+      if (result.ok) {
+        setTableColumns(result.columns);
+      }
+    }
   }, [table, tenantId]);
 
   const fetchRows = useCallback(async () => {
@@ -139,8 +144,11 @@ export default function DataTablePage() {
   }, [slug, toast]);
 
   useEffect(() => {
-    if (tenantId) fetchRows();
-  }, [tenantId, fetchRows]);
+    if (tenantId) {
+      fetchRows();
+      fetchColumns();
+    }
+  }, [tenantId, fetchRows, fetchColumns]);
 
   const isSystemColumn = (col: string) =>
     systemColumns.includes(col) || col.startsWith('embedding');
@@ -441,9 +449,11 @@ export default function DataTablePage() {
     );
   }
 
-  const allColumns = rows.length > 0
-    ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
-    : primary;
+  const allColumns = tableColumns
+    ? tableColumns.map((c) => c.column_name).filter((c) => !isSystemColumn(c) || c === 'id')
+    : rows.length > 0
+      ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
+      : primary;
   const detailColumns = getDetailColumns(allColumns);
   const editableColumns = allColumns.filter((c) => isEditableColumn(c));
 
