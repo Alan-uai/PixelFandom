@@ -49,6 +49,16 @@ function WikiLayoutContent({
   const isChatPage = pathname === `/w/${slug}/chat`;
   const isVoicePage = pathname === `/w/${slug}/voice`;
   const [redirecting, setRedirecting] = useState(false);
+  const [errorIsExternal, setErrorIsExternal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
+        setErrorIsExternal(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!tenant?.custom_domain || typeof window === 'undefined') return;
@@ -97,17 +107,6 @@ function WikiLayoutContent({
       </div>
     );
   }
-
-  const [errorIsExternal, setErrorIsExternal] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
-        setErrorIsExternal(true);
-      }
-    }
-  }, []);
 
   if (!tenant) {
     return (

@@ -32,6 +32,16 @@ export default function WikiPage() {
   // ── Fetch individual article by slug (not provided by WikiDataProvider)
   const [fetchedArticle, setFetchedArticle] = useState<any>(null);
   const [fetchingArticle, setFetchingArticle] = useState(false);
+  const [errorIsExternal, setErrorIsExternal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
+        setErrorIsExternal(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!articleSlug || !tenant?.id) return;
@@ -103,17 +113,6 @@ export default function WikiPage() {
       </div>
     );
   }
-
-  const [errorIsExternal, setErrorIsExternal] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
-        setErrorIsExternal(true);
-      }
-    }
-  }, []);
 
   if (!wiki || !tenant) {
     return (
