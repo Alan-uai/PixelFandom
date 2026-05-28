@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { ImageUpload } from '@/components/ui/image-upload';
 import {
   Loader2,
   Plus,
@@ -18,6 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
+  PlusCircle,
+  ImageIcon,
 } from 'lucide-react';
 
 const tableLabels: Record<string, string> = {
@@ -54,6 +57,10 @@ const primaryColumns: Record<string, string[]> = {
 
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 
+const imageColumnNames = ['image_url', 'image', 'icon_url', 'cover_url', 'logo_url'];
+
+const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision'];
+
 interface Row {
   [key: string]: unknown;
   id: string;
@@ -76,6 +83,11 @@ export default function DataTablePage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState('text');
+  const [schemaBusy, setSchemaBusy] = useState(false);
 
   const label = tableLabels[table] || table;
   const primary = primaryColumns[table] || [];
@@ -133,7 +145,9 @@ export default function DataTablePage() {
   const isSystemColumn = (col: string) =>
     systemColumns.includes(col) || col.startsWith('embedding');
 
-  const isEditableColumn = (col: string) => !isSystemColumn(col);
+  const isImageColumn = (col: string) => imageColumnNames.includes(col);
+
+  const isEditableColumn = (col: string) => !isSystemColumn(col) && col !== 'id';
 
   const getPrimaryValue = (row: Row, col: string) => {
     const val = row[col];
@@ -143,7 +157,7 @@ export default function DataTablePage() {
   };
 
   const getDetailColumns = (allCols: string[]) =>
-    allCols.filter((c) => !isSystemColumn(c) && !primary.includes(c));
+    allCols.filter((c) => !isSystemColumn(c) && !primary.includes(c) && !imageColumnNames.includes(c));
 
   const startEdit = (row: Row) => {
     setEditingId(row.id as string);
@@ -231,13 +245,99 @@ export default function DataTablePage() {
     setEditForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleClearField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
+    formSetter((prev) => ({ ...prev, [key]: '' }));
+  };
+
+  const handleDropColumn = async (col: string) => {
+    if (!confirm(`Remover a coluna "${col}" permanentemente?\n\nIsso afeta TODOS os itens desta tabela. Esta ação não pode ser desfeita.`)) return;
+    if (!tenantId) return;
+    setSchemaBusy(true);
+    const { data, error } = await supabase.rpc('drop_game_column', {
+      p_table: table,
+      p_column: col,
+      p_tenant_id: tenantId,
+    });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      const result = data as { ok: boolean; error?: string };
+      if (result.ok) {
+        toast({ title: `Coluna "${col}" removida.` });
+        if (editingId) {
+          setEditForm((prev) => {
+            const next = { ...prev };
+            delete next[col];
+            return next;
+          });
+        }
+        fetchRows();
+      } else {
+        toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao remover coluna.' });
+      }
+    }
+    setSchemaBusy(false);
+  };
+
+  const handleAddColumn = async () => {
+    const name = newFieldName.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!name) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para o campo.' });
+      return;
+    }
+    if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Use apenas letras minúsculas, números e underscore (ex: meu_campo).' });
+      return;
+    }
+    if (!tenantId) return;
+    setSchemaBusy(true);
+    const { data, error } = await supabase.rpc('add_game_column', {
+      p_table: table,
+      p_column: name,
+      p_type: newFieldType,
+      p_tenant_id: tenantId,
+    });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      const result = data as { ok: boolean; error?: string };
+      if (result.ok) {
+        toast({ title: `Campo "${name}" adicionado!` });
+        setShowAddField(false);
+        setNewFieldName('');
+        if (showNewForm) {
+          setNewForm((prev) => ({ ...prev, [name]: '' }));
+        }
+        if (editingId) {
+          setEditForm((prev) => ({ ...prev, [name]: '' }));
+        }
+        fetchRows();
+      } else {
+        toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao adicionar campo.' });
+      }
+    }
+    setSchemaBusy(false);
+  };
+
   const renderField = (
     col: string,
     value: string,
     onChange: (key: string, val: string) => void,
     isBoolean?: boolean,
+    rowId?: string,
   ) => {
     if (col === 'embedding' || col.startsWith('embedding')) return null;
+
+    if (isImageColumn(col)) {
+      return (
+        <ImageUpload
+          bucket="game-items"
+          pathPrefix={`game-items/${table}/${rowId || 'new'}`}
+          value={value}
+          onChange={(url) => onChange(col, url)}
+        />
+      );
+    }
 
     if (isBoolean) {
       return (
@@ -276,6 +376,49 @@ export default function DataTablePage() {
     );
   };
 
+  const renderFieldItem = (
+    col: string,
+    value: string,
+    form: Record<string, string>,
+    formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void,
+    onChange: (key: string, val: string) => void,
+    isBool: boolean,
+    rowId?: string,
+    showImageIcon?: boolean,
+  ) => (
+    <div key={col} className="space-y-1 relative group">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground capitalize flex items-center gap-1">
+          {showImageIcon && isImageColumn(col) && <ImageIcon className="h-3 w-3" />}
+          {col.replace(/_/g, ' ')}
+        </Label>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!isSystemColumn(col) && (
+            <button
+              type="button"
+              onClick={() => handleClearField(col, formSetter)}
+              className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+              title="Limpar valor"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          {!isSystemColumn(col) && !primary.includes(col) && (
+            <button
+              type="button"
+              onClick={() => handleDropColumn(col)}
+              className="text-destructive/60 hover:text-destructive p-0.5 rounded"
+              title="Remover coluna"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+      {renderField(col, value, onChange, isBool, rowId)}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -296,7 +439,6 @@ export default function DataTablePage() {
     );
   }
 
-  // Infer columns from first row or use primary
   const allColumns = rows.length > 0
     ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
     : primary;
@@ -330,15 +472,54 @@ export default function DataTablePage() {
         <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
           <p className="text-sm font-medium">Novo Registro</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {editableColumns.map((col) => (
-              <div key={col} className="space-y-1">
-                <Label className="text-xs text-muted-foreground capitalize">{col.replace(/_/g, ' ')}</Label>
-                {renderField(col, newForm[col] || '', handleNewFormChange)}
-              </div>
-            ))}
+            {editableColumns.map((col) =>
+              renderFieldItem(col, newForm[col] || '', newForm, setNewForm, handleNewFormChange, false, undefined, true)
+            )}
           </div>
+
+          {/* Add field button inside new form */}
+          <div className="border-t pt-3 mt-3">
+            {showAddField ? (
+              <div className="flex items-end gap-2">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-xs text-muted-foreground">Nome do campo</Label>
+                  <Input
+                    value={newFieldName}
+                    onChange={(e) => setNewFieldName(e.target.value)}
+                    placeholder="ex: novo_campo"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Tipo</Label>
+                  <select
+                    value={newFieldType}
+                    onChange={(e) => setNewFieldType(e.target.value)}
+                    className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {newFieldTypes.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
+                  {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                  Criar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setShowAddField(true)}>
+                <PlusCircle className="h-3 w-3 mr-1" />
+                Adicionar campo
+              </Button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 pt-2">
-            <Button size="sm" onClick={handleNewSave} disabled={saving}>
+            <Button size="sm" onClick={handleNewSave} disabled={saving || schemaBusy}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
@@ -429,16 +610,62 @@ export default function DataTablePage() {
                       {editableColumns.map((col) => {
                         const original = row[col];
                         const isBool = typeof original === 'boolean';
-                        return (
-                          <div key={col} className="space-y-1">
-                            <Label className="text-xs text-muted-foreground capitalize">{col.replace(/_/g, ' ')}</Label>
-                            {renderField(col, editForm[col] || '', handleEditFormChange, isBool)}
-                          </div>
+                        return renderFieldItem(
+                          col,
+                          editForm[col] || '',
+                          editForm,
+                          setEditForm,
+                          handleEditFormChange,
+                          isBool,
+                          row.id,
+                          true,
                         );
                       })}
                     </div>
+
+                    {/* Add field button inside edit form */}
+                    <div className="border-t pt-3">
+                      {showAddField ? (
+                        <div className="flex items-end gap-2">
+                          <div className="space-y-1 flex-1">
+                            <Label className="text-xs text-muted-foreground">Nome do campo</Label>
+                            <Input
+                              value={newFieldName}
+                              onChange={(e) => setNewFieldName(e.target.value)}
+                              placeholder="ex: novo_campo"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Tipo</Label>
+                            <select
+                              value={newFieldType}
+                              onChange={(e) => setNewFieldType(e.target.value)}
+                              className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            >
+                              {newFieldTypes.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
+                            {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                            Criar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setShowAddField(true)}>
+                          <PlusCircle className="h-3 w-3 mr-1" />
+                          Adicionar campo
+                        </Button>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-2">
-                      <Button size="sm" onClick={() => handleEditSave(row.id)} disabled={saving}>
+                      <Button size="sm" onClick={() => handleEditSave(row.id)} disabled={saving || schemaBusy}>
                         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                         Salvar
                       </Button>
