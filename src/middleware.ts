@@ -7,13 +7,37 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|audio-processors).*)'],
 };
 
+const CACHE_TTL_MS = 3_600_000; // 1 hour
+
+function getCachedTenant(request: NextRequest): { slug: string; id: string } | null {
+  try {
+    const raw = request.cookies.get('x-tenant-cache')?.value;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.slug && parsed?.id && parsed?.exp && Date.now() < parsed.exp) {
+      return { slug: parsed.slug, id: parsed.id };
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedTenant(response: NextResponse, slug: string, id: string) {
+  const payload = JSON.stringify({ slug, id, exp: Date.now() + CACHE_TTL_MS });
+  response.cookies.set('x-tenant-cache', payload, {
+    path: '/',
+    maxAge: CACHE_TTL_MS / 1000,
+    sameSite: 'lax',
+    httpOnly: true,
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase() || '';
   const isDev = host === 'localhost' || host === '127.0.0.1';
   const isApiRoute = pathname.startsWith('/api/');
 
-  // Main domain or dev: pass through, set cookie from path
+  // Main domain or dev: pass through, set slug cookie from path
   if (isDev || host === MAIN_DOMAIN) {
     const response = NextResponse.next();
     if (pathname.startsWith('/w/')) {
@@ -31,6 +55,24 @@ export async function middleware(request: NextRequest) {
 
   // Custom domain: lookup tenant and rewrite (only for wiki pages)
   if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/')) {
+    // Check cache first
+    const cached = getCachedTenant(request);
+
+    if (cached) {
+      const url = request.nextUrl.clone();
+      url.searchParams.set('__tenant_slug', cached.slug);
+      url.searchParams.set('__tenant_id', cached.id);
+
+      if (pathname.startsWith(`/w/${cached.slug}/`) || pathname === `/w/${cached.slug}`) {
+        url.pathname = pathname;
+      } else {
+        url.pathname = `/w/${cached.slug}${pathname === '/' ? '' : pathname}`;
+      }
+
+      return NextResponse.rewrite(url);
+    }
+
+    // Cache miss — fetch from Supabase
     try {
       const resp = await fetch(
         `${SUPA_URL}/rest/v1/tenants?custom_domain=eq.${encodeURIComponent(host)}&select=slug,id`,
@@ -52,7 +94,9 @@ export async function middleware(request: NextRequest) {
             url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
           }
 
-          return NextResponse.rewrite(url);
+          const response = NextResponse.rewrite(url);
+          setCachedTenant(response, slug, data[0].id);
+          return response;
         }
       }
     } catch {

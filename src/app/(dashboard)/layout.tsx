@@ -18,6 +18,8 @@ import {
   Headphones,
   PanelLeft,
   PanelLeftClose,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { LayoutGroup, motion } from 'framer-motion';
 import { PageSubNavProvider, usePageSubNav } from '@/components/dashboard/page-subnav-context';
@@ -64,10 +66,13 @@ export default function DashboardLayout({
         { href: 'ai', label: 'IA', icon: Cpu },
         { href: 'discord', label: 'Discord', icon: Headphones },
         { href: 'editor', label: 'Conteúdo', icon: BookOpen },
+        { href: 'importer', label: 'Importar', icon: Download },
+        { href: 'page-builder', label: 'Página Inicial', icon: FileText },
       ]
     : canEdit
     ? [
         { href: 'editor', label: 'Conteúdo', icon: BookOpen },
+        { href: 'importer', label: 'Importar', icon: Download },
       ]
     : [];
 

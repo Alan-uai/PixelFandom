@@ -11,6 +11,7 @@ import { useWikiData } from '@/context/wiki-provider';
 import { supabase } from '@/supabase';
 import { useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
+import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import { MAIN_DOMAIN } from '@/lib/constants';
 
 const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
@@ -43,6 +44,8 @@ export default function WikiPage() {
   const [fetchedArticle, setFetchedArticle] = useState<any>(null);
   const [fetchingArticle, setFetchingArticle] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
+  const [landingLayout, setLandingLayout] = useState<any>(null);
+  const [loadingLayout, setLoadingLayout] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -52,6 +55,21 @@ export default function WikiPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (articleSlug || !tenant?.id) return;
+    setLoadingLayout(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
+        const data = await res.json();
+        if (data?.blocks?.length > 0) {
+          setLandingLayout(data);
+        }
+      } catch {}
+      setLoadingLayout(false);
+    })();
+  }, [articleSlug, tenant?.id]);
 
   useEffect(() => {
     if (!articleSlug || !tenant?.id) return;
@@ -273,6 +291,14 @@ export default function WikiPage() {
         a.summary?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : allArticles;
+
+  if (!articleSlug && landingLayout && !loadingLayout) {
+    return (
+      <div>
+        <PageRenderer layout={landingLayout} tenant={tenant} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">

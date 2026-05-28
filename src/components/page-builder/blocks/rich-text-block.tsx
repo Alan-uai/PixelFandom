@@ -1,0 +1,13 @@
+'use client';
+
+export function RichTextBlock({ config }: { config: Record<string, unknown> }) {
+  const title = (config.title as string) || '';
+  const html = (config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>';
+
+  return (
+    <div className="space-y-4">
+      {title && <h2 className="text-2xl font-bold">{title}</h2>}
+      <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}

@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
 
     const cleanedQuery = extractSearchTerms(rawQuery);
     const result = await searchAll(slug, cleanedQuery);
-    return NextResponse.json(result);
+    const response = NextResponse.json(result);
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    return response;
   } catch (error) {
     console.error('Search error:', error);
     return NextResponse.json(

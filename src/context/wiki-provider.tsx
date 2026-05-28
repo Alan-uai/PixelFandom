@@ -24,6 +24,31 @@ const WikiDataContext = createContext<WikiDataContextType>({
   refetch: () => {},
 });
 
+const CACHE_KEY_PREFIX = 'wiki-data:';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedWiki(slug: string): WikiData | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + slug);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.data && parsed?.cachedAt && Date.now() - parsed.cachedAt < CACHE_TTL) {
+      return parsed.data as WikiData;
+    }
+    localStorage.removeItem(CACHE_KEY_PREFIX + slug);
+  } catch {}
+  return null;
+}
+
+function setCachedWiki(slug: string, data: WikiData) {
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + slug, JSON.stringify({
+      data,
+      cachedAt: Date.now(),
+    }));
+  } catch {}
+}
+
 export function WikiDataProvider({
   slug,
   children,
@@ -37,6 +62,14 @@ export function WikiDataProvider({
 
   const fetchData = useCallback(async () => {
     if (!slug) return;
+
+    const cached = getCachedWiki(slug);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -51,7 +84,9 @@ export function WikiDataProvider({
       setError(err.message);
       setData(null);
     } else {
-      setData(result as unknown as WikiData);
+      const wikiData = result as unknown as WikiData;
+      setData(wikiData);
+      setCachedWiki(slug, wikiData);
     }
     setLoading(false);
   }, [slug]);
