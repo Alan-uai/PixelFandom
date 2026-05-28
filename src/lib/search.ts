@@ -62,24 +62,29 @@ export async function searchAll(
   const terms = extractItemNames(query);
   const primaryQuery = terms[0] || query;
 
-  const embedding = await generateEmbedding(query, options?.signal);
-  const embStr = `[${embedding.join(',')}]`;
+  let embedding: number[] | null = null;
+  try {
+    embedding = await generateEmbedding(query, options?.signal);
+  } catch {
+    embedding = null;
+  }
 
   const { supabase } = await import('@/supabase');
 
-  const [wikiRes, allRes] = await Promise.all([
-    supabase.rpc('get_wiki_data', {
-      p_slug: slug,
-      p_search: primaryQuery,
-      p_embedding: embStr,
-    }),
-    supabase.rpc('search_all', {
-      p_tenant_slug: slug,
-      p_query: primaryQuery,
-      p_limit: limit * 3,
-      p_embedding: null,
-    }),
-  ]);
+  const wikiPromise = supabase.rpc('get_wiki_data', {
+    p_slug: slug,
+    p_search: embedding ? '' : primaryQuery,
+    p_embedding: embedding ? `[${embedding.join(',')}]` : null,
+  });
+
+  const allPromise = supabase.rpc('search_all', {
+    p_tenant_slug: slug,
+    p_query: primaryQuery,
+    p_limit: limit * 3,
+    p_embedding: null,
+  });
+
+  const [wikiRes, allRes] = await Promise.all([wikiPromise, allPromise]);
 
   const wiki: WikiSearchItem[] = ((wikiRes.data?.search_results as any[]) || []).map(
     (r: any) => ({

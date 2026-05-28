@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 const BATCH_DELAY_MS = 150;
 const DEFAULT_LIMIT = 50;
 
+const GAME_TABLES = ['weapons', 'armors', 'enemies', 'bosses', 'rings', 'potions', 'upgrades'] as const;
+
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -14,23 +16,42 @@ function serviceClient() {
 export async function GET() {
   const supabase = serviceClient();
 
-  const { count } = await supabase
+  const { count: wikiCount } = await supabase
     .from('wiki_articles')
     .select('*', { count: 'exact', head: true })
     .is('embedding', null);
 
-  return NextResponse.json({ wiki_articles: count ?? 0, total: count ?? 0 });
+  const gameCounts: Record<string, number> = {};
+  for (const table of GAME_TABLES) {
+    const { count } = await supabase
+      .from(table as any)
+      .select('*', { count: 'exact', head: true })
+      .is('embedding', null);
+    gameCounts[table] = count ?? 0;
+  }
+
+  const gameTotal = Object.values(gameCounts).reduce((a, b) => a + b, 0);
+
+  return NextResponse.json({
+    wiki_articles: wikiCount ?? 0,
+    ...gameCounts,
+    total: (wikiCount ?? 0) + gameTotal,
+  });
 }
 
 export async function POST(request: NextRequest) {
-  const { limit = DEFAULT_LIMIT } = await request.json().catch(() => ({}));
+  const { limit = DEFAULT_LIMIT, table = 'wiki_articles' } = await request.json().catch(() => ({}));
   const maxItems = Math.min(Math.max(1, Number(limit)), 200);
+
+  if (table !== 'wiki_articles' && !GAME_TABLES.includes(table as any)) {
+    return NextResponse.json({ error: `Invalid table: ${table}` }, { status: 400 });
+  }
 
   const supabase = serviceClient();
 
-  const { data: wikiRows, error: fetchError } = await supabase
-    .from('wiki_articles')
-    .select('id, tenant_id, slug')
+  const { data: rows, error: fetchError } = await supabase
+    .from(table as any)
+    .select('id, slug')
     .is('embedding', null)
     .limit(maxItems);
 
@@ -41,35 +62,36 @@ export async function POST(request: NextRequest) {
   const processed: string[] = [];
   const failed: { id: string; table: string; error: string }[] = [];
 
-  for (const article of wikiRows ?? []) {
+  for (const row of rows ?? []) {
     try {
-      const text = article.slug?.trim();
+      const text = (row as any).slug?.trim();
 
       if (!text) {
-        failed.push({ id: article.id, table: 'wiki_articles', error: 'No slug' });
+        failed.push({ id: (row as any).id, table, error: 'No slug' });
         continue;
       }
 
       const embedding = await generateEmbedding(text);
 
       const { error: updateError } = await supabase
-        .from('wiki_articles')
-        .update({ embedding })
-        .eq('id', article.id);
+        .from(table as any)
+        .update({ embedding } as any)
+        .eq('id', (row as any).id);
 
       if (updateError) {
-        failed.push({ id: article.id, table: 'wiki_articles', error: updateError.message });
+        failed.push({ id: (row as any).id, table, error: updateError.message });
       } else {
-        processed.push(`wiki:${article.id}`);
+        processed.push(`${table}:${(row as any).id}`);
       }
 
       await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
     } catch (err) {
-      failed.push({ id: article.id, table: 'wiki_articles', error: String(err) });
+      failed.push({ id: (row as any).id, table, error: String(err) });
     }
   }
 
   return NextResponse.json({
+    table,
     processed: processed.length,
     failed: failed.length,
     errors: failed.slice(0, 10),

@@ -45,7 +45,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
     settingsRef.current = loadSettings()
   }, [])
 
-  const handleMessage = useCallback((message: ResponseMessage) => {
+  const handleMessage = useCallback(async (message: ResponseMessage) => {
     switch (message.type) {
       case MultimodalLiveResponseType.TEXT:
         break
@@ -61,7 +61,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
         const responses: { id?: string; name: string; response: Record<string, any> }[] = []
         for (const fc of functionCalls) {
           try {
-            const result = apiRef.current?.callFunction(fc.name, fc.args)
+            const result = await apiRef.current?.callFunction(fc.name, fc.args)
             responses.push({ id: fc.id, name: fc.name, response: { result: result ?? 'ok' } })
           } catch (err: any) {
             responses.push({ id: fc.id, name: fc.name, response: { error: err.message } })
@@ -187,6 +187,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig }: Props) {
           Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
           url.searchParams.set('slug', tenantSlug)
           const res = await fetch(url.toString())
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({error: res.statusText}))
+            throw new Error(errBody.error || `HTTP ${res.status}`)
+          }
           return res.json()
         },
       })
