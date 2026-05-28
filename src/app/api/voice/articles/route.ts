@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .eq('tenant_id', tenant.id);
 
     if (tagFilter) {
-      query = query.contains('tags', [tagFilter]);
+      query = query.filter('tags', 'cs', `{${tagFilter}}`);
     }
 
     const { data, error } = await query.order('title').limit(100);

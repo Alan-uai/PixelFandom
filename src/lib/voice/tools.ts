@@ -181,7 +181,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'listWikiArticles',
-      'List wiki articles. Use optional "tag" parameter to filter by category (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Without tag, returns all articles. Use with getWikiInfo tag_counts to list items by category.',
+      'Browse articles by category using the optional "tag" parameter (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Returns article titles, slugs, and summaries for browsing. For FINDING a specific item by name, use searchWiki instead — this tool only lists by tag.',
       {
         type: 'object',
         properties: {
