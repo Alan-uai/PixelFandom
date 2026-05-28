@@ -8,12 +8,14 @@ import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
+import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import type { FloatingIslandConfig } from '@/components/page-builder/types';
 
 export default function WikiLayout({
   children,
@@ -56,6 +58,7 @@ function WikiLayoutContent({
 
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
+  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -73,6 +76,20 @@ function WikiLayoutContent({
     setRedirecting(true);
     window.location.href = `https://${tenant.custom_domain}${window.location.search}`;
   }, [tenant?.custom_domain, slug, pathname]);
+
+  // Fetch floating islands when tenant is available
+  useEffect(() => {
+    if (!tenant?.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
+        const data = await res.json();
+        if (data?.floatingIslands) {
+          setFloatingIslands(data.floatingIslands);
+        }
+      } catch {}
+    })();
+  }, [tenant?.id]);
 
   const toggleSidebar = () => setSidebarCollapsed((v) => !v);
 
@@ -196,6 +213,7 @@ function WikiLayoutContent({
         </div>
       )}
 
+      <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
       <div className="flex flex-1">
         {hasSidebar && (
           <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>

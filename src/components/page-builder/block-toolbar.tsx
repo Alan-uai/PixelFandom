@@ -24,7 +24,7 @@ function DraggableBlock({ def }: { def: BlockDefinition }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm cursor-grab hover:border-primary/50 transition-colors ${isDragging ? 'opacity-50' : ''}`}
+      className={`flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm cursor-grab hover:border-primary/50 transition-colors touch-none ${isDragging ? 'opacity-50' : ''}`}
     >
       <Icon className="h-4 w-4 text-primary" />
       <span>{def.label}</span>

@@ -5,12 +5,11 @@ import { useParams } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import type { PageLayout } from '@/components/page-builder/types';
 
 export default function PageBuilderPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [layout, setLayout] = useState<PageLayout | null>(null);
+  const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
@@ -34,7 +33,7 @@ export default function PageBuilderPage() {
       // Try tenant_pages first, then fallback to theme.landing_layout
       const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
       const data = await res.json();
-      setLayout(data || { blocks: [] });
+      setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
       setLoading(false);
     })();
   }, [slug]);
@@ -63,12 +62,16 @@ export default function PageBuilderPage() {
         <div>
           <h1 className="text-sm font-medium">Editor de Página Inicial</h1>
           <p className="text-[10px] text-muted-foreground">
-            Arraste blocos para personalizar a landing page da sua wiki
+            Personalize a landing page e as ilhas flutuantes da sua wiki
           </p>
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
-        <PageBuilderEditor tenantSlug={slug} initialLayout={layout || undefined} />
+        <PageBuilderEditor
+          tenantSlug={slug}
+          initialLayout={layout ? { blocks: layout.blocks } : undefined}
+          initialFloatingIslands={layout?.floatingIslands || undefined}
+        />
       </div>
     </div>
   );

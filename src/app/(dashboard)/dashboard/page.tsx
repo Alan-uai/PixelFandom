@@ -157,7 +157,7 @@ export default function DashboardPage() {
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/w/${tenant.slug}`}>
+                      <Link href={tenant.custom_domain ? `https://${tenant.custom_domain}` : `/w/${tenant.slug}`} target={tenant.custom_domain ? '_blank' : undefined}>
                         <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                         Ver
                       </Link>

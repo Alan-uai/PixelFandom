@@ -39,6 +39,7 @@ export default function WikiDomainsPage() {
   const [domain, setDomain] = useState('');
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
 
   useEffect(() => {
@@ -79,6 +80,38 @@ export default function WikiDomainsPage() {
     setChecking(false);
   }, [slug]);
 
+  const startPolling = useCallback(async (d: string) => {
+    if (!d.endsWith('.vercel.app')) return;
+    setVerifying(true);
+    let delay = 3000;
+    const maxDelay = 120_000;
+    const maxDuration = 300_000;
+
+    const poll = async (elapsed: number) => {
+      if (elapsed > maxDuration) {
+        setVerifying(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/domains', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d }),
+        });
+        const data = await res.json();
+        if (data.verified && data.configured) {
+          setDomainInfo(data);
+          setVerifying(false);
+          return;
+        }
+      } catch {}
+      setTimeout(() => poll(elapsed + delay), delay);
+      delay = Math.min(delay * 2, maxDelay);
+    };
+
+    poll(0);
+  }, [slug]);
+
   const handleAddDomain = async () => {
     if (!domain || !tenant) return;
     setSaving(true);
@@ -91,9 +124,11 @@ export default function WikiDomainsPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      setTenant({ ...tenant, custom_domain: domain.toLowerCase() });
+      const addedDomain = domain.toLowerCase();
+      setTenant({ ...tenant, custom_domain: addedDomain });
       setDomainInfo(data);
       toast({ title: 'Domínio adicionado!', description: 'Verifique as instruções de DNS abaixo.' });
+      startPolling(addedDomain);
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Erro', description: err.message });
     }
@@ -122,6 +157,7 @@ export default function WikiDomainsPage() {
   };
 
   const statusBadge = () => {
+    if (verifying) return { label: 'Verificando...', icon: Loader2, color: 'text-primary', spin: true };
     if (!domainInfo || !tenant?.custom_domain) return null;
     if (domainInfo.verified && domainInfo.configured)
       return { label: 'Ativo', icon: CheckCircle2, color: 'text-green-500' };
@@ -178,7 +214,7 @@ export default function WikiDomainsPage() {
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center gap-3">
                   {badge && (
-                    <badge.icon className={`h-5 w-5 ${badge.color}`} />
+                    <badge.icon className={`h-5 w-5 ${badge.color} ${verifying ? 'animate-spin' : ''}`} />
                   )}
                   <div>
                     <p className="font-mono text-sm font-medium">{tenant.custom_domain}</p>

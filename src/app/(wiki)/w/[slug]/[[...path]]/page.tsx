@@ -67,7 +67,7 @@ export default function WikiPage() {
         const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
         const data = await res.json();
         if (data?.blocks?.length > 0) {
-          setLandingLayout(data);
+          setLandingLayout({ blocks: data.blocks });
         }
       } catch {}
       setLoadingLayout(false);

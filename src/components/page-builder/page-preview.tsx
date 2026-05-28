@@ -58,7 +58,7 @@ function SortableBlock({
         <button
           {...attributes}
           {...listeners}
-          className="rounded-md bg-background border px-1.5 py-1 text-muted-foreground hover:text-foreground cursor-grab"
+          className="rounded-md bg-background border px-1.5 py-1 text-muted-foreground hover:text-foreground cursor-grab touch-none"
         >
           <GripVertical className="h-3 w-3" />
         </button>

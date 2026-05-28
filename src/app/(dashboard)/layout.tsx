@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser } from '@/supabase';
+import { useEffect, useState } from 'react';
+import { useUser, supabase } from '@/supabase';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
   LayoutDashboard,
@@ -36,6 +37,14 @@ export default function DashboardLayout({
   const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
   const isWikiPage = !!(wikiSlug && wikiSlug !== 'new');
   const { canManage, canEdit } = useTenantRole(isWikiPage ? wikiSlug : undefined);
+
+  const [wikiCustomDomain, setWikiCustomDomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!wikiSlug) { setWikiCustomDomain(null); return; }
+    supabase.from('tenants').select('custom_domain').eq('slug', wikiSlug).single()
+      .then(({ data }) => setWikiCustomDomain(data?.custom_domain ?? null));
+  }, [wikiSlug]);
 
   if (isLoading) {
     return (
@@ -154,7 +163,8 @@ export default function DashboardLayout({
             <>
               <div className="mx-1 h-5 w-px bg-border" />
               <Link
-                href={`/w/${wikiSlug}`}
+                href={wikiCustomDomain ? `https://${wikiCustomDomain}` : `/w/${wikiSlug}`}
+                target={wikiCustomDomain ? '_blank' : undefined}
                 className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Ver Wiki"
               >

@@ -27,3 +27,22 @@ export interface BlockDefinition {
   defaultConfig: Record<string, unknown>;
   description: string;
 }
+
+// ── Floating Islands ──
+
+export type FloatingIslandType = 'raid-timer' | 'video-list' | 'category-table' | 'wiki-list';
+
+export type FloatingIslandPosition = 'left' | 'center' | 'right';
+
+export interface FloatingIslandConfig {
+  id: string;
+  position: FloatingIslandPosition;
+  type: FloatingIslandType;
+  title: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}
+
+export interface FloatingIslandLayout {
+  floatingIslands: FloatingIslandConfig[];
+}

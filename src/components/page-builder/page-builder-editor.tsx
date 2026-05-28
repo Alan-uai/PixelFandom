@@ -17,20 +17,24 @@ import { nanoid } from 'nanoid';
 import { BlockToolbar, BLOCK_DEFINITIONS } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
-import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose } from 'lucide-react';
-import type { BlockConfig, BlockType, PageLayout } from './types';
+import { FloatingIslandsEditor } from './floating-islands-editor';
+import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose, LayoutList } from 'lucide-react';
+import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig } from './types';
 
 interface PageBuilderEditorProps {
   tenantSlug: string;
   initialLayout?: PageLayout;
+  initialFloatingIslands?: FloatingIslandConfig[];
 }
 
-export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEditorProps) {
+export function PageBuilderEditor({ tenantSlug, initialLayout, initialFloatingIslands }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
+  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<'blocks' | 'islands'>('blocks');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -98,7 +102,7 @@ export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEdit
       const res = await fetch(`/api/tenants/${tenantSlug}/page-layout`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocks }),
+        body: JSON.stringify({ blocks, floatingIslands }),
       });
 
       if (res.ok) {
@@ -115,105 +119,140 @@ export function PageBuilderEditor({ tenantSlug, initialLayout }: PageBuilderEdit
   const [showMobileConfig, setShowMobileConfig] = useState(false);
 
   return (
-    <div className="flex h-full relative">
-      {/* Desktop toolbar */}
-      <div className="hidden md:block w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
-        <BlockToolbar />
-      </div>
-
-      {/* Mobile toolbar toggle */}
-      <div className="md:hidden fixed bottom-20 left-4 z-50">
+    <div className="flex flex-col h-full">
+      {/* Tab bar */}
+      <div className="flex items-center border-b shrink-0 px-4">
         <button
-          onClick={() => setShowMobileToolbar((v) => !v)}
-          className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
+          onClick={() => setActiveTab('blocks')}
+          className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === 'blocks'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
         >
-          {showMobileToolbar ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+          <LayoutList className="h-3.5 w-3.5" />
+          Blocos
+        </button>
+        <button
+          onClick={() => setActiveTab('islands')}
+          className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === 'islands'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <PanelRightOpen className="h-3.5 w-3.5" />
+          Ilhas Flutuantes
         </button>
       </div>
 
-      {/* Mobile toolbar panel */}
-      {showMobileToolbar && (
-        <div className="md:hidden fixed inset-x-0 bottom-0 z-40 max-h-[50vh] rounded-t-xl border bg-background shadow-2xl p-4 overflow-y-auto">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium">Adicionar Bloco</span>
-            <button onClick={() => setShowMobileToolbar(false)}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <BlockToolbar />
-        </div>
-      )}
-
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <PagePreview
-          blocks={blocks}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onDelete={handleDeleteBlock}
-        />
-
-        <DragOverlay>
-          {activeId && (
-            <div className="rounded-lg border bg-card px-4 py-3 shadow-lg text-sm">
-              Adicionar bloco...
+      {/* Blocks tab */}
+      {activeTab === 'blocks' ? (
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex flex-1 relative">
+            {/* Desktop toolbar */}
+            <div className="hidden md:block w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
+              <BlockToolbar />
             </div>
-          )}
-        </DragOverlay>
-      </DndContext>
 
-      {selectedBlock && (
-        <>
-          {/* Desktop config panel */}
-          <div className="hidden md:block">
-            <BlockConfigPanel
-              block={selectedBlock}
-              onUpdate={handleUpdateBlock}
-              onClose={() => setSelectedId(null)}
-            />
-          </div>
+            {/* Mobile toolbar toggle */}
+            <div className="md:hidden fixed bottom-20 left-4 z-50">
+              <button
+                onClick={() => setShowMobileToolbar((v) => !v)}
+                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
+              >
+                {showMobileToolbar ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              </button>
+            </div>
 
-          {/* Mobile config toggle */}
-          <button
-            onClick={() => setShowMobileConfig(true)}
-            className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
-          >
-            <PanelRightOpen className="h-5 w-5" />
-          </button>
-
-          {/* Mobile config panel overlay */}
-          {showMobileConfig && (
-            <div className="md:hidden fixed inset-0 z-50 flex">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileConfig(false)} />
-              <div className="relative ml-auto w-80 max-w-[85vw] h-full bg-background border-l shadow-2xl overflow-y-auto">
-                <BlockConfigPanel
-                  block={selectedBlock}
-                  onUpdate={handleUpdateBlock}
-                  onClose={() => { setShowMobileConfig(false); setSelectedId(null); }}
-                />
+            {/* Mobile toolbar panel */}
+            {showMobileToolbar && (
+              <div className="md:hidden fixed inset-x-0 bottom-0 z-40 max-h-[50vh] rounded-t-xl border bg-background shadow-2xl p-4 overflow-y-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">Adicionar Bloco</span>
+                  <button onClick={() => setShowMobileToolbar(false)}>
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <BlockToolbar />
               </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {blocks.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : saved ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Save className="h-4 w-4" />
             )}
-            {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar Layout'}
-          </button>
+
+            <PagePreview
+              blocks={blocks}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onDelete={handleDeleteBlock}
+            />
+
+            <DragOverlay>
+              {activeId && (
+                <div className="rounded-lg border bg-card px-4 py-3 shadow-lg text-sm">
+                  Adicionar bloco...
+                </div>
+              )}
+            </DragOverlay>
+
+            {selectedBlock && (
+              <>
+                {/* Desktop config panel */}
+                <div className="hidden md:block">
+                  <BlockConfigPanel
+                    block={selectedBlock}
+                    onUpdate={handleUpdateBlock}
+                    onClose={() => setSelectedId(null)}
+                  />
+                </div>
+
+                {/* Mobile config toggle */}
+                <button
+                  onClick={() => setShowMobileConfig(true)}
+                  className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"
+                >
+                  <PanelRightOpen className="h-5 w-5" />
+                </button>
+
+                {/* Mobile config panel overlay */}
+                {showMobileConfig && (
+                  <div className="md:hidden fixed inset-0 z-50 flex">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileConfig(false)} />
+                    <div className="relative ml-auto w-80 max-w-[85vw] h-full bg-background border-l shadow-2xl overflow-y-auto">
+                      <BlockConfigPanel
+                        block={selectedBlock}
+                        onUpdate={handleUpdateBlock}
+                        onClose={() => { setShowMobileConfig(false); setSelectedId(null); }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </DndContext>
+      ) : (
+        /* Islands tab */
+        <div className="flex-1 overflow-y-auto p-6">
+          <FloatingIslandsEditor islands={floatingIslands} onChange={setFloatingIslands} />
         </div>
       )}
+
+      {/* Save button (always visible) */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : saved ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar Layout'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from('tenant_pages')
-      .select('layout')
+      .select('layout, floating_islands')
       .eq('tenant_id', id)
       .single();
 
@@ -23,15 +23,22 @@ export async function GET(
         .single();
 
       if (tenant?.theme && (tenant.theme as any).landing_layout) {
-        return NextResponse.json((tenant.theme as any).landing_layout);
+        const fallback = (tenant.theme as any).landing_layout;
+        return NextResponse.json({
+          blocks: fallback.blocks || [],
+          floatingIslands: fallback.floatingIslands || [],
+        });
       }
-      return NextResponse.json({ blocks: [] });
+      return NextResponse.json({ blocks: [], floatingIslands: [] });
     }
 
-    return NextResponse.json(data.layout);
+    return NextResponse.json({
+      blocks: (data.layout as any)?.blocks || [],
+      floatingIslands: (data.floating_islands as any[]) || [],
+    });
   } catch (error) {
     console.error('Get layout error:', error);
-    return NextResponse.json({ blocks: [] });
+    return NextResponse.json({ blocks: [], floatingIslands: [] });
   }
 }
 
@@ -47,11 +54,18 @@ export async function PUT(
       return NextResponse.json({ error: 'layout.blocks required' }, { status: 400 });
     }
 
+    const floatingIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
+
     // Upsert into tenant_pages
     const { error: upsertError } = await supabase
       .from('tenant_pages')
       .upsert(
-        { tenant_id: id, layout: body, updated_at: new Date().toISOString() },
+        {
+          tenant_id: id,
+          layout: { blocks: body.blocks },
+          floating_islands: floatingIslands,
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: 'tenant_id' }
       );
 
@@ -64,7 +78,7 @@ export async function PUT(
         .single();
 
       const theme = (tenant?.theme || {}) as Record<string, unknown>;
-      theme.landing_layout = body;
+      theme.landing_layout = { blocks: body.blocks, floatingIslands };
 
       const { error: themeError } = await supabase
         .from('tenants')
