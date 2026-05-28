@@ -188,6 +188,8 @@ export default function DataTablePage() {
         payload[key] = val === 'true';
       } else if (typeof original === 'number') {
         payload[key] = val === '' ? null : Number(val);
+      } else if (typeof original === 'string' || original === null || original === undefined) {
+        payload[key] = val === '' ? null : val;
       } else {
         payload[key] = val;
       }
@@ -403,7 +405,7 @@ export default function DataTablePage() {
               <X className="h-3 w-3" />
             </button>
           )}
-          {!isSystemColumn(col) && !primary.includes(col) && (
+          {!isSystemColumn(col) && (
             <button
               type="button"
               onClick={() => handleDropColumn(col)}
