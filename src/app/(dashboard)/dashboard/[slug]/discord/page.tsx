@@ -9,18 +9,10 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Trash2, Bot, Power, MessageSquare, Terminal, Server } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server } from 'lucide-react';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
-
-interface DiscordConfig {
-  bot_name?: string;
-  bot_avatar?: string | null;
-  prefix?: string;
-  status?: 'online' | 'idle' | 'dnd' | 'invisible';
-  welcome_message?: string;
-  custom_commands?: { trigger: string; response: string }[];
-  enabled?: boolean;
-}
+import { CommandCard } from '@/components/discord/command-card';
+import { createDefaultCommand, migrateOldCommand, type DiscordConfig as DiscordConfigType, type CustomCommand } from '@/components/discord/types';
 
 export default function WikiDiscordPage() {
   const params = useParams();
@@ -40,7 +32,7 @@ export default function WikiDiscordPage() {
     prefix: '!',
     status: 'online' as 'online' | 'idle' | 'dnd' | 'invisible',
     welcomeMessage: '',
-    commands: [] as { trigger: string; response: string }[],
+    commands: [] as CustomCommand[],
   });
 
   const [enabled, setEnabled] = useState(false);
@@ -49,21 +41,22 @@ export default function WikiDiscordPage() {
   const [prefix, setPrefix] = useState('!');
   const [status, setStatus] = useState<'online' | 'idle' | 'dnd' | 'invisible'>('online');
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [commands, setCommands] = useState<{ trigger: string; response: string }[]>([
-    { trigger: '/codes', response: 'Exibe os códigos disponíveis do jogo.' },
-    { trigger: '/updatelog', response: 'Exibe o log de atualizações.' },
-  ]);
+  const [commands, setCommands] = useState<CustomCommand[]>([]);
 
-  const loadConfig = (config: DiscordConfig) => {
+  const migrateCommands = (raw: any): CustomCommand[] => {
+    if (!raw || !Array.isArray(raw) || raw.length === 0) return [];
+    if ('actions' in raw[0]) return raw as CustomCommand[];
+    return raw.map(migrateOldCommand);
+  };
+
+  const loadConfig = (config: DiscordConfigType) => {
     setEnabled(config.enabled ?? false);
     setBotName(config.bot_name ?? '');
     setBotAvatar(config.bot_avatar ?? null);
     setPrefix(config.prefix ?? '!');
     setStatus(config.status ?? 'online');
     setWelcomeMessage(config.welcome_message ?? '');
-    const loadedCommands = config.custom_commands && config.custom_commands.length > 0
-      ? config.custom_commands
-      : [{ trigger: '/codes', response: 'Exibe os códigos disponíveis do jogo.' }, { trigger: '/updatelog', response: 'Exibe o log de atualizações.' }];
+    const loadedCommands = migrateCommands(config.custom_commands);
     setCommands(loadedCommands);
     initialRef.current = {
       enabled: config.enabled ?? false,
@@ -78,25 +71,38 @@ export default function WikiDiscordPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: tenantData } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (tenantData) {
-        setTenant(tenantData);
-        const config = (tenantData.discord_config as DiscordConfig) || {};
-        loadConfig(config);
-
-        const { data: guildsData } = await supabase
-          .from('discord_guilds')
+      try {
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
           .select('*')
-          .eq('tenant_id', tenantData.id);
+          .eq('slug', slug)
+          .single();
 
-        if (guildsData) setGuilds(guildsData);
+        if (tenantError) {
+          console.error('Load error:', tenantError);
+          toast({ variant: 'destructive', title: 'Erro ao carregar', description: tenantError.message });
+          setLoading(false);
+          return;
+        }
+
+        if (tenantData) {
+          setTenant(tenantData);
+          const config = (tenantData.discord_config as DiscordConfigType) || {};
+          loadConfig(config);
+
+          const { data: guildsData } = await supabase
+            .from('discord_guilds')
+            .select('*')
+            .eq('tenant_id', tenantData.id);
+
+          if (guildsData) setGuilds(guildsData);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Unexpected load error:', err);
+        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [slug]);
 
@@ -106,46 +112,44 @@ export default function WikiDiscordPage() {
     };
   }, []);
 
-  const updateCommand = (index: number, field: 'trigger' | 'response', value: string) => {
-    setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, [field]: value } : cmd));
-  };
-
-  const removeCommand = (index: number) => {
-    setCommands((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const addCommand = () => {
-    setCommands((prev) => [...prev, { trigger: '', response: '' }]);
+    setCommands((prev) => [...prev, createDefaultCommand()]);
   };
 
   const handleSave = async () => {
     if (!tenant) return;
     setSaving(true);
 
-    const discordConfig: DiscordConfig = {
-      enabled,
-      bot_name: botName,
-      bot_avatar: botAvatar,
-      prefix,
-      status,
-      welcome_message: welcomeMessage,
-      custom_commands: commands,
-    };
+    try {
+      const discordConfig: DiscordConfigType = {
+        enabled,
+        bot_name: botName,
+        bot_avatar: botAvatar,
+        prefix,
+        status,
+        welcome_message: welcomeMessage,
+        custom_commands: commands,
+      };
 
-    const { error } = await supabase
-      .from('tenants')
-      .update({ discord_config: discordConfig as any })
-      .eq('id', tenant.id);
+      const { error } = await supabase
+        .from('tenants')
+        .update({ discord_config: discordConfig as any })
+        .eq('id', tenant.id);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
-    } else {
-      initialRef.current = { enabled, botName, botAvatar, prefix, status, welcomeMessage, commands };
-      setSavedFeedback(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      } else {
+        initialRef.current = { enabled, botName, botAvatar, prefix, status, welcomeMessage, commands: JSON.parse(JSON.stringify(commands)) };
+        setSavedFeedback(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
@@ -295,37 +299,24 @@ export default function WikiDiscordPage() {
         <CardHeader>
           <CardTitle>Comandos Personalizados</CardTitle>
           <CardDescription>
-            Comandos que o bot responde no Discord.
+            Comandos com triggers e múltiplas ações. Cada comando pode executar ações sequenciais ou paralelas.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {commands.map((cmd, index) => (
-            <div key={index} className="flex items-start gap-2 rounded-lg border p-3">
-              <div className="flex-1 space-y-2">
-                <Input
-                  value={cmd.trigger}
-                  onChange={(e) => updateCommand(index, 'trigger', e.target.value)}
-                  placeholder="/comando"
-                  className="font-mono text-sm"
+        <CardContent className="space-y-3">
+          {commands.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">Nenhum comando personalizado ainda.</p>
+          ) : (
+            <div className="space-y-2">
+              {commands.map((cmd, index) => (
+                <CommandCard
+                  key={cmd.id}
+                  command={cmd}
+                  onChange={(updated) => setCommands((prev) => prev.map((c, i) => i === index ? updated : c))}
+                  onRemove={() => setCommands((prev) => prev.filter((_, i) => i !== index))}
                 />
-                <textarea
-                  value={cmd.response}
-                  onChange={(e) => updateCommand(index, 'response', e.target.value)}
-                  rows={2}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Resposta do comando..."
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeCommand(index)}
-                className="shrink-0 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              ))}
             </div>
-          ))}
+          )}
           <Button variant="outline" onClick={addCommand} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Comando

@@ -30,27 +30,41 @@ export default function WikiSettingsPage() {
   const [coverImageUrl, setCoverImageUrl] = useState('');
 
   useEffect(() => {
-    supabase
-      .from('tenants')
-      .select('*')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('slug', slug)
+          .single();
+
+        if (error) {
+          console.error('Load error:', error);
+          toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
+          setLoading(false);
+          return;
+        }
+
         if (data) {
           setTenant(data);
           setName(data.name);
           setDescription(data.description || '');
           setLogoUrl(data.logo_url || '');
-          setCoverImageUrl((data as any).cover_image || '');
+          setCoverImageUrl(data.cover_image || '');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
             logoUrl: data.logo_url || '',
-            coverImageUrl: (data as any).cover_image || '',
+            coverImageUrl: data.cover_image || '',
           };
         }
         setLoading(false);
-      });
+      } catch (err) {
+        console.error('Unexpected load error:', err);
+        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
+        setLoading(false);
+      }
+    })();
   }, [slug]);
 
   useEffect(() => {
@@ -61,20 +75,26 @@ export default function WikiSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from('tenants')
-      .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null })
-      .eq('slug', slug);
+    try {
+      const { error } = await supabase
+        .from('tenants')
+        .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null })
+        .eq('slug', slug);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
-    } else {
-      initialRef.current = { name, description, logoUrl, coverImageUrl };
-      setSavedFeedback(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      } else {
+        initialRef.current = { name, description, logoUrl, coverImageUrl };
+        setSavedFeedback(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {

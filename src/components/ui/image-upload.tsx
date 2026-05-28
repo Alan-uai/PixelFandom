@@ -33,6 +33,27 @@ export function ImageUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo permitido é 10MB.',
+      });
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Formato inválido',
+        description: 'Apenas arquivos de imagem são permitidos.',
+      });
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
       await ensureStorageBuckets();

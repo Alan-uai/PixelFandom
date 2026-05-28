@@ -37,12 +37,21 @@ export default function WikiAIConfigPage() {
   const [botLogo, setBotLogo] = useState('');
 
   useEffect(() => {
-    supabase
-      .from('tenants')
-      .select('*')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('slug', slug)
+          .single();
+
+        if (error) {
+          console.error('Load error:', error);
+          toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
+          setLoading(false);
+          return;
+        }
+
         if (data) {
           setTenant(data);
           setEnabled(data.ai_enabled);
@@ -60,7 +69,12 @@ export default function WikiAIConfigPage() {
           };
         }
         setLoading(false);
-      });
+      } catch (err) {
+        console.error('Unexpected load error:', err);
+        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
+        setLoading(false);
+      }
+    })();
   }, [slug]);
 
   useEffect(() => {
@@ -73,30 +87,36 @@ export default function WikiAIConfigPage() {
     if (!tenant) return;
     setSaving(true);
 
-    const { error } = await supabase
-      .from('tenants')
-      .update({
-        ai_enabled: enabled,
-        ai_config: {
-          ...(tenant.ai_config as Record<string, unknown> || {}),
-          model,
-          wake_word_text: wakeWordText,
-          chat_name: chatName,
-          bot_logo: botLogo,
-          wake_word: true,
-        },
-      })
-      .eq('id', tenant.id);
+    try {
+      const { error } = await supabase
+        .from('tenants')
+        .update({
+          ai_enabled: enabled,
+          ai_config: {
+            ...(tenant.ai_config as Record<string, unknown> || {}),
+            model,
+            wake_word_text: wakeWordText,
+            chat_name: chatName,
+            bot_logo: botLogo,
+            wake_word: true,
+          },
+        })
+        .eq('id', tenant.id);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
-    } else {
-      initialRef.current = { enabled, model, wakeWordText, chatName, botLogo };
-      setSavedFeedback(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      } else {
+        initialRef.current = { enabled, model, wakeWordText, chatName, botLogo };
+        setSavedFeedback(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
