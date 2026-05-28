@@ -63,11 +63,11 @@ export default function DashboardLayout({
         { href: 'members', label: 'Membros', icon: Users },
         { href: 'ai', label: 'IA', icon: Cpu },
         { href: 'discord', label: 'Discord', icon: Headphones },
-        { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+        { href: 'editor', label: 'Conteúdo', icon: BookOpen },
       ]
     : canEdit
     ? [
-        { href: 'editor/new', label: 'Novo Artigo', icon: BookOpen },
+        { href: 'editor', label: 'Conteúdo', icon: BookOpen },
       ]
     : [];
 
