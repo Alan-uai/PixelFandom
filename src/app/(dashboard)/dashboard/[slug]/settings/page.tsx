@@ -23,13 +23,16 @@ export default function WikiSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '' });
+  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [discordUrl, setDiscordUrl] = useState('');
   const [gameUrl, setGameUrl] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [ogImage, setOgImage] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('198 100% 65%');
 
   useEffect(() => {
     (async () => {
@@ -55,6 +58,10 @@ export default function WikiSettingsPage() {
           setCoverImageUrl(data.cover_image || '');
           setDiscordUrl(data.discord_url || '');
           setGameUrl(data.game_url || '');
+          setFaviconUrl(data.favicon_url || '');
+          setOgImage(data.og_image || '');
+          const theme = (data.theme as Record<string, string>) || {};
+          setPrimaryColor(theme.primary_color || '198 100% 65%');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
@@ -62,6 +69,9 @@ export default function WikiSettingsPage() {
             coverImageUrl: data.cover_image || '',
             discordUrl: data.discord_url || '',
             gameUrl: data.game_url || '',
+            faviconUrl: data.favicon_url || '',
+            ogImage: data.og_image || '',
+            primaryColor: theme.primary_color || '198 100% 65%',
           };
         }
         setLoading(false);
@@ -84,13 +94,19 @@ export default function WikiSettingsPage() {
     try {
       const { error } = await supabase
         .from('tenants')
-        .update({ name, description, logo_url: logoUrl || null, cover_image: coverImageUrl || null, discord_url: discordUrl || null, game_url: gameUrl || null })
+        .update({
+          name, description,
+          logo_url: logoUrl || null, cover_image: coverImageUrl || null,
+          discord_url: discordUrl || null, game_url: gameUrl || null,
+          favicon_url: faviconUrl || null, og_image: ogImage || null,
+          theme: { primary_color: primaryColor },
+        })
         .eq('slug', slug);
 
       if (error) {
         toast({ variant: 'destructive', title: 'Erro', description: error.message });
       } else {
-        initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl };
+        initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
@@ -121,12 +137,18 @@ export default function WikiSettingsPage() {
     logoUrl !== initialRef.current.logoUrl ||
     coverImageUrl !== initialRef.current.coverImageUrl ||
     discordUrl !== initialRef.current.discordUrl ||
-    gameUrl !== initialRef.current.gameUrl;
+    gameUrl !== initialRef.current.gameUrl ||
+    faviconUrl !== initialRef.current.faviconUrl ||
+    ogImage !== initialRef.current.ogImage ||
+    primaryColor !== initialRef.current.primaryColor;
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },
     { id: 'logo', label: 'Logo', icon: Image },
     { id: 'cover', label: 'Capa', icon: ImageUp },
+    { id: 'favicon', label: 'Favicon', icon: Image },
+    { id: 'og-image', label: 'OG Image', icon: ImageUp },
+    { id: 'theme', label: 'Tema', icon: Image },
     { id: 'links', label: 'Links', icon: MessageCircle },
   ];
 
@@ -198,6 +220,73 @@ export default function WikiSettingsPage() {
             previewSize="w-40 h-24"
           />
           <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      <section id="favicon">
+      <Card>
+        <CardHeader>
+          <CardTitle>Favicon</CardTitle>
+          <CardDescription>Ícone de aba do navegador para sua wiki.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`wiki-favicons/${slug}`}
+            value={faviconUrl}
+            onChange={setFaviconUrl}
+            previewSize="w-10 h-10"
+          />
+          <p className="text-xs text-muted-foreground mt-2">PNG ou SVG. Tamanho recomendado: 32x32.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      <section id="og-image">
+      <Card>
+        <CardHeader>
+          <CardTitle>OG Image</CardTitle>
+          <CardDescription>Imagem de preview para compartilhamento em redes sociais.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`wiki-og/${slug}`}
+            value={ogImage}
+            onChange={setOgImage}
+            previewSize="w-40 h-24"
+          />
+          <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x630.</p>
+        </CardContent>
+      </Card>
+      </section>
+
+      <section id="theme">
+      <Card>
+        <CardHeader>
+          <CardTitle>Cor do Tema</CardTitle>
+          <CardDescription>Cor primária da sua wiki (formato HSL).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="primaryColor">Cor Primária (HSL)</Label>
+            <div className="flex gap-3 items-center">
+              <Input
+                id="primaryColor"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                placeholder="198 100% 65%"
+              />
+              <div
+                className="h-8 w-8 rounded-full border shrink-0"
+                style={{ backgroundColor: `hsl(${primaryColor})` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Formato: <code>hue saturation% lightness%</code>. Ex: <code>198 100% 65%</code> (ciano).
+            </p>
+          </div>
         </CardContent>
       </Card>
       </section>

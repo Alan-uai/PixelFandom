@@ -31,6 +31,9 @@ const articleSchema = z.object({
   content: z.string().min(20, 'O conteúdo é obrigatório.'),
   tags: z.string().min(1, 'Pelo menos uma tag é necessária.'),
   imageUrl: z.string().optional(),
+  bannerImage: z.string().optional(),
+  ogImage: z.string().optional(),
+  icon: z.string().optional(),
   tables: z.string().optional(),
 });
 
@@ -114,6 +117,9 @@ function EditPageContent() {
       content: '',
       tags: '',
       imageUrl: '',
+      bannerImage: '',
+      ogImage: '',
+      icon: '',
       tables: '',
     },
   });
@@ -151,7 +157,10 @@ function EditPageContent() {
         summary: article.summary,
         content: article.content,
         tags: Array.isArray(article.tags) ? article.tags.join(', ') : '',
-        imageUrl: article.imageUrl,
+        imageUrl: article.image_url,
+        bannerImage: article.banner_image || '',
+        ogImage: article.og_image || '',
+        icon: article.icon || '',
         tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
       });
       supabase
@@ -290,7 +299,10 @@ function EditPageContent() {
         summary: values.summary,
         content: values.content,
         tags: values.tags.split(',').map(tag => tag.trim()),
-        imageUrl: values.imageUrl || null,
+        image_url: values.imageUrl || null,
+        banner_image: values.bannerImage || null,
+        og_image: values.ogImage || null,
+        icon: values.icon || null,
         tables: parsedTables,
         updated_at: now,
         ...(isNewArticle ? { created_at: now, tenant_id: tenantId } : {}),
@@ -321,6 +333,9 @@ function EditPageContent() {
           content: values.content,
           tags: values.tags,
           imageUrl: values.imageUrl || undefined,
+          bannerImage: values.bannerImage || undefined,
+          ogImage: values.ogImage || undefined,
+          icon: values.icon || undefined,
           tables: values.tables || '',
         };
         form.reset(valuesToReset);
@@ -423,11 +438,75 @@ function EditPageContent() {
                     <FormLabel>Imagem do Artigo</FormLabel>
                     <FormControl>
                       <ImageUpload
-                        bucket="wiki-assets"
-                        pathPrefix={articleId}
+                          bucket="wiki-assets"
+                          pathPrefix={`${slug}/covers/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bannerImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagem de Banner (largura total)</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        bucket="wiki-assets"
+                        pathPrefix={`${slug}/banners/${articleId}`}
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        previewSize="w-full h-24"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="ogImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OG Image (compartilhamento social)</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        bucket="wiki-assets"
+                        pathPrefix={`${slug}/og/${articleId}`}
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        previewSize="w-40 h-24"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ícone / Emoji (sidebar)</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2 items-center">
+                        {field.value && (
+                          <span className="text-2xl">{field.value}</span>
+                        )}
+                        <Input
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          placeholder="📷 ou URL do ícone"
+                          className="font-mono text-sm"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -22,12 +22,12 @@ import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose, LayoutL
 import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig } from './types';
 
 interface PageBuilderEditorProps {
-  tenantSlug: string;
+  tenantId: string;
   initialLayout?: PageLayout;
   initialFloatingIslands?: FloatingIslandConfig[];
 }
 
-export function PageBuilderEditor({ tenantSlug, initialLayout, initialFloatingIslands }: PageBuilderEditorProps) {
+export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIslands }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function PageBuilderEditor({ tenantSlug, initialLayout, initialFloatingIs
     setSaved(false);
 
     try {
-      const res = await fetch(`/api/tenants/${tenantSlug}/page-layout`, {
+      const res = await fetch(`/api/tenants/${tenantId}/page-layout`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blocks, floatingIslands }),
@@ -108,6 +108,8 @@ export function PageBuilderEditor({ tenantSlug, initialLayout, initialFloatingIs
       if (res.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
+      } else {
+        console.error('Save layout failed:', res.status, await res.text().catch(() => ''));
       }
     } catch (err) {
       console.error('Save layout error:', err);

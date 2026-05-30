@@ -10,7 +10,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe } from 'lucide-react';
+import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
 
@@ -65,6 +65,10 @@ export default function WikiAIConfigPage() {
     wakeWordText: 'Psycho',
     chatName: 'Assistente',
     botLogo: '',
+    welcomeMessage: '',
+    systemPrompt: '',
+    suggestedQuestions: [] as string[],
+    botBanner: '',
   });
 
   const [enabled, setEnabled] = useState(false);
@@ -84,6 +88,10 @@ export default function WikiAIConfigPage() {
   const [wakeWordText, setWakeWordText] = useState('Psycho');
   const [chatName, setChatName] = useState('Assistente');
   const [botLogo, setBotLogo] = useState('');
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [botBanner, setBotBanner] = useState('');
 
   const [primaryProvider, setPrimaryProvider] = useState<'openrouter' | 'gemini'>('openrouter');
   const [freeModels, setFreeModels] = useState<FreeModel[]>(DEFAULT_FREE_MODELS);
@@ -148,6 +156,10 @@ export default function WikiAIConfigPage() {
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
           setBotLogo((config.bot_logo as string) || '');
+          setWelcomeMessage((config.welcome_message as string) || '');
+          setSystemPrompt((config.system_prompt as string) || '');
+          setSuggestedQuestions((config.suggested_questions as string[]) || []);
+          setBotBanner((config.bot_banner as string) || '');
 
           initialRef.current = {
             enabled: data.ai_enabled,
@@ -168,6 +180,10 @@ export default function WikiAIConfigPage() {
             wakeWordText: (config.wake_word_text as string) || 'Psycho',
             chatName: (config.chat_name as string) || 'Assistente',
             botLogo: (config.bot_logo as string) || '',
+            welcomeMessage: (config.welcome_message as string) || '',
+            systemPrompt: (config.system_prompt as string) || '',
+            suggestedQuestions: (config.suggested_questions as string[]) || [],
+            botBanner: (config.bot_banner as string) || '',
           };
         }
         setLoading(false);
@@ -239,6 +255,10 @@ export default function WikiAIConfigPage() {
             wake_word_text: wakeWordText,
             chat_name: chatName,
             bot_logo: botLogo,
+            welcome_message: welcomeMessage,
+            system_prompt: systemPrompt,
+            suggested_questions: suggestedQuestions,
+            bot_banner: botBanner,
             wake_word: true,
           },
         })
@@ -266,6 +286,10 @@ export default function WikiAIConfigPage() {
           wakeWordText,
           chatName,
           botLogo,
+          welcomeMessage,
+          systemPrompt,
+          suggestedQuestions,
+          botBanner,
         };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -308,11 +332,16 @@ export default function WikiAIConfigPage() {
     geminiFallbackSource !== initialRef.current.geminiFallbackSource ||
     wakeWordText !== initialRef.current.wakeWordText ||
     chatName !== initialRef.current.chatName ||
-    botLogo !== initialRef.current.botLogo;
+    botLogo !== initialRef.current.botLogo ||
+    welcomeMessage !== initialRef.current.welcomeMessage ||
+    systemPrompt !== initialRef.current.systemPrompt ||
+    JSON.stringify(suggestedQuestions) !== JSON.stringify(initialRef.current.suggestedQuestions) ||
+    botBanner !== initialRef.current.botBanner;
 
   const sections = [
     { id: 'activation', label: 'Ativação', icon: Power },
     { id: 'model', label: 'Configuração do Modelo', icon: Cpu },
+    { id: 'personality', label: 'Personalidade', icon: MessageSquare },
     { id: 'voice', label: 'Agente de Voz', icon: Headphones },
     { id: 'test', label: 'Testar Assistente de Voz', icon: Mic },
   ];
@@ -730,17 +759,6 @@ export default function WikiAIConfigPage() {
               Nome exibido na interface do chat (texto e voz).
             </p>
           </div>
-          <div className="space-y-2">
-            <Label>Logo do Bot</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`bot-logos/${slug}`}
-              value={botLogo}
-              onChange={setBotLogo}
-              previewSize="w-16 h-16 rounded-full"
-            />
-            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
-          </div>
         </CardContent>
       </Card>
 
@@ -755,6 +773,77 @@ export default function WikiAIConfigPage() {
           Salvar Configuração
         </Button>
       ) : null}
+      </section>
+
+      <section id="personality">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            Personalidade
+          </CardTitle>
+          <CardDescription>Mensagens e comportamento do assistente IA.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="welcomeMessage">Mensagem de Boas-Vindas</Label>
+            <textarea
+              id="welcomeMessage"
+              value={welcomeMessage}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+              rows={2}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="Olá! Como posso ajudar você hoje?"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="systemPrompt">Prompt do Sistema (Personalidade)</Label>
+            <textarea
+              id="systemPrompt"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="Você é um assistente especializado em..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Perguntas Sugeridas</Label>
+            <p className="text-xs text-muted-foreground">Uma por linha. Aparecem como sugestão no chat.</p>
+            <textarea
+              value={suggestedQuestions.join('\n')}
+              onChange={(e) => setSuggestedQuestions(e.target.value.split('\n').filter(Boolean))}
+              rows={3}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="O que é este jogo?
+Como faço para começar?
+Quais são as melhores armas?"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Logo do Bot</Label>
+            <ImageUpload
+              bucket="wiki-images"
+              pathPrefix={`bot-logos/${slug}`}
+              value={botLogo}
+              onChange={setBotLogo}
+              previewSize="w-16 h-16 rounded-full"
+            />
+            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Banner do Chat</Label>
+            <ImageUpload
+              bucket="wiki-images"
+              pathPrefix={`bot-banners/${slug}`}
+              value={botBanner}
+              onChange={setBotBanner}
+              previewSize="w-full h-20"
+            />
+            <p className="text-xs text-muted-foreground">Imagem de fundo do cabeçalho do chat.</p>
+          </div>
+        </CardContent>
+      </Card>
       </section>
 
       <section id="voice">

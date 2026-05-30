@@ -68,7 +68,7 @@ export default function PageBuilderPage() {
       </div>
       <div className="flex-1 overflow-hidden">
         <PageBuilderEditor
-          tenantSlug={slug}
+          tenantId={tenantId}
           initialLayout={layout ? { blocks: layout.blocks } : undefined}
           initialFloatingIslands={layout?.floatingIslands || undefined}
         />

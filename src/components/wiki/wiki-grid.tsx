@@ -10,6 +10,7 @@ type Article = {
   summary: string | null;
   tags: string[] | null;
   image_url: string | null;
+  icon?: string | null;
   updated_at: string | null;
 };
 
@@ -17,13 +18,24 @@ type Props = {
   articles: Article[];
   basePath: string;
   tenantSlug?: string;
+  columns?: number;
 };
 
-export default function WikiGrid({ articles, basePath }: Props) {
+export default function WikiGrid({ articles, basePath, columns }: Props) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div
+      className="grid gap-4"
+      style={{
+        gridTemplateColumns: columns
+          ? `repeat(${Math.min(columns, 6)}, 1fr)`
+          : 'repeat(3, 1fr)',
+      }}
+    >
       {articles.map((article) => {
         const href = `${basePath}/${article.slug || article.id}`;
+
+        const showIcon =
+          article.icon || article.image_url;
 
         return (
           <Link
@@ -31,15 +43,25 @@ export default function WikiGrid({ articles, basePath }: Props) {
             href={href}
             className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col"
           >
-            <div className="aspect-video overflow-hidden">
+            <div className="aspect-video overflow-hidden bg-muted">
               {article.image_url ? (
                 <img
                   src={article.image_url}
                   alt={article.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+              ) : article.icon && article.icon.startsWith('http') ? (
+                <img
+                  src={article.icon}
+                  alt=""
+                  className="w-full h-full object-contain p-4"
+                />
+              ) : article.icon ? (
+                <div className="w-full h-full flex items-center justify-center text-4xl">
+                  {article.icon}
+                </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   <ImageIcon className="h-8 w-8" />
                 </div>
               )}

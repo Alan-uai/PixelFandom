@@ -16,6 +16,8 @@ type ProfileData = {
   display_name: string;
   email: string;
   avatar_url: string | null;
+  bio?: string | null;
+  cover_image?: string | null;
   reputation_points: number;
   streak_days: number;
   articles_count: number;
@@ -31,6 +33,7 @@ export default function ProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -74,21 +77,27 @@ export default function ProfilePage() {
         <ArrowLeft className="h-4 w-4" /> Voltar
       </Link>
 
-      <Card>
+      {profile.cover_image && (
+        <div className="relative h-32 md:h-48 rounded-t-xl overflow-hidden -mt-6 -mx-6 mb-0">
+          <img src={profile.cover_image} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <Card className={profile.cover_image ? 'rounded-t-none' : ''}>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary overflow-hidden">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary overflow-hidden shrink-0">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 (profile.display_name || profile.username || 'U')[0].toUpperCase()
               )}
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">{profile.display_name || profile.username}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold truncate">{profile.display_name || profile.username}</h1>
               <p className="text-sm text-muted-foreground">@{profile.username}</p>
+              {profile.bio && <p className="text-sm mt-1">{profile.bio}</p>}
               <div className="flex items-center gap-2 mt-1">
-                <Calendar className="h-3 w-3 text-muted-foreground" />
+                <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="text-xs text-muted-foreground">
                   Membro desde {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                 </span>

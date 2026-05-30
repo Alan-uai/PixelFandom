@@ -15,6 +15,8 @@ import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { CommentsSection } from '@/components/comments/comments-section';
+import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
+import type { FloatingIslandConfig } from '@/components/page-builder/types';
 
 const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
@@ -49,6 +51,7 @@ export default function WikiPage() {
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [landingLayout, setLandingLayout] = useState<any>(null);
   const [loadingLayout, setLoadingLayout] = useState(false);
+  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -68,6 +71,9 @@ export default function WikiPage() {
         const data = await res.json();
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
+        }
+        if (data?.floatingIslands) {
+          setFloatingIslands(data.floatingIslands);
         }
       } catch {}
       setLoadingLayout(false);
@@ -306,6 +312,7 @@ export default function WikiPage() {
   if (!articleSlug && landingLayout && !loadingLayout) {
     return (
       <div>
+        <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
         <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
       </div>
     );
@@ -346,6 +353,8 @@ export default function WikiPage() {
         </div>
       </div>
 
+      <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
+
       {/* Articles */}
       {articles && articles.length > 0 ? (
         <>
@@ -372,7 +381,15 @@ export default function WikiPage() {
                     href={wikiArticlePath(article.slug || article.id)}
                     className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
                   >
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    {article.icon && article.icon.startsWith('http') ? (
+                      <img src={article.icon} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
+                    ) : article.icon ? (
+                      <span className="text-lg shrink-0">{article.icon}</span>
+                    ) : article.image_url ? (
+                      <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
                     <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
                       {article.title}
                     </span>

@@ -108,13 +108,18 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
     const island = islands.find((i) => i.id === id);
     if (!island) return;
     if (key === 'position' || key === 'type' || key === 'title' || key === 'enabled') {
-      updateIsland(id, { [key]: value });
       if (key === 'type') {
         const def = ISLAND_TYPES.find((t) => t.type === value);
-        updateConfig(id, def ? { ...def.defaultConfig } : {});
+        onChange(islands.map((i) =>
+          i.id === id
+            ? { ...i, type: value as FloatingIslandType, config: def ? { ...def.defaultConfig } : {} }
+            : i
+        ));
+      } else {
+        onChange(islands.map((i) => (i.id === id ? { ...i, [key]: value } : i)));
       }
     } else {
-      updateConfig(id, { ...island.config, [key]: value });
+      onChange(islands.map((i) => (i.id === id ? { ...i, config: { ...i.config, [key]: value } } : i)));
     }
   };
 

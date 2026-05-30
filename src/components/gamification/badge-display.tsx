@@ -8,6 +8,7 @@ type Badge = {
   name: string;
   description: string;
   icon: string;
+  image_url?: string | null;
   category: string;
   rarity: number;
   earned?: boolean;
@@ -55,7 +56,11 @@ export function BadgeDisplay({ badge, size = 'md' }: Props) {
         badge.earned && 'hover:scale-110 cursor-default'
       )}
     >
-      <span>{badge.icon}</span>
+      {badge.image_url ? (
+        <img src={badge.image_url} alt={badge.name} className="h-full w-full object-cover rounded-lg" />
+      ) : (
+        <span>{badge.icon}</span>
+      )}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
         <div className="bg-popover border rounded-lg px-3 py-2 shadow-xl text-xs whitespace-nowrap">
           <p className="font-semibold">{badge.name}</p>

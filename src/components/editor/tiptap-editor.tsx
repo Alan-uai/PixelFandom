@@ -85,9 +85,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       const { ensureStorageBuckets } = await import('@/lib/storage');
       const { supabase } = await import('@/supabase');
       await ensureStorageBuckets();
-      const filePath = articleId
-        ? `${articleId}/${Date.now()}-${file.name}`
-        : `tiptap-images/${Date.now()}-${file.name}`;
+      const filePath = `${slug}/content/${articleId || 'no-article'}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('wiki-assets')
         .upload(filePath, file, { upsert: true });

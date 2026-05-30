@@ -48,11 +48,14 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { display_name, username } = await request.json();
+  const { display_name, username, avatar_url, bio, cover_image } = await request.json();
 
   const updates: Record<string, string> = {};
-  if (display_name) updates.display_name = display_name;
-  if (username) updates.username = username;
+  if (display_name !== undefined) updates.display_name = display_name;
+  if (username !== undefined) updates.username = username;
+  if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+  if (bio !== undefined) updates.bio = bio;
+  if (cover_image !== undefined) updates.cover_image = cover_image;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 });

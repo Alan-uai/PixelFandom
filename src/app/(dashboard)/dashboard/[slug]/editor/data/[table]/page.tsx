@@ -373,7 +373,7 @@ export default function DataTablePage() {
       return (
         <ImageUpload
           bucket="game-items"
-          pathPrefix={`game-items/${table}/${rowId || 'new'}`}
+          pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
           value={value}
           onChange={(url) => onChange(col, url)}
         />

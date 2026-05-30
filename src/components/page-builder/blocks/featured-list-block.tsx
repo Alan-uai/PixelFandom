@@ -1,10 +1,10 @@
 'use client';
 
-import { Star } from 'lucide-react';
+import { Star, ImageIcon } from 'lucide-react';
 
 export function FeaturedListBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || 'Destaques';
-  const items = (config.items as { label: string; description?: string }[]) || [];
+  const items = (config.items as { label: string; description?: string; imageUrl?: string; icon?: string }[]) || [];
 
   return (
     <div className="space-y-4">
@@ -13,8 +13,14 @@ export function FeaturedListBlock({ config }: { config: Record<string, unknown> 
         {items.length > 0 ? (
           items.map((item, i) => (
             <div key={i} className="flex items-start gap-3 rounded-lg border bg-card p-4">
-              <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <div>
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
+              ) : item.icon ? (
+                <span className="text-xl shrink-0">{item.icon}</span>
+              ) : (
+                <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              )}
+              <div className="min-w-0">
                 <p className="font-medium text-sm">{item.label}</p>
                 {item.description && (
                   <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
