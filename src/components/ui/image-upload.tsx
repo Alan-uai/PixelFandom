@@ -84,8 +84,8 @@ export function ImageUpload({
   };
 
   return (
-    <div className="flex items-start gap-4">
-      <div className={`${previewSize} relative rounded-md border bg-muted overflow-hidden shrink-0`}>
+    <div className="flex flex-col sm:flex-row items-start gap-4">
+      <div className={`${previewSize} relative rounded-md border bg-muted overflow-hidden shrink-0 max-w-full w-full sm:w-auto sm:max-w-none`}>
         {value ? (
           <img src={value} alt="Preview" className="object-cover w-full h-full" />
         ) : (
@@ -94,7 +94,7 @@ export function ImageUpload({
           </div>
         )}
       </div>
-      <div className="space-y-3 w-full">
+      <div className="space-y-3 w-full min-w-0">
         <input
           type="file"
           ref={inputRef}
@@ -102,20 +102,20 @@ export function ImageUpload({
           style={{ display: 'none' }}
           accept={accept}
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             type="button"
             variant="outline"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex-1"
+            className="flex-1 min-w-0"
           >
             {uploading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="mr-2 h-4 w-4 shrink-0" />
             )}
-            {uploading ? 'Enviando...' : 'Enviar Imagem'}
+            <span className="truncate">{uploading ? 'Enviando...' : 'Enviar Imagem'}</span>
           </Button>
           {value && (
             <Button

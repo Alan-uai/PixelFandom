@@ -62,7 +62,7 @@ export function PageSubNav({ sections }: PageSubNavProps) {
           </p>
         </div>
       )}
-      <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1 pt-2">
+      <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3 space-y-1 pt-2">
         {sections.map((s) => {
           const Icon = s.icon;
           const isActive = activeId === s.id;

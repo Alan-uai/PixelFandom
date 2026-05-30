@@ -64,7 +64,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
             {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3 space-y-1">
           {editorNavItems.map((item) => {
             const Icon = item.icon;
             const href = `/dashboard/${slug}${item.href}`;

@@ -17,10 +17,14 @@ import {
   AlertCircle,
   Search,
   X,
+  User,
+  Settings,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
+import { useUser } from '@/supabase';
 
 export default function Home() {
+  const { user } = useUser();
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +69,25 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center py-20 md:py-28 text-center px-4">
+      <section className="relative flex flex-col items-center justify-center py-20 md:py-28 text-center px-4">
+        {user && (
+          <div className="absolute right-4 top-4 flex items-center gap-2">
+            <Link
+              href="/dashboard/profile"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Perfil"
+            >
+              <User className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Dashboard"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </div>
+        )}
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
           Sua wiki,{' '}
           <span className="text-primary">do seu jeito</span>

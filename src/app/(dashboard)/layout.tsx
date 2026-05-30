@@ -12,7 +12,6 @@ import {
   Globe,
   Users,
   Cpu,
-  LogOut,
   Loader2,
   BookOpen,
   ExternalLink,
@@ -176,24 +175,17 @@ export default function DashboardLayout({
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <NotificationBell />
-          <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[120px]">
+          <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[160px]">
             {user.email || user.id.slice(0, 12)}
           </span>
-          <Link
-            href="/"
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </Link>
         </div>
       </header>
 
       <TitleStrip isWikiPage={isWikiPage} currentItem={currentItem} />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
         {isWikiPage ? (
           children
         ) : (
