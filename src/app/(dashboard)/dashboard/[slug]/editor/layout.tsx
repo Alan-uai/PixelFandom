@@ -47,7 +47,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
       <aside
         className={cn(
           'shrink-0 self-start border-r bg-muted/30 flex flex-col transition-all duration-200',
-          collapsed ? 'w-12' : 'w-48'
+          collapsed ? 'w-10' : 'w-40'
         )}
       >
         <div className="flex items-center gap-1 p-3">

@@ -180,7 +180,7 @@ export default function WikiDiscordPage() {
 
   return (
     <GuildDataProvider>
-      <div className="flex">
+      <div className="flex min-w-0">
         <PageSubNav sections={sections} />
         <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
 

@@ -91,16 +91,16 @@ export default function DashboardLayout({
 
   return (
     <PageSubNavProvider>
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2 font-semibold shrink-0 text-sm">
           <LayoutDashboard className="h-4 w-4 text-primary" />
-          PixelFandom
+          <span className="hidden sm:inline">PixelFandom</span>
         </Link>
 
         <div className="mx-2 h-5 w-px bg-border" />
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           {isWikiPage ? (
             <LayoutGroup>
               {navItems.map((item) => {
@@ -208,12 +208,12 @@ function TitleStrip({ isWikiPage, currentItem }: { isWikiPage: boolean; currentI
     <div className="flex items-center border-b bg-background/50">
       <button
         onClick={toggle}
-        className="flex items-center justify-center w-12 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
+        className="flex items-center justify-center w-10 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
         title={collapsed ? 'Expandir seções' : 'Recolher seções'}
       >
         {collapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
       </button>
-      <div className="flex-1 flex items-center justify-center pr-12">
+      <div className="flex-1 flex items-center justify-center pr-10">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
           {currentItem.label}
         </span>

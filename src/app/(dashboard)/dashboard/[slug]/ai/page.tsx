@@ -342,7 +342,7 @@ export default function WikiAIConfigPage() {
   ];
 
   return (
-    <div className="flex">
+    <div className="flex min-w-0">
       <PageSubNav sections={sections} />
       <div className="flex-1 min-w-0 p-4 md:p-6 container max-w-2xl space-y-6">
 

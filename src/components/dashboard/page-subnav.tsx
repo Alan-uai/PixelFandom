@@ -52,7 +52,7 @@ export function PageSubNav({ sections }: PageSubNavProps) {
     <aside
       className={cn(
         'sticky top-[66px] shrink-0 self-start border-r bg-muted/30 flex flex-col transition-all duration-200',
-        collapsed ? 'w-12' : 'w-48'
+        collapsed ? 'w-10' : 'w-40'
       )}
     >
       {!collapsed && (

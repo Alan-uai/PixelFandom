@@ -13,7 +13,7 @@ const PageSubNavContext = createContext<PageSubNavContextType>({
 });
 
 export function PageSubNavProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
