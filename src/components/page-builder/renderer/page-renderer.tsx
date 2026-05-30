@@ -1,3 +1,4 @@
+import { ArticleGridBlock } from '../blocks/article-grid-block';
 import type { PageLayout } from '../types';
 
 interface PageRendererProps {
@@ -75,7 +76,9 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
       );
 
     case 'article-grid':
-      return (
+      return config.tag ? (
+        <ArticleGridBlock config={{ ...config, preview: false }} tenantId={tenant.id as string} />
+      ) : (
         <div className="space-y-6">
           {config.title && <h2 className="text-2xl font-bold">{config.title as string}</h2>}
           <div

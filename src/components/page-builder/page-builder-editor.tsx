@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -18,8 +18,10 @@ import { BlockToolbar, BLOCK_DEFINITIONS } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
 import { FloatingIslandsEditor } from './floating-islands-editor';
-import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose, LayoutList } from 'lucide-react';
+import { Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose, LayoutList, Undo2, Redo2, Smartphone } from 'lucide-react';
 import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig } from './types';
+
+const MAX_HISTORY = 50;
 
 interface PageBuilderEditorProps {
   tenantId: string;
@@ -35,6 +37,34 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<'blocks' | 'islands'>('blocks');
+  const [mobilePreview, setMobilePreview] = useState(false);
+
+  // undo/redo history
+  const [history, setHistory] = useState<BlockConfig[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const pushHistory = useCallback((nextBlocks: BlockConfig[]) => {
+    setHistory((prev) => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+      const updated = [...trimmed, nextBlocks];
+      if (updated.length > MAX_HISTORY) updated.shift();
+      return updated;
+    });
+    setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY - 1));
+  }, [historyIndex]);
+
+  // push initial state
+  useEffect(() => {
+    if (history.length === 0 && blocks.length > 0) {
+      setHistory([blocks]);
+      setHistoryIndex(0);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateBlocks = useCallback((next: BlockConfig[]) => {
+    setBlocks(next);
+    pushHistory(next);
+  }, [pushHistory]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -66,12 +96,14 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
         config: { ...def.defaultConfig },
       };
 
-      const overIndex = blocks.findIndex((b) => b.id === over.id);
-      if (overIndex >= 0) {
-        setBlocks((prev) => [...prev.slice(0, overIndex + 1), newBlock, ...prev.slice(overIndex + 1)]);
-      } else {
-        setBlocks((prev) => [...prev, newBlock]);
-      }
+      setBlocks((prev) => {
+        const overIndex = prev.findIndex((b) => b.id === over.id);
+        const next = overIndex >= 0
+          ? [...prev.slice(0, overIndex + 1), newBlock, ...prev.slice(overIndex + 1)]
+          : [...prev, newBlock];
+        pushHistory(next);
+        return next;
+      });
       setSelectedId(newBlock.id);
       return;
     }
@@ -80,19 +112,42 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
       const oldIndex = blocks.findIndex((b) => b.id === active.id);
       const newIndex = blocks.findIndex((b) => b.id === over.id);
       if (oldIndex >= 0 && newIndex >= 0) {
-        setBlocks((prev) => arrayMove(prev, oldIndex, newIndex));
+        const next = arrayMove(blocks, oldIndex, newIndex);
+        updateBlocks(next);
       }
     }
-  }, [blocks]);
+  }, [blocks, updateBlocks, pushHistory]);
 
   const handleUpdateBlock = useCallback((updated: BlockConfig) => {
-    setBlocks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-  }, []);
+    setBlocks((prev) => {
+      const next = prev.map((b) => (b.id === updated.id ? updated : b));
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
 
   const handleDeleteBlock = useCallback((id: string) => {
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
+    setBlocks((prev) => {
+      const next = prev.filter((b) => b.id !== id);
+      pushHistory(next);
+      return next;
+    });
     if (selectedId === id) setSelectedId(null);
-  }, [selectedId]);
+  }, [selectedId, pushHistory]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const newIndex = historyIndex - 1;
+    setHistoryIndex(newIndex);
+    setBlocks(history[newIndex]);
+  }, [historyIndex, history]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const newIndex = historyIndex + 1;
+    setHistoryIndex(newIndex);
+    setBlocks(history[newIndex]);
+  }, [historyIndex, history]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -120,6 +175,9 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
 
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
@@ -146,6 +204,36 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
           <PanelRightOpen className="h-3.5 w-3.5" />
           Ilhas Flutuantes
         </button>
+
+        <div className="flex-1" />
+
+        {activeTab === 'blocks' && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleUndo}
+              disabled={!canUndo}
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Desfazer"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={!canRedo}
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Refazer"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setMobilePreview((v) => !v)}
+              className={`rounded-md p-1.5 transition-colors ${mobilePreview ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              title="Preview mobile"
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Blocks tab */}
@@ -185,6 +273,8 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
               selectedId={selectedId}
               onSelect={setSelectedId}
               onDelete={handleDeleteBlock}
+              tenantId={tenantId}
+              mobilePreview={mobilePreview}
             />
 
             <DragOverlay>

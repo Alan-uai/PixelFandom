@@ -1,19 +1,22 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose, Gamepad2 } from 'lucide-react';
+import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose, Gamepad2, SunMoon } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
+import { UserPreferencesProvider, useUserPreferences } from '@/context/user-preferences-context';
+import { ThemeProvider } from '@/context/theme-context';
 import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import type { TenantTheme } from '@/context/theme-context';
 
 export default function WikiLayout({
   children,
@@ -28,7 +31,9 @@ export default function WikiLayout({
   return (
     <WikiDataProvider slug={slug}>
       <WikiSearchProvider>
-        <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+        <UserPreferencesProvider>
+          <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+        </UserPreferencesProvider>
       </WikiSearchProvider>
     </WikiDataProvider>
   );
@@ -43,10 +48,12 @@ function WikiLayoutContent({
 }) {
   const pathname = usePathname();
   const { data, loading } = useWikiData();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { preferences, updatePreference } = useUserPreferences();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(preferences.sidebar_collapsed);
   const { basePath } = useWikiPath(slug);
 
   const tenant = data?.tenant || null;
+  const tenantTheme = (tenant?.theme as TenantTheme) || {};
   const isHome = pathname === `/w/${slug}` || pathname === '/';
   const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
   const isVoicePage = pathname === `/w/${slug}/voice` || pathname === '/voice';
@@ -56,6 +63,10 @@ function WikiLayoutContent({
 
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
+
+  useEffect(() => {
+    setSidebarCollapsed(preferences.sidebar_collapsed);
+  }, [preferences.sidebar_collapsed]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -74,7 +85,19 @@ function WikiLayoutContent({
     window.location.href = `https://${tenant.custom_domain}${window.location.search}`;
   }, [tenant?.custom_domain, slug, pathname]);
 
-  const toggleSidebar = () => setSidebarCollapsed((v) => !v);
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((v) => {
+      const next = !v;
+      updatePreference('sidebar_collapsed', next);
+      return next;
+    });
+  }, [updatePreference]);
+
+  const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
+    updatePreference('theme_mode', mode);
+  }, [updatePreference]);
+
+  const footerContent = tenantTheme.footer_content;
 
   if (loading) {
     return (
@@ -105,113 +128,140 @@ function WikiLayoutContent({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
-        <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
-          {tenant.logo_url && (
-            <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
-          )}
-          <span className="text-sm">{tenant.name}</span>
-        </HubLink>
+    <ThemeProvider
+      tenantTheme={tenantTheme}
+      mode={preferences.theme_mode}
+      onModeChange={handleModeChange}
+    >
+      <div className="flex min-h-screen flex-col" style={{ fontFamily: `var(--font-family, Inter, ui-sans-serif, system-ui, sans-serif)` }}>
+        <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
+          <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
+            {tenant.logo_url && (
+              <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
+            )}
+            <span className="text-sm">{tenant.name}</span>
+          </HubLink>
 
-        <div className="mx-2 h-5 w-px bg-border" />
+          <div className="mx-2 h-5 w-px bg-border" />
 
-        <nav className="flex items-center gap-0.5">
-          <Link
-            href={basePath || '/'}
-            className={`rounded-md p-2 transition-colors ${
-              isHome
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title="Home"
-          >
-            <House className="h-4 w-4" />
-          </Link>
-          <Link
-            href={`${basePath}/chat`}
-            className={`rounded-md p-2 transition-colors ${
-              isChatPage
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title="Assistente IA"
-          >
-            <MessageCircle className="h-4 w-4" />
-          </Link>
-          <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
-
-          {(tenant as any)?.discord_url && (
-            <a
-              href={(tenant as any).discord_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title="Discord"
+          <nav className="flex items-center gap-0.5">
+            <Link
+              href={basePath || '/'}
+              className={`rounded-md p-2 transition-colors ${
+                isHome
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+              title="Home"
+            >
+              <House className="h-4 w-4" />
+            </Link>
+            <Link
+              href={`${basePath}/chat`}
+              className={`rounded-md p-2 transition-colors ${
+                isChatPage
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+              title="Assistente IA"
             >
               <MessageCircle className="h-4 w-4" />
-            </a>
-          )}
+            </Link>
+            <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
 
-          {(tenant as any)?.game_url && (
-            <a
-              href={(tenant as any).game_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title="Jogo"
-            >
-              <Gamepad2 className="h-4 w-4" />
-            </a>
-          )}
-        </nav>
-
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-1">
-          <NotificationBell />
-        </div>
-      </header>
-
-      {showTitleStrip && (
-        <div className="flex items-center border-b bg-background/50">
-          {isHome ? (
-            <HomeTitleStrip />
-          ) : hasSidebar ? (
-            <>
-              <button
-                onClick={toggleSidebar}
-                className="flex items-center justify-center w-12 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
-                title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+            {(tenant as any)?.discord_url && (
+              <a
+                href={(tenant as any).discord_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Discord"
               >
-                {sidebarCollapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
-              </button>
-              <div className="flex-1 flex items-center justify-center pr-12">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                  {isChatPage ? 'Assistente IA' : 'Artigos'}
-                </span>
-              </div>
-            </>
-          ) : null}
-        </div>
-      )}
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            )}
 
-      <div className="flex flex-1">
-        {hasSidebar && (
-          <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
-            <WikiSidebar
-              tenantSlug={slug}
-              collapsed={sidebarCollapsed}
-            />
-          </Suspense>
+            {(tenant as any)?.game_url && (
+              <a
+                href={(tenant as any).game_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Jogo"
+              >
+                <Gamepad2 className="h-4 w-4" />
+              </a>
+            )}
+          </nav>
+
+          <div className="flex-1" />
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const modes: Array<'system' | 'light' | 'dark'> = ['system', 'dark', 'light'];
+                const idx = modes.indexOf(preferences.theme_mode);
+                const next = modes[(idx + 1) % modes.length];
+                handleModeChange(next);
+              }}
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title={`Tema: ${preferences.theme_mode === 'system' ? 'Sistema' : preferences.theme_mode === 'dark' ? 'Escuro' : 'Claro'}`}
+            >
+              <SunMoon className="h-4 w-4" />
+            </button>
+            <NotificationBell />
+          </div>
+        </header>
+
+        {showTitleStrip && (
+          <div className="flex items-center border-b bg-background/50">
+            {isHome ? (
+              <HomeTitleStrip />
+            ) : hasSidebar ? (
+              <>
+                <button
+                  onClick={toggleSidebar}
+                  className="flex items-center justify-center w-12 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
+                  title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+                >
+                  {sidebarCollapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+                </button>
+                <div className="flex-1 flex items-center justify-center pr-12">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                    {isChatPage ? 'Assistente IA' : 'Artigos'}
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
         )}
-        <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
-          {children}
-        </main>
+
+        <div className="flex flex-1" style={{
+          fontSize: preferences.font_size === 'small' ? '0.875rem' : preferences.font_size === 'large' ? '1.125rem' : '1rem',
+        }}>
+          {hasSidebar && (
+            <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
+              <WikiSidebar
+                tenantSlug={slug}
+                collapsed={sidebarCollapsed}
+              />
+            </Suspense>
+          )}
+          <main className={`flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full ${preferences.density === 'compact' ? 'space-y-3' : 'space-y-6'}`}>
+            {children}
+          </main>
+        </div>
+
+        {footerContent && (
+          <footer className="border-t bg-background/80 px-4 py-6 text-sm text-muted-foreground">
+            <div className="max-w-4xl mx-auto" dangerouslySetInnerHTML={{ __html: footerContent }} />
+          </footer>
+        )}
+
+        {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
+        <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} />
       </div>
-      {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
-      <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} />
-    </div>
+    </ThemeProvider>
   );
 }
 

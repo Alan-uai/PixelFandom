@@ -34,6 +34,8 @@ export default function WikiPage() {
 
   const tenant = wiki?.tenant;
   const articles = wiki?.articles;
+  const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
+  const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const { searchQuery, setSearchQuery } = useWikiSearch();
 
   // Sync ?search= URL param to context on mount
@@ -281,6 +283,17 @@ export default function WikiPage() {
               </>
             )}
           </>
+        ) : tenantTheme.custom_404_enabled && tenantTheme.custom_404_content ? (
+          <div className="text-center py-20 rounded-xl border bg-card">
+            <div dangerouslySetInnerHTML={{ __html: tenantTheme.custom_404_content as string }} />
+            <Link
+              href={homePath}
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar para home
+            </Link>
+          </div>
         ) : (
           <div className="text-center py-20 rounded-xl border bg-card">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -372,7 +385,7 @@ export default function WikiPage() {
 
           {displayArticles.length > 0 ? (
             isGrid ? (
-              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} />
+              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} />
             ) : (
               <div className="space-y-2">
                 {displayArticles.map((article: any) => (

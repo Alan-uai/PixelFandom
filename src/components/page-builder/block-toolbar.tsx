@@ -6,7 +6,7 @@ import { Image, LayoutList, Star, MessageCircle, Newspaper, LayoutGrid, Trophy, 
 
 const BLOCK_DEFINITIONS: BlockDefinition[] = [
   { type: 'hero', label: 'Hero', icon: Image, defaultConfig: { title: 'Título Hero', subtitle: 'Subtítulo', ctaText: 'Começar', ctaUrl: '', backgroundColor: '' }, description: 'Título grande com CTA' },
-  { type: 'article-grid', label: 'Grid Artigos', icon: LayoutGrid, defaultConfig: { title: 'Artigos', columns: 3, articles: [] }, description: 'Grade de artigos' },
+  { type: 'article-grid', label: 'Grid Artigos', icon: LayoutGrid, defaultConfig: { title: 'Artigos', columns: 3, articles: [], tag: '' }, description: 'Grade de artigos (manual ou por tag)' },
   { type: 'featured-list', label: 'Lista Destaques', icon: Star, defaultConfig: { title: 'Destaques', items: [] }, description: 'Itens em destaque' },
   { type: 'discord-embed', label: 'Discord', icon: MessageCircle, defaultConfig: { discordUrl: '', title: 'Junte-se ao Discord', description: 'Participe da comunidade!' }, description: 'Embed do Discord' },
   { type: 'news-feed', label: 'Notícias', icon: Newspaper, defaultConfig: { title: 'Notícias', items: [] }, description: 'Feed de notícias' },

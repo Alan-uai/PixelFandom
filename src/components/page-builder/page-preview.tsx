@@ -14,10 +14,10 @@ import { ImageGalleryBlock } from './blocks/image-gallery-block';
 import { RankingTableBlock } from './blocks/ranking-table-block';
 import { RichTextBlock } from './blocks/rich-text-block';
 
-function BlockRenderer({ block }: { block: BlockConfig }) {
+function BlockRenderer({ block, tenantId }: { block: BlockConfig; tenantId?: string }) {
   switch (block.type) {
     case 'hero': return <HeroBlock config={block.config} />;
-    case 'article-grid': return <ArticleGridBlock config={block.config} />;
+    case 'article-grid': return <ArticleGridBlock config={block.config} tenantId={tenantId} />;
     case 'featured-list': return <FeaturedListBlock config={block.config} />;
     case 'discord-embed': return <DiscordEmbedBlock config={block.config} />;
     case 'news-feed': return <NewsFeedBlock config={block.config} />;
@@ -33,11 +33,13 @@ function SortableBlock({
   isSelected,
   onSelect,
   onDelete,
+  tenantId,
 }: {
   block: BlockConfig;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  tenantId?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, data: { type: block.type, isNew: false } });
 
@@ -70,7 +72,7 @@ function SortableBlock({
         </button>
       </div>
       <div className="p-4">
-        <BlockRenderer block={block} />
+        <BlockRenderer block={block} tenantId={tenantId} />
       </div>
     </div>
   );
@@ -81,18 +83,22 @@ export function PagePreview({
   selectedId,
   onSelect,
   onDelete,
+  tenantId,
+  mobilePreview,
 }: {
   blocks: BlockConfig[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  tenantId?: string;
+  mobilePreview?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'page-drop-zone' });
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-h-[400px] p-6 space-y-6 overflow-y-auto ${isOver ? 'bg-primary/5' : ''}`}
+      className={`flex-1 min-h-[400px] p-6 space-y-6 overflow-y-auto ${isOver ? 'bg-primary/5' : ''} ${mobilePreview ? 'max-w-sm mx-auto border-x-4 border-border' : ''}`}
     >
       <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
         {blocks.length > 0 ? (
@@ -100,6 +106,7 @@ export function PagePreview({
             <SortableBlock
               key={block.id}
               block={block}
+              tenantId={tenantId}
               isSelected={selectedId === block.id}
               onSelect={() => onSelect(block.id)}
               onDelete={() => onDelete(block.id)}
