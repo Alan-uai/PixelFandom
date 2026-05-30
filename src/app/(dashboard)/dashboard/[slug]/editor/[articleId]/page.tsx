@@ -293,9 +293,17 @@ function EditPageContent() {
         }
       }
 
+      const slug = values.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      const { data: { user } } = await supabase.auth.getUser();
+
       const dataToSave = {
         id: articleId,
         title: values.title,
+        slug,
         summary: values.summary,
         content: values.content,
         tags: values.tags.split(',').map(tag => tag.trim()),
@@ -304,8 +312,10 @@ function EditPageContent() {
         og_image: values.ogImage || null,
         icon: values.icon || null,
         tables: parsedTables,
+        tenant_id: tenantId,
+        created_at: isNewArticle ? now : article?.created_at,
         updated_at: now,
-        ...(isNewArticle ? { created_at: now, tenant_id: tenantId } : {}),
+        ...(isNewArticle && user?.id ? { created_by: user.id } : {}),
       };
 
       const { error: upsertError } = await supabase
