@@ -181,7 +181,7 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
       )}
 
       {open && !dragging && (
-        <div className="absolute bottom-14 right-0 w-80 h-96 bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-20 right-4 z-50 w-80 h-96 bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
             <span className="text-sm font-medium flex items-center gap-2">
               {botLogo ? (

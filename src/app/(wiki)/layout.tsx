@@ -166,8 +166,8 @@ function WikiLayoutContent({
             >
               <House className="h-4 w-4" />
             </Link>
-            <Link
-              href={`${basePath}/chat`}
+            <button
+              onClick={() => { window.location.href = `${basePath}/chat`; }}
               className={`rounded-md p-2 transition-colors ${
                 isChatPage
                   ? 'text-primary bg-primary/10'
@@ -176,7 +176,7 @@ function WikiLayoutContent({
               title="Assistente IA"
             >
               <MessageCircle className="h-4 w-4" />
-            </Link>
+            </button>
             <VoiceChat tenantSlug={slug} isActive={isVoicePage} />
 
             {(tenant as any)?.discord_url && (
