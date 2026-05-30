@@ -7,6 +7,14 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type Density = 'comfortable' | 'compact';
 export type FontSize = 'small' | 'medium' | 'large';
 
+export interface ChatSettings {
+  personality_id: string;
+  persona: string;
+  emoji_style: string;
+  response_style: string;
+  language: string;
+}
+
 export interface UserPreferences {
   theme_mode: ThemeMode;
   font_size: FontSize;
@@ -14,9 +22,19 @@ export interface UserPreferences {
   sidebar_collapsed: boolean;
   notification_preferences: Record<string, boolean>;
   voice_settings: Record<string, unknown>;
+  chat_settings: ChatSettings;
+  theme_preset: string;
 }
 
 const STORAGE_KEY = 'pixelfandom:user-preferences';
+
+const CHAT_DEFAULTS: ChatSettings = {
+  personality_id: 'friendly',
+  persona: 'amigavel',
+  emoji_style: 'moderate',
+  response_style: 'detailed',
+  language: 'pt_br',
+};
 
 const DEFAULTS: UserPreferences = {
   theme_mode: 'system',
@@ -25,6 +43,8 @@ const DEFAULTS: UserPreferences = {
   sidebar_collapsed: false,
   notification_preferences: {},
   voice_settings: {},
+  chat_settings: { ...CHAT_DEFAULTS },
+  theme_preset: 'ciano',
 };
 
 function loadLocal(): UserPreferences {

@@ -51,6 +51,11 @@
 - **NUNCA** exclua, modifique ou sobrescreva arquivos `.env*`. Eles contêm credenciais de produção.
 - Se precisar de uma nova env var, adicione a chave vazia no `.env.example` ou documente neste guia — nunca altere o `.env` existente.
 
+## Config globais do usuário
+- `src/context/user-preferences-context.tsx` — `UserPreferences` com `chat_settings`, `voice_settings`, `theme_preset`
+- `src/app/(dashboard)/dashboard/settings/page.tsx` — Configurações globais (Chat, Voz, Tema, Mais)
+- **Regra:** Configurações avançadas de chat (modelo, temperatura, max_tokens, provider, system prompt) NÃO são editáveis pelo usuário nesta página. Elas são definidas exclusivamente pelo admin da wiki em `tenants.ai_config`. A página de settings globais só expõe Personalidade, Persona, Emoji, Estilo de Resposta e Idioma.
+
 ## Important files
 - `docs/ai-rules.md` — strict agent behavior rules (Portuguese). Follow when editing code.
 - `docs/blueprint.md` — original app concept (legacy reference)

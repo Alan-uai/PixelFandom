@@ -62,7 +62,7 @@ export function PageSubNav({ sections }: PageSubNavProps) {
           </p>
         </div>
       )}
-      <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3 space-y-1 pt-2">
+      <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3 space-y-1 pt-0">
         {sections.map((s) => {
           const Icon = s.icon;
           const isActive = activeId === s.id;
@@ -72,13 +72,13 @@ export function PageSubNav({ sections }: PageSubNavProps) {
               onClick={() => scrollTo(s.id)}
               title={collapsed ? s.label : undefined}
               className={cn(
-                'w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors text-left',
+                'w-full flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors text-left',
                 isActive
                   ? 'bg-primary/10 text-primary font-medium'
                   : 'hover:bg-muted text-muted-foreground'
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-3.5 w-3.5 shrink-0" />
               {!collapsed && <span className="truncate">{s.label}</span>}
             </button>
           );

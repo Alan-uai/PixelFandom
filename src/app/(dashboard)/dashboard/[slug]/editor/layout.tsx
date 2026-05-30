@@ -50,7 +50,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
           collapsed ? 'w-10' : 'w-40'
         )}
       >
-        <div className="flex items-center gap-1 p-3">
+        <div className="flex items-center gap-1 px-3 py-2.5">
           {!collapsed && (
             <p className="px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider truncate flex-1">
               Conteúdo
@@ -78,13 +78,13 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
                 href={href}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                  'flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors',
                   isActive
                     ? 'bg-primary/10 text-primary font-medium'
                     : 'hover:bg-muted text-muted-foreground'
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-3.5 w-3.5 shrink-0" />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
