@@ -27,9 +27,10 @@ interface PageBuilderEditorProps {
   tenantId: string;
   initialLayout?: PageLayout;
   initialFloatingIslands?: FloatingIslandConfig[];
+  pageType?: string;
 }
 
-export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIslands }: PageBuilderEditorProps) {
+export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIslands, pageType = 'landing' }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -154,7 +155,7 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
     setSaved(false);
 
     try {
-      const res = await fetch(`/api/tenants/${tenantId}/page-layout`, {
+      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blocks, floatingIslands }),
@@ -193,6 +194,7 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
           <LayoutList className="h-3.5 w-3.5" />
           Blocos
         </button>
+        {pageType === 'landing' && (
         <button
           onClick={() => setActiveTab('islands')}
           className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
@@ -204,6 +206,7 @@ export function PageBuilderEditor({ tenantId, initialLayout, initialFloatingIsla
           <PanelRightOpen className="h-3.5 w-3.5" />
           Ilhas Flutuantes
         </button>
+        )}
 
         <div className="flex-1" />
 

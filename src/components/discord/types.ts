@@ -379,10 +379,6 @@ export interface DiscordConfig {
   bot_avatar?: string | null;
   prefix?: string;
   status?: 'online' | 'idle' | 'dnd' | 'invisible';
-  welcome_message?: string;
-  welcome_image?: string;
-  leave_message?: string;
-  leave_image?: string;
   custom_commands?: CustomCommand[];
   enabled?: boolean;
 }

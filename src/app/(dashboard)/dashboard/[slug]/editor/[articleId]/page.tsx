@@ -489,29 +489,7 @@ function EditPageContent() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ícone / Emoji (sidebar)</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2 items-center">
-                        {field.value && (
-                          <span className="text-2xl">{field.value}</span>
-                        )}
-                        <Input
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="📷 ou URL do ícone"
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <IconField slug={slug ?? ''} form={form} />
 
               <FormField
                 control={form.control}
@@ -651,6 +629,70 @@ function EditPageContent() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function IconField({ slug, form }: { slug: string; form: any }) {
+  const [mode, setMode] = useState<'upload' | 'text'>('upload');
+
+  return (
+    <FormField
+      control={form.control}
+      name="icon"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Ícone / Emoji (sidebar)</FormLabel>
+          <FormControl>
+            <div className="space-y-3">
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMode('upload')}
+                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                    mode === 'upload' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('text')}
+                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                    mode === 'text' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  Emoji / URL
+                </button>
+              </div>
+              {mode === 'upload' ? (
+                <div className="flex gap-3 items-start">
+                  <ImageUpload
+                    bucket="wiki-images"
+                    pathPrefix={`${slug}/icons`}
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    previewSize="w-12 h-12"
+                  />
+                </div>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  {field.value && !field.value.startsWith('http') && (
+                    <span className="text-2xl">{field.value}</span>
+                  )}
+                  <Input
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder="📷 ou URL do ícone"
+                    className="font-mono text-sm"
+                  />
+                </div>
+              )}
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }
 

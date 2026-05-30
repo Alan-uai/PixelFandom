@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette } from 'lucide-react';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 export default function WikiSettingsPage() {
@@ -43,9 +44,6 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
-  const [footerContent, setFooterContent] = useState('');
-  const [custom404Enabled, setCustom404Enabled] = useState(false);
-  const [custom404Content, setCustom404Content] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -85,9 +83,6 @@ export default function WikiSettingsPage() {
           setSidebarWidth(theme.sidebar_width || 'normal');
           setHeaderStyle(theme.header_style || 'compact');
           setArticlesPerRow(theme.articles_per_row || 3);
-          setFooterContent(theme.footer_content || '');
-          setCustom404Enabled(theme.custom_404_enabled || false);
-          setCustom404Content(theme.custom_404_content || '');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
@@ -137,9 +132,6 @@ export default function WikiSettingsPage() {
             sidebar_width: sidebarWidth,
             header_style: headerStyle,
             articles_per_row: articlesPerRow,
-            footer_content: footerContent || null,
-            custom_404_enabled: custom404Enabled,
-            custom_404_content: custom404Content || null,
           },
         })
         .eq('slug', slug);
@@ -193,8 +185,7 @@ export default function WikiSettingsPage() {
     { id: 'theme', label: 'Tema', icon: Image },
     { id: 'layout', label: 'Layout', icon: LayoutGrid },
     { id: 'fonts', label: 'Fontes', icon: Type },
-    { id: 'branding', label: 'Branding', icon: Image },
-    { id: 'custom-404', label: 'Página 404', icon: FileText },
+    { id: 'pages', label: 'Páginas', icon: FileText },
     { id: 'links', label: 'Links', icon: MessageCircle },
   ];
 
@@ -453,67 +444,45 @@ export default function WikiSettingsPage() {
       </Card>
       </section>
 
-      <section id="branding">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Branding
-          </CardTitle>
-          <CardDescription>Personalize elementos extras de marca.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="footerContent">Footer Customizado (HTML)</Label>
-            <textarea
-              id="footerContent"
-              value={footerContent}
-              onChange={(e) => setFooterContent(e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="<p>© 2024 Minha Wiki. Todos os direitos reservados.</p>"
-            />
-            <p className="text-xs text-muted-foreground">HTML simples exibido no rodapé de todas as páginas da wiki.</p>
-          </div>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="custom-404">
+      <section id="pages">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Página 404 Personalizada
+            Páginas
           </CardTitle>
-          <CardDescription>Substitua a página de erro padrão.</CardDescription>
+          <CardDescription>Edite visualmente o footer e a página 404 da sua wiki.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Ativar Página 404 Personalizada</p>
-              <p className="text-xs text-muted-foreground">Quando desativado, usa a página padrão do sistema.</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={custom404Enabled}
-              onChange={(e) => setCustom404Enabled(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Use o editor visual de blocos (drag & drop) para personalizar essas páginas.
+          </p>
+          <div className="flex flex-col gap-2">
+            <a
+              href={`/dashboard/${slug}/page-builder?type=footer`}
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Image className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Footer</p>
+                <p className="text-xs text-muted-foreground">Rodapé da wiki</p>
+              </div>
+            </a>
+            <a
+              href={`/dashboard/${slug}/page-builder?type=404`}
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Página 404</p>
+                <p className="text-xs text-muted-foreground">Página de erro personalizada</p>
+              </div>
+            </a>
           </div>
-          {custom404Enabled && (
-            <div className="space-y-2">
-              <Label htmlFor="custom404Content">Conteúdo da Página 404 (HTML)</Label>
-              <textarea
-                id="custom404Content"
-                value={custom404Content}
-                onChange={(e) => setCustom404Content(e.target.value)}
-                rows={4}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="<h2>Oops! Página não encontrada</h2><p>O conteúdo que você procura não existe.</p>"
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
       </section>
@@ -568,6 +537,58 @@ export default function WikiSettingsPage() {
   );
 }
 
+const PRESET_COLORS = [
+  { label: 'Ciano (padrão)', hsl: '198 100% 65%' },
+  { label: 'Azul', hsl: '217 100% 65%' },
+  { label: 'Roxo', hsl: '270 100% 65%' },
+  { label: 'Rosa', hsl: '330 100% 65%' },
+  { label: 'Vermelho', hsl: '0 100% 65%' },
+  { label: 'Laranja', hsl: '25 100% 60%' },
+  { label: 'Amarelo', hsl: '50 100% 55%' },
+  { label: 'Verde', hsl: '140 100% 50%' },
+  { label: 'Verde Limão', hsl: '80 100% 50%' },
+  { label: 'Cinza', hsl: '0 0% 60%' },
+];
+
+function hslToHex(hsl: string): string {
+  if (!hsl) return '#000000';
+  const parts = hsl.split(' ');
+  if (parts.length < 3) return '#000000';
+  const h = parseInt(parts[0]) || 0;
+  const s = parseInt(parts[1]) || 0;
+  const l = parseInt(parts[2]) || 0;
+  const sNorm = s / 100;
+  const lNorm = l / 100;
+  const a = sNorm * Math.min(lNorm, 1 - lNorm);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = lNorm - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function hexToHsl(hex: string): string {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
+      case g: h = ((b - r) / d + 2) * 60; break;
+      case b: h = ((r - g) / d + 4) * 60; break;
+    }
+  }
+  return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
 function ColorField({
   id, label, value, onChange, placeholder,
 }: {
@@ -577,15 +598,64 @@ function ColorField({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const hexValue = hslToHex(value || '');
+
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-2 items-center">
+        <Popover.Root>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              className="h-9 w-9 rounded-md border shrink-0 flex items-center justify-center hover:ring-2 hover:ring-primary/50 transition-shadow"
+              style={{ backgroundColor: value ? `hsl(${value})` : 'transparent' }}
+            >
+              {!value && <Pipette className="h-4 w-4 text-muted-foreground" />}
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="bottom"
+              align="start"
+              sideOffset={4}
+              className="z-50 w-64 rounded-lg border bg-card p-3 shadow-lg"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={hexValue}
+                    onChange={(e) => onChange(hexToHsl(e.target.value))}
+                    className="h-8 w-8 rounded cursor-pointer border bg-transparent p-0.5"
+                  />
+                  <span className="text-xs text-muted-foreground">Seletor de cor</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Predefinidas</p>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {PRESET_COLORS.map((preset) => (
+                      <button
+                        key={preset.hsl}
+                        type="button"
+                        onClick={() => onChange(preset.hsl)}
+                        className="h-7 w-full rounded border hover:ring-2 hover:ring-primary/50 transition-shadow"
+                        style={{ backgroundColor: `hsl(${preset.hsl})` }}
+                        title={preset.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
         <Input
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || '198 100% 65%'}
+          className="font-mono text-xs"
         />
         {value && (
           <div

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Link,
+  Clock,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
@@ -41,6 +42,7 @@ export default function WikiDomainsPage() {
   const [checking, setChecking] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
     supabase
@@ -51,10 +53,41 @@ export default function WikiDomainsPage() {
       .then(({ data }) => {
         if (data) {
           setTenant(data);
-          if (data.custom_domain) checkDomain(data.custom_domain);
+          if (data.custom_domain) {
+            // Show persisted status first
+            if (data.domain_verified) {
+              setDomainInfo({
+                verified: true,
+                configured: true,
+                cname: null,
+                cnameResolves: true,
+                pending: false,
+                nameservers: [],
+              });
+            }
+            // Then check live status
+            checkDomain(data.custom_domain);
+          }
         }
       });
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [slug]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    if (!tenant?.custom_domain) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(() => {
+      checkDomain(tenant.custom_domain!);
+    }, 30_000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [tenant?.custom_domain]);
 
   const checkDomain = useCallback(async (d: string) => {
     setChecking(true);
@@ -80,38 +113,6 @@ export default function WikiDomainsPage() {
     setChecking(false);
   }, [slug]);
 
-  const startPolling = useCallback(async (d: string) => {
-    if (!d.endsWith('.vercel.app')) return;
-    setVerifying(true);
-    let delay = 3000;
-    const maxDelay = 120_000;
-    const maxDuration = 300_000;
-
-    const poll = async (elapsed: number) => {
-      if (elapsed > maxDuration) {
-        setVerifying(false);
-        return;
-      }
-      try {
-        const res = await fetch('/api/domains', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d }),
-        });
-        const data = await res.json();
-        if (data.verified && data.configured) {
-          setDomainInfo(data);
-          setVerifying(false);
-          return;
-        }
-      } catch {}
-      setTimeout(() => poll(elapsed + delay), delay);
-      delay = Math.min(delay * 2, maxDelay);
-    };
-
-    poll(0);
-  }, [slug]);
-
   const handleAddDomain = async () => {
     if (!domain || !tenant) return;
     setSaving(true);
@@ -125,10 +126,9 @@ export default function WikiDomainsPage() {
       if (data.error) throw new Error(data.error);
 
       const addedDomain = domain.toLowerCase();
-      setTenant({ ...tenant, custom_domain: addedDomain });
+      setTenant({ ...tenant, custom_domain: addedDomain } as Tenant);
       setDomainInfo(data);
       toast({ title: 'Domínio adicionado!', description: 'Verifique as instruções de DNS abaixo.' });
-      startPolling(addedDomain);
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Erro', description: err.message });
     }
@@ -147,7 +147,7 @@ export default function WikiDomainsPage() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      setTenant({ ...tenant, custom_domain: null });
+      setTenant({ ...tenant, custom_domain: null } as Tenant);
       setDomainInfo(null);
       toast({ title: 'Domínio removido.' });
     } catch (err: any) {
@@ -173,13 +173,22 @@ export default function WikiDomainsPage() {
     { id: 'custom-domain', label: 'Domínio Personalizado', icon: Link },
   ];
 
+  const formatLastCheck = (date: string | null | undefined) => {
+    if (!date) return null;
+    const d = new Date(date);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (diff < 60) return `${diff}s atrás`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
+    return d.toLocaleString('pt-BR');
+  };
+
   return (
     <div className="flex">
       <PageSubNav sections={sections} />
       <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="default-url">
-      {/* Default URL Card */}
       <Card>
         <CardHeader>
           <CardTitle>URL Padrão</CardTitle>
@@ -200,7 +209,6 @@ export default function WikiDomainsPage() {
       </section>
 
       <section id="custom-domain">
-      {/* Custom Domain Card */}
       <Card>
         <CardHeader>
           <CardTitle>Domínio Personalizado</CardTitle>
@@ -220,6 +228,12 @@ export default function WikiDomainsPage() {
                     <p className="font-mono text-sm font-medium">{tenant.custom_domain}</p>
                     {badge && (
                       <p className="text-xs text-muted-foreground">{badge.label}</p>
+                    )}
+                    {(tenant as any).domain_last_checked_at && (
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="h-3 w-3" />
+                        Última verificação: {formatLastCheck((tenant as any).domain_last_checked_at)}
+                      </p>
                     )}
                   </div>
                 </div>

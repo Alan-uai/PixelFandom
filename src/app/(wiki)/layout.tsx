@@ -16,6 +16,7 @@ import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
 
 export default function WikiLayout({
@@ -63,6 +64,15 @@ function WikiLayoutContent({
 
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
+  const [footerLayout, setFooterLayout] = useState<any>(null);
+
+  useEffect(() => {
+    if (!tenant?.id) return;
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=footer`)
+      .then((r) => r.json())
+      .then((data) => setFooterLayout(data?.blocks?.length ? { blocks: data.blocks } : null))
+      .catch(() => {});
+  }, [tenant?.id]);
 
   useEffect(() => {
     setSidebarCollapsed(preferences.sidebar_collapsed);
@@ -97,7 +107,7 @@ function WikiLayoutContent({
     updatePreference('theme_mode', mode);
   }, [updatePreference]);
 
-  const footerContent = tenantTheme.footer_content;
+
 
   if (loading) {
     return (
@@ -252,9 +262,11 @@ function WikiLayoutContent({
           </main>
         </div>
 
-        {footerContent && (
-          <footer className="border-t bg-background/80 px-4 py-6 text-sm text-muted-foreground">
-            <div className="max-w-4xl mx-auto" dangerouslySetInnerHTML={{ __html: footerContent }} />
+        {footerLayout && (
+          <footer className="border-t bg-background/80 px-4 py-6">
+            <div className="max-w-5xl mx-auto">
+              <PageRenderer layout={footerLayout} tenant={tenant} basePath={basePath} />
+            </div>
           </footer>
         )}
 

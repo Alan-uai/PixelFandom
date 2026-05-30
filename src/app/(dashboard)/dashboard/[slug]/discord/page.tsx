@@ -33,10 +33,6 @@ export default function WikiDiscordPage() {
     botAvatar: null as string | null,
     prefix: '!',
     status: 'online' as 'online' | 'idle' | 'dnd' | 'invisible',
-    welcomeMessage: '',
-    welcomeImage: '',
-    leaveMessage: '',
-    leaveImage: '',
     commands: [] as CustomCommand[],
   });
 
@@ -45,10 +41,6 @@ export default function WikiDiscordPage() {
   const [botAvatar, setBotAvatar] = useState<string | null>(null);
   const [prefix, setPrefix] = useState('!');
   const [status, setStatus] = useState<'online' | 'idle' | 'dnd' | 'invisible'>('online');
-  const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [welcomeImage, setWelcomeImage] = useState('');
-  const [leaveMessage, setLeaveMessage] = useState('');
-  const [leaveImage, setLeaveImage] = useState('');
   const [commands, setCommands] = useState<CustomCommand[]>([]);
 
   const migrateCommands = (raw: any): CustomCommand[] => {
@@ -63,10 +55,6 @@ export default function WikiDiscordPage() {
     setBotAvatar(config.bot_avatar ?? null);
     setPrefix(config.prefix ?? '!');
     setStatus(config.status ?? 'online');
-    setWelcomeMessage(config.welcome_message ?? '');
-    setWelcomeImage(config.welcome_image ?? '');
-    setLeaveMessage(config.leave_message ?? '');
-    setLeaveImage(config.leave_image ?? '');
     const loadedCommands = migrateCommands(config.custom_commands);
     setCommands(loadedCommands);
     initialRef.current = {
@@ -75,10 +63,6 @@ export default function WikiDiscordPage() {
       botAvatar: config.bot_avatar ?? null,
       prefix: config.prefix ?? '!',
       status: config.status ?? 'online',
-      welcomeMessage: config.welcome_message ?? '',
-      welcomeImage: config.welcome_image ?? '',
-      leaveMessage: config.leave_message ?? '',
-      leaveImage: config.leave_image ?? '',
       commands: loadedCommands,
     };
   };
@@ -141,10 +125,6 @@ export default function WikiDiscordPage() {
         bot_avatar: botAvatar,
         prefix,
         status,
-        welcome_message: welcomeMessage,
-        welcome_image: welcomeImage || undefined,
-        leave_message: leaveMessage || undefined,
-        leave_image: leaveImage || undefined,
         custom_commands: commands,
       };
 
@@ -156,7 +136,7 @@ export default function WikiDiscordPage() {
       if (error) {
         toast({ variant: 'destructive', title: 'Erro', description: error.message });
       } else {
-        initialRef.current = { enabled, botName, botAvatar, prefix, status, welcomeMessage, welcomeImage, leaveMessage, leaveImage, commands: JSON.parse(JSON.stringify(commands)) };
+        initialRef.current = { enabled, botName, botAvatar, prefix, status, commands: JSON.parse(JSON.stringify(commands)) };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
@@ -187,10 +167,6 @@ export default function WikiDiscordPage() {
     botAvatar !== initialRef.current.botAvatar ||
     prefix !== initialRef.current.prefix ||
     status !== initialRef.current.status ||
-    welcomeMessage !== initialRef.current.welcomeMessage ||
-    welcomeImage !== initialRef.current.welcomeImage ||
-    leaveMessage !== initialRef.current.leaveMessage ||
-    leaveImage !== initialRef.current.leaveImage ||
     JSON.stringify(commands.map((c) => c.enabled)) !== JSON.stringify(initialRef.current.commands.map((c) => c.enabled));
 
   const sections = [
@@ -290,8 +266,8 @@ export default function WikiDiscordPage() {
         <section id="messages">
         <Card>
           <CardHeader>
-            <CardTitle>Prefixo e Mensagens</CardTitle>
-            <CardDescription>Configure o prefixo de comandos e mensagem de boas-vindas.</CardDescription>
+            <CardTitle>Prefixo de Comandos</CardTitle>
+            <CardDescription>Configure o prefixo dos comandos do bot.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -303,48 +279,6 @@ export default function WikiDiscordPage() {
                 placeholder="!"
                 maxLength={5}
                 className="w-24"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="welcome">Mensagem de Boas-Vindas</Label>
-              <textarea
-                id="welcome"
-                value={welcomeMessage}
-                onChange={(e) => setWelcomeMessage(e.target.value)}
-                rows={3}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Bem-vindo ao servidor!"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Imagem de Boas-Vindas</Label>
-              <ImageUpload
-                bucket="wiki-images"
-                pathPrefix={`discord-welcome/${slug}`}
-                value={welcomeImage}
-                onChange={setWelcomeImage}
-                previewSize="w-full h-20"
-              />
-            </div>
-            <div className="border-t pt-4 space-y-2">
-              <Label htmlFor="leaveMessage">Mensagem de Saída</Label>
-              <textarea
-                id="leaveMessage"
-                value={leaveMessage}
-                onChange={(e) => setLeaveMessage(e.target.value)}
-                rows={2}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Um usuário saiu do servidor."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Imagem de Saída</Label>
-              <ImageUpload
-                bucket="wiki-images"
-                pathPrefix={`discord-leave/${slug}`}
-                value={leaveImage}
-                onChange={setLeaveImage}
-                previewSize="w-full h-20"
               />
             </div>
           </CardContent>

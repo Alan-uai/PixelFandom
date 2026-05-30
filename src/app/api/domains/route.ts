@@ -117,7 +117,11 @@ export async function POST(request: NextRequest) {
 
         const { error: updateError } = await supabase
           .from('tenants')
-          .update({ custom_domain: domain })
+          .update({
+            custom_domain: domain,
+            domain_verified: false,
+            domain_last_checked_at: new Date().toISOString(),
+          })
           .eq('id', tenant.id);
 
         if (updateError) throw updateError;
@@ -181,7 +185,12 @@ export async function POST(request: NextRequest) {
 
         const { error: updateError } = await supabase
           .from('tenants')
-          .update({ custom_domain: null })
+          .update({
+            custom_domain: null,
+            domain_verified: false,
+            domain_verified_at: null,
+            domain_last_checked_at: new Date().toISOString(),
+          })
           .eq('id', tenant.id);
 
         if (updateError) throw updateError;
@@ -233,6 +242,17 @@ export async function POST(request: NextRequest) {
         } catch {
           config = { verified: false, configured: false, cnameResolves: false, pending: true };
         }
+
+        // Persist verification status
+        const verified = config.verified === true && config.configured === true;
+        await supabase
+          .from('tenants')
+          .update({
+            domain_verified: verified,
+            domain_verified_at: verified ? new Date().toISOString() : null,
+            domain_last_checked_at: new Date().toISOString(),
+          })
+          .eq('id', tenant.id);
 
         const res = NextResponse.json({
           status: 'checked',

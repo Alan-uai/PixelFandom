@@ -54,6 +54,7 @@ export default function WikiPage() {
   const [landingLayout, setLandingLayout] = useState<any>(null);
   const [loadingLayout, setLoadingLayout] = useState(false);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
+  const [custom404Layout, setCustom404Layout] = useState<any>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -81,6 +82,17 @@ export default function WikiPage() {
       setLoadingLayout(false);
     })();
   }, [articleSlug, tenant?.id]);
+
+  // Fetch 404 layout
+  useEffect(() => {
+    if (!tenant?.id) return;
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
+      })
+      .catch(() => {});
+  }, [tenant?.id]);
 
   useEffect(() => {
     if (!articleSlug || !tenant?.id) return;
@@ -283,17 +295,8 @@ export default function WikiPage() {
               </>
             )}
           </>
-        ) : tenantTheme.custom_404_enabled && tenantTheme.custom_404_content ? (
-          <div className="text-center py-20 rounded-xl border bg-card">
-            <div dangerouslySetInnerHTML={{ __html: tenantTheme.custom_404_content as string }} />
-            <Link
-              href={homePath}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar para home
-            </Link>
-          </div>
+        ) : custom404Layout ? (
+          <PageRenderer layout={custom404Layout} tenant={tenant} basePath={basePath} />
         ) : (
           <div className="text-center py-20 rounded-xl border bg-card">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />

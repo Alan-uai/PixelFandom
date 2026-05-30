@@ -14,9 +14,6 @@ export interface TenantTheme {
   sidebar_width?: 'narrow' | 'normal' | 'wide';
   header_style?: 'compact' | 'expanded' | 'minimal';
   articles_per_row?: number;
-  footer_content?: string;
-  custom_404_enabled?: boolean;
-  custom_404_content?: string;
 }
 
 type ThemeMode = 'system' | 'light' | 'dark';

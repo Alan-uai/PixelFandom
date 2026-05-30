@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
+import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
 
 interface FreeModel {
   id: string;
@@ -65,8 +66,7 @@ export default function WikiAIConfigPage() {
     wakeWordText: 'Psycho',
     chatName: 'Assistente',
     botLogo: '',
-    welcomeMessage: '',
-    systemPrompt: '',
+    personalityId: 'friendly',
     suggestedQuestions: [] as string[],
     botBanner: '',
   });
@@ -88,8 +88,7 @@ export default function WikiAIConfigPage() {
   const [wakeWordText, setWakeWordText] = useState('Psycho');
   const [chatName, setChatName] = useState('Assistente');
   const [botLogo, setBotLogo] = useState('');
-  const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState('');
+  const [personalityId, setPersonalityId] = useState('friendly');
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [botBanner, setBotBanner] = useState('');
 
@@ -156,8 +155,7 @@ export default function WikiAIConfigPage() {
           setWakeWordText((config.wake_word_text as string) || 'Psycho');
           setChatName((config.chat_name as string) || 'Assistente');
           setBotLogo((config.bot_logo as string) || '');
-          setWelcomeMessage((config.welcome_message as string) || '');
-          setSystemPrompt((config.system_prompt as string) || '');
+          setPersonalityId((config.personality_id as string) || 'friendly');
           setSuggestedQuestions((config.suggested_questions as string[]) || []);
           setBotBanner((config.bot_banner as string) || '');
 
@@ -180,8 +178,7 @@ export default function WikiAIConfigPage() {
             wakeWordText: (config.wake_word_text as string) || 'Psycho',
             chatName: (config.chat_name as string) || 'Assistente',
             botLogo: (config.bot_logo as string) || '',
-            welcomeMessage: (config.welcome_message as string) || '',
-            systemPrompt: (config.system_prompt as string) || '',
+            personalityId: (config.personality_id as string) || 'friendly',
             suggestedQuestions: (config.suggested_questions as string[]) || [],
             botBanner: (config.bot_banner as string) || '',
           };
@@ -255,8 +252,8 @@ export default function WikiAIConfigPage() {
             wake_word_text: wakeWordText,
             chat_name: chatName,
             bot_logo: botLogo,
-            welcome_message: welcomeMessage,
-            system_prompt: systemPrompt,
+            personality_id: personalityId,
+            system_prompt: getPersonality(personalityId).systemPrompt,
             suggested_questions: suggestedQuestions,
             bot_banner: botBanner,
             wake_word: true,
@@ -284,11 +281,10 @@ export default function WikiAIConfigPage() {
           geminiFallbackChain,
           geminiFallbackSource,
           wakeWordText,
-          chatName,
-          botLogo,
-          welcomeMessage,
-          systemPrompt,
-          suggestedQuestions,
+            chatName,
+            botLogo,
+            personalityId,
+            suggestedQuestions,
           botBanner,
         };
         setSavedFeedback(true);
@@ -333,8 +329,7 @@ export default function WikiAIConfigPage() {
     wakeWordText !== initialRef.current.wakeWordText ||
     chatName !== initialRef.current.chatName ||
     botLogo !== initialRef.current.botLogo ||
-    welcomeMessage !== initialRef.current.welcomeMessage ||
-    systemPrompt !== initialRef.current.systemPrompt ||
+    personalityId !== initialRef.current.personalityId ||
     JSON.stringify(suggestedQuestions) !== JSON.stringify(initialRef.current.suggestedQuestions) ||
     botBanner !== initialRef.current.botBanner;
 
@@ -349,7 +344,7 @@ export default function WikiAIConfigPage() {
   return (
     <div className="flex">
       <PageSubNav sections={sections} />
-      <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
+      <div className="flex-1 min-w-0 p-4 md:p-6 container max-w-2xl space-y-6">
 
       <section id="activation">
       <Card>
@@ -782,30 +777,32 @@ export default function WikiAIConfigPage() {
             <Bot className="h-5 w-5" />
             Personalidade
           </CardTitle>
-          <CardDescription>Mensagens e comportamento do assistente IA.</CardDescription>
+          <CardDescription>Escolha o estilo de resposta do assistente IA.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="welcomeMessage">Mensagem de Boas-Vindas</Label>
-            <textarea
-              id="welcomeMessage"
-              value={welcomeMessage}
-              onChange={(e) => setWelcomeMessage(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Olá! Como posso ajudar você hoje?"
-            />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {AI_PERSONALITIES.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPersonalityId(p.id)}
+                className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
+                  personalityId === p.id
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border hover:bg-accent hover:border-muted-foreground/30'
+                }`}
+              >
+                <span className="text-2xl">{p.emoji}</span>
+                <span className="text-xs font-medium leading-tight">{p.name}</span>
+                <span className="text-[10px] text-muted-foreground leading-tight line-clamp-2">{p.description}</span>
+              </button>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="systemPrompt">Prompt do Sistema (Personalidade)</Label>
-            <textarea
-              id="systemPrompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Você é um assistente especializado em..."
-            />
+          <div className="rounded-lg bg-muted/50 border p-3">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Prompt da personalidade:</span>{' '}
+              {getPersonality(personalityId).systemPrompt}
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Perguntas Sugeridas</Label>

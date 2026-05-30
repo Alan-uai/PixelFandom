@@ -1,17 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'lucide-react';
 import Link from 'next/link';
+
+const PAGE_TYPES = [
+  { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
+  { id: 'footer', label: 'Footer', icon: Footprints },
+  { id: '404', label: 'Página 404', icon: FileQuestion },
+] as const;
+
+export type PageType = (typeof PAGE_TYPES)[number]['id'];
 
 export default function PageBuilderPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const slug = params.slug as string;
+  const pageType = (searchParams.get('type') as PageType) || 'landing';
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
+
+  const fetchLayout = useCallback(async (tenantId: string, type: string) => {
+    setLoading(true);
+    const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
+    const data = await res.json();
+    setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -29,22 +48,13 @@ export default function PageBuilderPage() {
       }
 
       setTenantId(tenant.id);
-
-      // Try tenant_pages first, then fallback to theme.landing_layout
-      const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
-      const data = await res.json();
-      setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
-      setLoading(false);
+      fetchLayout(tenant.id, pageType);
     })();
-  }, [slug]);
+  }, [slug, pageType, fetchLayout]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleTypeChange = (type: string) => {
+    router.push(`/dashboard/${slug}/page-builder?type=${type}`);
+  };
 
   if (!tenantId) {
     return <p className="p-6 text-muted-foreground">Wiki não encontrada.</p>;
@@ -59,19 +69,47 @@ export default function PageBuilderPage() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div>
-          <h1 className="text-sm font-medium">Editor de Página Inicial</h1>
+        <div className="flex-1">
+          <h1 className="text-sm font-medium">Editor de Páginas</h1>
           <p className="text-[10px] text-muted-foreground">
-            Personalize a landing page e as ilhas flutuantes da sua wiki
+            Personalize a landing page, footer e página 404 da sua wiki
           </p>
         </div>
       </div>
+      <div className="flex gap-1 border-b px-4 py-1.5 bg-muted/30">
+        {PAGE_TYPES.map((pt) => {
+          const Icon = pt.icon;
+          return (
+            <button
+              key={pt.id}
+              type="button"
+              onClick={() => handleTypeChange(pt.id)}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                pageType === pt.id
+                  ? 'bg-primary/10 text-primary border border-primary/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {pt.label}
+            </button>
+          );
+        })}
+      </div>
       <div className="flex-1 overflow-hidden">
-        <PageBuilderEditor
-          tenantId={tenantId}
-          initialLayout={layout ? { blocks: layout.blocks } : undefined}
-          initialFloatingIslands={layout?.floatingIslands || undefined}
-        />
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <PageBuilderEditor
+            key={pageType}
+            tenantId={tenantId}
+            initialLayout={layout ? { blocks: layout.blocks } : undefined}
+            initialFloatingIslands={layout?.floatingIslands || undefined}
+            pageType={pageType}
+          />
+        )}
       </div>
     </div>
   );

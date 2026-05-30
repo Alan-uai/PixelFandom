@@ -1,34 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
 
+function getPageType(request: NextRequest): string {
+  const url = new URL(request.url);
+  return url.searchParams.get('type') || 'landing';
+}
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     const { id } = await params;
+    const pageType = getPageType(request);
 
     const { data, error } = await supabase
       .from('tenant_pages')
       .select('layout, floating_islands')
       .eq('tenant_id', id)
-      .single();
+      .eq('page_type', pageType)
+      .maybeSingle();
 
     if (error || !data) {
-      // Fall back to tenants.theme.landing_layout
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('theme')
-        .eq('id', id)
-        .single();
+      // For landing, fall back to tenants.theme.landing_layout
+      if (pageType === 'landing') {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('theme')
+          .eq('id', id)
+          .single();
 
-      if (tenant?.theme && (tenant.theme as any).landing_layout) {
-        const fallback = (tenant.theme as any).landing_layout;
-        return NextResponse.json({
-          blocks: fallback.blocks || [],
-          floatingIslands: fallback.floatingIslands || [],
-        });
+        if (tenant?.theme && (tenant.theme as any).landing_layout) {
+          const fallback = (tenant.theme as any).landing_layout;
+          return NextResponse.json({
+            blocks: fallback.blocks || [],
+            floatingIslands: fallback.floatingIslands || [],
+          });
+        }
       }
       return NextResponse.json({ blocks: [], floatingIslands: [] });
     }
@@ -50,6 +59,7 @@ export async function PUT(
   try {
     const supabase = await createClient();
     const { id } = await params;
+    const pageType = getPageType(request);
     const body = await request.json();
 
     if (!body.blocks || !Array.isArray(body.blocks)) {
@@ -58,37 +68,42 @@ export async function PUT(
 
     const floatingIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
 
-    // Upsert into tenant_pages
+    // Upsert into tenant_pages (unique constraint on tenant_id + page_type)
     const { error: upsertError } = await supabase
       .from('tenant_pages')
       .upsert(
         {
           tenant_id: id,
+          page_type: pageType,
           layout: { blocks: body.blocks },
           floating_islands: floatingIslands,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'tenant_id' }
+        { onConflict: 'tenant_id, page_type' }
       );
 
     if (upsertError) {
-      // Fallback: store in tenants.theme.landing_layout
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('theme')
-        .eq('id', id)
-        .single();
+      // Fallback: store in tenants.theme.landing_layout (only for landing)
+      if (pageType === 'landing') {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('theme')
+          .eq('id', id)
+          .single();
 
-      const theme = (tenant?.theme || {}) as Record<string, unknown>;
-      theme.landing_layout = { blocks: body.blocks, floatingIslands };
+        const theme = (tenant?.theme || {}) as Record<string, unknown>;
+        theme.landing_layout = { blocks: body.blocks, floatingIslands };
 
-      const { error: themeError } = await supabase
-        .from('tenants')
-        .update({ theme: theme as any })
-        .eq('id', id);
+        const { error: themeError } = await supabase
+          .from('tenants')
+          .update({ theme: theme as any })
+          .eq('id', id);
 
-      if (themeError) {
-        return NextResponse.json({ error: themeError.message }, { status: 500 });
+        if (themeError) {
+          return NextResponse.json({ error: themeError.message }, { status: 500 });
+        }
+      } else {
+        return NextResponse.json({ error: upsertError.message }, { status: 500 });
       }
     }
 
