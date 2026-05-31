@@ -2,6 +2,7 @@
 
 import { useNotifications, type Notification } from '@/hooks/use-notifications';
 import { useUserPreferences } from '@/context/user-preferences-context';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +29,7 @@ const typeIcons: Record<string, string> = {
   mention: '@',
 };
 
-export default function NotificationsPage() {
+function NotificationsPageInner() {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const { preferences, updatePreference } = useUserPreferences();
 
@@ -160,6 +161,14 @@ export default function NotificationsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <ErrorBoundary>
+      <NotificationsPageInner />
+    </ErrorBoundary>
   );
 }
 

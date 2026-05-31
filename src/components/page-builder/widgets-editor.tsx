@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save } from 'lucide-react';
-import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout } from './types';
+import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save, Star, ArrowUpDown } from 'lucide-react';
+import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
+import { CardPositionEditor } from './card-position-editor';
 
 const POSITIONS = [
   { value: 'bottom-right', label: 'Inferior Direito' },
@@ -31,6 +32,16 @@ const CHAT_ICONS = [
   { value: 'HelpCircle', label: 'Ajuda' },
 ] as const;
 
+const DEFAULT_POSITIONS: CardPositions = {
+  follow: { edge: 'top', offsetPct: 95 },
+  vote: { edge: 'bottom', offsetPct: 95 },
+};
+
+const CARD_TABS = [
+  { id: 'article_card', label: 'Cartão de Artigo', desc: 'Posição nos cards da wiki' },
+  { id: 'marketing_card', label: 'Card Marketing', desc: 'Posição nos cards da página inicial' },
+] as const;
+
 interface WidgetsEditorProps {
   tenantId: string;
   slug: string;
@@ -52,6 +63,9 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
     color: 'var(--primary)',
     animation: 'glow',
   });
+  const [articleCard, setArticleCard] = useState<CardPositions>(DEFAULT_POSITIONS);
+  const [marketingCard, setMarketingCard] = useState<CardPositions>(DEFAULT_POSITIONS);
+  const [cardTab, setCardTab] = useState<'article_card' | 'marketing_card'>('article_card');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -64,6 +78,10 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
       .then((data: WidgetLayout) => {
         if (data.chat) setChat((prev) => ({ ...prev, ...data.chat }));
         if (data.voice) setVoice((prev) => ({ ...prev, ...data.voice }));
+        if (data.cardPositions) {
+          if (data.cardPositions.article_card) setArticleCard(data.cardPositions.article_card);
+          if (data.cardPositions.marketing_card) setMarketingCard(data.cardPositions.marketing_card);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -76,7 +94,14 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
       const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat, voice }),
+        body: JSON.stringify({
+          chat,
+          voice,
+          cardPositions: {
+            article_card: articleCard,
+            marketing_card: marketingCard,
+          },
+        }),
       });
       if (res.ok) {
         setSaved(true);
@@ -301,6 +326,52 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Vote & Follow Positions Card */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <ArrowUpDown className="h-5 w-5 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium">Posições de ★ Voto e Seguir</h3>
+            <p className="text-xs text-muted-foreground">
+              Arraste os símbolos ao redor da borda dos cards
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-1 border-b pb-2">
+          {CARD_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCardTab(tab.id)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                cardTab === tab.id
+                  ? 'bg-primary/10 text-primary border border-primary/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-center">
+          {cardTab === 'article_card' ? (
+            <CardPositionEditor
+              value={articleCard}
+              onChange={setArticleCard}
+            />
+          ) : (
+            <CardPositionEditor
+              value={marketingCard}
+              onChange={setMarketingCard}
+            />
+          )}
+        </div>
       </div>
 
       {/* Save button */}

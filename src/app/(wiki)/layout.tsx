@@ -10,7 +10,7 @@ import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
-import { UserPreferencesProvider, useUserPreferences } from '@/context/user-preferences-context';
+import { useUserPreferences } from '@/context/user-preferences-context';
 import { ThemeProvider } from '@/context/theme-context';
 import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -33,9 +33,7 @@ export default function WikiLayout({
   return (
     <WikiDataProvider slug={slug}>
       <WikiSearchProvider>
-        <UserPreferencesProvider>
-          <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
-        </UserPreferencesProvider>
+        <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
       </WikiSearchProvider>
     </WikiDataProvider>
   );

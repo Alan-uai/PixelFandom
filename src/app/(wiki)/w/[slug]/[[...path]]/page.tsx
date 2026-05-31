@@ -16,7 +16,10 @@ import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { CommentsSection } from '@/components/comments/comments-section';
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
-import type { FloatingIslandConfig } from '@/components/page-builder/types';
+import { CardSymbols } from '@/components/wiki/card-symbols';
+import { VoteButtons } from '@/components/wiki/vote-buttons';
+import { FollowButton } from '@/components/wiki/follow-button';
+import type { FloatingIslandConfig, CardPosition } from '@/components/page-builder/types';
 
 const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
@@ -36,6 +39,10 @@ export default function WikiPage() {
   const articles = wiki?.articles;
   const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
+  const widgetConfig = (tenantTheme.widgets as Record<string, unknown>) || {};
+  const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
+  const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
+  const marketingCardVotePos = (cardPositions.marketing_card as { vote?: CardPosition } | undefined)?.vote;
   const { searchQuery, setSearchQuery } = useWikiSearch();
 
   // Sync ?search= URL param to context on mount
@@ -284,6 +291,14 @@ export default function WikiPage() {
                   )}
                 </header>
 
+                <div className="flex justify-end items-center gap-2 mb-4">
+                  {tenant?.id && <FollowButton tenantId={tenant.id} />}
+                  <VoteButtons
+                    targetType="article"
+                    targetId={article.id}
+                  />
+                </div>
+
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <WikiContent content={article.content} />
                 </div>
@@ -373,6 +388,9 @@ export default function WikiPage() {
           <BookOpen className="h-4 w-4" />
           <span>{articles?.length || 0} artigo{(articles?.length || 0) !== 1 ? 's' : ''}</span>
         </div>
+        <div className="mt-3">
+          <FollowButton tenantId={tenant.id} />
+        </div>
       </div>
 
       <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
@@ -394,38 +412,44 @@ export default function WikiPage() {
 
           {displayArticles.length > 0 ? (
             isGrid ? (
-              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} />
+              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} votePosition={articleCardVotePos} />
             ) : (
               <div className="space-y-2">
                 {displayArticles.map((article: any) => (
-                  <Link
-                    key={article.id}
-                    href={wikiArticlePath(article.slug || article.id)}
-                    className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
-                  >
-                    {article.icon && article.icon.startsWith('http') ? (
-                      <img src={article.icon} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
-                    ) : article.icon ? (
-                      <span className="text-lg shrink-0">{article.icon}</span>
-                    ) : article.image_url ? (
-                      <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    )}
-                    <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
-                      {article.title}
-                    </span>
-                    {article.tags && article.tags.length > 0 && (
-                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                        {article.tags[0]}
+                  <div key={article.id} className="relative pb-1">
+                    <Link
+                      href={wikiArticlePath(article.slug || article.id)}
+                      className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
+                    >
+                      {article.icon && article.icon.startsWith('http') ? (
+                        <img src={article.icon} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
+                      ) : article.icon ? (
+                        <span className="text-lg shrink-0">{article.icon}</span>
+                      ) : article.image_url ? (
+                        <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
+                        {article.title}
                       </span>
-                    )}
-                    {article.updated_at && (
-                      <span className="text-[11px] text-muted-foreground hidden md:inline">
-                        {new Date(article.updated_at).toLocaleDateString('pt-BR')}
-                      </span>
-                    )}
-                  </Link>
+                      {article.tags && article.tags.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                          {article.tags[0]}
+                        </span>
+                      )}
+                      {article.updated_at && (
+                        <span className="text-[11px] text-muted-foreground hidden md:inline">
+                          {new Date(article.updated_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </Link>
+                    <CardSymbols
+                      targetType="article"
+                      targetId={article.id}
+                      votePosition={articleCardVotePos}
+                    />
+                  </div>
                 ))}
               </div>
             )

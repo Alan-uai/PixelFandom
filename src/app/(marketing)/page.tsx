@@ -19,6 +19,10 @@ import {
   X,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
+import { VoteButtons } from '@/components/wiki/vote-buttons';
+import { FollowButton } from '@/components/wiki/follow-button';
+import { CardSymbols } from '@/components/wiki/card-symbols';
+import type { CardPosition } from '@/components/page-builder/types';
 
 export default function Home() {
   const [wikis, setWikis] = useState<Tenant[]>([]);
@@ -27,6 +31,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Tenant[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [voteData, setVoteData] = useState<Record<string, { upvotes: number; downvotes: number; score: number; user_vote: string | null }>>({});
 
   useEffect(() => {
     supabase
@@ -39,10 +44,17 @@ export default function Home() {
           setError(err.message);
         } else if (data) {
           setWikis(data);
+          fetchVoteData(data.map((w) => w.id));
         }
         setLoading(false);
       });
   }, []);
+
+  const fetchVoteData = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const res = await fetch(`/api/tenants/vote/batch?ids=${ids.join(',')}`);
+    if (res.ok) setVoteData(await res.json());
+  };
 
   // Debounced wiki search
   useEffect(() => {
@@ -208,46 +220,59 @@ export default function Home() {
                 const wikiUrl = wiki.custom_domain
                   ? `https://${wiki.custom_domain}`
                   : `/w/${wiki.slug}`;
+                const v = voteData[wiki.id];
                 return (
-                  <a
+                  <div
                     key={wiki.id}
-                    href={wikiUrl}
-                    className="snap-start shrink-0 w-[280px]"
+                    className="snap-start shrink-0 w-[280px] relative pb-2"
                   >
-                    <Card
-                      className="h-full transition-colors cursor-pointer relative overflow-hidden"
-                      style={wiki.cover_image ? {
-                        backgroundImage: `url(${wiki.cover_image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      } : undefined}
+                    <a
+                      href={wikiUrl}
+                      className="block"
                     >
-                      {wiki.cover_image && (
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
-                      )}
-                      <div className="relative z-10">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-base text-white">
-                            {wiki.logo_url && (
-                              <img src={wiki.logo_url} alt="" className="h-16 w-16 rounded" />
+                      <Card
+                        className="h-full transition-colors cursor-pointer relative overflow-hidden"
+                        style={wiki.cover_image ? {
+                          backgroundImage: `url(${wiki.cover_image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        } : undefined}
+                      >
+                        {wiki.cover_image && (
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+                        )}
+                        <div className="relative z-10">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base text-white">
+                              {wiki.logo_url && (
+                                <img src={wiki.logo_url} alt="" className="h-16 w-16 rounded" />
+                              )}
+                              {wiki.name}
+                            </CardTitle>
+                            {wiki.description && (
+                              <CardDescription className="line-clamp-2 text-white/80">
+                                {wiki.description}
+                              </CardDescription>
                             )}
-                            {wiki.name}
-                          </CardTitle>
-                          {wiki.description && (
-                            <CardDescription className="line-clamp-2 text-white/80">
-                              {wiki.description}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center text-xs text-white/60">
-                            <Globe className="h-3 w-3 mr-1" />
-                            {wiki.custom_domain || `/w/${wiki.slug}`}
-                          </div>
-                        </CardContent>
-                      </div>
-                    </Card>
-                  </a>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center text-xs text-white/60">
+                              <Globe className="h-3 w-3 mr-1" />
+                              {wiki.custom_domain || `/w/${wiki.slug}`}
+                            </div>
+                          </CardContent>
+                        </div>
+                      </Card>
+                    </a>
+                    <CardSymbols
+                      targetType="tenant"
+                      targetId={wiki.id}
+                      tenantId={wiki.id}
+                      initialUpvotes={v?.upvotes ?? 0}
+                      initialDownvotes={v?.downvotes ?? 0}
+                      initialUserVote={v?.user_vote ?? null}
+                    />
+                  </div>
                 );
               })}
             </div>

@@ -880,9 +880,23 @@ export interface WidgetVoiceConfig {
   animation?: WidgetAnimation;
 }
 
+export interface CardPosition {
+  edge: 'top' | 'bottom' | 'left' | 'right';
+  offsetPct: number; // 0-100
+}
+
+export interface CardPositions {
+  follow: CardPosition;
+  vote: CardPosition;
+}
+
 export interface WidgetLayout {
   chat?: WidgetChatConfig;
   voice?: WidgetVoiceConfig;
+  cardPositions?: {
+    article_card: CardPositions;
+    marketing_card: CardPositions;
+  };
 }
 
 export interface FloatingIslandLayout {

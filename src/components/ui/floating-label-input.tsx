@@ -3,11 +3,10 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { InterrobangIcon } from "@/components/ui/interrobang-icon"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface FloatingLabelInputProps
   extends React.ComponentProps<"input"> {
@@ -68,6 +67,7 @@ const FloatingLabelInput = React.forwardRef<
             className={cn(
               "pointer-events-none absolute left-3 top-0 z-[1] -translate-y-1/2 bg-transparent px-1 text-xs backdrop-blur-[2px] transition-all",
               "peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-muted-foreground",
+              "peer-focus:top-0 peer-focus:-translate-y-1/2",
               error
                 ? "text-destructive"
                 : "text-muted-foreground peer-focus:text-primary peer-not-placeholder-shown:text-primary",
@@ -78,35 +78,33 @@ const FloatingLabelInput = React.forwardRef<
           </label>
 
           {info && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    aria-label="Informação"
-                    className={cn(
-                      "absolute right-2 top-0 z-[1] -translate-y-1/2 flex items-center justify-center",
-                      "h-4 w-4 rounded-full bg-transparent backdrop-blur-[2px]",
-                      "opacity-100 transition-opacity duration-200",
-                      "md:opacity-0 md:peer-focus:opacity-100 md:peer-not-placeholder-shown:opacity-100",
-                      "hover:text-foreground focus-visible:text-foreground",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      error ? "text-destructive" : "text-muted-foreground"
-                    )}
-                  >
-                    <InterrobangIcon />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  align="end"
-                  className="max-w-[260px]"
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="Informação"
+                  className={cn(
+                    "absolute right-2 top-0 z-[1] -translate-y-1/2 flex items-center justify-center",
+                    "h-4 w-4 rounded-full bg-transparent backdrop-blur-[2px]",
+                    "opacity-100 transition-opacity duration-200",
+                    "md:opacity-0 md:peer-focus:opacity-100 md:peer-not-placeholder-shown:opacity-100",
+                    "hover:text-foreground focus-visible:text-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    error ? "text-destructive" : "text-muted-foreground"
+                  )}
                 >
-                  {info}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  <InterrobangIcon />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="end"
+                className="max-w-[260px] p-3 text-xs"
+              >
+                {info}
+              </PopoverContent>
+            </Popover>
           )}
 
           {error && (
