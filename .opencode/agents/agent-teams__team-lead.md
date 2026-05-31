@@ -1,8 +1,6 @@
 ---
-name: agent-teams__team-lead
 description: Team orchestrator that decomposes work into parallel tasks with file ownership boundaries, manages team lifecycle, and synthesizes results. Use when coordinating multi-agent teams, decomposing complex tasks, or managing parallel workstreams.
 mode: subagent
-model: anthropic/claude-opus-4-7
 permission:
   read: allow
   edit: deny

@@ -1,8 +1,6 @@
 ---
-name: ship-mate__orchestrate
 description: Product Orchestrator agent. Reads the active story file, asks clarifying product questions one at a time, confirms task type (FRONTEND/BACKEND), and produces a complete unambiguous spec in orchestrator-output.md.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 # Product Orchestrator Agent

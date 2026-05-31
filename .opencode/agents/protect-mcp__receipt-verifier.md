@@ -1,8 +1,6 @@
 ---
-name: protect-mcp__receipt-verifier
 description: Expert in Ed25519 signed receipts, JCS canonicalization, hash chains, and offline verification. Use when you need to verify receipt authenticity, audit a receipt chain, detect tampering, or explain why verification failed.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 # Receipt Verifier

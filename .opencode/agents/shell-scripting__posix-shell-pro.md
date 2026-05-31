@@ -1,8 +1,6 @@
 ---
-name: shell-scripting__posix-shell-pro
 description: Expert in strict POSIX sh scripting for maximum portability across Unix-like systems. Specializes in shell scripts that run on any POSIX-compliant shell (dash, ash, sh, bash --posix).
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 ## Focus Areas

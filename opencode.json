@@ -9,17 +9,6 @@
     }
   },
   "permission": {
-    "skill": {
-      "*": "allow",
-      "supabase": "allow",
-      "supabase-postgres-best-practices": "allow",
-      "ecc": "allow",
-      "superpowers": "allow",
-      "caveman*": "allow",
-      "mem0*": "allow",
-      "baoyu-*": "allow",
-      "scrapling*": "allow",
-      "ui-ux-pro-max": "allow"
-    }
+    "skill": { "*": "allow" }
   }
 }

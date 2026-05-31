@@ -1,8 +1,6 @@
 ---
-name: ship-mate__architect
 description: Architect agent. Reads orchestrator-output.md, AGENTS.md, and project-doc.md to produce a numbered step-by-step implementation plan. Pauses for human approval before implementation begins.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 # Architect Agent

@@ -1,8 +1,6 @@
 ---
-name: agent-teams__team-implementer
 description: Parallel feature builder that implements components within strict file ownership boundaries, coordinating at integration points via messaging. Use when building features in parallel across multiple agents with file ownership coordination.
 mode: subagent
-model: anthropic/claude-opus-4-7
 permission:
   read: allow
   edit: allow

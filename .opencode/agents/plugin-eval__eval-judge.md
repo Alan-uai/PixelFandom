@@ -1,8 +1,6 @@
 ---
-name: plugin-eval__eval-judge
 description: LLM judge for plugin quality assessment. Scores skills on triggering accuracy, orchestration fitness, output quality, and scope calibration using anchored rubrics.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 permission:
   read: allow
   edit: deny

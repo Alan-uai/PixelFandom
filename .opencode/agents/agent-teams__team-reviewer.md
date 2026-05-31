@@ -1,8 +1,6 @@
 ---
-name: agent-teams__team-reviewer
 description: Multi-dimensional code reviewer that operates on one assigned review dimension (security, performance, architecture, testing, or accessibility) with structured finding format. Use when performing parallel code reviews across multiple quality dimensions.
 mode: subagent
-model: anthropic/claude-opus-4-7
 permission:
   read: allow
   edit: deny

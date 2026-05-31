@@ -1,8 +1,6 @@
 ---
-name: protect-mcp__policy-enforcer
 description: Cedar policy author and reviewer for Claude Code tool calls. Writes, audits, and explains Cedar policies that govern Bash, Edit, Write, WebFetch, and other tools. Use when you need declarative, formally verifiable rules for what an AI agent can and cannot do in a project.
 mode: subagent
-model: anthropic/claude-opus-4-7
 ---
 
 # Policy Enforcer

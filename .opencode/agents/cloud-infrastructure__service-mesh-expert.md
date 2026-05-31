@@ -1,8 +1,6 @@
 ---
-name: cloud-infrastructure__service-mesh-expert
 description: Expert service mesh architect specializing in Istio, Linkerd, and cloud-native networking patterns. Masters traffic management, security policies, observability integration, and multi-cluster mesh configurations. Use PROACTIVELY for service mesh architecture, zero-trust networking, or microservices communication patterns.
 mode: subagent
-model: anthropic/claude-opus-4-7
 ---
 
 # Service Mesh Expert

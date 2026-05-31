@@ -1,8 +1,6 @@
 ---
-name: ship-mate__playwright
 description: Playwright testing agent. Only runs for FRONTEND tasks. Verifies acceptance criteria in a real browser using the page object pattern. Passes on success, routes back to developer on failure.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 # Playwright Test Agent

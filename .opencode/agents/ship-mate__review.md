@@ -1,8 +1,6 @@
 ---
-name: ship-mate__review
 description: PR Reviewer agent. Reviews implemented code using a 3-tier taxonomy (🔴 Critical / 🟡 Should Fix / 💡 Consider). Auto-resolves minor issues, pauses on critical ones. Applies security guardrails. Outputs review-report.md.
 mode: subagent
-model: anthropic/claude-sonnet-4-6
 ---
 
 # PR Reviewer Agent
