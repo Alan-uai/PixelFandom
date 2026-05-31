@@ -42,7 +42,7 @@ const FloatingLabelInput = React.forwardRef<
       <div className={cn("relative", containerClassName)}>
         <div
           className={cn(
-            "relative rounded-md border bg-background transition-colors",
+            "relative rounded-md border transition-colors",
             error
               ? "border-destructive"
               : "border-input focus-within:border-primary",
@@ -66,13 +66,11 @@ const FloatingLabelInput = React.forwardRef<
           <label
             htmlFor={inputId}
             className={cn(
-              "pointer-events-none absolute left-3 top-0 z-[1] -translate-y-1/2 bg-background px-1 text-sm transition-all",
-              "peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-placeholder-shown:text-muted-foreground",
-              "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-sm",
-              "peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-sm",
+              "pointer-events-none absolute left-3 top-0 z-[1] -translate-y-1/2 bg-transparent px-1 text-xs backdrop-blur-[2px] transition-all",
+              "peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-muted-foreground",
               error
                 ? "text-destructive"
-                : "peer-focus:text-primary text-muted-foreground",
+                : "text-muted-foreground peer-focus:text-primary peer-not-placeholder-shown:text-primary",
               disabled && "opacity-50"
             )}
           >
@@ -89,9 +87,9 @@ const FloatingLabelInput = React.forwardRef<
                     aria-label="Informação"
                     className={cn(
                       "absolute right-2 top-0 z-[1] -translate-y-1/2 flex items-center justify-center",
-                      "h-4 w-4 rounded-full bg-background",
-                      "opacity-0 transition-opacity duration-200",
-                      "peer-focus:opacity-100 peer-not-placeholder-shown:opacity-100",
+                      "h-4 w-4 rounded-full bg-transparent backdrop-blur-[2px]",
+                      "opacity-100 transition-opacity duration-200",
+                      "md:opacity-0 md:peer-focus:opacity-100 md:peer-not-placeholder-shown:opacity-100",
                       "hover:text-foreground focus-visible:text-foreground",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       error ? "text-destructive" : "text-muted-foreground"
@@ -116,7 +114,7 @@ const FloatingLabelInput = React.forwardRef<
               id={errorId}
               role="alert"
               className={cn(
-                "pointer-events-none absolute bottom-0 left-3 z-[1] translate-y-1/2 bg-background px-1 text-xs text-destructive"
+                "pointer-events-none absolute bottom-0 left-3 z-[1] translate-y-1/2 bg-transparent px-1 text-xs text-destructive backdrop-blur-[2px]"
               )}
             >
               {error}
