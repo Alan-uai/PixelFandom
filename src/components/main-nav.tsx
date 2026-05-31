@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser, useSupabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { LogIn, LayoutDashboard, Trophy, Medal, User, Settings, LogOut } from 'lucide-react';
+import { LogIn, LayoutDashboard, Trophy, Medal, User, Settings, LogOut, Bell, BellRing } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { NotificationBell } from '@/components/notifications/notification-bell';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface MainNavProps {
   onLogin?: () => void;
@@ -54,7 +54,7 @@ export default function MainNav({ onLogin }: MainNavProps) {
         {isLoading ? null : user ? (
           <>
             <Link
-              href="/dashboard/profile"
+              href="/profile"
               className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Perfil"
             >
@@ -74,7 +74,7 @@ export default function MainNav({ onLogin }: MainNavProps) {
             >
               <LogOut className="h-4 w-4" />
             </button>
-            <NotificationBell />
+            <BellLink />
             <div className="mx-1 h-5 w-px bg-border" />
             <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard">
@@ -91,5 +91,28 @@ export default function MainNav({ onLogin }: MainNavProps) {
         )}
       </div>
     </nav>
+  );
+}
+
+function BellLink() {
+  const { unreadCount } = useNotifications();
+
+  return (
+    <Link
+      href="/notifications"
+      className="relative rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      title="Notificações"
+    >
+      {unreadCount > 0 ? (
+        <>
+          <BellRing className="h-5 w-5 text-primary" />
+          <span className="absolute -top-1 -right-1 h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        </>
+      ) : (
+        <Bell className="h-5 w-5" />
+      )}
+    </Link>
   );
 }

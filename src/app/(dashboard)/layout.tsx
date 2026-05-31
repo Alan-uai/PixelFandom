@@ -7,7 +7,6 @@ import { useUser, supabase } from '@/supabase';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
   LayoutDashboard,
-  Plus,
   Settings,
   Globe,
   Users,
@@ -134,32 +133,7 @@ export default function DashboardLayout({
                 );
               })}
             </LayoutGroup>
-          ) : (
-            <>
-              <Link
-                href="/dashboard"
-                className={`rounded-md p-2 transition-colors ${
-                  pathname === '/dashboard'
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                title="Minhas Wikis"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/dashboard/new"
-                className={`rounded-md p-2 transition-colors ${
-                  pathname === '/dashboard/new'
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                title="Nova Wiki"
-              >
-                <Plus className="h-4 w-4" />
-              </Link>
-            </>
-          )}
+          ) : null}
 
           {isWikiPage && (
             <>

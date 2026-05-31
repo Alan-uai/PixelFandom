@@ -551,35 +551,6 @@ export default function GlobalSettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificações</CardTitle>
-              <CardDescription>Preferências de notificação.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { key: 'mentions', label: 'Menções', desc: 'Quando alguém mencionar você' },
-                { key: 'comments', label: 'Comentários', desc: 'Novos comentários nas suas páginas' },
-                { key: 'updates', label: 'Atualizações', desc: 'Mudanças nas wikis que você participa' },
-              ].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">{label}</p>
-                    <p className="text-xs text-muted-foreground">{desc}</p>
-                  </div>
-                  <Switch
-                    checked={preferences.notification_preferences[key] ?? true}
-                    onCheckedChange={(checked) => {
-                      updatePreference('notification_preferences', {
-                        ...preferences.notification_preferences,
-                        [key]: checked,
-                      });
-                    }}
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
