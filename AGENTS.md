@@ -51,6 +51,87 @@
 - **NUNCA** exclua, modifique ou sobrescreva arquivos `.env*`. Eles contêm credenciais de produção.
 - Se precisar de uma nova env var, adicione a chave vazia no `.env.example` ou documente neste guia — nunca altere o `.env` existente.
 
+## Regras de segurança — escopo de controle
+
+### Controle exclusivo do desenvolvedor (NÓS)
+Nenhum usuário da plataforma — **incluindo owners, admins, editors e viewers de qualquer wiki** — pode ter acesso a:
+- **Prompts de sistema da IA** (texto e voz) — `system_prompt`, `personality_id` → `systemPrompt`, instruções de persona, etc.
+- **Modelos de IA, temperatura, max_tokens, provider, fallback chain** — toda configuração de modelo e parâmetros de inferência.
+- **Chaves de API** (OpenRouter, Gemini, etc.)
+- **Configurações de infraestrutura** — domínios, variáveis de ambiente, rate limits, etc.
+
+Quem cria ou lê uma Wiki **não é dono do site**. Elas usam a plataforma, não a administram. Tudo que é core/infra deve ser controlado exclusivamente por nós, desenvolvedores.
+
+### Única coisa que USUÁRIOS podem personalizar
+Usuários (incluindo admin/owner de wiki) **só têm acesso a personalização**: escolher entre opções pré-definidas de humor, personalidade, estilo de emoji, tom de resposta, etc. — NADA disso envolve texto livre que vá parar no prompt.
+
+### ⚠️ REGRA ABSOLUTA: Sem texto livre em prompts
+- **Nenhuma personalização livre.** Usuário **nunca** digita código, texto arbitrário, system prompt customizado ou qualquer conteúdo que seja inserido diretamente no prompt da IA.
+- **Todas as personalizações devem ser pré-montadas e pré-definidas por nós** em arquivos como `src/lib/ai-personalities.ts`, `src/lib/personas.ts`, `src/lib/emoji-styles.ts`, `src/lib/response-styles.ts`.
+- **Toda escolha do usuário passa por validação** — o valor selecionado é comparado contra um conjunto fechado de opções conhecidas. Se não estiver na lista, é rejeitado. Isso previne SQL injection, prompt injection e qualquer tipo de ataque via entrada do usuário.
+- A montagem final do prompt **só acontece no backend**, combinando as escolhas validadas do usuário com os templates definidos por nós.
+
+### O que USUÁRIOS podem configurar (opções fechadas)
+- **Wiki:** nome, descrição, logo, capa, favicon, cores do tema (apenas HSL via seletor de cor), layout, links (Discord, game).
+- **Global (usuário logado):** personalidade (friendly/sarcastic/etc), persona (amigável/técnico), estilo de emoji, estilo de resposta, idioma do chat, voz preferida, volume, notificações, densidade da UI, tamanho da fonte, preset de tema de cor.
+
+### Onde estas regras estão aplicadas
+- `src/context/user-preferences-context.tsx` — `UserPreferences` com `chat_settings`, `voice_settings`, `theme_preset`
+- `src/app/(dashboard)/dashboard/settings/page.tsx` — Configurações globais do usuário (Chat, Voz, Tema, Mais)
+- **Atenção:** Código existente em `src/app/(dashboard)/dashboard/[slug]/ai/page.tsx` que expõe `system_prompt` como campo de texto livre está em desacordo com estas regras e deve ser refatorado futuramente.
+
+## Regras de segurança — páginas customizadas
+
+### Controle exclusivo do desenvolvedor (NÓS)
+Nenhum usuário da plataforma — **incluindo owners, admins, editors e viewers de qualquer wiki** — pode ter acesso a:
+- **Templates/layout dos blocos** — cada componente `*-block.tsx`, `page-renderer.tsx`, floating islands
+- **Lógica de renderização** — como blocos são exibidos, parsing de conteúdo, sanitização
+- **Validação server-side** — API routes (`page-layout/route.ts`), sanitização de HTML e URLs
+- **Componentes de bloco** — definição de quais blocos existem e seus schemas de configuração
+- **Tipos e interfaces** — `types.ts`, interfaces de `BlockConfig`, `PageLayout`
+
+### Única coisa que USUÁRIOS podem personalizar
+Usuários (incluindo admin/owner de wiki) **só podem montar páginas usando blocos pré-definidos**:
+- Escolher entre **8 tipos de bloco** (Hero, Article Grid, Featured List, Discord Embed, News Feed, Image Gallery, Ranking Table, Rich Text)
+- Preencher campos de texto/links/cores dentro de cada bloco (sempre sanitizados)
+- Escolher **posição de floating islands** (left/center/right) entre opções pré-definidas
+- Configurar **cores do tema** via seletor HSL (apenas valores HSL, sem CSS arbitrário)
+- Escolher **fontes** do par pré-definido no tema
+
+### ⚠️ REGRA ABSOLUTA: Sem HTML/JS arbitrário em páginas
+- **Nenhum conteúdo rich-text sem sanitização obrigatória.** `dangerouslySetInnerHTML` só pode ser usado com DOMPurify (ou similar) — tanto no client (`rich-text-block.tsx`) quanto no server (`page-renderer.tsx`).
+- **Nenhum `<script>`, `<iframe>`, event handlers (`onerror`, `onload`, `onclick`, etc.)** permitido — DOMPurify deve removê-los automaticamente.
+- **Nenhum protocolo `javascript:` ou `data:`** em URLs (`ctaUrl`, `link`, `discordUrl`, `imageUrl`, `src`, etc.) — toda URL deve ser sanitizada.
+- **Sem CSS customizado** — apenas cores HSL via seletor de cor do tema.
+- **Sem embeds arbitrários** (YouTube, Twitch, redes sociais) — apenas os blocos pré-definidos.
+- **Toda entrada do usuário é texto inseguro** — React escapa texto por padrão, mas `href`/`src` precisam de sanitização explícita de protocolo.
+
+### O que USUÁRIOS podem configurar (opções fechadas)
+| Bloco | Campos permitidos | Restrições |
+|-------|------------------|------------|
+| Hero | title, subtitle, ctaText, ctaUrl, imageUrl, backgroundColor | URLs sanitizadas, sem protocolo javascript: |
+| Article Grid | title, columns (1-4), articles[], tag | Apenas slugs, sem HTML |
+| Featured List | title, items[] (label, description, icon, imageUrl) | URLs sanitizadas |
+| Discord Embed | discordUrl, title, description | Apenas URL do Discord, sanitizada |
+| News Feed | title, items[] (title, date, excerpt, link, imageUrl) | URLs sanitizadas |
+| Image Gallery | title, images[] (src, alt) | src sanitizado, sem javascript: |
+| Ranking Table | title, headers[], rows[][] | Apenas texto, sem HTML |
+| Rich Text | title, html | **HTML obrigatoriamente sanitizado com DOMPurify** |
+
+### Onde estas regras estão aplicadas
+- `src/components/page-builder/blocks/rich-text-block.tsx` — rich-text com dangerouslySetInnerHTML (deve usar DOMPurify)
+- `src/components/page-builder/renderer/page-renderer.tsx` — renderização pública de blocos (deve sanitizar rich-text e URLs)
+- `src/components/page-builder/block-config-panel.tsx` — painel de configuração de blocos (inputs de texto/URL)
+- `src/app/api/tenants/[id]/page-layout/route.ts` — API de salvar layout (deve validar e sanitizar server-side)
+- `src/components/page-builder/types.ts` — definições de tipos dos blocos
+- `src/components/page-builder/page-builder-editor.tsx` — editor de páginas
+
+### ⚠️ ATENÇÃO
+- `block-config-panel.tsx` gera inputs dinamicamente sem validação — qualquer chave `html` recebe textarea para HTML arbitrário
+- `page-layout/route.ts` salva o JSONB sem sanitização server-side
+- Nenhuma biblioteca de sanitização HTML (`DOMPurify`) está instalada atualmente
+- `Record<string, unknown>` nos tipos permite qualquer chave em qualquer bloco
+
 ## Config globais do usuário
 - `src/context/user-preferences-context.tsx` — `UserPreferences` com `chat_settings`, `voice_settings`, `theme_preset`
 - `src/app/(dashboard)/dashboard/settings/page.tsx` — Configurações globais (Chat, Voz, Tema, Mais)

@@ -1,8 +1,10 @@
 'use client';
 
+import { sanitizeHtml } from '@/lib/sanitize';
+
 export function RichTextBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || '';
-  const html = (config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>';
+  const html = sanitizeHtml((config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>');
 
   return (
     <div className="space-y-4">

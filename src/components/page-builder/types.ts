@@ -10,10 +10,69 @@ export type BlockType =
   | 'ranking-table'
   | 'rich-text';
 
-export interface BlockConfig {
+export interface HeroConfig extends Record<string, unknown> {
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  imageUrl?: string;
+  backgroundColor?: string;
+}
+
+export interface ArticleGridConfig extends Record<string, unknown> {
+  title?: string;
+  columns?: number;
+  articles?: Array<{ title: string; slug: string; summary?: string; date?: string }>;
+  tag?: string;
+}
+
+export interface FeaturedListConfig extends Record<string, unknown> {
+  title?: string;
+  items?: Array<{ label: string; description?: string; icon?: string; imageUrl?: string }>;
+}
+
+export interface DiscordEmbedConfig extends Record<string, unknown> {
+  discordUrl?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface NewsFeedConfig extends Record<string, unknown> {
+  title?: string;
+  items?: Array<{ title: string; date?: string; excerpt?: string; link?: string; imageUrl?: string }>;
+}
+
+export interface ImageGalleryConfig extends Record<string, unknown> {
+  title?: string;
+  images?: Array<{ src: string; alt?: string }>;
+}
+
+export interface RankingTableConfig extends Record<string, unknown> {
+  title?: string;
+  headers?: string[];
+  rows?: string[][];
+}
+
+export interface RichTextConfig extends Record<string, unknown> {
+  title?: string;
+  html?: string;
+}
+
+export type BlockConfigMap = {
+  'hero': HeroConfig;
+  'article-grid': ArticleGridConfig;
+  'featured-list': FeaturedListConfig;
+  'discord-embed': DiscordEmbedConfig;
+  'news-feed': NewsFeedConfig;
+  'image-gallery': ImageGalleryConfig;
+  'ranking-table': RankingTableConfig;
+  'rich-text': RichTextConfig;
+};
+
+export interface BlockConfig<T extends BlockType = BlockType> {
   id: string;
-  type: BlockType;
-  config: Record<string, unknown>;
+  type: T;
+  config: BlockConfigMap[T];
 }
 
 export interface PageLayout {

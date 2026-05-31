@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
+import { sanitizeBlockConfig } from '@/lib/sanitize';
 
 function getPageType(request: NextRequest): string {
   const url = new URL(request.url);
@@ -66,7 +67,15 @@ export async function PUT(
       return NextResponse.json({ error: 'layout.blocks required' }, { status: 400 });
     }
 
-    const floatingIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
+    const sanitizedBlocks = body.blocks.map((block: any) => ({
+      ...block,
+      config: block.config ? sanitizeBlockConfig(block.config) : {},
+    }));
+
+    const floatingIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands.map((fi: any) => ({
+      ...fi,
+      config: fi.config ? sanitizeBlockConfig(fi.config) : {},
+    })) : [];
 
     // Upsert into tenant_pages (unique constraint on tenant_id + page_type)
     const { error: upsertError } = await supabase
@@ -75,7 +84,7 @@ export async function PUT(
         {
           tenant_id: id,
           page_type: pageType,
-          layout: { blocks: body.blocks },
+          layout: { blocks: sanitizedBlocks },
           floating_islands: floatingIslands,
           updated_at: new Date().toISOString(),
         },
@@ -92,7 +101,7 @@ export async function PUT(
           .single();
 
         const theme = (tenant?.theme || {}) as Record<string, unknown>;
-        theme.landing_layout = { blocks: body.blocks, floatingIslands };
+        theme.landing_layout = { blocks: sanitizedBlocks, floatingIslands };
 
         const { error: themeError } = await supabase
           .from('tenants')

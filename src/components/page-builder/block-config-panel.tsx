@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { BlockConfig } from './types';
+import { sanitizeUrl } from '@/lib/sanitize';
 
 interface BlockConfigPanelProps {
   block: BlockConfig;
@@ -18,7 +19,8 @@ export function BlockConfigPanel({ block, onUpdate, onClose }: BlockConfigPanelP
   }, [block.id, block.config]);
 
   const update = (key: string, value: unknown) => {
-    const next = { ...localConfig, [key]: value };
+    const isUrl = typeof value === 'string' && (key.toLowerCase().includes('url') || key.toLowerCase().includes('src') || key === 'link' || key === 'discordUrl' || key === 'ctaUrl');
+    const next = { ...localConfig, [key]: isUrl && typeof value === 'string' ? sanitizeUrl(value) : value };
     setLocalConfig(next);
     onUpdate({ ...block, config: next });
   };

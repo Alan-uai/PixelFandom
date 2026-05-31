@@ -1,5 +1,6 @@
 import { ArticleGridBlock } from '../blocks/article-grid-block';
 import type { PageLayout } from '../types';
+import { sanitizeHtml, sanitizeUrl } from '@/lib/sanitize';
 
 interface PageRendererProps {
   layout: PageLayout;
@@ -49,7 +50,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
           {config.imageUrl && (
             <>
               <div className="absolute inset-0">
-                <img src={config.imageUrl as string} alt="" className="w-full h-full object-cover" />
+                <img src={sanitizeUrl(config.imageUrl as string)} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80" />
             </>
@@ -65,7 +66,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
             )}
             {config.ctaText && (
               <a
-                href={(config.ctaUrl as string) || '#'}
+                href={sanitizeUrl((config.ctaUrl as string) || '#')}
                 className="inline-flex items-center gap-2 mt-6 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 {config.ctaText as string}
@@ -88,7 +89,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
             {(config.articles as any[] || []).map((article: any, i: number) => (
               <a
                 key={i}
-                href={`${basePath}/${article.slug || article.id}`}
+                href={sanitizeUrl(`${basePath}/${article.slug || article.id}`)}
                 className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors block"
               >
                 <p className="font-medium text-sm truncate">{article.title}</p>
@@ -124,7 +125,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
           <p className="text-sm text-muted-foreground">{(config.description as string) || ''}</p>
           {config.discordUrl && (
             <a
-              href={config.discordUrl as string}
+              href={sanitizeUrl(config.discordUrl as string)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-[#5865F2] px-6 py-3 text-sm font-medium text-white hover:bg-[#5865F2]/90 transition-colors"
@@ -158,7 +159,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {(config.images as any[] || []).map((img: any, i: number) => (
               <div key={i} className="aspect-video rounded-lg overflow-hidden border bg-muted">
-                {img.src && <img src={img.src} alt={img.alt || ''} className="w-full h-full object-cover" />}
+                {img.src && <img src={sanitizeUrl(img.src)} alt={img.alt || ''} className="w-full h-full object-cover" />}
               </div>
             ))}
           </div>
@@ -196,7 +197,7 @@ function RenderBlock({ block, tenant, basePath }: { block: any; tenant: Record<s
       return (
         <div className="space-y-4">
           {config.title && <h2 className="text-2xl font-bold">{config.title as string}</h2>}
-          <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: (config.html as string) || '' }} />
+          <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml((config.html as string) || '') }} />
         </div>
       );
 
