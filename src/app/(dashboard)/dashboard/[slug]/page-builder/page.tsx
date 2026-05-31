@@ -35,6 +35,7 @@ function PageBuilderPageInner() {
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
 
   const fetchLayout = useCallback(async (tenantId: string, type: string) => {
     setLoading(true);
@@ -42,6 +43,7 @@ function PageBuilderPageInner() {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
       const data = await res.json();
       setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
+      setLoadedPageType(type);
     } catch (err) {
       console.error('Fetch layout error:', err);
     } finally {
@@ -119,7 +121,7 @@ function PageBuilderPageInner() {
         })}
       </div>
       <div className="flex-1 overflow-hidden">
-        {loading ? (
+        {loading || loadedPageType !== pageType ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>

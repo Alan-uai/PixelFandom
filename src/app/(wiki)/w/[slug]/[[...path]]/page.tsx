@@ -82,7 +82,7 @@ export default function WikiPage() {
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
         }
-        if (data?.floatingIslands) {
+        if (data?.floatingIslands?.length > 0) {
           setFloatingIslands(data.floatingIslands);
         }
       } catch {}
@@ -90,14 +90,14 @@ export default function WikiPage() {
     })();
   }, [articleSlug, tenant?.id]);
 
-  // Fetch 404 layout + floating islands
+  // Fetch 404 layout + floating islands (only overwrite if non-empty)
   useEffect(() => {
     if (!tenant?.id) return;
     fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
-        if (data?.floatingIslands) {
+        if (data?.floatingIslands?.length > 0) {
           setFloatingIslands(data.floatingIslands);
         }
       })

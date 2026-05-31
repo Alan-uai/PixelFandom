@@ -95,41 +95,42 @@ export async function PUT(
         }))
       : [];
 
-    const { error: upsertError } = await supabase
+    // Manual upsert: try update first, then insert if no row exists
+    // This avoids relying on ON CONFLICT / unique index inference
+    const { data: existing } = await supabase
       .from('tenant_pages')
-      .upsert(
-        {
+      .select('id')
+      .eq('tenant_id', id)
+      .eq('page_type', pageType)
+      .maybeSingle();
+
+    let dbError: any = null;
+
+    if (existing) {
+      const { error } = await supabase
+        .from('tenant_pages')
+        .update({
+          layout: { blocks: sanitizedBlocks },
+          floating_islands: floatingIslands,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+      dbError = error;
+    } else {
+      const { error } = await supabase
+        .from('tenant_pages')
+        .insert({
           tenant_id: id,
           page_type: pageType,
           layout: { blocks: sanitizedBlocks },
           floating_islands: floatingIslands,
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'tenant_id, page_type' }
-      );
+        });
+      dbError = error;
+    }
 
-    if (upsertError) {
-      if (pageType === 'landing') {
-        const { data: tenant } = await supabase
-          .from('tenants')
-          .select('theme')
-          .eq('id', id)
-          .single();
-
-        const theme = (tenant?.theme || {}) as Record<string, unknown>;
-        theme.landing_layout = { blocks: sanitizedBlocks, floatingIslands };
-
-        const { error: themeError } = await supabase
-          .from('tenants')
-          .update({ theme: theme as any })
-          .eq('id', id);
-
-        if (themeError) {
-          return NextResponse.json({ error: themeError.message }, { status: 500 });
-        }
-      } else {
-        return NextResponse.json({ error: upsertError.message }, { status: 500 });
-      }
+    if (dbError) {
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

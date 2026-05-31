@@ -77,6 +77,7 @@ export function PageBuilderEditor({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'blocks' | 'islands' | 'widgets'>('blocks');
   const [mobilePreview, setMobilePreview] = useState(false);
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
@@ -188,6 +189,7 @@ export function PageBuilderEditor({
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
     try {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
         method: 'PUT',
@@ -198,10 +200,14 @@ export function PageBuilderEditor({
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       } else {
-        console.error('Save layout failed:', res.status);
+        const body = await res.json().catch(() => null);
+        const msg = body?.error || `Erro ao salvar (${res.status})`;
+        setSaveError(msg);
+        setTimeout(() => setSaveError(null), 5000);
       }
     } catch (err) {
-      console.error('Save layout error:', err);
+      setSaveError('Erro de rede ao salvar layout');
+      setTimeout(() => setSaveError(null), 5000);
     }
     setSaving(false);
   };
@@ -407,6 +413,13 @@ export function PageBuilderEditor({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Error toast */}
+      {saveError && (
+        <div className="fixed bottom-24 right-6 z-50 max-w-sm rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg backdrop-blur-sm">
+          {saveError}
         </div>
       )}
 
