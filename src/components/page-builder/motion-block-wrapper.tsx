@@ -104,6 +104,97 @@ function getMotionVariants(type: AnimationType): Variants {
       return { hidden: { scale: 1 }, visible: { scale: 1.05 } };
     case 'scale-down':
       return { hidden: { scale: 1 }, visible: { scale: 0.95 } };
+    // Error / 404 Distortion
+    case 'glitch-1':
+      return {
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          x: [0, -3, 2, -1, 0],
+          skewX: [0, 2, -1, 1, 0],
+          transition: { duration: 0.6, ease: 'easeInOut' },
+        },
+      };
+    case 'glitch-2':
+      return {
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          x: [0, -5, 3, -2, 4, -3, 0],
+          y: [0, 1, -2, 1, -1, 0],
+          skewX: [0, 3, -2, 2, -3, 0],
+          transition: { duration: 0.8, ease: 'easeInOut' },
+        },
+      };
+    case 'glitch-text':
+      return {
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: [0, 1, 0, 1, 0, 1],
+          x: [0, 2, -2, 1, -1, 0],
+          transition: { duration: 0.5, ease: 'steps(6)' },
+        },
+      };
+    case 'vhs':
+      return {
+        hidden: { opacity: 0, x: 0, skewY: 0 },
+        visible: {
+          opacity: 1,
+          x: [0, -8, 6, -4, 3, -2, 0],
+          skewY: [0, 1, -2, 1.5, -1, 0.5, 0],
+          transition: { duration: 1.2, ease: 'easeInOut' },
+        },
+      };
+    case 'crash':
+      return {
+        hidden: { opacity: 1, scale: 1, rotate: 0, filter: 'brightness(1)' },
+        visible: {
+          opacity: [1, 0.8, 1],
+          scale: [1, 1.02, 0.98, 1.01, 1],
+          rotate: [0, 1, -0.5, 0.3, 0],
+          filter: ['brightness(1)', 'brightness(1.3)', 'brightness(0.7)', 'brightness(1)'],
+          transition: { duration: 0.8, ease: 'easeInOut' },
+        },
+      };
+    case 'morph':
+      return {
+        hidden: { opacity: 0, borderRadius: '50%', scale: 0.3 },
+        visible: {
+          opacity: 1,
+          borderRadius: '0%',
+          scale: 1,
+          transition: { duration: 0.8, ease: 'easeInOut' },
+        },
+      };
+    case 'path-draw':
+      return {
+        hidden: { clipPath: 'inset(0 100% 0 0)' },
+        visible: {
+          clipPath: 'inset(0 0% 0 0)',
+          transition: { duration: 1.5, ease: 'easeInOut' },
+        },
+      };
+    case 'flip-3d-error':
+      return {
+        hidden: { opacity: 0, rotateY: -180, scale: 0.5 },
+        visible: {
+          opacity: 1,
+          rotateY: 0,
+          scale: 1,
+          transition: { type: 'spring', stiffness: 120, damping: 14 },
+        },
+      };
+    case 'tilt-error':
+      return {
+        hidden: { opacity: 0, rotateX: 30, rotateZ: -10, y: 20 },
+        visible: {
+          opacity: 1,
+          rotateX: 0,
+          rotateZ: 0,
+          y: 0,
+          transition: { type: 'spring', stiffness: 150, damping: 16 },
+        },
+      };
     default:
       return { hidden: { opacity: 0 }, visible: { opacity: 1 } };
   }

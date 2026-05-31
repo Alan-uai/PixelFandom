@@ -18,6 +18,7 @@ import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
+import type { WidgetChatConfig, WidgetVoiceConfig } from '@/components/page-builder/types';
 
 export default function WikiLayout({
   children,
@@ -55,6 +56,9 @@ function WikiLayoutContent({
 
   const tenant = data?.tenant || null;
   const tenantTheme = (tenant?.theme as TenantTheme) || {};
+  const widgetTheme = (tenant?.theme as any)?.widgets || {};
+  const chatWidgetConfig = widgetTheme.chat as WidgetChatConfig | undefined;
+  const voiceWidgetConfig = widgetTheme.voice as WidgetVoiceConfig | undefined;
   const isHome = pathname === `/w/${slug}` || pathname === '/';
   const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
   const isVoicePage = pathname === `/w/${slug}/voice` || pathname === '/voice';
@@ -269,9 +273,9 @@ function WikiLayoutContent({
             </div>
           </footer>
         )}
+        {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} widgetConfig={chatWidgetConfig} />}
 
-        {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} />}
-        <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} />
+        <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} widgetConfig={voiceWidgetConfig} />
       </div>
     </ThemeProvider>
   );

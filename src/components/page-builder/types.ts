@@ -1,5 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 
+export type IconAnimation = 'none' | 'pulse' | 'spin' | 'bounce' | 'shake' | 'wiggle' | 'float' | 'glow';
+
+export interface IconDef {
+  icon: string;
+  animation?: IconAnimation;
+}
+
 // ── Block Types ──
 
 export type BlockType =
@@ -53,9 +60,26 @@ export type BlockType =
   | 'payment-icons'
   | 'footer-brand'
   | 'language-switcher'
-  | 'footer-menu';
+  | 'footer-menu'
+  // Error / 404
+  | 'error-display'
+  | 'error-search'
+  | 'error-suggestions'
+  | 'error-actions'
+  | 'error-fun'
+  | 'error-image'
+  | 'error-map'
+  | 'error-quote'
+  | 'error-feedback'
+  | 'error-countdown'
+  | 'error-particle'
+  | 'error-maze'
+  | 'error-poll'
+  | 'error-fact'
+  | 'error-social'
+  | 'error-character';
 
-export type BlockCategory = 'layout' | 'content' | 'media' | 'dynamic' | 'data' | 'interactive' | 'special' | 'footer';
+export type BlockCategory = 'layout' | 'content' | 'media' | 'dynamic' | 'data' | 'interactive' | 'special' | 'footer' | 'error';
 
 // ── Block Style (predefined options only) ──
 
@@ -141,7 +165,35 @@ export type AnimationType =
   | 'color-cycle'
   | 'slide-up-blur'
   | 'vibrate'
-  | 'clip-in';
+  | 'clip-in'
+  // Error / 404 Distortion
+  | 'glitch-1'
+  | 'glitch-2'
+  | 'glitch-text'
+  | 'shake-hard'
+  | 'flicker'
+  | 'scanline'
+  | 'vhs'
+  | 'static-noise'
+  | 'wobble'
+  | 'skew'
+  | 'crash'
+  | 'drift'
+  // Error / 404 Interactive
+  | 'typewriter'
+  | 'morph'
+  | 'bounce-404'
+  | 'zoom-pulse'
+  // Error / 404 Special FX
+  | 'matrix-rain'
+  | 'retro-pixel'
+  | 'rainbow'
+  | 'ascii-reveal'
+  | 'path-draw'
+  | 'flip-3d-error'
+  | 'tilt-error'
+  | 'float-error'
+  | 'pulse-error';
 
 export type DurationOption = 'fast' | 'normal' | 'slow';
 export type DelayOption = 'none' | 'short' | 'medium' | 'long';
@@ -308,7 +360,7 @@ export interface MediaTextConfig {
 }
 
 export interface IconConfig {
-  name?: string;
+  icon?: string | IconDef;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   color?: string;
   backgroundColor?: string;
@@ -345,7 +397,7 @@ export interface NewsFeedConfig {
 export interface FeaturedListConfig {
   title?: string;
   layout?: 'list' | 'grid' | 'cards';
-  items?: Array<{ label: string; description?: string; icon?: string; imageUrl?: string }>;
+  items?: Array<{ label: string; description?: string; icon?: string | IconDef; imageUrl?: string }>;
 }
 
 export interface CategoryListConfig {
@@ -394,7 +446,7 @@ export interface StatisticsConfig {
     value: string;
     prefix?: string;
     suffix?: string;
-    icon?: string;
+    icon?: string | IconDef;
   }>;
   columns?: 2 | 3 | 4;
   animate?: boolean;
@@ -413,7 +465,7 @@ export interface TimelineConfig {
     title: string;
     date?: string;
     content?: string;
-    icon?: string;
+    icon?: string | IconDef;
   }>;
 }
 
@@ -555,6 +607,145 @@ export interface FooterMenuConfig {
   layout?: 'columns' | 'inline';
 }
 
+// ── Error / 404 ──
+
+export interface ErrorDisplayConfig {
+  number?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  title?: string;
+  subtitle?: string;
+  glitchEnabled?: boolean;
+  animation?: string;
+  showDecoration?: boolean;
+  backgroundColor?: string;
+}
+
+export interface ErrorSearchConfig {
+  placeholder?: string;
+  variant?: 'default' | 'minimal' | 'full-width';
+  showSuggestions?: boolean;
+  autoFocus?: boolean;
+}
+
+export interface ErrorSuggestionsConfig {
+  title?: string;
+  maxItems?: number;
+  mode?: 'manual' | 'auto';
+  items?: Array<{ title: string; slug: string }>;
+}
+
+export interface ErrorActionsConfig {
+  buttons?: Array<{
+    label: string;
+    url: string;
+    variant?: 'primary' | 'outline' | 'ghost' | 'secondary';
+    icon?: string;
+  }>;
+  layout?: 'row' | 'column' | 'grid';
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export interface ErrorFunConfig {
+  type?: 'game' | 'redirect' | 'trivia';
+  gameType?: 'clicker' | 'runner' | 'breaker';
+  redirectUrl?: string;
+  redirectSeconds?: number;
+  triviaQuestion?: string;
+  triviaOptions?: string[];
+  triviaAnswer?: string;
+}
+
+export interface ErrorImageConfig {
+  src?: string;
+  alt?: string;
+  overlay?: boolean;
+  overlayText?: string;
+  animation?: string;
+  rounded?: 'none' | 'sm' | 'md' | 'full';
+  maxWidth?: string;
+}
+
+export interface ErrorMapConfig {
+  title?: string;
+  showSections?: boolean;
+  maxDepth?: number;
+  layout?: 'list' | 'grid';
+}
+
+export interface ErrorQuoteConfig {
+  quotes?: Array<{ text: string; author?: string }>;
+  rotation?: 'fixed' | 'random';
+  showAuthor?: boolean;
+  style?: 'default' | 'card' | 'minimal';
+}
+
+export interface ErrorFeedbackConfig {
+  title?: string;
+  subtitle?: string;
+  placeholder?: string;
+  submitText?: string;
+  successMessage?: string;
+  showEmail?: boolean;
+  emailPlaceholder?: string;
+}
+
+export interface ErrorCountdownConfig {
+  redirectUrl?: string;
+  seconds?: number;
+  message?: string;
+  showProgress?: boolean;
+  showSeconds?: boolean;
+  variant?: 'default' | 'minimal';
+}
+
+export interface ErrorParticleConfig {
+  count?: number;
+  color?: string;
+  speed?: 'slow' | 'normal' | 'fast';
+  type?: 'stars' | 'snow' | 'firefly' | 'bubbles';
+  opacity?: number;
+}
+
+export interface ErrorMazeConfig {
+  difficulty?: 'easy' | 'medium' | 'hard';
+  showTimer?: boolean;
+  reward?: string;
+  rewardUrl?: string;
+  size?: number;
+}
+
+export interface ErrorPollConfig {
+  question?: string;
+  options?: Array<{ label: string; votes: number }>;
+  showResults?: boolean;
+  allowMultiple?: boolean;
+}
+
+export interface ErrorFactConfig {
+  facts?: Array<{ text: string; source?: string }>;
+  rotation?: 'fixed' | 'random';
+  showSource?: boolean;
+  style?: 'default' | 'card' | 'minimal';
+}
+
+export interface ErrorSocialConfig {
+  title?: string;
+  message?: string;
+  showShare?: boolean;
+  shareUrl?: string;
+  showFollow?: boolean;
+  layout?: 'row' | 'column';
+}
+
+export interface ErrorCharacterConfig {
+  character?: 'sad-robot' | 'confused-cat' | 'funny-ghost' | 'lost-pixel' | '404-bot';
+  mood?: 'sad' | 'confused' | 'funny' | 'determined';
+  animation?: string;
+  speech?: string;
+  size?: 'sm' | 'md' | 'lg';
+  showBubble?: boolean;
+}
+
 // ── Block Config Map ──
 
 export type BlockConfigMap = {
@@ -601,6 +792,23 @@ export type BlockConfigMap = {
   'footer-brand': FooterBrandConfig;
   'language-switcher': LanguageSwitcherConfig;
   'footer-menu': FooterMenuConfig;
+  // Error / 404
+  'error-display': ErrorDisplayConfig;
+  'error-search': ErrorSearchConfig;
+  'error-suggestions': ErrorSuggestionsConfig;
+  'error-actions': ErrorActionsConfig;
+  'error-fun': ErrorFunConfig;
+  'error-image': ErrorImageConfig;
+  'error-map': ErrorMapConfig;
+  'error-quote': ErrorQuoteConfig;
+  'error-feedback': ErrorFeedbackConfig;
+  'error-countdown': ErrorCountdownConfig;
+  'error-particle': ErrorParticleConfig;
+  'error-maze': ErrorMazeConfig;
+  'error-poll': ErrorPollConfig;
+  'error-fact': ErrorFactConfig;
+  'error-social': ErrorSocialConfig;
+  'error-character': ErrorCharacterConfig;
 };
 
 // ── Block Config ──
@@ -647,6 +855,34 @@ export interface FloatingIslandConfig {
   title: string;
   enabled: boolean;
   config: Record<string, unknown>;
+}
+
+// ── Widget Config (Chat + Voice) ──
+
+export type WidgetPosition = 'bottom-right' | 'bottom-left' | 'bottom-center';
+export type WidgetSize = 'sm' | 'md' | 'lg';
+export type WidgetAnimation = 'none' | 'pulse' | 'bounce' | 'float' | 'glow';
+
+export interface WidgetChatConfig {
+  enabled?: boolean;
+  position?: WidgetPosition;
+  size?: WidgetSize;
+  color?: string;
+  animation?: WidgetAnimation;
+  icon?: string;
+}
+
+export interface WidgetVoiceConfig {
+  enabled?: boolean;
+  position?: WidgetPosition;
+  size?: WidgetSize;
+  color?: string;
+  animation?: WidgetAnimation;
+}
+
+export interface WidgetLayout {
+  chat?: WidgetChatConfig;
+  voice?: WidgetVoiceConfig;
 }
 
 export interface FloatingIslandLayout {

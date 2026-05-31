@@ -105,6 +105,7 @@ export default function PageBuilderPage() {
           <PageBuilderEditor
             key={pageType}
             tenantId={tenantId}
+            slug={slug}
             initialLayout={layout ? { blocks: layout.blocks } : undefined}
             initialFloatingIslands={layout?.floatingIslands || undefined}
             pageType={pageType}

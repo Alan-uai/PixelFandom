@@ -6,6 +6,9 @@ import {
   Trophy, DollarSign, BarChart3, GitGraph, Clock, HelpCircle,
   MessageCircle, Share2, TimerReset, FormInput, Search, Table2, Puzzle,
   Copyright, Mail, Smartphone, ArrowUpToLine, CreditCard, Globe, Menu,
+  TriangleAlert, SearchX, Shuffle, ArrowUpRight, Gamepad2, ImageOff,
+  Route, Quote, BugOff, TimerOff, Sparkles, Rabbit, Vote,
+  Lightbulb, HeartHandshake, Bot,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -30,7 +33,7 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
   { type: 'video-embed', label: 'Vídeo', icon: Video as LucideIcon, category: 'media', description: 'Embed YouTube/Vimeo/Twitch', defaultConfig: { url: '', provider: 'youtube', aspectRatio: '16:9' } },
   { type: 'cover', label: 'Cover', icon: BookOpen as LucideIcon, category: 'media', description: 'Imagem full-width com overlay', defaultConfig: { title: 'Título Cover', subtitle: 'Subtítulo', overlay: true, height: 'md', textAlign: 'center' } },
   { type: 'media-text', label: 'Mídia + Texto', icon: ImagesIcon as LucideIcon, category: 'media', description: 'Imagem e texto lado a lado', defaultConfig: { title: 'Título', content: 'Conteúdo...', imagePosition: 'left', imageRatio: '50' } },
-  { type: 'icon', label: 'Ícone', icon: Star as LucideIcon, category: 'media', description: 'Ícone decorativo', defaultConfig: { name: 'star', size: 'lg', rounded: 'none' } },
+  { type: 'icon', label: 'Ícone', icon: Star as LucideIcon, category: 'media', description: 'Ícone decorativo', defaultConfig: { icon: 'lucide:star', size: 'lg', rounded: 'none' } },
 
   // ── Dynamic ──
   { type: 'article-grid', label: 'Grid Artigos', icon: Grid3X3 as LucideIcon, category: 'dynamic', description: 'Grade de artigos', defaultConfig: { title: 'Artigos', columns: 3, mode: 'tag', showImages: true, showSummaries: true } },
@@ -68,6 +71,37 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
   { type: 'footer-brand', label: 'Marca', icon: Star as LucideIcon, category: 'footer', description: 'Logo + descrição + redes', defaultConfig: { logo: '', tagline: 'PixelFandom', description: 'Sua wiki de games', showSocialLinks: true, socialLinks: [{ platform: 'Discord', url: '' }], align: 'center' } },
   { type: 'language-switcher', label: 'Idiomas', icon: Globe as LucideIcon, category: 'footer', description: 'Seletor de idioma', defaultConfig: { languages: [{ code: 'pt-BR', label: 'Português' }, { code: 'en', label: 'English' }], defaultLanguage: 'pt-BR', variant: 'dropdown', showLabel: true } },
   { type: 'footer-menu', label: 'Menu Footer', icon: Menu as LucideIcon, category: 'footer', description: 'Colunas de links', defaultConfig: { title: 'Links', columns: [{ title: 'Produto', links: [{ label: 'Features', url: '#' }] }, { title: 'Empresa', links: [{ label: 'Sobre', url: '#' }] }], layout: 'columns' } },
+
+  // ── Error / 404 ──
+  { type: 'error-display', label: 'Exibição 404', icon: TriangleAlert as LucideIcon, category: 'error', description: 'Número 404 estilizado com título e animação', defaultConfig: { number: '404', size: 'xl', title: 'Página não encontrada', subtitle: 'O conteúdo que você procura não existe ou foi movido.', glitchEnabled: true, showDecoration: true } },
+  { type: 'error-search', label: 'Busca 404', icon: SearchX as LucideIcon, category: 'error', description: 'Barra de busca para encontrar conteúdo perdido', defaultConfig: { placeholder: 'Buscar na wiki...', variant: 'default', showSuggestions: true, autoFocus: false } },
+  { type: 'error-suggestions', label: 'Sugestões', icon: Shuffle as LucideIcon, category: 'error', description: 'Artigos sugeridos para o visitante', defaultConfig: { title: 'Você pode estar procurando:', maxItems: 4, mode: 'manual', items: [{ title: 'Artigo 1', slug: '' }, { title: 'Artigo 2', slug: '' }] } },
+  { type: 'error-actions', label: 'Ações 404', icon: ArrowUpRight as LucideIcon, category: 'error', description: 'Botões de ação rápida (voltar, home, contato)', defaultConfig: { buttons: [{ label: 'Voltar ao Início', url: '/', variant: 'primary' }, { label: 'Relatar Erro', url: '', variant: 'outline' }], layout: 'row', size: 'md' } },
+  { type: 'error-fun', label: 'Diversão 404', icon: Gamepad2 as LucideIcon, category: 'error', description: 'Mini-game ou easter egg interativo', defaultConfig: { type: 'game', gameType: 'clicker', redirectUrl: '/', redirectSeconds: 10, triviaQuestion: 'Quantos bits tem um byte?', triviaOptions: ['4', '8', '16', '32'], triviaAnswer: '8' } },
+  { type: 'error-image', label: 'Ilustração 404', icon: ImageOff as LucideIcon, category: 'error', description: 'Imagem decorativa de erro', defaultConfig: { src: '', alt: 'Ilustração 404', overlay: false, overlayText: '', animation: 'float-error', rounded: 'md' } },
+  { type: 'error-map', label: 'Mapa do Site', icon: Route as LucideIcon, category: 'error', description: 'Estrutura do site para navegação', defaultConfig: { title: 'Mapa do Site', showSections: true, maxDepth: 2, layout: 'list' } },
+  { type: 'error-quote', label: 'Citação', icon: Quote as LucideIcon, category: 'error', description: 'Citação inspiradora ou engraçada', defaultConfig: { quotes: [{ text: 'Nem todos que vagam estão perdidos.', author: 'J.R.R. Tolkien' }], rotation: 'random', showAuthor: true, style: 'card' } },
+  { type: 'error-feedback', label: 'Feedback', icon: BugOff as LucideIcon, category: 'error', description: 'Formulário para reportar link quebrado', defaultConfig: { title: 'Reportar Problema', subtitle: 'Ajude-nos a melhorar!', placeholder: 'Descreva o que você estava procurando...', submitText: 'Enviar', successMessage: 'Obrigado! Seu feedback nos ajuda a melhorar.', showEmail: false, emailPlaceholder: 'Seu email (opcional)' } },
+  { type: 'error-countdown', label: 'Redirecionamento', icon: TimerOff as LucideIcon, category: 'error', description: 'Redirecionamento automático com contagem regressiva', defaultConfig: { redirectUrl: '/', seconds: 10, message: 'Redirecionando para o início em:', showProgress: true, showSeconds: true, variant: 'default' } },
+  { type: 'error-particle', label: 'Partículas', icon: Sparkles as LucideIcon, category: 'error', description: 'Fundo animado com partículas', defaultConfig: { count: 50, color: '#4BC5FF', speed: 'normal', type: 'stars', opacity: 0.6 } },
+  { type: 'error-maze', label: 'Labirinto', icon: Rabbit as LucideIcon, category: 'error', description: 'Mini labirinto para se distrair', defaultConfig: { difficulty: 'easy', showTimer: true, reward: 'Desbloquear surpresa', rewardUrl: '', size: 8 } },
+  { type: 'error-poll', label: 'Enquete', icon: Vote as LucideIcon, category: 'error', description: 'Enquete de distração', defaultConfig: { question: 'O que você estava procurando?', options: [{ label: 'Um artigo específico', votes: 0 }, { label: 'Só navegando', votes: 0 }, { label: 'Cai aqui por acidente', votes: 0 }], showResults: true, allowMultiple: false } },
+  { type: 'error-fact', label: 'Fato Curioso', icon: Lightbulb as LucideIcon, category: 'error', description: 'Fato aleatório sobre a wiki', defaultConfig: { facts: [{ text: 'Esta wiki foi criada por fãs para fãs.', source: 'PixelFandom' }], rotation: 'random', showSource: true, style: 'card' } },
+  { type: 'error-social', label: 'Social 404', icon: HeartHandshake as LucideIcon, category: 'error', description: 'Links de engajamento social', defaultConfig: { title: 'Não vá ainda!', message: 'Siga-nos nas redes sociais enquanto isso:', showShare: true, showFollow: true, layout: 'row' } },
+  { type: 'error-character', label: 'Mascote', icon: Bot as LucideIcon, category: 'error', description: 'Mascote animado com balão de fala', defaultConfig: { character: 'sad-robot', mood: 'sad', animation: 'float-error', speech: 'Oops! Parece que você se perdeu...', size: 'md', showBubble: true } },
+];
+
+export const ERROR_BLOCK_TYPES: BlockType[] = [
+  'section', 'column',
+  'heading', 'paragraph', 'button', 'divider', 'spacer', 'list',
+  'image', 'icon',
+  'statistics', 'faq',
+  'countdown', 'discord-embed', 'social-links',
+  'search', 'back-to-top', 'hero',
+  'error-display', 'error-search', 'error-suggestions', 'error-actions',
+  'error-fun', 'error-image', 'error-map', 'error-quote',
+  'error-feedback', 'error-countdown', 'error-particle', 'error-maze',
+  'error-poll', 'error-fact', 'error-social', 'error-character',
 ];
 
 export const FOOTER_BLOCK_TYPES: BlockType[] = [
@@ -91,6 +125,7 @@ export const CATEGORIES: { id: BlockCategory; label: string; icon: LucideIcon }[
   { id: 'interactive', label: 'Interativo', icon: MousePointerClick as LucideIcon },
   { id: 'special', label: 'Especiais', icon: Puzzle as LucideIcon },
   { id: 'footer', label: 'Footer', icon: Copyright as LucideIcon },
+  { id: 'error', label: 'Erro 404', icon: TriangleAlert as LucideIcon },
 ];
 
 export function getBlockDefinition(type: BlockType): BlockDefinition | undefined {

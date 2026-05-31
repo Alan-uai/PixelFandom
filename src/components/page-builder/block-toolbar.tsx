@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { BlockType, BlockDefinition } from './types';
-import { BLOCK_REGISTRY, CATEGORIES, FOOTER_BLOCK_TYPES, getBlocksByCategory } from '@/lib/block-registry';
+import { BLOCK_REGISTRY, CATEGORIES, FOOTER_BLOCK_TYPES, ERROR_BLOCK_TYPES, getBlocksByCategory } from '@/lib/block-registry';
 import { Search, type LucideIcon } from 'lucide-react';
 
 function DraggableBlock({ def }: { def: BlockDefinition }) {
@@ -32,9 +32,19 @@ export function BlockToolbar({ pageType }: { pageType?: string }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const is404 = pageType === '404';
+
   const filtered = BLOCK_REGISTRY.filter((b) => {
     if (b.type === 'column' || b.type === 'template-part') return false;
-    if (pageType === 'footer' && !FOOTER_BLOCK_TYPES.includes(b.type as BlockType)) return false;
+
+    if (is404) {
+      if (!ERROR_BLOCK_TYPES.includes(b.type as BlockType)) return false;
+    } else if (pageType === 'footer') {
+      if (!FOOTER_BLOCK_TYPES.includes(b.type as BlockType)) return false;
+    } else {
+      if (b.category === 'error') return false;
+    }
+
     if (search) return b.label.toLowerCase().includes(search.toLowerCase());
     if (activeCategory) return b.category === activeCategory;
     return true;
@@ -61,15 +71,20 @@ export function BlockToolbar({ pageType }: { pageType?: string }) {
           >
             Todos
           </button>
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-              className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            >
-              {cat.label}
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            if (is404 && cat.id === 'footer') return null;
+            if (is404 && cat.id === 'dynamic') return null;
+            if (!is404 && cat.id === 'error') return null;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
+                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
         </div>
       )}
 

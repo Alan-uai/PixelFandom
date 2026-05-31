@@ -1,12 +1,28 @@
 'use client';
 
+import { IconRenderer } from '@/components/ui/icon-renderer';
+
+function renderIcon(item: any) {
+  if (!item.icon) return null;
+  if (typeof item.icon === 'string') {
+    if (item.icon.includes(':')) {
+      return <IconRenderer icon={item.icon} size="lg" />;
+    }
+    return <span className="mb-2 text-2xl block">{item.icon}</span>;
+  }
+  if (typeof item.icon === 'object' && item.icon?.icon) {
+    return <IconRenderer icon={item.icon.icon} animation={item.icon.animation} size="lg" />;
+  }
+  return null;
+}
+
 export function StatisticsBlock({ config }: { config: Record<string, unknown> }) {
   const items = (config.items as Array<{
     label: string;
     value: string;
     prefix?: string;
     suffix?: string;
-    icon?: string;
+    icon?: any;
   }>) || [];
   const columns = (config.columns as 2 | 3 | 4) || 3;
   const animate = config.animate as boolean;
@@ -28,7 +44,7 @@ export function StatisticsBlock({ config }: { config: Record<string, unknown> })
                 animate ? 'transition-all duration-500 hover:scale-105' : ''
               }`}
             >
-              {item.icon && <span className="mb-2 text-2xl">{item.icon}</span>}
+              {renderIcon(item)}
               <div className="text-3xl font-bold tracking-tight">
                 {item.prefix && <span>{item.prefix}</span>}
                 {item.value}

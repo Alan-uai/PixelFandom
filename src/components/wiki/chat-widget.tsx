@@ -2,20 +2,23 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, X, GripVertical, Bot } from 'lucide-react';
+import { MessageCircle, X, GripVertical, Bot, MessageSquare, HelpCircle } from 'lucide-react';
 import WikiChat from './wiki-chat';
+import type { WidgetChatConfig } from '@/components/page-builder/types';
 
 const LS_VISIBLE = 'pixelfandom:chat-visible';
 const LS_POSITION = 'pixelfandom:chat-position';
 
-type ChatWidgetProps = {
-  tenantSlug: string;
-  isChatPage?: boolean;
-};
-
 type Position = {
   x: number;
   y: number;
+};
+
+const CHAT_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  MessageCircle,
+  Bot,
+  MessageSquare,
+  HelpCircle,
 };
 
 function loadPosition(): Position | null {
@@ -42,7 +45,36 @@ function saveVisible(v: boolean) {
   localStorage.setItem(LS_VISIBLE, String(v));
 }
 
-export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) {
+const POSITION_STYLES: Record<string, React.CSSProperties> = {
+  'bottom-right': { bottom: '1rem', right: '1rem' },
+  'bottom-left': { bottom: '1rem', left: '1rem' },
+};
+
+function getAnimationClass(animation?: string): string {
+  switch (animation) {
+    case 'pulse': return 'animate-pulse';
+    case 'bounce': return 'animate-bounce';
+    case 'float': return 'animate-float';
+    case 'glow': return 'animate-glow';
+    default: return '';
+  }
+}
+
+function getSizeClass(size?: string): string {
+  switch (size) {
+    case 'sm': return 'h-10 w-10';
+    case 'lg': return 'h-14 w-14';
+    default: return 'h-12 w-12';
+  }
+}
+
+type ChatWidgetProps = {
+  tenantSlug: string;
+  isChatPage?: boolean;
+  widgetConfig?: WidgetChatConfig;
+};
+
+export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: ChatWidgetProps) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(loadVisible);
   const [dragging, setDragging] = useState(false);
@@ -154,7 +186,11 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
     };
   }, []);
 
-  if (isChatPage || !visible) return null;
+  if (isChatPage) return null;
+  if (widgetConfig?.enabled === false && !pos) return null;
+  if (!visible) return null;
+
+  const defaultPos = widgetConfig?.position || 'bottom-right';
 
   const style: React.CSSProperties = pos
     ? {
@@ -166,11 +202,16 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
       }
     : {
         position: 'fixed',
-        bottom: '1rem',
-        right: '1rem',
+        ...POSITION_STYLES[defaultPos],
         zIndex: 40,
         cursor: dragging ? 'grabbing' : 'pointer',
       };
+
+  const animationClass = getAnimationClass(widgetConfig?.animation);
+  const sizeClass = getSizeClass(widgetConfig?.size);
+  const buttonColor = widgetConfig?.color;
+
+  const ChatIcon = (widgetConfig?.icon && CHAT_ICON_MAP[widgetConfig.icon]) || MessageCircle;
 
   return (
     <div style={style} className="flex flex-col items-end">
@@ -222,15 +263,16 @@ export default function ChatWidget({ tenantSlug, isChatPage }: ChatWidgetProps) 
         onClick={() => {
           if (!isLongPressing.current && !dragging) setOpen(!open);
         }}
-        className={`h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all ${
+        className={`${sizeClass} rounded-full shadow-lg flex items-center justify-center transition-all ${animationClass} ${
           dragging
             ? 'ring-2 ring-primary ring-offset-2 scale-110 bg-primary text-primary-foreground'
             : open
             ? 'bg-primary text-primary-foreground'
             : 'bg-primary text-primary-foreground hover:bg-primary/90'
         }`}
+        style={buttonColor && !dragging ? { background: buttonColor } : undefined}
       >
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : <ChatIcon className="h-5 w-5" />}
       </button>
     </div>
   );

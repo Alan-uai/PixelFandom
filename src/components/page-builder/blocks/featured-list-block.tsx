@@ -1,21 +1,30 @@
 'use client';
 
 import { Star } from 'lucide-react';
+import { IconRenderer } from '@/components/ui/icon-renderer';
+
+function renderIcon(item: any) {
+  if (item.imageUrl) {
+    return <img src={item.imageUrl} alt="" className="h-10 w-10 rounded object-cover shrink-0" />;
+  }
+  if (item.icon) {
+    if (typeof item.icon === 'string') {
+      if (item.icon.includes(':')) {
+        return <IconRenderer icon={item.icon} size="md" />;
+      }
+      return <span className="text-xl shrink-0 leading-none">{item.icon}</span>;
+    }
+    if (typeof item.icon === 'object' && item.icon?.icon) {
+      return <IconRenderer icon={item.icon.icon} animation={item.icon.animation} size="md" />;
+    }
+  }
+  return <Star className="h-5 w-5 text-primary shrink-0" />;
+}
 
 export function FeaturedListBlock({ config }: { config: Record<string, any>; tenantId?: string }) {
   const title = config.title || 'Destaques';
   const layout = config.layout || 'list';
   const items = config.items || [];
-
-  const renderIcon = (item: any) => {
-    if (item.imageUrl) {
-      return <img src={item.imageUrl} alt="" className="h-10 w-10 rounded object-cover shrink-0" />;
-    }
-    if (item.icon) {
-      return <span className="text-xl shrink-0 leading-none">{item.icon}</span>;
-    }
-    return <Star className="h-5 w-5 text-primary shrink-0" />;
-  };
 
   if (items.length === 0) {
     return (
@@ -57,7 +66,15 @@ export function FeaturedListBlock({ config }: { config: Record<string, any>; ten
               {item.imageUrl ? (
                 <img src={item.imageUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
               ) : item.icon ? (
-                <span className="text-2xl">{item.icon}</span>
+                <div className="rounded-full bg-primary/10 p-2.5">
+                  {typeof item.icon === 'string' && item.icon.includes(':') ? (
+                    <IconRenderer icon={item.icon} size="md" />
+                  ) : typeof item.icon === 'object' && item.icon?.icon ? (
+                    <IconRenderer icon={item.icon.icon} animation={item.icon.animation} size="md" />
+                  ) : (
+                    <span className="text-2xl">{item.icon}</span>
+                  )}
+                </div>
               ) : (
                 <div className="rounded-full bg-primary/10 p-2.5">
                   <Star className="h-5 w-5 text-primary" />

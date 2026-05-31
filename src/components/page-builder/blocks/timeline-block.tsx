@@ -1,13 +1,28 @@
 'use client';
 
 import { Circle } from 'lucide-react';
+import { IconRenderer } from '@/components/ui/icon-renderer';
+
+function resolveIcon(itemIcon: any) {
+  if (!itemIcon) return null;
+  if (typeof itemIcon === 'string') {
+    if (itemIcon.includes(':')) {
+      return <IconRenderer icon={itemIcon} size="sm" />;
+    }
+    return <span className="text-xs">{itemIcon}</span>;
+  }
+  if (typeof itemIcon === 'object' && itemIcon?.icon) {
+    return <IconRenderer icon={itemIcon.icon} animation={itemIcon.animation} size="sm" />;
+  }
+  return null;
+}
 
 export function TimelineBlock({ config }: { config: Record<string, unknown> }) {
   const items = (config.items as Array<{
     title: string;
     date?: string;
     content?: string;
-    icon?: string;
+    icon?: any;
   }>) || [];
 
   return (
@@ -18,9 +33,7 @@ export function TimelineBlock({ config }: { config: Record<string, unknown> }) {
             <div key={i} className="relative flex gap-4 pb-8 last:pb-0">
               <div className="flex flex-col items-center">
                 <div className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-card">
-                  {item.icon ? (
-                    <span className="text-xs">{item.icon}</span>
-                  ) : (
+                  {resolveIcon(item.icon) || (
                     <Circle className="h-2.5 w-2.5 fill-primary text-primary" />
                   )}
                 </div>

@@ -18,9 +18,10 @@ import { BlockToolbar } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
 import { FloatingIslandsEditor } from './floating-islands-editor';
+import { WidgetsEditor } from './widgets-editor';
 import {
   Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose,
-  LayoutList, Undo2, Redo2, Smartphone, BookTemplate,
+  LayoutList, Undo2, Redo2, Smartphone, BookTemplate, Settings2,
 } from 'lucide-react';
 import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig } from './types';
 import { BLOCK_REGISTRY } from '@/lib/block-registry';
@@ -30,6 +31,7 @@ const MAX_HISTORY = 50;
 
 interface PageBuilderEditorProps {
   tenantId: string;
+  slug?: string;
   initialLayout?: PageLayout;
   initialFloatingIslands?: FloatingIslandConfig[];
   pageType?: string;
@@ -67,7 +69,7 @@ function flattenTree(blocks: BlockConfig[]): string[] {
 }
 
 export function PageBuilderEditor({
-  tenantId, initialLayout, initialFloatingIslands, pageType = 'landing',
+  tenantId, slug, initialLayout, initialFloatingIslands, pageType = 'landing',
 }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
@@ -75,7 +77,7 @@ export function PageBuilderEditor({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'blocks' | 'islands'>('blocks');
+  const [activeTab, setActiveTab] = useState<'blocks' | 'islands' | 'widgets'>('blocks');
   const [mobilePreview, setMobilePreview] = useState(false);
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
@@ -222,7 +224,7 @@ export function PageBuilderEditor({
           <LayoutList className="h-3.5 w-3.5" />
           Blocos
         </button>
-        {pageType === 'landing' && (
+        {(pageType === 'landing' || pageType === '404') && (
           <button
             onClick={() => setActiveTab('islands')}
             className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
@@ -235,6 +237,17 @@ export function PageBuilderEditor({
             Ilhas Flutuantes
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('widgets')}
+          className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === 'widgets'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+          Widgets
+        </button>
 
         <div className="flex-1" />
 
@@ -335,9 +348,13 @@ export function PageBuilderEditor({
             )}
           </div>
         </DndContext>
-      ) : (
+      ) : activeTab === 'islands' ? (
         <div className="flex-1 overflow-y-auto p-6">
           <FloatingIslandsEditor islands={floatingIslands} onChange={setFloatingIslands} />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-6">
+          <WidgetsEditor tenantId={tenantId} slug={slug || tenantId} />
         </div>
       )}
 

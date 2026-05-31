@@ -37,7 +37,7 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
             type: 'column' as any,
             config: { width: '33.33%', verticalAlign: 'top' },
             children: [
-              { id: 't-icon-1', type: 'icon' as any, config: { name: 'star', size: 'lg' } },
+              { id: 't-icon-1', type: 'icon' as any, config: { icon: 'star', size: 'lg' } as any },
               { id: 't-head-1', type: 'heading' as any, config: { content: 'Recurso 1', level: 'h3', align: 'center' } },
               { id: 't-para-1', type: 'paragraph' as any, config: { content: 'Descrição do recurso incrível da sua wiki.', size: 'md' } },
             ],
@@ -47,7 +47,7 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
             type: 'column' as any,
             config: { width: '33.33%', verticalAlign: 'top' },
             children: [
-              { id: 't-icon-2', type: 'icon' as any, config: { name: 'heart', size: 'lg' } },
+              { id: 't-icon-2', type: 'icon' as any, config: { icon: 'heart', size: 'lg' } as any },
               { id: 't-head-2', type: 'heading' as any, config: { content: 'Recurso 2', level: 'h3', align: 'center' } },
               { id: 't-para-2', type: 'paragraph' as any, config: { content: 'Outra funcionalidade importante para seus usuários.', size: 'md' } },
             ],
@@ -57,7 +57,7 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
             type: 'column' as any,
             config: { width: '33.33%', verticalAlign: 'top' },
             children: [
-              { id: 't-icon-3', type: 'icon' as any, config: { name: 'users', size: 'lg' } },
+              { id: 't-icon-3', type: 'icon' as any, config: { icon: 'users', size: 'lg' } as any },
               { id: 't-head-3', type: 'heading' as any, config: { content: 'Recurso 3', level: 'h3', align: 'center' } },
               { id: 't-para-3', type: 'paragraph' as any, config: { content: 'Mais um benefício que faz diferença.', size: 'md' } },
             ],
@@ -175,6 +175,86 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
         id: 'hf-cta',
         type: 'button',
         config: { text: 'Explorar Agora', url: '', variant: 'primary', size: 'lg', fullWidth: false },
+      },
+    ],
+  },
+  // ── 404 Error Templates ──
+  {
+    id: 'error-classic',
+    name: '404 Clássico',
+    category: 'erro',
+    description: 'Glitch display + busca + ações padrão',
+    blocks: [
+      {
+        id: 'err-classic-display',
+        type: 'error-display',
+        config: { number: '404', size: 'xl', title: 'Página não encontrada', subtitle: 'O conteúdo que você procura não existe ou foi movido.', glitchEnabled: true, showDecoration: true },
+      },
+      {
+        id: 'err-classic-search',
+        type: 'error-search',
+        config: { placeholder: 'Buscar na wiki...' },
+      },
+      {
+        id: 'err-classic-actions',
+        type: 'error-actions',
+        config: { buttons: [{ label: 'Voltar ao Início', url: '/', variant: 'primary' }, { label: 'Relatar Erro', url: '', variant: 'outline' }], layout: 'row', size: 'md' },
+      },
+    ],
+  },
+  {
+    id: 'error-fun',
+    name: '404 Divertido',
+    category: 'erro',
+    description: 'Mascote + mini-game + fatos curiosos',
+    blocks: [
+      {
+        id: 'err-fun-char',
+        type: 'error-character',
+        config: { character: 'sad-robot', mood: 'sad', animation: 'float-error', speech: 'Oops! Você se perdeu por aqui...', size: 'md', showBubble: true },
+      },
+      {
+        id: 'err-fun-game',
+        type: 'error-fun',
+        config: { type: 'game', gameType: 'clicker', redirectUrl: '/', redirectSeconds: 10 },
+      },
+      {
+        id: 'err-fun-fact',
+        type: 'error-fact',
+        config: { facts: [{ text: 'Esta wiki foi criada por fãs para fãs.', source: 'PixelFandom' }], rotation: 'random', showSource: true },
+      },
+    ],
+  },
+  {
+    id: 'error-helpful',
+    name: '404 Útil',
+    category: 'erro',
+    description: 'Sugestões + mapa do site + feedback + redes sociais',
+    blocks: [
+      {
+        id: 'err-helpful-display',
+        type: 'error-display',
+        config: { number: '404', size: 'lg', title: 'Hmm, não encontramos isso', subtitle: 'Mas podemos ajudar você a encontrar o que precisa.', glitchEnabled: false, showDecoration: true },
+      },
+      {
+        id: 'err-helpful-suggestions',
+        type: 'error-suggestions',
+        config: { title: 'Você pode estar procurando:', maxItems: 4, mode: 'manual', items: [{ title: 'Artigo Principal', slug: '' }, { title: 'Guia do Iniciante', slug: '' }] },
+      },
+      {
+        id: 'err-helpful-map',
+        type: 'error-map',
+        config: { title: 'Mapa do Site', showSections: true, maxDepth: 2, layout: 'list' },
+      },
+      {
+        id: 'err-helpful-feedback',
+        type: 'error-feedback',
+        config: { title: 'Reportar Problema', subtitle: 'Ajude-nos a melhorar!', placeholder: 'O que você estava procurando?', submitText: 'Enviar', successMessage: 'Obrigado!', showEmail: false },
+      },
+      {
+        id: 'err-helpful-social',
+        type: 'error-social',
+        config: { title: 'Não vá ainda!', message: 'Siga-nos nas redes sociais enquanto isso:', showShare: true, showFollow: true, layout: 'row' },
       },
     ],
   },

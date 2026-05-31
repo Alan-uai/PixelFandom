@@ -8,6 +8,7 @@ import { buildSystemPrompt } from '@/lib/voice/systemPrompt'
 import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/supabase'
+import type { WidgetVoiceConfig } from '@/components/page-builder/types'
 
 type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'
 
@@ -16,6 +17,7 @@ type Props = {
   aiConfig?: Record<string, unknown>
   discordUrl?: string
   gameUrl?: string
+  widgetConfig?: WidgetVoiceConfig
 }
 
 const STORAGE_KEY = 'pixelfandom:voice-settings'
@@ -28,7 +30,7 @@ function loadSettings() {
   return {}
 }
 
-export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl }: Props) {
+export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl, widgetConfig }: Props) {
   const router = useRouter()
 
   const [status, setStatus] = useState<OrbStatus>('idle')
@@ -355,7 +357,27 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     }
   }, [connect, disconnect, isMicOn])
 
-  const orbSize = status === 'idle' ? 'h-16 w-16' : 'h-20 w-20'
+  if (widgetConfig?.enabled === false) return null
+
+  const baseIdleSize = widgetConfig?.size === 'sm' ? 'h-14 w-14' : widgetConfig?.size === 'lg' ? 'h-20 w-20' : 'h-16 w-16'
+  const baseActiveSize = widgetConfig?.size === 'sm' ? 'h-16 w-16' : widgetConfig?.size === 'lg' ? 'h-24 w-24' : 'h-20 w-20'
+  const orbSize = status === 'idle' ? baseIdleSize : baseActiveSize
+
+  const positionClass = widgetConfig?.position === 'bottom-left'
+    ? 'bottom-8 left-8'
+    : widgetConfig?.position === 'bottom-right'
+    ? 'bottom-8 right-8'
+    : 'bottom-8 left-1/2 -translate-x-1/2'
+
+  const animationClass = widgetConfig?.animation === 'pulse'
+    ? 'animate-pulse'
+    : widgetConfig?.animation === 'bounce'
+    ? 'animate-bounce'
+    : widgetConfig?.animation === 'float'
+    ? 'animate-float'
+    : widgetConfig?.animation === 'glow'
+    ? 'animate-glow'
+    : ''
 
   const orbColors: Record<OrbStatus, string> = {
     idle: 'bg-primary/60 shadow-primary/20',
@@ -370,7 +392,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     <>
       <button
         onClick={handleClick}
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]} flex items-center justify-center hover:scale-110 hover:shadow-3xl`}
+        className={`fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]} flex items-center justify-center hover:scale-110 hover:shadow-3xl ${animationClass}`}
         title={apiRef.current ? 'Desconectar' : 'Assistente de Voz'}
       >
         <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/20 to-transparent" />

@@ -78,6 +78,33 @@ const ANIMATION_MAP: Record<string, string> = {
   'slide-up-blur': 'animate-slide-up-blur',
   'vibrate': 'animate-vibrate',
   'clip-in': 'animate-clip-in',
+  // Error / 404 Distortion
+  'glitch-1': 'animate-glitch-1',
+  'glitch-2': 'animate-glitch-2',
+  'glitch-text': 'animate-glitch-text',
+  'shake-hard': 'animate-shake-hard',
+  'flicker': 'animate-flicker',
+  'scanline': 'animate-scanline',
+  'vhs': 'animate-vhs',
+  'static-noise': 'animate-static-noise',
+  'skew': 'animate-skew',
+  'crash': 'animate-crash',
+  'drift': 'animate-drift',
+  // Error / 404 Interactive
+  'typewriter': 'animate-typewriter',
+  'morph': 'animate-morph',
+  'bounce-404': 'animate-bounce-404',
+  'zoom-pulse': 'animate-zoom-pulse',
+  // Error / 404 Special FX
+  'matrix-rain': 'animate-matrix-rain',
+  'retro-pixel': 'animate-retro-pixel',
+  'rainbow': 'animate-rainbow',
+  'ascii-reveal': 'animate-ascii-reveal',
+  'path-draw': 'animate-path-draw',
+  'flip-3d-error': 'animate-flip-3d-error',
+  'tilt-error': 'animate-tilt-error',
+  'float-error': 'animate-float-error',
+  'pulse-error': 'animate-pulse-error',
 };
 
 const DURATION_MAP: Record<DurationOption, string> = {
@@ -114,7 +141,12 @@ export function shouldUseMotion(anim?: AnimationConfig): boolean {
   if (anim.tapEffect && anim.tapEffect !== 'none') return true;
   if (anim.tiltOnHover) return true;
   if (anim.steps && anim.steps.length > 0) return true;
-  const motionTypes: AnimationType[] = ['spring-up', 'spring-down', 'spring-in', 'reveal', 'blur-in', 'mask-in', 'spotlight', 'highlight', 'reveal-up', 'drop-in', 'slide-up-blur', 'clip-in'];
+  const motionTypes: AnimationType[] = [
+    'spring-up', 'spring-down', 'spring-in', 'reveal', 'blur-in', 'mask-in',
+    'spotlight', 'highlight', 'reveal-up', 'drop-in', 'slide-up-blur', 'clip-in',
+    'glitch-1', 'glitch-2', 'glitch-text', 'vhs', 'crash', 'morph',
+    'path-draw', 'flip-3d-error', 'tilt-error',
+  ];
   if (motionTypes.includes(anim.type as AnimationType)) return true;
   return false;
 }

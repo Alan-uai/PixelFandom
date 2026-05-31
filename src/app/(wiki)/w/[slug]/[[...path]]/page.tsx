@@ -83,13 +83,16 @@ export default function WikiPage() {
     })();
   }, [articleSlug, tenant?.id]);
 
-  // Fetch 404 layout
+  // Fetch 404 layout + floating islands
   useEffect(() => {
     if (!tenant?.id) return;
     fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
+        if (data?.floatingIslands) {
+          setFloatingIslands(data.floatingIslands);
+        }
       })
       .catch(() => {});
   }, [tenant?.id]);
@@ -296,7 +299,10 @@ export default function WikiPage() {
             )}
           </>
         ) : custom404Layout ? (
-          <PageRenderer layout={custom404Layout} tenant={tenant} basePath={basePath} />
+          <>
+            <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
+            <PageRenderer layout={custom404Layout} tenant={tenant} basePath={basePath} />
+          </>
         ) : (
           <div className="text-center py-20 rounded-xl border bg-card">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
