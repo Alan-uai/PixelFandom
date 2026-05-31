@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
 import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context';
@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/supabase';
 import {
   MessageCircle,
   Headphones,
@@ -25,6 +26,8 @@ import {
   Ear,
   Loader2,
   Check,
+  AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 
 const THEME_PRESETS = [
@@ -123,6 +126,62 @@ export default function GlobalSettingsPage() {
 
   const updateVoice = (key: string, value: unknown) => {
     updatePreference('voice_settings', { ...preferences.voice_settings, [key]: value });
+  };
+
+  const [deleteStep, setDeleteStep] = useState<'hidden' | 'warning' | 'successors' | 'confirm'>('hidden');
+  const [ownedTenants, setOwnedTenants] = useState<{ id: string; name: string; admins: { id: string; display_name: string }[] }[]>([]);
+  const [successors, setSuccessors] = useState<Record<string, string>>({});
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data: memberships } = await supabase
+        .from('tenant_members')
+        .select('tenant_id, tenants!inner(id, name)')
+        .eq('user_id', user.id)
+        .eq('role', 'owner');
+
+      if (!memberships || memberships.length === 0) return;
+
+      const tenants: { id: string; name: string; admins: { id: string; display_name: string }[] }[] = [];
+      for (const m of memberships as any[]) {
+        const { data: admins } = await supabase
+          .from('tenant_members')
+          .select('user_id, profiles!inner(id, display_name)')
+          .eq('tenant_id', (m as any).tenants.id)
+          .eq('role', 'admin')
+          .neq('user_id', user.id);
+
+        tenants.push({
+          id: (m as any).tenants.id,
+          name: (m as any).tenants.name,
+          admins: ((admins as any[]) || []).map((a) => ({
+            id: a.user_id,
+            display_name: a.profiles?.display_name || a.user_id.slice(0, 8),
+          })),
+        });
+      }
+      setOwnedTenants(tenants);
+    })();
+  }, [user]);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/profile/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ successors }),
+      });
+      if (!res.ok) throw new Error('Failed to delete account');
+      await supabase.auth.signOut();
+      router.push('/');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      setDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -551,6 +610,145 @@ export default function GlobalSettingsPage() {
             </CardContent>
           </Card>
 
+          <Separator className="my-6" />
+
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Excluir Conta
+              </CardTitle>
+              <CardDescription>
+                Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {deleteStep === 'hidden' && (
+                <Button variant="destructive" onClick={() => setDeleteStep('warning')}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Conta
+                </Button>
+              )}
+
+              {deleteStep === 'warning' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Você está prestes a excluir sua conta permanentemente. Isso irá:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                    <li>Remover seu perfil e dados pessoais</li>
+                    <li>Cancelar todas as suas assinaturas</li>
+                    {ownedTenants.length > 0 && (
+                      <li>Transferir a propriedade de {ownedTenants.length} wiki(s) para outro membro</li>
+                    )}
+                    <li>Encerrar sua sessão em todos os dispositivos</li>
+                  </ul>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setDeleteStep('hidden')}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        if (ownedTenants.length > 0) {
+                          setDeleteStep('successors');
+                        } else {
+                          setDeleteStep('confirm');
+                        }
+                      }}
+                    >
+                      Continuar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 'successors' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Escolha quem receberá a propriedade das suas wikis. Se não escolher, um admin será selecionado automaticamente.
+                  </p>
+                  {ownedTenants.map((tenant) => (
+                    <div key={tenant.id} className="rounded-lg border p-3 space-y-2">
+                      <p className="text-sm font-medium">{tenant.name}</p>
+                      {tenant.admins.length > 0 ? (
+                        <select
+                          value={successors[tenant.id] || ''}
+                          onChange={(e) =>
+                            setSuccessors((prev) => ({ ...prev, [tenant.id]: e.target.value }))
+                          }
+                          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                          <option value="">Selecionar automaticamente</option>
+                          {tenant.admins.map((admin) => (
+                            <option key={admin.id} value={admin.id}>
+                              {admin.display_name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Nenhum admin disponível — a propriedade será transferida para um editor aleatório.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setDeleteStep('warning')}>
+                      Voltar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setDeleteStep('confirm')}
+                    >
+                      Continuar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 'confirm' && (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-destructive">
+                    Esta ação é permanente e não pode ser desfeita.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Digite <strong>EXCLUIR</strong> para confirmar.
+                  </p>
+                  <input
+                    type="text"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="EXCLUIR"
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/50"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDeleteStep('hidden');
+                        setConfirmText('');
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={confirmText !== 'EXCLUIR' || deleting}
+                      onClick={handleDeleteAccount}
+                    >
+                      {deleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      {deleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

@@ -11,8 +11,9 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download } from 'lucide-react';
 import { PageSubNav } from '@/components/dashboard/page-subnav';
+import { useTenantRole } from '@/hooks/use-tenant-role';
 
 export default function WikiSettingsPage() {
   const params = useParams();
@@ -187,6 +188,7 @@ export default function WikiSettingsPage() {
     { id: 'fonts', label: 'Fontes', icon: Type },
     { id: 'pages', label: 'Páginas', icon: FileText },
     { id: 'links', label: 'Links', icon: MessageCircle },
+    { id: 'danger-zone', label: 'Zona Perigosa', icon: AlertTriangle },
   ];
 
   return (
@@ -516,6 +518,23 @@ export default function WikiSettingsPage() {
       </Card>
       </section>
 
+      <section id="danger-zone">
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Zona Perigosa
+          </CardTitle>
+          <CardDescription>
+            Ações destrutivas que afetam toda a wiki.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeleteWikiSection slug={slug} tenantName={name} />
+        </CardContent>
+      </Card>
+      </section>
+
       {savedFeedback ? (
         <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
           <Check className="h-4 w-4" />
@@ -582,6 +601,156 @@ function hexToHsl(hex: string): string {
     }
   }
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: string }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { isOwner, isLoading: roleLoading } = useTenantRole(slug);
+  const [step, setStep] = useState<'hidden' | 'warning' | 'backup' | 'confirm'>('hidden');
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [backupData, setBackupData] = useState<any>(null);
+
+  const handleBackup = async () => {
+    try {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('*, custom_collections(*, collection_items(*)), wiki_articles(*), page_layouts(*)')
+        .eq('slug', slug)
+        .single();
+
+      if (tenant) {
+        setBackupData(tenant);
+        const blob = new Blob([JSON.stringify(tenant, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${slug}-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao gerar backup.' });
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('tenants')
+        .delete()
+        .eq('slug', slug);
+
+      if (error) {
+        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+        setDeleting(false);
+        return;
+      }
+
+      router.push('/dashboard');
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir wiki.' });
+      setDeleting(false);
+    }
+  };
+
+  if (roleLoading) return null;
+  if (!isOwner) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <AlertTriangle className="h-4 w-4" />
+        Apenas o owner pode excluir a wiki.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {step === 'hidden' && (
+        <Button variant="destructive" onClick={() => setStep('warning')}>
+          <Trash2 className="h-4 w-4 mr-2" />
+          Excluir Wiki
+        </Button>
+      )}
+
+      {step === 'warning' && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Você está prestes a excluir permanentemente a wiki <strong>{tenantName}</strong>.
+            Esta ação não pode ser desfeita.
+          </p>
+          <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+            <li>Todos os artigos serão removidos</li>
+            <li>Todas as coleções e dados serão perdidos</li>
+            <li>O domínio personalizado será desassociado</li>
+            <li>Os membros perderão acesso à wiki</li>
+          </ul>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={() => setStep('hidden')}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => setStep('backup')}>Continuar</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'backup' && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Faça um backup dos dados da wiki antes de excluir.
+          </p>
+          <Button variant="outline" onClick={handleBackup}>
+            <Download className="h-4 w-4 mr-2" />
+            {backupData ? 'Baixar novamente' : 'Baixar Backup (.json)'}
+          </Button>
+          {backupData && (
+            <p className="text-xs text-green-500">Backup baixado!</p>
+          )}
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={() => setStep('warning')}>Voltar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => setStep('confirm')}
+            >
+              {backupData ? 'Continuar para exclusão' : 'Pular backup e excluir'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'confirm' && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-destructive">
+            Digite o identificador da wiki (<strong>{slug}</strong>) para confirmar.
+          </p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={slug}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/50"
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setStep('hidden'); setConfirmText(''); }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmText !== slug || deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              {deleting ? 'Excluindo...' : 'Excluir Wiki'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ColorField({
