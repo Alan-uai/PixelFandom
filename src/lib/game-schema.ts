@@ -28,49 +28,24 @@ type CategoryEntry = {
 
 type CategoryMap = Record<string, CategoryEntry>;
 
-const KEYWORD_OVERRIDES: Record<string, string[]> = {
-  weapons: ['arma', 'armas', 'weapon'],
-  armors: ['armadura', 'armaduras', 'armor'],
-  rings: ['anel', 'anéis', 'aneis', 'ring'],
-  enemies: ['inimigo', 'inimigos', 'enemy'],
-  bosses: ['chefe', 'chefes', 'boss'],
-  potions: ['poção', 'poções', 'pocao', 'pocoes', 'potion', 'flask'],
-  upgrades: ['upgrade', 'banner', 'banners'],
-  worlds: ['mundo', 'mundos', 'world'],
-  codes: ['código', 'códigos', 'codigo', 'codigos', 'code'],
-  crafting_recipes: ['receita', 'receitas', 'recipe', 'craft'],
-  resources: ['recurso', 'recursos', 'resource', 'material', 'materiais'],
-  build_presets: ['build', 'builds', 'preset', 'presets'],
+type TableMeta = {
+  label: string;
+  keywords: string[];
 };
 
-const TABLE_LABELS: Record<string, string> = {
-  weapons: 'Armas',
-  armors: 'Armaduras',
-  rings: 'Anéis',
-  enemies: 'Inimigos',
-  bosses: 'Chefes',
-  potions: 'Poções',
-  upgrades: 'Upgrades/Banners',
-  worlds: 'Mundos',
-  codes: 'Códigos',
-  crafting_recipes: 'Receitas',
-  resources: 'Materiais',
-  build_presets: 'Builds/Presets',
-};
-
-const TABLE_DESCRIPTIONS: Record<string, string> = {
-  weapons: 'name, rarity (common/rare/epic/legendary/vaulted), weapon_type, damage_min, damage_max, crit_chance_min, crit_chance_max, attack_speed (fast/medium/slow), knockback, element (fire/frost/poison/dark/ghost/void/earth/none), ability_name, ability_description, ability_energy_cost, ability_cooldown, ability_effect, obtain_method (COMO OBTER), craft_cost, craft_materials, is_worth_crafting, drop_rate_multiplier, drop_rate_percentage, tier (s_plus/s/a/b/c/d), notes',
-  armors: 'name, rarity, world_name, health_bonus, speed_bonus, energy_bonus, passive_ability, passive_ability_level, obtain_method (COMO OBTER), craft_cost, craft_materials, set_bonus, is_worth_crafting, tier, notes',
-  rings: 'name, tier, rarity, description, starting_banner, key_buffs, possible_stats, synergy, is_craftable, craft_cost, craft_materials, is_worth_crafting, obtain_method (COMO OBTER), drop_wave_requirement',
-  enemies: 'name, world_name, chapters, enemy_type, description, health_level, speed_level, strength_level, difficulty, attacks, effects, xp_drop, coin_drop, items_dropped, weakness',
-  bosses: 'name, world_name, chapter, boss_type, description, hp_level, difficulty, attacks, phase_mechanics, weakness, strategy, tips, xp_drop, items_dropped, notable_loot',
-  potions: 'name, slug, effects, shop_price, crafting_cost, crafting_materials, savings_percentage, unlock_level, second_slot_unlock_level, max_uses_per_run',
-  upgrades: 'name, category (offensive/defensive/utility), description, effect, per_rank_effect, max_ranks, tier, is_must_pick, notes',
-  worlds: 'world_name, world_number, world_type, level_range, description, environment, chapters, levels_per_chapter, is_coming_soon',
-  codes: 'code, reward, description, active, uses_remaining, expires_at',
-  crafting_recipes: 'item_name, item_type, rarity, gold_cost, materials, is_worth_crafting, worth_notes',
-  resources: 'resource_name, resource_type, source_world, source_method, usage_description',
-  build_presets: 'name, weapon_slot, armor_slot, ring_slot, potion_slot, description, is_meta',
+const TABLE_META: Record<string, TableMeta> = {
+  weapons: { label: 'Armas', keywords: ['arma', 'armas', 'weapon'] },
+  armors: { label: 'Armaduras', keywords: ['armadura', 'armaduras', 'armor'] },
+  rings: { label: 'Anéis', keywords: ['anel', 'anéis', 'aneis', 'ring'] },
+  enemies: { label: 'Inimigos', keywords: ['inimigo', 'inimigos', 'enemy'] },
+  bosses: { label: 'Chefes', keywords: ['chefe', 'chefes', 'boss'] },
+  potions: { label: 'Poções', keywords: ['poção', 'poções', 'pocao', 'pocoes', 'potion', 'flask'] },
+  upgrades: { label: 'Upgrades/Banners', keywords: ['upgrade', 'banner', 'banners'] },
+  worlds: { label: 'Mundos', keywords: ['mundo', 'mundos', 'world'] },
+  codes: { label: 'Códigos', keywords: ['código', 'códigos', 'codigo', 'codigos', 'code'] },
+  crafting_recipes: { label: 'Receitas', keywords: ['receita', 'receitas', 'recipe', 'craft'] },
+  resources: { label: 'Materiais', keywords: ['recurso', 'recursos', 'resource', 'material', 'materiais'] },
+  build_presets: { label: 'Builds/Presets', keywords: ['build', 'builds', 'preset', 'presets'] },
 };
 
 let cachedSchema: GameSchema | null = null;
@@ -87,12 +62,30 @@ function deriveSingular(tableName: string): string {
   return tableName;
 }
 
+function autoLabel(tableName: string): string {
+  const meta = TABLE_META[tableName];
+  if (meta) return meta.label;
+  return tableName
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function getTableMeta(tableName: string): TableMeta {
+  const existing = TABLE_META[tableName];
+  if (existing) return existing;
+  const singular = deriveSingular(tableName);
+  return {
+    label: autoLabel(tableName),
+    keywords: [tableName, singular, singular + 's'],
+  };
+}
+
 export function buildSchemaPrompt(schema: GameSchema): string {
   const parts = schema.tables.map((t) => {
-    const label = TABLE_LABELS[t.table_name] || t.table_name;
-    const desc = TABLE_DESCRIPTIONS[t.table_name] || '';
+    const label = getTableMeta(t.table_name).label;
     const nonSystem = t.columns.filter((c) => !c.is_system);
-    const cols = desc || nonSystem.map((c) => c.column_name).join(', ');
+    const cols = nonSystem.map((c) => c.column_name).join(', ');
     return `### ${t.table_name} (${label})\n${cols}`;
   });
 
@@ -120,9 +113,9 @@ export function buildCategoryMap(schema: GameSchema): CategoryMap {
   for (const t of schema.tables) {
     const table = t.table_name;
     const sourceType = deriveSingular(table);
+    const meta = getTableMeta(table);
 
-    const overrides = KEYWORD_OVERRIDES[table] || [];
-    for (const kw of overrides) {
+    for (const kw of meta.keywords) {
       map[kw.toLowerCase()] = { table, sourceType };
     }
 

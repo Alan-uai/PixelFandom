@@ -1,33 +1,13 @@
 import { generateEmbedding } from './gemini-embedding';
-import { getCategoryMap } from './game-schema';
+import { getGameSchema } from './game-schema';
 
-type CategoryEntry = {
-  table: string;
-  sourceType: string;
-};
+const RPC_COVERED = new Set([
+  'weapons', 'armors', 'enemies', 'bosses',
+  'rings', 'potions', 'upgrades', 'worlds',
+]);
 
-let cachedCategoryMap: Record<string, CategoryEntry> = {};
-let catCacheTime = 0;
-const CAT_CACHE_TTL = 5 * 60 * 1000;
-
-async function ensureCategoryMap(): Promise<Record<string, CategoryEntry>> {
-  const now = Date.now();
-  if (Object.keys(cachedCategoryMap).length > 0 && now - catCacheTime < CAT_CACHE_TTL) {
-    return cachedCategoryMap;
-  }
-  cachedCategoryMap = await getCategoryMap();
-  catCacheTime = now;
-  return cachedCategoryMap;
-}
-
-async function detectCategory(query: string): Promise<CategoryEntry | null> {
-  const q = query.toLowerCase();
-  const map = await ensureCategoryMap();
-  for (const [keyword, mapping] of Object.entries(map)) {
-    if (q.includes(keyword)) return mapping;
-  }
-  return null;
-}
+const NAME_FALLBACK = ['name', 'item_name', 'title', 'code', 'world_name', 'resource_name', 'build_name'] as const;
+const DESC_FALLBACK = ['description', 'notes', 'effect', 'summary'] as const;
 
 export interface WikiSearchItem {
   id: string;
@@ -178,42 +158,55 @@ export async function searchAll(
     }
   }
 
-  const category = await detectCategory(query);
-  if (category) {
-    try {
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle();
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle();
 
-      if (tenant) {
-        const { data: rows } = await supabase
-          .from(category.table)
-          .select('*')
-          .eq('tenant_id', tenant.id);
+  if (tenant) {
+    const schema = await getGameSchema();
+    const uncovered = schema.tables.filter(t => !RPC_COVERED.has(t.table_name));
 
-        if (rows && rows.length > 0) {
-          const categoryResults: GameSearchItem[] = rows
-            .filter((row: any) => row.name || row.slug)
-            .map((row: any) => ({
-              source_type: category.sourceType,
+    for (const table of uncovered) {
+      const textCols = table.columns.filter(c =>
+        (c.data_type === 'text' || c.data_type === 'character varying')
+        && !c.is_system
+        && c.column_name !== 'embedding'
+      );
+      if (textCols.length === 0) continue;
+
+      const orCond = textCols.map(c => `${c.column_name}.ilike.%${query}%`).join(',');
+      const { data: rows } = await supabase
+        .from(table.table_name as any)
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .or(orCond)
+        .limit(limit * 3);
+
+      if (rows) {
+        const sourceType = table.table_name.replace(/_/g, ' ').replace(/s$/, '');
+        allGameItems.push(
+          rows.map((row: any) => {
+            const name = NAME_FALLBACK.reduce((v, c) => v || row?.[c], '') || row.id;
+            const description = DESC_FALLBACK.reduce((v, c) => v || row?.[c], '') || '';
+            const slug = row.slug || row.world_name || row.code || row.item_name || row.id;
+            return {
+              source_type: sourceType,
               id: row.id,
-              name: row.name || '',
-              description: row.description || '',
-              slug: row.slug || '',
-              tags: row.tags || null,
+              name,
+              description,
+              slug,
+              tags: row.tags ?? null,
               collection_name: null,
               collection_slug: null,
               raw_data: row as Record<string, unknown>,
-              rank: 10,
+              rank: 5,
               match_type: 'fulltext',
-            }));
-          allGameItems.push(categoryResults);
-        }
+            };
+          })
+        );
       }
-    } catch {
-      // category fallback failed silently
     }
   }
 
