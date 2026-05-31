@@ -10,7 +10,6 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil } from 'lucide-react';
-import { PageSubNav } from '@/components/dashboard/page-subnav';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { createDefaultCommand, migrateOldCommand, type DiscordConfig as DiscordConfigType, type CustomCommand } from '@/components/discord/types';
@@ -180,9 +179,7 @@ export default function WikiDiscordPage() {
 
   return (
     <GuildDataProvider>
-      <div className="flex min-w-0">
-        <PageSubNav sections={sections} />
-        <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
+      <div className="p-6 max-w-2xl mx-auto space-y-6">
 
         <section id="discord-login">
           <DiscordLoginGate />
@@ -404,7 +401,6 @@ export default function WikiDiscordPage() {
             Salvar Configuração
           </Button>
         ) : null}
-        </div>
       </div>
     </GuildDataProvider>
   );

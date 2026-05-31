@@ -419,7 +419,7 @@ export default function WikiPage() {
                   <div key={article.id} className="relative pb-1">
                     <Link
                       href={wikiArticlePath(article.slug || article.id)}
-                      className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
+                      className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
                     >
                       {article.icon && article.icon.startsWith('http') ? (
                         <img src={article.icon} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
@@ -443,12 +443,12 @@ export default function WikiPage() {
                           {new Date(article.updated_at).toLocaleDateString('pt-BR')}
                         </span>
                       )}
+                      <CardSymbols
+                        targetType="article"
+                        targetId={article.id}
+                        votePosition={articleCardVotePos}
+                      />
                     </Link>
-                    <CardSymbols
-                      targetType="article"
-                      targetId={article.id}
-                      votePosition={articleCardVotePos}
-                    />
                   </div>
                 ))}
               </div>

@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot, Sparkles } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
-import { PageSubNav } from '@/components/dashboard/page-subnav';
 import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
 
 interface FreeModel {
@@ -344,9 +343,7 @@ export default function WikiAIConfigPage() {
   ];
 
   return (
-    <div className="flex min-w-0">
-      <PageSubNav sections={sections} />
-      <div className="flex-1 min-w-0 p-4 md:p-6 container max-w-2xl space-y-6">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="activation">
       <Card>
@@ -882,7 +879,6 @@ Quais são as melhores armas?"
         </Card>
       )}
       </section>
-      </div>
     </div>
   );
 }

@@ -18,13 +18,13 @@ type Props = {
 function positionStyle(pos: CardPosition): React.CSSProperties {
   switch (pos.edge) {
     case 'top':
-      return { top: 0, left: `${pos.offsetPct}%`, transform: 'translateX(-50%)' };
+      return { top: 0, left: `${pos.offsetPct}%`, transform: 'translate(-50%, -50%)' };
     case 'bottom':
-      return { bottom: 0, left: `${pos.offsetPct}%`, transform: 'translateX(-50%)' };
+      return { bottom: 0, left: `${pos.offsetPct}%`, transform: 'translate(-50%, 50%)' };
     case 'left':
-      return { left: 0, top: `${pos.offsetPct}%`, transform: 'translateY(-50%)' };
+      return { left: 0, top: `${pos.offsetPct}%`, transform: 'translate(-50%, -50%)' };
     case 'right':
-      return { right: 0, top: `${pos.offsetPct}%`, transform: 'translateY(-50%)' };
+      return { right: 0, top: `${pos.offsetPct}%`, transform: 'translate(50%, -50%)' };
   }
 }
 

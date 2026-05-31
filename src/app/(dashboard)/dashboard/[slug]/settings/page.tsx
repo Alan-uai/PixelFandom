@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download } from 'lucide-react';
-import { PageSubNav } from '@/components/dashboard/page-subnav';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 
 export default function WikiSettingsPage() {
@@ -192,9 +191,7 @@ export default function WikiSettingsPage() {
   ];
 
   return (
-    <div className="flex min-w-0">
-      <PageSubNav sections={sections} />
-      <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="basic-info">
       <Card>
@@ -546,7 +543,6 @@ export default function WikiSettingsPage() {
           Salvar
         </Button>
       ) : null}
-      </div>
     </div>
   );
 }
@@ -638,13 +634,16 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase
-        .from('tenants')
-        .delete()
-        .eq('slug', slug);
+      const res = await fetch('/api/tenants/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug }),
+      });
 
-      if (error) {
-        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({ variant: 'destructive', title: 'Erro', description: data.error || 'Falha ao excluir wiki.' });
         setDeleting(false);
         return;
       }

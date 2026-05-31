@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
+import { MAIN_URL } from '@/lib/constants';
 
 type VoteButtonsProps = {
   targetType: 'article' | 'tenant';
@@ -41,7 +41,11 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
   const handleVote = useCallback(async (voteType: 'up' | 'down') => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      const origin = window.location.origin;
+      const loginUrl = origin === MAIN_URL
+        ? `/login?redirect_to=${encodeURIComponent(window.location.href)}`
+        : `${MAIN_URL}/login?redirect_to=${encodeURIComponent(window.location.href)}`;
+      window.location.href = loginUrl;
       return;
     }
 
@@ -81,20 +85,20 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
   const score = upvotes - downvotes;
 
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-md border bg-background px-1.5 py-0.5 text-xs font-medium shadow-sm">
+    <div className="inline-flex items-center gap-0.5 bg-background px-1 text-xs">
       <button
         onClick={() => handleVote('up')}
         disabled={loading}
         className={cn(
-          'p-0.5 rounded transition-colors hover:text-primary',
+          'p-0.5 rounded transition-colors hover:text-primary leading-none',
           userVote === 'up' ? 'text-primary' : 'text-muted-foreground'
         )}
         title="Gostei"
       >
-        <ArrowUp className="h-3.5 w-3.5" />
+        ▲
       </button>
       <span className={cn(
-        'tabular-nums min-w-[1.2ch] text-center font-semibold text-xs',
+        'tabular-nums min-w-[1.2ch] text-center font-semibold text-xs leading-none',
         score > 0 ? 'text-primary' : score < 0 ? 'text-destructive' : 'text-muted-foreground'
       )}>
         {score}
@@ -103,12 +107,12 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
         onClick={() => handleVote('down')}
         disabled={loading}
         className={cn(
-          'p-0.5 rounded transition-colors hover:text-destructive',
+          'p-0.5 rounded transition-colors hover:text-destructive leading-none',
           userVote === 'down' ? 'text-destructive' : 'text-muted-foreground'
         )}
         title="Não gostei"
       >
-        <ArrowDown className="h-3.5 w-3.5" />
+        ▼
       </button>
     </div>
   );

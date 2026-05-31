@@ -24,18 +24,34 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get('sb_access_token');
+    const refreshToken = params.get('sb_refresh_token');
+
+    const init = async () => {
+      if (accessToken && refreshToken) {
+        window.history.replaceState({}, '', window.location.pathname);
+        const { data } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
       setIsLoading(false);
-    });
+    };
+
+    init();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();

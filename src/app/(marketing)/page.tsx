@@ -227,11 +227,12 @@ export default function Home() {
                     className="snap-start shrink-0 w-[280px] relative pb-2"
                   >
                     <a
-                      href={wikiUrl}
-                      className="block"
+                      href={`/w/${wiki.slug}`}
+                      className="block group"
+                      key={wiki.id}
                     >
                       <Card
-                        className="h-full transition-colors cursor-pointer relative overflow-hidden"
+                        className="h-full transition-colors cursor-pointer relative"
                         style={wiki.cover_image ? {
                           backgroundImage: `url(${wiki.cover_image})`,
                           backgroundSize: 'cover',
@@ -262,16 +263,16 @@ export default function Home() {
                             </div>
                           </CardContent>
                         </div>
+                        <CardSymbols
+                          targetType="tenant"
+                          targetId={wiki.id}
+                          tenantId={wiki.id}
+                          initialUpvotes={v?.upvotes ?? 0}
+                          initialDownvotes={v?.downvotes ?? 0}
+                          initialUserVote={v?.user_vote ?? null}
+                        />
                       </Card>
                     </a>
-                    <CardSymbols
-                      targetType="tenant"
-                      targetId={wiki.id}
-                      tenantId={wiki.id}
-                      initialUpvotes={v?.upvotes ?? 0}
-                      initialDownvotes={v?.downvotes ?? 0}
-                      initialUserVote={v?.user_vote ?? null}
-                    />
                   </div>
                 );
               })}

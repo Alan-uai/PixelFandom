@@ -15,13 +15,10 @@ import {
   BookOpen,
   ExternalLink,
   Headphones,
-  PanelLeft,
-  PanelLeftClose,
   Download,
   FileText,
 } from 'lucide-react';
 import { LayoutGroup, motion } from 'framer-motion';
-import { PageSubNavProvider, usePageSubNav } from '@/components/dashboard/page-subnav-context';
 
 export default function DashboardLayout({
   children,
@@ -83,12 +80,7 @@ export default function DashboardLayout({
       ]
     : [];
 
-  const currentItem = isWikiPage
-    ? navItems.find((item) => pathname === `/dashboard/${wikiSlug}/${item.href}`) ?? null
-    : null;
-
   return (
-    <PageSubNavProvider>
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
         <Link
@@ -153,8 +145,6 @@ export default function DashboardLayout({
         <div className="flex-1" />
       </header>
 
-      <TitleStrip isWikiPage={isWikiPage} currentItem={currentItem} />
-
       <main className="flex-1 overflow-y-auto overflow-x-hidden">
         {isWikiPage ? (
           children
@@ -165,29 +155,6 @@ export default function DashboardLayout({
         )}
       </main>
     </div>
-    </PageSubNavProvider>
   );
 }
 
-function TitleStrip({ isWikiPage, currentItem }: { isWikiPage: boolean; currentItem: { label: string; icon: any } | null }) {
-  const { collapsed, toggle } = usePageSubNav();
-
-  if (!isWikiPage || !currentItem) return null;
-
-  return (
-    <div className="flex items-center border-b bg-background/50">
-      <button
-        onClick={toggle}
-        className="flex items-center justify-center w-10 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
-        title={collapsed ? 'Expandir seções' : 'Recolher seções'}
-      >
-        {collapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
-      </button>
-      <div className="flex-1 flex items-center justify-center pr-10">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-          {currentItem.label}
-        </span>
-      </div>
-    </div>
-  );
-}

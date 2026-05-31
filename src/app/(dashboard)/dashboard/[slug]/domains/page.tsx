@@ -19,7 +19,6 @@ import {
   Clock,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
-import { PageSubNav } from '@/components/dashboard/page-subnav';
 
 type DomainInfo = {
   verified: boolean;
@@ -184,9 +183,7 @@ export default function WikiDomainsPage() {
   };
 
   return (
-    <div className="flex min-w-0">
-      <PageSubNav sections={sections} />
-      <div className="flex-1 min-w-0 p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="default-url">
       <Card>
@@ -339,7 +336,6 @@ export default function WikiDomainsPage() {
         </CardContent>
       </Card>
       </section>
-      </div>
     </div>
   );
 }

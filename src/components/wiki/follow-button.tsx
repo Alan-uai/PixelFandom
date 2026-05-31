@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
+import { MAIN_URL } from '@/lib/constants';
 
 type FollowButtonProps = {
   tenantId: string;
@@ -34,7 +35,11 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
   const handleToggle = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      const origin = window.location.origin;
+      const loginUrl = origin === MAIN_URL
+        ? `/login?redirect_to=${encodeURIComponent(window.location.href)}`
+        : `${MAIN_URL}/login?redirect_to=${encodeURIComponent(window.location.href)}`;
+      window.location.href = loginUrl;
       return;
     }
 
@@ -60,10 +65,10 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
       onClick={handleToggle}
       disabled={loading}
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border bg-background px-2 py-0.5 text-xs font-medium shadow-sm transition-colors',
+        'inline-flex items-center gap-0.5 bg-background px-1 text-xs leading-none transition-colors',
         following
-          ? 'text-amber-400 border-amber-400/40 hover:text-amber-500 hover:border-amber-500/60'
-          : 'text-muted-foreground hover:text-foreground hover:border-foreground/30'
+          ? 'text-amber-400 hover:text-amber-500'
+          : 'text-muted-foreground hover:text-foreground'
       )}
       title={following ? 'Deixar de seguir' : 'Seguir'}
     >

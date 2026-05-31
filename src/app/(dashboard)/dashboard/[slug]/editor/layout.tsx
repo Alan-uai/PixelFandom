@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   BookOpen,
@@ -19,7 +20,6 @@ import {
   PanelLeft,
   PanelLeftClose,
 } from 'lucide-react';
-import { usePageSubNav } from '@/components/dashboard/page-subnav-context';
 
 const editorNavItems = [
   { href: `/editor`, label: 'Artigos', icon: BookOpen },
@@ -40,7 +40,25 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const params = useParams();
   const slug = params.slug as string;
-  const { collapsed, toggle } = usePageSubNav();
+  const [collapsed, setCollapsed] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('editor-sidebar-collapsed');
+      if (stored === 'false') setCollapsed(false);
+    } catch {}
+  }, []);
+
+  const toggle = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('editor-sidebar-collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   return (
     <div className="flex min-h-0">

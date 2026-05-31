@@ -41,7 +41,7 @@ export default function WikiGrid({ articles, basePath, columns, votePosition }: 
           <div key={article.id} className="relative pb-2">
             <Link
               href={href}
-              className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 flex flex-col"
+              className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 flex flex-col relative"
             >
               <div className="aspect-video overflow-hidden rounded-t-xl bg-muted">
                 {article.image_url ? (
@@ -94,12 +94,13 @@ export default function WikiGrid({ articles, basePath, columns, votePosition }: 
                   )}
                 </div>
               </div>
+
+              <CardSymbols
+                targetType="article"
+                targetId={article.id}
+                votePosition={votePosition}
+              />
             </Link>
-            <CardSymbols
-              targetType="article"
-              targetId={article.id}
-              votePosition={votePosition}
-            />
           </div>
         );
       })}
