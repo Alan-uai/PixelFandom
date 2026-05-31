@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useSupabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, X, Mail, Chrome, Code2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -117,40 +116,31 @@ export default function AuthDialog({ open, onClose }: AuthDialogProps) {
           {/* Email form */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
             {mode === 'signup' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="username">Nome de usuário</Label>
-                <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="usuario"
-                  required
-                />
-              </div>
+              <FloatingLabelInput
+                label="Nome de usuário"
+                info="Como você será identificado na plataforma"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemplo.com"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
+            <FloatingLabelInput
+              label="Email"
+              type="email"
+              info="Usado para login e recuperação de senha"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <FloatingLabelInput
+              label="Senha"
+              type="password"
+              info="Mínimo de 6 caracteres"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

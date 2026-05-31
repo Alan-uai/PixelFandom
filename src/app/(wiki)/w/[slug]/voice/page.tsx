@@ -4,12 +4,19 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useWikiData } from '@/context/wiki-provider'
+import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context'
 import type { VoiceName } from '@/lib/voice/geminilive'
+import { AI_PERSONALITIES } from '@/lib/ai-personalities'
+import { personas } from '@/lib/personas'
+import { emojiStyles } from '@/lib/emoji-styles'
+import { responseStyles } from '@/lib/response-styles'
+import { officialLanguages } from '@/lib/official-languages'
 import { Button } from '@/components/ui/button'
+import { FloatingLabelInput } from '@/components/ui/floating-label-input'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Volume2, Save, Mic, Headphones, Ear, Loader2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Volume2, Save, Mic, Headphones, Ear, Loader2, MessageCircle, Check, Sparkles } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUser, supabase } from '@/supabase'
 
@@ -69,12 +76,13 @@ function saveSettings(s: Settings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
 }
 
-export default function VoicePage() {
+export default function AISettingsPage() {
   const params = useParams()
   const slug = params?.slug as string
   const { data, loading } = useWikiData()
   const { toast } = useToast()
   const { user } = useUser()
+  const { preferences, updatePreference } = useUserPreferences()
   const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {}
 
   const [settings, setSettings] = useState<Settings>(() => ({
@@ -107,6 +115,10 @@ export default function VoicePage() {
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const updateChat = <K extends keyof ChatSettings>(key: K, value: ChatSettings[K]) => {
+    updatePreference('chat_settings', { ...preferences.chat_settings, [key]: value })
   }
 
   const handleSave = async () => {
@@ -151,237 +163,384 @@ export default function VoicePage() {
           animate={{ scale: 1 }}
           className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4"
         >
-          <Headphones className="h-8 w-8 text-primary" />
+          <Sparkles className="h-8 w-8 text-primary" />
         </motion.div>
-        <h1 className="text-2xl font-bold">Configurações do Agente de Voz</h1>
+        <h1 className="text-2xl font-bold">Configurações de IA</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Personalize a experiência do assistente de voz da wiki.
+          Personalize a experiência do assistente de texto e voz da wiki.
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-4 text-center">
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Mic className="h-4 w-4 text-primary" />
-          <span>O assistente de voz pode ser acessado pelo botão flutuante com microfone em qualquer página da wiki.</span>
-        </div>
-      </div>
+      <Tabs defaultValue="chat" className="w-full">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" />
+            <span>Chat de Texto</span>
+          </TabsTrigger>
+          <TabsTrigger value="voice" className="flex items-center gap-2">
+            <Headphones className="h-4 w-4" />
+            <span>Voz</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Perfil</CardTitle>
-          <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="userName">Seu Nome</Label>
-            <Input
-              id="userName"
-              value={settings.userName}
-              onChange={(e) => update('userName', e.target.value)}
-              placeholder="Como prefere ser chamado?"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lang">Idioma</Label>
-            <select
-              id="lang"
-              value={settings.userLang}
-              onChange={(e) => update('userLang', e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="pt">Português</option>
-              <option value="en">English</option>
-              <option value="es">Español</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+        {/* ── Chat de Texto ── */}
+        <TabsContent value="chat" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personalidade</CardTitle>
+              <CardDescription>Escolha a personalidade do assistente IA.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {AI_PERSONALITIES.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => updateChat('personality_id', p.id)}
+                    className={`relative flex items-start gap-3 rounded-lg border p-3 text-left transition-all ${
+                      preferences.chat_settings.personality_id === p.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                    }`}
+                  >
+                    <span className="text-xl">{p.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
+                    </div>
+                    {preferences.chat_settings.personality_id === p.id && (
+                      <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Voz</CardTitle>
-          <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="voice">Voz do Assistente</Label>
-            <select
-              id="voice"
-              value={settings.voice}
-              onChange={(e) => update('voice', e.target.value as VoiceName)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="Puck">Puck — Equilibrada</option>
-              <option value="Kore">Kore — Brilhante e clara</option>
-              <option value="Charon">Charon — Grave e acolhedora</option>
-              <option value="Fenrir">Fenrir — Forte e assertiva</option>
-              <option value="Aoede">Aoede — Suave e melódica</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Volume2 className="h-4 w-4" />
-              Volume ({settings.volume}%)
-            </Label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={settings.volume}
-              onChange={(e) => update('volume', Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Tom da Conversa</Label>
-            <div className="flex gap-2">
-              {[
-                { value: 0.3, label: 'Profissional' },
-                { value: 0.7, label: 'Natural' },
-                { value: 1.0, label: 'Criativo' },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => update('temperature', opt.value)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
-                    settings.temperature === opt.value
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+          <Card>
+            <CardHeader>
+              <CardTitle>Persona</CardTitle>
+              <CardDescription>Define o tom geral das respostas.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(personas).map(([key, val]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => updateChat('persona', key)}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                      preferences.chat_settings.persona === key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Emojis</CardTitle>
+              <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(emojiStyles).map(([key]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => updateChat('emoji_style', key)}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                      preferences.chat_settings.emoji_style === key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {key === 'moderate' ? 'Moderado' : key === 'none' ? 'Sem emojis' : 'Vários'}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Estilo de Resposta</CardTitle>
+              <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(responseStyles).map(([key]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => updateChat('response_style', key)}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                      preferences.chat_settings.response_style === key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {key === 'detailed' ? 'Detalhado' : key === 'short' ? 'Curto' : 'Tópicos'}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Idioma do Chat</CardTitle>
+              <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(officialLanguages).map(([key, val]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => updateChat('language', key)}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+                      preferences.chat_settings.language === key
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {val.instruction}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Chat de Voz ── */}
+        <TabsContent value="voice" className="space-y-6 mt-6">
+          <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Mic className="h-4 w-4 text-primary" />
+              <span>O assistente de voz pode ser acessado pelo botão flutuante com microfone em qualquer página da wiki.</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Áudio</CardTitle>
-          <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(['noiseCancellation', 'echoCancellation', 'autoGainControl'] as const).map((key) => (
-            <div key={key} className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">
-                  {key === 'noiseCancellation' ? 'Cancelamento de Ruído'
-                    : key === 'echoCancellation' ? 'Cancelamento de Eco'
-                    : 'Controle Automático de Ganho'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {key === 'noiseCancellation' ? 'Reduz ruídos de fundo'
-                    : key === 'echoCancellation' ? 'Elimina eco do áudio'
-                    : 'Ajusta o volume automaticamente'}
+          <Card>
+            <CardHeader>
+              <CardTitle>Perfil</CardTitle>
+              <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FloatingLabelInput
+                label="Seu Nome"
+                value={settings.userName}
+                onChange={(e) => update('userName', e.target.value)}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="lang">Idioma</Label>
+                <select
+                  id="lang"
+                  value={settings.userLang}
+                  onChange={(e) => update('userLang', e.target.value)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="pt">Português</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Voz</CardTitle>
+              <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="voice">Voz do Assistente</Label>
+                <select
+                  id="voice"
+                  value={settings.voice}
+                  onChange={(e) => update('voice', e.target.value as VoiceName)}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="Puck">Puck — Equilibrada</option>
+                  <option value="Kore">Kore — Brilhante e clara</option>
+                  <option value="Charon">Charon — Grave e acolhedora</option>
+                  <option value="Fenrir">Fenrir — Forte e assertiva</option>
+                  <option value="Aoede">Aoede — Suave e melódica</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  Volume ({settings.volume}%)
+                </Label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={settings.volume}
+                  onChange={(e) => update('volume', Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tom da Conversa</Label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 0.3, label: 'Profissional' },
+                    { value: 0.7, label: 'Natural' },
+                    { value: 1.0, label: 'Criativo' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => update('temperature', opt.value)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                        settings.temperature === opt.value
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Áudio</CardTitle>
+              <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(['noiseCancellation', 'echoCancellation', 'autoGainControl'] as const).map((key) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">
+                      {key === 'noiseCancellation' ? 'Cancelamento de Ruído'
+                        : key === 'echoCancellation' ? 'Cancelamento de Eco'
+                        : 'Controle Automático de Ganho'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {key === 'noiseCancellation' ? 'Reduz ruídos de fundo'
+                        : key === 'echoCancellation' ? 'Elimina eco do áudio'
+                        : 'Ajusta o volume automaticamente'}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings[key]}
+                    onChange={(e) => update(key, e.target.checked)}
+                    className="h-5 w-5 rounded border-gray-300"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ear className="h-5 w-5" />
+                Ativação por Voz
+              </CardTitle>
+              <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-muted/50 px-4 py-3">
+                <p className="text-xs text-muted-foreground mb-1">Palavra de ativação configurada pelo admin</p>
+                <p className="text-sm font-mono font-semibold text-primary">
+                  {(aiConfig.wake_word_text as string) || 'xWiki'}
                 </p>
               </div>
-              <input
-                type="checkbox"
-                checked={settings[key]}
-                onChange={(e) => update(key, e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300"
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Wake Word</p>
+                  <p className="text-xs text-muted-foreground">Diga a palavra de ativação seguida da sua mensagem</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.wakeWordEnabled}
+                  onChange={(e) => update('wakeWordEnabled', e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Ear className="h-5 w-5" />
-            Ativação por Voz
-          </CardTitle>
-          <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-muted/50 px-4 py-3">
-            <p className="text-xs text-muted-foreground mb-1">Palavra de ativação configurada pelo admin</p>
-            <p className="text-sm font-mono font-semibold text-primary">
-              {(aiConfig.wake_word_text as string) || 'xWiki'}
-            </p>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Wake Word</p>
-              <p className="text-xs text-muted-foreground">Diga a palavra de ativação seguida da sua mensagem</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.wakeWordEnabled}
-              onChange={(e) => update('wakeWordEnabled', e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Modo Público</CardTitle>
+              <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Modo Público</p>
+                  <p className="text-xs text-muted-foreground">Menos sensível a ruídos ambiente</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.publicMode}
+                  onChange={(e) => update('publicMode', e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300"
+                />
+              </div>
+              {settings.publicMode && (
+                <div className="space-y-2">
+                  <Label>Sensibilidade ({settings.publicModeSensitivity})</Label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={settings.publicModeSensitivity}
+                    onChange={(e) => update('publicModeSensitivity', Number(e.target.value))}
+                    className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Modo Público</CardTitle>
-          <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Modo Público</p>
-              <p className="text-xs text-muted-foreground">Menos sensível a ruídos ambiente</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.publicMode}
-              onChange={(e) => update('publicMode', e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
-          </div>
-          {settings.publicMode && (
-            <div className="space-y-2">
-              <Label>Sensibilidade ({settings.publicModeSensitivity})</Label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={settings.publicModeSensitivity}
-                onChange={(e) => update('publicModeSensitivity', Number(e.target.value))}
-                className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Comportamento</CardTitle>
+              <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Navegação Primária</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ao encontrar um item, navegue direto para a página antes de mostrar estatísticas
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.primaryNavigation}
+                  onChange={(e) => update('primaryNavigation', e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Comportamento</CardTitle>
-          <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Navegação Primária</p>
-              <p className="text-xs text-muted-foreground">
-                Ao encontrar um item, navegue direto para a página antes de mostrar estatísticas
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.primaryNavigation}
-              onChange={(e) => update('primaryNavigation', e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
+          <div className="flex justify-center">
+            <Button onClick={handleSave} disabled={saving} size="lg">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {saving ? 'Salvando...' : 'Salvar Configurações'}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-center">
-        <Button onClick={handleSave} disabled={saving} size="lg">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {saving ? 'Salvando...' : 'Salvar Configurações'}
-        </Button>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -314,10 +314,10 @@ export default function WikiDomainsPage() {
             <div className="space-y-3">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Input
+                  <FloatingLabelInput
+                    label="Domínio"
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
-                    placeholder="meudominio.com"
                   />
                 </div>
                 <Button onClick={handleAddDomain} disabled={saving || !domain}>

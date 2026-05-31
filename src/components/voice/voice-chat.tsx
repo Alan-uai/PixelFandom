@@ -17,7 +17,7 @@ export default function VoiceChat({ tenantSlug, isActive }: Props) {
           ? 'text-primary bg-primary/10'
           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
       }`}
-      title="Configuração do Agente de Voz"
+      title="Configurações de IA"
     >
       <Headphones className="h-4 w-4" />
     </Link>

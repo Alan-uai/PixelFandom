@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, Send, Bot, User, AlertCircle, MessageSquare, Trash2, Clock } from 'lucide-react';
 import StreamingAccordion from './streaming-accordion';
 import { supabase } from '@/supabase';
@@ -302,14 +302,15 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
           <div ref={messagesEndRef} />
         </div>
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 p-3 border-t">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Pergunte algo..."
-            disabled={loading}
-            className="flex-1"
-          />
+          <div className="flex-1">
+            <FloatingLabelInput
+              ref={inputRef}
+              label="Pergunte algo..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={loading}
+            />
+          </div>
           <Button type="submit" size="icon" disabled={loading || !input.trim()}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
@@ -402,14 +403,15 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4">
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Digite sua pergunta..."
-              disabled={loading}
-              className="flex-1 h-12 text-base"
-            />
+            <div className="flex-1">
+              <FloatingLabelInput
+                ref={inputRef}
+                label="Digite sua pergunta..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={loading}
+              />
+            </div>
             <Button type="submit" disabled={loading || !input.trim()} className="h-12 px-6">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
               <Send className="ml-2 h-4 w-4" />

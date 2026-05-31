@@ -187,7 +187,7 @@ export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: Cha
   }, []);
 
   if (isChatPage) return null;
-  if (widgetConfig?.enabled === false && !pos) return null;
+  if (widgetConfig?.enabled === false) return null;
   if (!visible) return null;
 
   const defaultPos = widgetConfig?.position || 'bottom-right';

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, GripVertical, Code2 } from 'lucide-react';
@@ -23,24 +24,18 @@ function EmbedFieldRow({ field, index, onChange, onRemove }: {
     <div className="flex items-start gap-2 rounded-md border p-2">
       <GripVertical className="h-4 w-4 mt-2 shrink-0 text-muted-foreground" />
       <div className="flex-1 grid grid-cols-3 gap-2">
-        <div className="space-y-1">
-          <Label className="text-xs">Nome</Label>
-          <Input
-            value={field.name}
-            onChange={(e) => onChange({ ...field, name: e.target.value })}
-            placeholder="Nome do campo"
-            className="h-8 text-xs"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Valor</Label>
-          <Input
-            value={field.value}
-            onChange={(e) => onChange({ ...field, value: e.target.value })}
-            placeholder="Valor"
-            className="h-8 text-xs"
-          />
-        </div>
+        <FloatingLabelInput
+          label="Nome"
+          value={field.name}
+          onChange={(e) => onChange({ ...field, name: e.target.value })}
+          className="text-xs"
+        />
+        <FloatingLabelInput
+          label="Valor"
+          value={field.value}
+          onChange={(e) => onChange({ ...field, value: e.target.value })}
+          className="text-xs"
+        />
         <div className="space-y-1 flex items-end gap-1">
           <label className="flex items-center gap-1 text-xs pb-1">
             <input
@@ -95,115 +90,84 @@ function SingleEmbed({ embed, index, onChange, onRemove }: {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Título</Label>
-          <Input
-            value={embed.title ?? ''}
-            onChange={(e) => update({ title: e.target.value })}
-            placeholder="Título do embed"
-            className="h-8 text-xs"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">URL (do título)</Label>
-          <Input
-            value={embed.url ?? ''}
-            onChange={(e) => update({ url: e.target.value })}
-            placeholder="https://..."
-            className="h-8 text-xs"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">Descrição</Label>
-        <textarea
-          value={embed.description ?? ''}
-          onChange={(e) => update({ description: e.target.value })}
-          rows={3}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="Markdown suportado..."
+        <FloatingLabelInput
+          label="Título"
+          value={embed.title ?? ''}
+          onChange={(e) => update({ title: e.target.value })}
+          className="text-xs"
+        />
+        <FloatingLabelInput
+          label="URL (do título)"
+          value={embed.url ?? ''}
+          onChange={(e) => update({ url: e.target.value })}
+          className="text-xs"
         />
       </div>
 
+      <FloatingLabelTextarea
+        label="Descrição"
+        value={embed.description ?? ''}
+        onChange={(e) => update({ description: e.target.value })}
+        className="text-xs min-h-[80px]"
+      />
+
       <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Cor (hex)</Label>
-          <div className="flex gap-1">
-            <input
-              type="color"
-              value={embed.color ?? '#4BC5FF'}
-              onChange={(e) => update({ color: e.target.value })}
-              className="h-8 w-8 cursor-pointer rounded border bg-transparent"
-            />
-            <Input
-              value={embed.color ?? ''}
-              onChange={(e) => update({ color: e.target.value })}
-              placeholder="#4BC5FF"
-              className="h-8 text-xs flex-1"
-            />
-          </div>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Imagem</Label>
-          <Input
-            value={embed.image?.url ?? ''}
-            onChange={(e) => update({ image: { url: e.target.value } })}
-            placeholder="URL da imagem"
-            className="h-8 text-xs"
+        <div className="flex gap-1 items-start">
+          <input
+            type="color"
+            value={embed.color ?? '#4BC5FF'}
+            onChange={(e) => update({ color: e.target.value })}
+            className="mt-2 h-8 w-8 shrink-0 cursor-pointer rounded border bg-transparent"
+          />
+          <FloatingLabelInput
+            label="Cor (hex)"
+            value={embed.color ?? ''}
+            onChange={(e) => update({ color: e.target.value })}
+            className="text-xs flex-1"
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Thumbnail</Label>
-          <Input
-            value={embed.thumbnail?.url ?? ''}
-            onChange={(e) => update({ thumbnail: { url: e.target.value } })}
-            placeholder="URL do thumbnail"
-            className="h-8 text-xs"
-          />
-        </div>
+        <FloatingLabelInput
+          label="Imagem"
+          value={embed.image?.url ?? ''}
+          onChange={(e) => update({ image: { url: e.target.value } })}
+          className="text-xs"
+        />
+        <FloatingLabelInput
+          label="Thumbnail"
+          value={embed.thumbnail?.url ?? ''}
+          onChange={(e) => update({ thumbnail: { url: e.target.value } })}
+          className="text-xs"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Autor</Label>
-          <Input
-            value={embed.author?.name ?? ''}
-            onChange={(e) => update({ author: { ...embed.author, name: e.target.value } })}
-            placeholder="Nome do autor"
-            className="h-8 text-xs"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Ícone do Autor</Label>
-          <Input
-            value={embed.author?.icon_url ?? ''}
-            onChange={(e) => update({ author: { ...embed.author, icon_url: e.target.value, name: embed.author?.name ?? '' } })}
-            placeholder="URL do ícone"
-            className="h-8 text-xs"
-          />
-        </div>
+        <FloatingLabelInput
+          label="Autor"
+          value={embed.author?.name ?? ''}
+          onChange={(e) => update({ author: { ...embed.author, name: e.target.value } })}
+          className="text-xs"
+        />
+        <FloatingLabelInput
+          label="Ícone do Autor"
+          value={embed.author?.icon_url ?? ''}
+          onChange={(e) => update({ author: { ...embed.author, icon_url: e.target.value, name: embed.author?.name ?? '' } })}
+          className="text-xs"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">Footer</Label>
-          <Input
-            value={embed.footer?.text ?? ''}
-            onChange={(e) => update({ footer: { ...embed.footer, text: e.target.value } })}
-            placeholder="Texto do footer"
-            className="h-8 text-xs"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Ícone do Footer</Label>
-          <Input
-            value={embed.footer?.icon_url ?? ''}
-            onChange={(e) => update({ footer: { icon_url: e.target.value, text: embed.footer?.text ?? '' } })}
-            placeholder="URL do ícone"
-            className="h-8 text-xs"
-          />
-        </div>
+        <FloatingLabelInput
+          label="Footer"
+          value={embed.footer?.text ?? ''}
+          onChange={(e) => update({ footer: { ...embed.footer, text: e.target.value } })}
+          className="text-xs"
+        />
+        <FloatingLabelInput
+          label="Ícone do Footer"
+          value={embed.footer?.icon_url ?? ''}
+          onChange={(e) => update({ footer: { icon_url: e.target.value, text: embed.footer?.text ?? '' } })}
+          className="text-xs"
+        />
       </div>
 
       <label className="flex items-center gap-2 text-xs">

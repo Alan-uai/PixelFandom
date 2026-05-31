@@ -148,7 +148,7 @@ function WikiLayoutContent({
       onModeChange={handleModeChange}
     >
       <div className="flex min-h-screen flex-col" style={{ fontFamily: `var(--font-family, Inter, ui-sans-serif, system-ui, sans-serif)` }}>
-        <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background/80 px-4 backdrop-blur-sm">
           <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
             {tenant.logo_url && (
               <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
@@ -156,9 +156,7 @@ function WikiLayoutContent({
             <span className="text-sm">{tenant.name}</span>
           </HubLink>
 
-          <div className="mx-2 h-5 w-px bg-border" />
-
-          <nav className="flex items-center gap-0.5">
+          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5">
             <Link
               href={basePath || '/'}
               className={`rounded-md p-2 transition-colors ${
@@ -208,9 +206,7 @@ function WikiLayoutContent({
             )}
           </nav>
 
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => {
                 const modes: Array<'system' | 'light' | 'dark'> = ['system', 'dark', 'light'];

@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
@@ -409,34 +409,22 @@ function EditPageContent() {
               <FormField
                 control={form.control}
                 name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                render={({ field, fieldState }) => (
+                  <FloatingLabelInput label="Título" error={fieldState.error?.message} {...field} />
                 )}
               />
 
               <FormField
                 control={form.control}
                 name="summary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Resumo</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Textarea {...field} className="min-h-[100px]" />
-                      </FormControl>
-                      <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-                        {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        Gerar
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
+                render={({ field, fieldState }) => (
+                  <div className="flex gap-2 items-start">
+                    <FloatingLabelTextarea label="Resumo" error={fieldState.error?.message} className="min-h-[100px]" {...field} />
+                    <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary} className="mt-1 shrink-0">
+                      {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Gerar
+                    </Button>
+                  </div>
                 )}
               />
 
@@ -525,76 +513,63 @@ function EditPageContent() {
               <FormField
                 control={form.control}
                 name="tables"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Tabelas (JSON)</FormLabel>
-                      <div className='flex gap-2'>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isFormatting}
-                          onClick={handleFormatText}
-                        >
-                          {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                          Formatar Texto
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isExtracting}
-                          onClick={() => {
-                            const handler = (e: Event) => {
-                              handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'json');
-                              fileInputRef.current?.removeEventListener('change', handler);
-                            };
-                            fileInputRef.current?.addEventListener('change', handler);
-                            fileInputRef.current?.click();
-                          }}
-                        >
-                          {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                          Extrair de Arquivo
-                        </Button>
-                      </div>
+                render={({ field, fieldState }) => (
+                  <div>
+                    <FloatingLabelTextarea label="Tabelas (JSON)" error={fieldState.error?.message} className="min-h-[250px] font-mono text-xs" {...field} />
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isFormatting}
+                        onClick={handleFormatText}
+                      >
+                        {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
+                        Formatar Texto
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isExtracting}
+                        onClick={() => {
+                          const handler = (e: Event) => {
+                            handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'json');
+                            fileInputRef.current?.removeEventListener('change', handler);
+                          };
+                          fileInputRef.current?.addEventListener('change', handler);
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
+                        Extrair de Arquivo
+                      </Button>
                     </div>
-                    <FormControl>
-                      <Textarea {...field} className="min-h-[250px] font-mono text-xs" />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground">Cole o texto bruto e clique em "Formatar Texto", extraia de um arquivo, ou edite o JSON diretamente.</p>
-                    <FormMessage />
-                  </FormItem>
+                    <p className="text-xs text-muted-foreground mt-1">Cole o texto bruto e clique em "Formatar Texto", extraia de um arquivo, ou edite o JSON diretamente.</p>
+                  </div>
                 )}
               />
 
               <FormField
                 control={form.control}
                 name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags (separadas por vírgula)</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <Button type="button" variant="outline" onClick={handleGenerateTags} disabled={isGeneratingTags}>
-                        {isGeneratingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Gerar Tags
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
+                render={({ field, fieldState }) => (
+                  <div className="flex gap-2">
+                    <FloatingLabelInput label="Tags (separadas por vírgula)" error={fieldState.error?.message} {...field} />
+                    <Button type="button" variant="outline" onClick={handleGenerateTags} disabled={isGeneratingTags} className="mt-1 shrink-0">
+                      {isGeneratingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Gerar Tags
+                    </Button>
+                  </div>
                 )}
               />
 
-              <div className="space-y-2 border-t pt-4">
-                <label className="text-xs text-muted-foreground font-medium">Resumo da Alteração (opcional)</label>
-                <textarea
+              <div className="border-t pt-4">
+                <FloatingLabelTextarea
+                  label="Resumo da Alteração (opcional)"
                   value={changeSummary}
                   onChange={(e) => setChangeSummary(e.target.value)}
-                  placeholder="Descreva brevemente o que mudou..."
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-xs resize-none h-16 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="text-xs resize-none h-16"
                 />
               </div>
 
@@ -649,58 +624,48 @@ function IconField({ slug, form }: { slug: string; form: any }) {
     <FormField
       control={form.control}
       name="icon"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Ícone / Emoji (sidebar)</FormLabel>
-          <FormControl>
-            <div className="space-y-3">
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setMode('upload')}
-                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
-                    mode === 'upload' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                  }`}
-                >
-                  Upload
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('text')}
-                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
-                    mode === 'text' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                  }`}
-                >
-                  Emoji / URL
-                </button>
-              </div>
-              {mode === 'upload' ? (
-                <div className="flex gap-3 items-start">
-                  <ImageUpload
-                    bucket="wiki-images"
-                    pathPrefix={`${slug}/icons`}
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                    previewSize="w-12 h-12"
-                  />
-                </div>
-              ) : (
-                <div className="flex gap-2 items-center">
-                  {field.value && !field.value.startsWith('http') && (
-                    <span className="text-2xl">{field.value}</span>
-                  )}
-                  <Input
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                    placeholder="📷 ou URL do ícone"
-                    className="font-mono text-sm"
-                  />
-                </div>
-              )}
+      render={({ field, fieldState }) => (
+        <div className="space-y-3">
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setMode('upload')}
+              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                mode === 'upload' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+              }`}
+            >
+              Upload
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('text')}
+              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                mode === 'text' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+              }`}
+            >
+              Emoji / URL
+            </button>
+          </div>
+          {mode === 'upload' ? (
+            <div className="flex gap-3 items-start">
+              <ImageUpload
+                bucket="wiki-images"
+                pathPrefix={`${slug}/icons`}
+                value={field.value || ''}
+                onChange={field.onChange}
+                previewSize="w-12 h-12"
+              />
             </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
+          ) : (
+            <FloatingLabelInput
+              label="📷 ou URL do ícone"
+              value={field.value || ''}
+              onChange={field.onChange}
+              error={fieldState.error?.message}
+              className="font-mono text-sm"
+            />
+          )}
+        </div>
       )}
     />
   );

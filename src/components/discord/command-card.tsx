@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, ChevronDown, ChevronRight, Code2 } from 'lucide-react';
@@ -102,26 +103,19 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
 
       {expanded && (
         <div className="border-t p-4 space-y-4">
-          <div className="space-y-1">
-            <Label className="text-xs">Nome do Comando</Label>
-            <Input
-              value={command.name}
-              onChange={(e) => update({ name: e.target.value })}
-              placeholder="Ex: boas-vindas"
-              className="h-8 text-xs"
-            />
-          </div>
+          <FloatingLabelInput
+            label="Nome do Comando"
+            value={command.name}
+            onChange={(e) => update({ name: e.target.value })}
+            className="text-xs"
+          />
 
-          <div className="space-y-1">
-            <Label className="text-xs">Descrição (opcional)</Label>
-            <textarea
-              value={command.description}
-              onChange={(e) => update({ description: e.target.value })}
-              rows={2}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="O que este comando faz?"
-            />
-          </div>
+          <FloatingLabelTextarea
+            label="Descrição (opcional)"
+            value={command.description}
+            onChange={(e) => update({ description: e.target.value })}
+            className="text-xs min-h-[60px]"
+          />
 
           <div className="space-y-1">
             <Label className="text-xs">Tipo de Trigger</Label>
@@ -139,22 +133,21 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
           </div>
 
           {command.triggerType === 'mention' ? (
-            <div className="space-y-1">
-              <Label className="text-xs">Triggers (filtro opcional)</Label>
+            <div className="space-y-2">
               <p className="text-[10px] text-muted-foreground">
                 Este comando ativa quando o bot é mencionado. Os triggers abaixo são opcionais — se preenchidos, o comando só responde quando a mensagem contiver o texto do trigger <strong>junto com</strong> a @menção.
               </p>
               <div className="space-y-1">
                 {command.trigger.map((t, i) => (
                   <div key={i} className="flex items-center gap-1">
-                    <Input
+                    <FloatingLabelInput
+                      label={`Filtro #${i + 1} (opcional)`}
                       value={t}
                       onChange={(e) => updateTrigger(i, e.target.value)}
-                      placeholder={`Filtro #${i + 1} (opcional)`}
-                      className="h-8 text-xs flex-1 font-mono"
+                      className="text-xs font-mono flex-1"
                     />
                     {command.trigger.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8">
+                      <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8 shrink-0 mt-1">
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
@@ -166,19 +159,19 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
               </Button>
             </div>
           ) : (
-            <div className="space-y-1">
-              <Label className="text-xs">Triggers (palavras/frases que ativam o comando)</Label>
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted-foreground">Palavras/frases que ativam o comando.</p>
               <div className="space-y-1">
                 {command.trigger.map((t, i) => (
                   <div key={i} className="flex items-center gap-1">
-                    <Input
+                    <FloatingLabelInput
+                      label={`Trigger #${i + 1}`}
                       value={t}
                       onChange={(e) => updateTrigger(i, e.target.value)}
-                      placeholder={`Trigger #${i + 1}`}
-                      className="h-8 text-xs flex-1 font-mono"
+                      className="text-xs font-mono flex-1"
                     />
                     {command.trigger.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8">
+                      <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8 shrink-0 mt-1">
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
@@ -192,18 +185,16 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
           )}
 
           <div className="grid grid-cols-2 gap-3">
+            <FloatingLabelInput
+              label="Cooldown (segundos)"
+              type="number"
+              min={0}
+              value={command.cooldown}
+              onChange={(e) => update({ cooldown: parseInt(e.target.value) || 0 })}
+              className="text-xs"
+            />
             <div className="space-y-1">
-              <Label className="text-xs">Cooldown (segundos)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={command.cooldown}
-                onChange={(e) => update({ cooldown: parseInt(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Modo de Execução</Label>
+              <label className="text-xs font-medium text-muted-foreground">Modo de Execução</label>
               <select
                 value={command.executionMode}
                 onChange={(e) => update({ executionMode: e.target.value as ExecutionMode })}
@@ -216,25 +207,23 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Cargos Permitidos (IDs)</Label>
-              <Input
+            <div>
+              <FloatingLabelInput
+                label="Cargos Permitidos (IDs)"
                 value={command.allowedRoles.join(', ')}
                 onChange={(e) => update({ allowedRoles: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                placeholder="role_id_1, role_id_2"
-                className="h-8 text-xs"
+                className="text-xs"
               />
-              <p className="text-[10px] text-muted-foreground">Separados por vírgula. Vazio = todos.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Separados por vírgula. Vazio = todos.</p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Canais Permitidos (IDs)</Label>
-              <Input
+            <div>
+              <FloatingLabelInput
+                label="Canais Permitidos (IDs)"
                 value={command.allowedChannels.join(', ')}
                 onChange={(e) => update({ allowedChannels: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                placeholder="channel_id_1, channel_id_2"
-                className="h-8 text-xs"
+                className="text-xs"
               />
-              <p className="text-[10px] text-muted-foreground">Separados por vírgula. Vazio = todos.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Separados por vírgula. Vazio = todos.</p>
             </div>
           </div>
 

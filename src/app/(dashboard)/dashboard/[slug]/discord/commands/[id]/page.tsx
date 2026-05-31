@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -177,26 +178,19 @@ function CommandBuilderInner() {
               <CardTitle className="text-sm">Configuração do Comando</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Nome do Comando</Label>
-                <Input
-                  value={command.name}
-                  onChange={(e) => update({ name: e.target.value })}
-                  placeholder="Ex: boas-vindas"
-                  className="h-8 text-xs"
-                />
-              </div>
+              <FloatingLabelInput
+                label="Nome do Comando"
+                value={command.name}
+                onChange={(e) => update({ name: e.target.value })}
+                className="text-xs"
+              />
 
-              <div className="space-y-1">
-                <Label className="text-xs">Descrição</Label>
-                <textarea
-                  value={command.description}
-                  onChange={(e) => update({ description: e.target.value })}
-                  rows={2}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="O que este comando faz?"
-                />
-              </div>
+              <FloatingLabelTextarea
+                label="Descrição"
+                value={command.description}
+                onChange={(e) => update({ description: e.target.value })}
+                className="text-xs min-h-[60px]"
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -227,20 +221,20 @@ function CommandBuilderInner() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">
+                <p className="text-xs text-muted-foreground">
                   {command.triggerType === 'mention' ? 'Filtros (opcional — texto adicional junto com @menção)' : 'Triggers'}
-                </Label>
+                </p>
                 <div className="space-y-1">
                   {command.trigger.map((t, i) => (
                     <div key={i} className="flex items-center gap-1">
-                      <Input
+                      <FloatingLabelInput
+                        label={`Trigger #${i + 1}`}
                         value={t}
                         onChange={(e) => updateTrigger(i, e.target.value)}
-                        placeholder={`Trigger #${i + 1}`}
-                        className="h-8 text-xs flex-1 font-mono"
+                        className="text-xs font-mono flex-1"
                       />
                       {command.trigger.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8">
+                        <Button variant="ghost" size="icon" onClick={() => removeTrigger(i)} className="h-8 w-8 shrink-0 mt-1">
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
@@ -253,16 +247,14 @@ function CommandBuilderInner() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Cooldown (segundos)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={command.cooldown}
-                    onChange={(e) => update({ cooldown: parseInt(e.target.value) || 0 })}
-                    className="h-8 text-xs"
-                  />
-                </div>
+                <FloatingLabelInput
+                  label="Cooldown (segundos)"
+                  type="number"
+                  min={0}
+                  value={command.cooldown}
+                  onChange={(e) => update({ cooldown: parseInt(e.target.value) || 0 })}
+                  className="text-xs"
+                />
               </div>
             </CardContent>
           </Card>
@@ -272,8 +264,8 @@ function CommandBuilderInner() {
               <CardTitle className="text-sm">Permissões</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Cargos Permitidos</Label>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Cargos Permitidos</p>
                 {connected && selectedGuild ? (
                   <select
                     multiple
@@ -287,17 +279,17 @@ function CommandBuilderInner() {
                     ))}
                   </select>
                 ) : (
-                  <Input
+                  <FloatingLabelInput
+                    label="role_id_1, role_id_2"
                     value={command.allowedRoles.join(', ')}
                     onChange={(e) => update({ allowedRoles: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                    placeholder="role_id_1, role_id_2"
-                    className="h-8 text-xs"
+                    className="text-xs"
                   />
                 )}
-                <p className="text-[10px] text-muted-foreground">Vazio = todos os cargos podem usar.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Vazio = todos os cargos podem usar.</p>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Canais Permitidos</Label>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Canais Permitidos</p>
                 {connected && selectedGuild ? (
                   <select
                     multiple
@@ -310,14 +302,14 @@ function CommandBuilderInner() {
                     ))}
                   </select>
                 ) : (
-                  <Input
+                  <FloatingLabelInput
+                    label="channel_id_1, channel_id_2"
                     value={command.allowedChannels.join(', ')}
                     onChange={(e) => update({ allowedChannels: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                    placeholder="channel_id_1, channel_id_2"
-                    className="h-8 text-xs"
+                    className="text-xs"
                   />
                 )}
-                <p className="text-[10px] text-muted-foreground">Vazio = todos os canais.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Vazio = todos os canais.</p>
               </div>
             </CardContent>
           </Card>

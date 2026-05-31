@@ -4,9 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -78,40 +77,30 @@ export default function NewWikiPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Wiki</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Minha Wiki"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="slug">Identificador (slug)</Label>
-              <Input
-                id="slug"
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FloatingLabelInput
+              label="Nome da Wiki"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              required
+            />
+            <div>
+              <FloatingLabelInput
+                label="Identificador (slug)"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="minha-wiki"
                 required
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 Será usado na URL: pixelfandom.vercel.app/w/{slug || '...'}
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="desc">Descrição (opcional)</Label>
-              <Textarea
-                id="desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Uma breve descrição da sua wiki"
-                rows={3}
-              />
-            </div>
+            <FloatingLabelTextarea
+              label="Descrição (opcional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[80px]"
+            />
             <Button type="submit" disabled={saving || !name || !slug} className="w-full">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Criar Wiki

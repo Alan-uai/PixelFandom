@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Switch } from '@/components/ui/switch';
@@ -565,15 +565,14 @@ export default function DataTablePage() {
           <div className="border-t pt-3 mt-3">
             {showAddField ? (
               <div className="flex items-end gap-2">
-                <div className="space-y-1 flex-1">
-                  <Label className="text-xs text-muted-foreground">Nome do campo</Label>
-                  <Input
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    placeholder="ex: novo_campo"
-                    className="h-8 text-sm"
-                  />
-                </div>
+                  <div className="flex-1">
+                    <FloatingLabelInput
+                      label="Nome do campo"
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Tipo</Label>
                   <select

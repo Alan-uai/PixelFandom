@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -101,18 +101,25 @@ export default function ProfileEditPage() {
               previewSize="w-20 h-20 rounded-full"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Nome de Exibição</Label>
-            <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="username">Nome de Usuário</Label>
-            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Conte um pouco sobre você..." />
-          </div>
+          <FloatingLabelInput
+            label="Nome de Exibição"
+            info="Seu nome público na plataforma"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+          <FloatingLabelInput
+            label="Nome de Usuário"
+            info="Slug único para seu perfil"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <FloatingLabelTextarea
+            label="Bio"
+            info="Conte um pouco sobre você"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={3}
+          />
           <div className="space-y-2">
             <Label>Imagem de Capa</Label>
             <ImageUpload

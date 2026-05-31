@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -223,15 +223,11 @@ export default function WikiDiscordPage() {
             <CardDescription>Nome e avatar do bot no Discord.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="botName">Nome do Bot</Label>
-              <Input
-                id="botName"
-                value={botName}
-                onChange={(e) => setBotName(e.target.value)}
-                placeholder="Meu Wiki Bot"
-              />
-            </div>
+            <FloatingLabelInput
+              label="Nome do Bot"
+              value={botName}
+              onChange={(e) => setBotName(e.target.value)}
+            />
 
             <div className="space-y-2">
               <Label>Avatar do Bot</Label>
@@ -270,17 +266,13 @@ export default function WikiDiscordPage() {
             <CardDescription>Configure o prefixo dos comandos do bot.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="prefix">Prefixo de Comandos</Label>
-              <Input
-                id="prefix"
-                value={prefix}
-                onChange={(e) => setPrefix(e.target.value)}
-                placeholder="!"
-                maxLength={5}
-                className="w-24"
-              />
-            </div>
+            <FloatingLabelInput
+              label="Prefixo de Comandos"
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              maxLength={5}
+              className="w-24"
+            />
           </CardContent>
         </Card>
         </section>

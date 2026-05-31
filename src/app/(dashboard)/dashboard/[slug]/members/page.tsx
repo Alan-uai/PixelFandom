@@ -6,7 +6,7 @@ import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserMinus, Shield, ShieldCheck, UserPlus, Copy, Download, Clock, X } from 'lucide-react';
@@ -248,15 +248,12 @@ export default function WikiMembersPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Email</label>
-                  <Input
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="email@exemplo.com"
-                    type="email"
-                  />
-                </div>
+                <FloatingLabelInput
+                  label="Email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  type="email"
+                />
                 <div>
                   <label className="text-xs font-medium mb-1 block">Papel</label>
                   <select

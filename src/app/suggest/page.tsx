@@ -3,8 +3,8 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { useState } from 'react';
 import { supabase } from '@/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -66,12 +66,11 @@ export default function Suggest() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <label htmlFor="title" className="block text-sm font-medium mb-1">Title</label>
-              <Input
-                id="title"
+              <FloatingLabelInput
+                label="Title"
+                info="A short title for your suggestion"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter suggestion title"
                 required
               />
             </motion.div>
@@ -80,12 +79,11 @@ export default function Suggest() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <label htmlFor="content" className="block text-sm font-medium mb-1">Content</label>
-              <Textarea
-                id="content"
+              <FloatingLabelTextarea
+                label="Content"
+                info="Describe your suggestion in detail"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Describe your suggestion in detail..."
                 className="min-h-[150px]"
                 required
               />

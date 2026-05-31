@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, Upload, ImageIcon, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
@@ -136,8 +136,9 @@ export function ImageUpload({
             <span className="bg-card px-2 text-muted-foreground">Ou</span>
           </div>
         </div>
-        <Input
-          placeholder="Cole uma URL externa..."
+        <FloatingLabelInput
+          label="URL externa"
+          info="Cole o link direto de uma imagem"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

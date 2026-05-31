@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -496,11 +498,11 @@ export default function WikiAIConfigPage() {
                     )}
                   </select>
                 ) : (
-                  <Input
+                  <FloatingLabelInput
+                    label="openai/gpt-4o"
                     value={customModel}
                     onChange={(e) => setCustomModel(e.target.value)}
-                    placeholder="openai/gpt-4o"
-                    className="h-8 text-xs"
+                    className="text-xs"
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
@@ -567,17 +569,17 @@ export default function WikiAIConfigPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <Input
+                  <div>
+                    <FloatingLabelInput
+                      label="modelo1, modelo2, modelo3"
                       value={fallbackChain.join(', ')}
                       onChange={(e) => {
                         const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
                         setFallbackChain(models);
                       }}
-                      placeholder="modelo1, modelo2, modelo3"
-                      className="h-8 text-xs"
+                      className="text-xs"
                     />
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       Digite os IDs separados por vírgula. Requer chave de API própria.
                     </p>
                   </div>
@@ -650,11 +652,11 @@ export default function WikiAIConfigPage() {
                     ))}
                   </select>
                 ) : (
-                  <Input
+                  <FloatingLabelInput
+                    label="gemini-2.0-flash"
                     value={geminiCustomModel}
                     onChange={(e) => setGeminiCustomModel(e.target.value)}
-                    placeholder="gemini-2.0-flash"
-                    className="h-8 text-xs"
+                    className="text-xs"
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
@@ -721,17 +723,17 @@ export default function WikiAIConfigPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <Input
+                  <div>
+                    <FloatingLabelInput
+                      label="modelo1, modelo2, modelo3"
                       value={geminiFallbackChain.join(', ')}
                       onChange={(e) => {
                         const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
                         setGeminiFallbackChain(models);
                       }}
-                      placeholder="modelo1, modelo2, modelo3"
-                      className="h-8 text-xs"
+                      className="text-xs"
                     />
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       Digite os IDs separados por vírgula. Requer chave de API própria.
                     </p>
                   </div>
@@ -741,16 +743,14 @@ export default function WikiAIConfigPage() {
             </>
           )}
 
-          <div className="border-t pt-4 space-y-2">
-            <Label htmlFor="chatName">Nome do Chat</Label>
-            <Input
-              id="chatName"
+          <div className="border-t pt-4">
+            <FloatingLabelInput
+              label="Nome do Chat"
               value={chatName}
               onChange={(e) => setChatName(e.target.value)}
-              placeholder="Assistente"
-              className="h-8 text-xs"
+              className="text-xs"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Nome exibido na interface do chat (texto e voz).
             </p>
           </div>
@@ -804,17 +804,15 @@ export default function WikiAIConfigPage() {
               {getPersonality(personalityId).systemPrompt}
             </p>
           </div>
-          <div className="space-y-2">
-            <Label>Perguntas Sugeridas</Label>
-            <p className="text-xs text-muted-foreground">Uma por linha. Aparecem como sugestão no chat.</p>
-            <textarea
-              value={suggestedQuestions.join('\n')}
-              onChange={(e) => setSuggestedQuestions(e.target.value.split('\n').filter(Boolean))}
-              rows={3}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="O que é este jogo?
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Perguntas Sugeridas — uma por linha. Aparecem como sugestão no chat.</p>
+            <FloatingLabelTextarea
+              label="O que é este jogo?
 Como faço para começar?
 Quais são as melhores armas?"
+              value={suggestedQuestions.join('\n')}
+              onChange={(e) => setSuggestedQuestions(e.target.value.split('\n').filter(Boolean))}
+              className="text-xs min-h-[80px]"
             />
           </div>
           <div className="space-y-2">
@@ -853,16 +851,14 @@ Quais são as melhores armas?"
           <CardDescription>Configure a palavra de ativação do assistente de voz.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="wakeWordText">Nome do Agente (Palavra de Ativação)</Label>
-            <Input
-              id="wakeWordText"
+          <div>
+            <FloatingLabelInput
+              label="Nome do Agente (Palavra de Ativação)"
               value={wakeWordText}
               onChange={(e) => setWakeWordText(e.target.value)}
-              placeholder="Psycho"
-              className="h-8 text-xs"
+              className="text-xs"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               Nome usado para ativar o assistente de voz por comando de voz.
             </p>
           </div>

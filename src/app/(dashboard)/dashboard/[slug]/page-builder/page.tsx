@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'lucide-react';
@@ -15,6 +15,18 @@ const PAGE_TYPES = [
 export type PageType = (typeof PAGE_TYPES)[number]['id'];
 
 export default function PageBuilderPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <PageBuilderPageInner />
+    </Suspense>
+  );
+}
+
+function PageBuilderPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -26,29 +38,39 @@ export default function PageBuilderPage() {
 
   const fetchLayout = useCallback(async (tenantId: string, type: string) => {
     setLoading(true);
-    const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
-    const data = await res.json();
-    setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
+      const data = await res.json();
+      setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
+    } catch (err) {
+      console.error('Fetch layout error:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     (async () => {
-      const { supabase } = await import('@/supabase');
+      try {
+        const { supabase } = await import('@/supabase');
 
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('id, theme')
-        .eq('slug', slug)
-        .single();
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('id, theme')
+          .eq('slug', slug)
+          .single();
 
-      if (!tenant) {
+        if (!tenant) {
+          setLoading(false);
+          return;
+        }
+
+        setTenantId(tenant.id);
+        fetchLayout(tenant.id, pageType);
+      } catch (err) {
+        console.error('Failed to load tenant:', err);
         setLoading(false);
-        return;
       }
-
-      setTenantId(tenant.id);
-      fetchLayout(tenant.id, pageType);
     })();
   }, [slug, pageType, fetchLayout]);
 

@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -201,24 +201,25 @@ export default function WikiSettingsPage() {
           <CardDescription>Nome e descrição da sua wiki.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="slug">Identificador (slug)</Label>
-            <Input id="slug" value={slug} disabled />
-            <p className="text-xs text-muted-foreground">O slug não pode ser alterado.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="desc">Descrição</Label>
-            <Textarea
-              id="desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
+          <FloatingLabelInput
+            label="Nome"
+            info="Nome público da sua wiki"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <FloatingLabelInput
+            label="Identificador (slug)"
+            info="O slug não pode ser alterado"
+            value={slug}
+            disabled
+          />
+          <FloatingLabelTextarea
+            label="Descrição"
+            info="Uma breve descrição da sua wiki"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
         </CardContent>
       </Card>
       </section>
@@ -497,26 +498,20 @@ export default function WikiSettingsPage() {
           <CardDescription>Links para o Discord e página do jogo (Roblox).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="discordUrl">Link do Discord</Label>
-            <Input
-              id="discordUrl"
-              type="url"
-              value={discordUrl}
-              onChange={(e) => setDiscordUrl(e.target.value)}
-              placeholder="https://discord.gg/seu-convite"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="gameUrl">Link do Jogo (Roblox)</Label>
-            <Input
-              id="gameUrl"
-              type="url"
-              value={gameUrl}
-              onChange={(e) => setGameUrl(e.target.value)}
-              placeholder="https://www.roblox.com/games/..."
-            />
-          </div>
+          <FloatingLabelInput
+            label="Link do Discord"
+            type="url"
+            info="Convite do seu servidor Discord"
+            value={discordUrl}
+            onChange={(e) => setDiscordUrl(e.target.value)}
+          />
+          <FloatingLabelInput
+            label="Link do Jogo (Roblox)"
+            type="url"
+            info="URL do seu jogo no Roblox"
+            value={gameUrl}
+            onChange={(e) => setGameUrl(e.target.value)}
+          />
         </CardContent>
       </Card>
       </section>
@@ -601,8 +596,7 @@ function ColorField({
   const hexValue = hslToHex(value || '');
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+    <div>
       <div className="flex gap-2 items-center">
         <Popover.Root>
           <Popover.Trigger asChild>
@@ -650,13 +644,16 @@ function ColorField({
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
-        <Input
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || '198 100% 65%'}
-          className="font-mono text-xs"
-        />
+        <div className="flex-1">
+          <FloatingLabelInput
+            label={label}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder || '198 100% 65%'}
+            containerClassName="flex-1"
+            className="font-mono text-xs"
+          />
+        </div>
         {value && (
           <div
             className="h-8 w-8 rounded-full border shrink-0"
