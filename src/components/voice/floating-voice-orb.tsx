@@ -5,6 +5,7 @@ import { GeminiLiveAPI, MultimodalLiveResponseType, type VoiceName, type Respons
 import { AudioStreamer, AudioPlayer } from '@/lib/voice/mediaUtils'
 import { createAgentTools } from '@/lib/voice/agentSystem'
 import { buildSystemPrompt } from '@/lib/voice/systemPrompt'
+import { getSchemaPrompt } from '@/lib/game-schema'
 import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/supabase'
@@ -227,7 +228,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
 
       const wikiContext = `\n\nThe current wiki slug is "${tenantSlug}". The user is browsing this wiki.`
       const agentName = (aiConfig?.wake_word_text as string) || 'xWiki'
-      let systemPrompt = buildSystemPrompt(agentName) + nameContext + wikiContext
+      const schemaPrompt = await getSchemaPrompt().catch(() => undefined)
+      let systemPrompt = buildSystemPrompt(agentName, schemaPrompt) + nameContext + wikiContext
       if (settingsRef.current.primaryNavigation) {
         systemPrompt += `\n\nIMPORTANTE — Modo Navegação Primária está ATIVO.\nQuando o usuário perguntar sobre um item ou artigo específico, chame navigateToPage PRIMEIRO para navegar até a página, e só depois descreva as estatísticas e detalhes. A navegação tem prioridade sobre a descrição.`
       }

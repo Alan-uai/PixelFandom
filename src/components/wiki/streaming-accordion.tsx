@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { micromark } from 'micromark';
+import { ChevronDown, FileText, ExternalLink } from 'lucide-react';
 
 type Section = {
   sectionType: string;
@@ -12,28 +13,85 @@ type Section = {
 type Props = {
   streamContent: string;
   isStreaming: boolean;
+  tenantSlug?: string;
 };
 
-export default function StreamingAccordion({ streamContent, isStreaming }: Props) {
+function extractPartialContent(raw: string): { title?: string; content?: string } {
+  const titleMatch = raw.match(/"title"\s*:\s*"((?:\\.|[^"\\])*)/);
+  const contentMatch = raw.match(/"content"\s*:\s*"((?:\\.|[^"\\])*)/);
+  return {
+    title: titleMatch?.[1] || undefined,
+    content: contentMatch?.[1] || undefined,
+  };
+}
+
+function tryParseLastPart(raw: string): Section | null {
+  const trimmed = raw.trim();
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed.sectionType && parsed.title) return parsed;
+  } catch {}
+
+  try {
+    const fixed = trimmed.endsWith('"') ? trimmed + '}' : trimmed + '"}';
+    const parsed = JSON.parse(fixed);
+    if (parsed.sectionType && parsed.title) return parsed;
+  } catch {}
+
+  return null;
+}
+
+function processWikiLinks(html: string, tenantSlug?: string): string {
+  if (!tenantSlug) return html;
+  return html.replace(
+    /\[\[([^\|]+)\|([^\]]+)\]\]/g,
+    (_, slug, text) =>
+      `<a href="/w/${tenantSlug}/${slug}" class="inline-flex items-center gap-0.5 text-primary underline decoration-primary/30 hover:decoration-primary transition-all">${text}<svg class="h-3 w-3 inline-block ml-0.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
+  );
+}
+
+function renderContent(content: string, tenantSlug?: string): string {
+  try {
+    const rawHtml = micromark(content, { allowDangerousHtml: false });
+    return processWikiLinks(rawHtml, tenantSlug);
+  } catch {
+    return `<p>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+  }
+}
+
+export default function StreamingAccordion({ streamContent, isStreaming, tenantSlug }: Props) {
   const [expandedIndex, setExpandedIndex] = useState(0);
   const [sections, setSections] = useState<Section[]>([]);
-  const [partialLine, setPartialLine] = useState('');
+  const [partialSection, setPartialSection] = useState<{ title?: string; content?: string } | null>(
+    null
+  );
   const prevContentRef = useRef('');
+  const prevStreamingRef = useRef(false);
 
   useEffect(() => {
-    if (streamContent === prevContentRef.current && !isStreaming) return;
+    if (
+      streamContent === prevContentRef.current &&
+      isStreaming === prevStreamingRef.current
+    ) {
+      return;
+    }
     prevContentRef.current = streamContent;
+    prevStreamingRef.current = isStreaming;
 
     const parts = streamContent.split('@@@SECTION@@@');
     const completeSections: Section[] = [];
-    let leftover = '';
+    let partial: { title?: string; content?: string } | null = null;
 
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i].trim();
       if (!p) continue;
 
       if (i === parts.length - 1 && isStreaming) {
-        leftover = p;
+        const extracted = extractPartialContent(p);
+        if (extracted.content || extracted.title) {
+          partial = extracted;
+        }
         continue;
       }
 
@@ -44,19 +102,37 @@ export default function StreamingAccordion({ streamContent, isStreaming }: Props
         }
       } catch {
         if (i === parts.length - 1 && isStreaming) {
-          leftover = p;
+          const extracted = extractPartialContent(p);
+          if (extracted.content || extracted.title) {
+            partial = extracted;
+          }
+        }
+      }
+    }
+
+    if (!isStreaming && !partial && parts.length > 0) {
+      const lastPart = parts[parts.length - 1].trim();
+      if (lastPart) {
+        const parsed = tryParseLastPart(lastPart);
+        if (parsed) {
+          const exists = completeSections.some(
+            (s) => s.sectionType === parsed.sectionType && s.title === parsed.title
+          );
+          if (!exists) {
+            completeSections.push(parsed);
+          }
         }
       }
     }
 
     setSections(completeSections);
-    setPartialLine(leftover);
+    setPartialSection(partial);
     if (completeSections.length > 0 && expandedIndex === -1) {
       setExpandedIndex(0);
     }
   }, [streamContent, isStreaming, expandedIndex]);
 
-  if (sections.length === 0 && !partialLine) {
+  if (sections.length === 0 && !partialSection) {
     return (
       <div className="text-sm text-muted-foreground">
         {isStreaming ? (
@@ -94,14 +170,15 @@ export default function StreamingAccordion({ streamContent, isStreaming }: Props
               />
             </button>
             {isExpanded && (
-              <div className="px-4 pb-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {idx === sections.length - 1 && partialLine && isStreaming ? (
-                  <>
-                    {section.content}
-                    <span className="inline-block animate-pulse">▍</span>
-                  </>
-                ) : (
-                  section.content
+              <div className="px-4 pb-3 text-sm leading-relaxed">
+                <div
+                  className="prose prose-invert prose-sm max-w-none prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-headings:text-foreground"
+                  dangerouslySetInnerHTML={{
+                    __html: renderContent(section.content, tenantSlug),
+                  }}
+                />
+                {idx === sections.length - 1 && partialSection && isStreaming && (
+                  <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
                 )}
               </div>
             )}
@@ -109,17 +186,17 @@ export default function StreamingAccordion({ streamContent, isStreaming }: Props
         );
       })}
 
-      {sections.length === 0 && partialLine && (
-        <div className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
-          {partialLine}
-          {isStreaming && <span className="inline-block animate-pulse ml-0.5">▍</span>}
-        </div>
-      )}
-
-      {sections.length > 0 && partialLine && expandedIndex !== sections.length - 1 && (
-        <div className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
-          {partialLine}
-          {isStreaming && <span className="inline-block animate-pulse ml-0.5">▍</span>}
+      {sections.length > 0 && partialSection && expandedIndex !== sections.length - 1 && (
+        <div className="rounded-lg border px-4 py-3 text-sm">
+          {partialSection.title && (
+            <p className="font-medium text-foreground mb-1">{partialSection.title}</p>
+          )}
+          {partialSection.content && (
+            <p className="text-muted-foreground">{partialSection.content}</p>
+          )}
+          {isStreaming && (
+            <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+          )}
         </div>
       )}
     </div>

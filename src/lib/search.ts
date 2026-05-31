@@ -1,4 +1,33 @@
 import { generateEmbedding } from './gemini-embedding';
+import { getCategoryMap } from './game-schema';
+
+type CategoryEntry = {
+  table: string;
+  sourceType: string;
+};
+
+let cachedCategoryMap: Record<string, CategoryEntry> = {};
+let catCacheTime = 0;
+const CAT_CACHE_TTL = 5 * 60 * 1000;
+
+async function ensureCategoryMap(): Promise<Record<string, CategoryEntry>> {
+  const now = Date.now();
+  if (Object.keys(cachedCategoryMap).length > 0 && now - catCacheTime < CAT_CACHE_TTL) {
+    return cachedCategoryMap;
+  }
+  cachedCategoryMap = await getCategoryMap();
+  catCacheTime = now;
+  return cachedCategoryMap;
+}
+
+async function detectCategory(query: string): Promise<CategoryEntry | null> {
+  const q = query.toLowerCase();
+  const map = await ensureCategoryMap();
+  for (const [keyword, mapping] of Object.entries(map)) {
+    if (q.includes(keyword)) return mapping;
+  }
+  return null;
+}
 
 export interface WikiSearchItem {
   id: string;
@@ -135,7 +164,7 @@ export async function searchAll(
         data.results.map((r: any) => ({
           source_type: r.source_type,
           id: r.id,
-          name: r.name ?? '',
+          name: r.name ?? r.title ?? '',
           description: r.description ?? '',
           slug: r.slug ?? '',
           tags: r.tags ?? null,
@@ -146,6 +175,45 @@ export async function searchAll(
           match_type: r.match_type ?? 'fulltext',
         }))
       );
+    }
+  }
+
+  const category = await detectCategory(query);
+  if (category) {
+    try {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (tenant) {
+        const { data: rows } = await supabase
+          .from(category.table)
+          .select('*')
+          .eq('tenant_id', tenant.id);
+
+        if (rows && rows.length > 0) {
+          const categoryResults: GameSearchItem[] = rows
+            .filter((row: any) => row.name || row.slug)
+            .map((row: any) => ({
+              source_type: category.sourceType,
+              id: row.id,
+              name: row.name || '',
+              description: row.description || '',
+              slug: row.slug || '',
+              tags: row.tags || null,
+              collection_name: null,
+              collection_slug: null,
+              raw_data: row as Record<string, unknown>,
+              rank: 10,
+              match_type: 'fulltext',
+            }));
+          allGameItems.push(categoryResults);
+        }
+      }
+    } catch {
+      // category fallback failed silently
     }
   }
 

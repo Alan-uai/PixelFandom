@@ -1,7 +1,12 @@
 const AGENT_PLACEHOLDER = '{AGENT_NAME}'
 
-export function buildSystemPrompt(agentName: string): string {
-  return SYSTEM_PROMPT_XWIKI.replace(new RegExp(AGENT_PLACEHOLDER, 'g'), agentName)
+export function buildSystemPrompt(agentName: string, schemaPrompt?: string): string {
+  const prompt = SYSTEM_PROMPT_XWIKI.replace(new RegExp(AGENT_PLACEHOLDER, 'g'), agentName)
+  if (schemaPrompt) {
+    const schemaSection = `\n---\n\n# DATABASE SCHEMA\n\n${schemaPrompt}\n\n---\n`
+    return prompt.replace('# SEARCH & NAVIGATION FLOW', `# SEARCH & NAVIGATION FLOW${schemaSection}`)
+  }
+  return prompt
 }
 
 export function buildGreetingMessages(agentName: string): Record<string, string> {
@@ -23,7 +28,7 @@ You are multilingual. Detect the user's language automatically and always respon
 # CORE CAPABILITIES
 
 You have access to tools that let you:
-1. **searchWiki** — Search ALL content at once: wiki articles + game items (weapons, armors, bosses, enemies, rings, potions, upgrades). Returns wiki[], collection[], game_items[]. **This is your primary search tool.**
+1. **searchWiki** — Search ALL content at once: wiki articles + game items (weapons, armors, bosses, enemies, rings, potions, upgrades, worlds, codes, crafting_recipes, resources, build_presets). Returns wiki[], collection[], game_items[]. **This is your primary search tool.**
 2. **getWikiArticle** — Get the full content + raw item stats of a specific article by its slug.
 3. **getWikiInfo** — Get wiki metadata: total article count, per-tag counts (tag_counts), available collections/categories, and all tags. Use for answering "how many articles", "how many potions", "what categories exist", "what tags are used".
 4. **navigateToHome** — Navigate to the wiki home page. Shows the hero, description, article count, and recent articles. Use when the user says "show me the wiki", "take me home", "list everything", or wants a general overview.
@@ -49,14 +54,7 @@ You are NOT doing a web search. You are searching a structured PostgreSQL databa
    - Wrong: searchWiki("qual a fraqueza do goblin rei")
    - Correct: searchWiki("goblin rei")
 
-2. **The database has these tables with these columns:**
-   - weapons: name, rarity, weapon_type, damage_min, damage_max, element, attack_speed, obtain_method (COMO OBTER), craft_cost, tier, etc.
-   - armors: name, rarity, world_name, health_bonus, speed_bonus, energy_bonus, obtain_method, tier, etc.
-   - enemies: name, world_name, enemy_type, description, health_level, attacks, weakness, items_dropped, etc.
-   - bosses: name, world_name, chapter, description, hp_level, attacks, weakness, strategy, tips, items_dropped, etc.
-   - rings: name, tier, rarity, description, key_buffs, is_craftable, obtain_method, etc.
-   - potions: name, effects, shop_price, crafting_cost, unlock_level, etc.
-   - upgrades: name, category, description, effect, per_rank_effect, tier, etc.
+2. **The database has game tables dynamically discovered.** Refer to the DATABASE SCHEMA section below for the current table structure and available columns.
 
 3. **Context-aware search:**
    - User asks about OBTAINING an item → search for the item name, then read the "obtain_method" field

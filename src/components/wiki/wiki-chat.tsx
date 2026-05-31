@@ -285,7 +285,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               {msg.role === 'assistant' && <Bot className="h-6 w-6 shrink-0 mt-1 text-primary" />}
               <div className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                 {msg.role === 'assistant' ? (
-                  <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} />
+                  <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
                 ) : (
                   msg.content
                 )}
@@ -379,7 +379,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
                 )}
                 <div className={`rounded-xl px-4 py-3 max-w-[85%] ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                   {msg.role === 'assistant' ? (
-                    <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} />
+                    <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   )}
