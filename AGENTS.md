@@ -63,6 +63,20 @@
 - `supabase/SCHEMA.md` — full DB schema, tables, enums, RLS
 - `.env*` in `.gitignore` — must be provided locally
 
+## Installed Tools & Skills
+- **RTK** (`rtk-ai/rtk`) — CLI proxy que reduz consumo de tokens em 60-92%. Plugin OpenCode instalado globalmente. Comandos bash são reescritos automaticamente (`git status` → `rtk git status`).
+- **Superpowers** (`obra/superpowers`) — Metodologia de desenvolvimento: brainstorming, TDD, code review, subagents, git worktrees. Skills em `.opencode/skills/superpowers/`.
+- **ECC** (`affaan-m/ECC`) — 249 skills, 191 agents, 102 commands cross-harness. Skills em `.opencode/skills/ecc/`, agents em `.opencode/agents/`, commands em `.opencode/commands/`.
+- **Caveman** (`JuliusBrussee/caveman`) — Compressão de ~75% dos tokens de output. 7 skills em `.agents/skills/caveman*/`.
+- **Mem0** (`mem0ai/mem0`) — Camada de memória inteligente. Skills em `.opencode/skills/mem0/` e `.opencode/skills/mem0-cli/`.
+- **Baoyu Skills** (`JimLiu/baoyu-skills`) — 22 skills de geração de conteúdo (infográficos, slides, diagramas, tradução, etc.). Em `.agents/skills/baoyu-*/`.
+- **UI UX Pro Max** (`nextlevelbuilder/ui-ux-pro-max-skill`) — Design intelligence com 161 regras de UI/UX. Skill em `.opencode/skills/ui-ux-pro-max/`.
+- **Scrapling** (`D4Vinci/Scrapling`) — Web scraping com anti-bot bypass. MCP server configurado em `opencode.json`. Skill em `.opencode/skills/scrapling/`.
+- **SigNoz** (`SigNoz/signoz`) — Observabilidade open-source (logs, métricas, traces). Docker compose em `docker/signoz/`.
+
+## MCP Servers
+- `scrapling` — Web scraping MCP server configurado em `opencode.json`
+
 ## Patterns
 - **All pages** are `'use client'` (no server components)
 - Global state: `AppProvider` wraps `SupabaseProvider` + Zustand chat store
