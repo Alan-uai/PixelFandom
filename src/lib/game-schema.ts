@@ -104,6 +104,9 @@ export function buildSchemaPrompt(schema: GameSchema): string {
     '5. Exemplo: "necro flash" → mesmo que o banco tenha "Necro Flask", a busca fuzzy encontra',
     '6. A busca agora varre TODAS as tabelas e TODAS as colunas de texto automaticamente',
     '7. Os resultados incluem TODOS os atributos do item — leia os números reais, não invente',
+    '8. Para perguntas de CONTAGEM (ex: "quantas poções existem?", "quantos chefes tem?"):',
+    '   a. Conte os nomes DISTINTOS nos resultados — NÃO confunda com colunas numéricas',
+    '   b. max_uses_per_run, coin_drop, xp_drop, damage_min, health_bonus etc. são ATRIBUTOS de 1 item, não o total de itens',
   ].join('\n');
 }
 
