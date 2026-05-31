@@ -4,29 +4,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
-import type { BlockConfig, BlockType } from './types';
-import { HeroBlock } from './blocks/hero-block';
-import { ArticleGridBlock } from './blocks/article-grid-block';
-import { FeaturedListBlock } from './blocks/featured-list-block';
-import { DiscordEmbedBlock } from './blocks/discord-embed-block';
-import { NewsFeedBlock } from './blocks/news-feed-block';
-import { ImageGalleryBlock } from './blocks/image-gallery-block';
-import { RankingTableBlock } from './blocks/ranking-table-block';
-import { RichTextBlock } from './blocks/rich-text-block';
-
-function BlockRenderer({ block, tenantId }: { block: BlockConfig; tenantId?: string }) {
-  switch (block.type) {
-    case 'hero': return <HeroBlock config={block.config} />;
-    case 'article-grid': return <ArticleGridBlock config={block.config} tenantId={tenantId} />;
-    case 'featured-list': return <FeaturedListBlock config={block.config} />;
-    case 'discord-embed': return <DiscordEmbedBlock config={block.config} />;
-    case 'news-feed': return <NewsFeedBlock config={block.config} />;
-    case 'image-gallery': return <ImageGalleryBlock config={block.config} />;
-    case 'ranking-table': return <RankingTableBlock config={block.config} />;
-    case 'rich-text': return <RichTextBlock config={block.config} />;
-    default: return <div className="p-4 text-sm text-muted-foreground">Bloco desconhecido: {block.type}</div>;
-  }
-}
+import type { BlockConfig } from './types';
+import { BlockRenderer } from './block-renderer';
 
 function SortableBlock({
   block,
@@ -41,7 +20,10 @@ function SortableBlock({
   onDelete: () => void;
   tenantId?: string;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id, data: { type: block.type, isNew: false } });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block.id,
+    data: { type: block.type, isNew: false },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -49,11 +31,13 @@ function SortableBlock({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const isContainer = block.type === 'section';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-xl border-2 transition-colors ${isSelected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'}`}
+      className={`group relative rounded-xl border-2 transition-colors ${isSelected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'} ${isContainer ? 'bg-muted/10' : ''}`}
       onClick={onSelect}
     >
       <div className="absolute -top-3 left-2 z-10 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -70,9 +54,14 @@ function SortableBlock({
         >
           <Trash2 className="h-3 w-3" />
         </button>
+        {isContainer && (
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            {(block.children?.length || 0)} blocos
+          </span>
+        )}
       </div>
-      <div className="p-4">
-        <BlockRenderer block={block} tenantId={tenantId} />
+      <div className={`p-4 ${isContainer ? 'p-2' : ''}`}>
+        <BlockRenderer block={block} tenantId={tenantId} preview />
       </div>
     </div>
   );
@@ -115,6 +104,7 @@ export function PagePreview({
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border-2 border-dashed border-muted-foreground/25">
             <p className="text-sm text-muted-foreground">Arraste blocos da barra lateral para começar</p>
+            <p className="text-xs text-muted-foreground mt-1">ou clique em + para adicionar</p>
           </div>
         )}
       </SortableContext>

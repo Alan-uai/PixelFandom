@@ -83,6 +83,26 @@
 }
 
 @layer utilities {
+  /* ── Animation Duration ── */
+  .animate-duration-fast { animation-duration: 200ms; }
+  .animate-duration-normal { animation-duration: 500ms; }
+  .animate-duration-slow { animation-duration: 800ms; }
+  /* ── Animation Delay ── */
+  .animate-delay-short { animation-delay: 100ms; }
+  .animate-delay-medium { animation-delay: 300ms; }
+  .animate-delay-long { animation-delay: 600ms; }
+  /* ── Animation Easing ── */
+  .animate-ease-bounce { animation-timing-function: cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+  .animate-ease-spring { animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  /* ── Animation Iteration ── */
+  .animate-iteration-2 { animation-iteration-count: 2; }
+  .animate-iteration-3 { animation-iteration-count: 3; }
+  /* ── 3D Perspective ── */
+  .perspective-1000 { perspective: 1000px; }
+  .perspective-800 { perspective: 800px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+
   @keyframes bounce-dot {
     0%, 80%, 100% {
       transform: scale(0.2);

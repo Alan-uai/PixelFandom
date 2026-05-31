@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useUser, useSupabase, supabase } from '@/supabase';
+import { useUser, supabase } from '@/supabase';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
   LayoutDashboard,
@@ -20,7 +20,6 @@ import {
   PanelLeftClose,
   Download,
   FileText,
-  LogOut,
 } from 'lucide-react';
 import { LayoutGroup, motion } from 'framer-motion';
 import { PageSubNavProvider, usePageSubNav } from '@/components/dashboard/page-subnav-context';
@@ -31,9 +30,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, isLoading } = useUser();
-  const { signOut } = useSupabase();
 
   const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
   const isWikiPage = !!(wikiSlug && wikiSlug !== 'new');
@@ -180,26 +177,6 @@ export default function DashboardLayout({
         </nav>
 
         <div className="flex-1" />
-
-        <div className="flex items-center gap-1">
-          <Link
-            href="/dashboard/settings"
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Configurações"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
-          <button
-            onClick={async () => { await signOut(); router.push('/'); }}
-            className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-          <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[160px] ml-1">
-            {user.email || user.id.slice(0, 12)}
-          </span>
-        </div>
       </header>
 
       <TitleStrip isWikiPage={isWikiPage} currentItem={currentItem} />

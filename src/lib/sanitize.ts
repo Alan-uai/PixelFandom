@@ -28,8 +28,8 @@ export function sanitizeBlockConfig(config: Record<string, unknown>): Record<str
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'string') {
-      const isHtml = key === 'html';
-      const isUrl = key.toLowerCase().includes('url') || key.toLowerCase().includes('src') || key === 'link' || key === 'discordUrl' || key === 'ctaUrl' || key === 'imageUrl';
+      const isHtml = key === 'html' || key === 'content' || key === 'answer';
+      const isUrl = /url|src|link|href|discord/i.test(key);
       if (isHtml) {
         sanitized[key] = sanitizeHtml(value);
       } else if (isUrl) {
@@ -42,6 +42,9 @@ export function sanitizeBlockConfig(config: Record<string, unknown>): Record<str
         if (typeof item === 'object' && item !== null) {
           return sanitizeBlockConfig(item as Record<string, unknown>);
         }
+        if (typeof item === 'string' && /url|src|link|href/i.test(key)) {
+          return sanitizeUrl(item);
+        }
         return item;
       });
     } else if (typeof value === 'object' && value !== null) {
@@ -49,6 +52,19 @@ export function sanitizeBlockConfig(config: Record<string, unknown>): Record<str
     } else {
       sanitized[key] = value;
     }
+  }
+  return sanitized;
+}
+
+export function sanitizeBlock(block: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = { ...block };
+  if (block.config && typeof block.config === 'object') {
+    sanitized.config = sanitizeBlockConfig(block.config as Record<string, unknown>);
+  }
+  if (block.children && Array.isArray(block.children)) {
+    sanitized.children = block.children.map((child: unknown) =>
+      sanitizeBlock(child as Record<string, unknown>)
+    );
   }
   return sanitized;
 }

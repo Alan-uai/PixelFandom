@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
-import { sanitizeBlockConfig } from '@/lib/sanitize';
+import { sanitizeBlock } from '@/lib/sanitize';
 
 function getPageType(request: NextRequest): string {
   const url = new URL(request.url);
@@ -24,7 +24,6 @@ export async function GET(
       .maybeSingle();
 
     if (error || !data) {
-      // For landing, fall back to tenants.theme.landing_layout
       if (pageType === 'landing') {
         const { data: tenant } = await supabase
           .from('tenants')
@@ -67,17 +66,17 @@ export async function PUT(
       return NextResponse.json({ error: 'layout.blocks required' }, { status: 400 });
     }
 
-    const sanitizedBlocks = body.blocks.map((block: any) => ({
-      ...block,
-      config: block.config ? sanitizeBlockConfig(block.config) : {},
-    }));
+    const sanitizedBlocks = body.blocks.map((block: unknown) =>
+      sanitizeBlock(block as Record<string, unknown>)
+    );
 
-    const floatingIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands.map((fi: any) => ({
-      ...fi,
-      config: fi.config ? sanitizeBlockConfig(fi.config) : {},
-    })) : [];
+    const floatingIslands = Array.isArray(body.floatingIslands)
+      ? body.floatingIslands.map((fi: any) => ({
+          ...fi,
+          config: fi.config ? sanitizeBlock({ config: fi.config }).config : {},
+        }))
+      : [];
 
-    // Upsert into tenant_pages (unique constraint on tenant_id + page_type)
     const { error: upsertError } = await supabase
       .from('tenant_pages')
       .upsert(
@@ -92,7 +91,6 @@ export async function PUT(
       );
 
     if (upsertError) {
-      // Fallback: store in tenants.theme.landing_layout (only for landing)
       if (pageType === 'landing') {
         const { data: tenant } = await supabase
           .from('tenants')

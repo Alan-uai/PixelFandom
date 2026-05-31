@@ -61,7 +61,7 @@ export default function MainNav({ onLogin }: MainNavProps) {
               <User className="h-4 w-4" />
             </Link>
             <Link
-              href="/dashboard/settings"
+              href="/settings"
               className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Configurações"
             >
