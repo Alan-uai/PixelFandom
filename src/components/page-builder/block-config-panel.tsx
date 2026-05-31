@@ -3,75 +3,13 @@
 import { useState, useEffect } from 'react';
 import { X, Layers } from 'lucide-react';
 import type { BlockConfig, BlockType, BlockStyle, SpacingOption, TextAlign, AnimationConfig, AnimationType, DurationOption, DelayOption, EasingOption, HoverEffect, TapEffect, ChainMode } from './types';
-import { sanitizeUrl } from '@/lib/sanitize';
 import { configPanels } from './config-panels/index';
 import { ANIMATION_CATEGORIES } from '@/lib/animation-categories';
 import { AnimationPreview } from './animation-preview';
 import { ChainEditor } from './chain-editor';
-
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: { label: string; value: string }[]; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] text-muted-foreground">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full rounded-md border bg-background px-2 py-1 text-xs">
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </div>
-  );
-}
-
-function Checkbox({ label, checked, onChange, id }: { label: string; checked: boolean; onChange: (v: boolean) => void; id: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} id={id} className="rounded" />
-      <label htmlFor={id} className="text-xs">{label}</label>
-    </div>
-  );
-}
-
-function NumberField({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] text-muted-foreground">{label}</label>
-      <input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} min={min} max={max} className="w-full rounded-md border bg-background px-2 py-1 text-xs" />
-    </div>
-  );
-}
-
-function ColorField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] text-muted-foreground">{label}</label>
-      <div className="flex items-center gap-2">
-        <input type="color" value={value || '#000000'} onChange={(e) => onChange(e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
-        <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} className="flex-1 rounded-md border bg-background px-2 py-1 text-xs" />
-      </div>
-    </div>
-  );
-}
-
-function TextField({ label, value, onChange, multiline, type }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean; type?: string }) {
-  const isUrl = type === 'url';
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] text-muted-foreground">{label}</label>
-      {multiline ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={3} className="w-full rounded-md border bg-background px-2 py-1 text-xs resize-none" />
-      ) : (
-        <input type={isUrl ? 'url' : 'text'} value={value} onChange={(e) => onChange(isUrl ? sanitizeUrl(e.target.value) : e.target.value)} className="w-full rounded-md border bg-background px-2 py-1 text-xs" />
-      )}
-    </div>
-  );
-}
-
-function ArrayField({ label, value, onChange }: { label: string; value: any[]; onChange: (v: any[]) => void }) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] text-muted-foreground">{label}</label>
-      <textarea value={JSON.stringify(value, null, 2)} onChange={(e) => { try { onChange(JSON.parse(e.target.value)); } catch {} }} rows={4} className="w-full rounded-md border bg-background px-2 py-1 font-mono text-[10px] resize-none" />
-    </div>
-  );
-}
+import {
+  SelectField, CheckboxField as Checkbox, NumberField, ColorField,
+} from './config-panels/shared/fields';
 
 // ── Style Panel with Animation System ──
 
@@ -303,34 +241,13 @@ export function BlockConfigPanel({ block, onUpdate, onClose }: BlockConfigPanelP
         {SpecificPanel ? (
           <SpecificPanel config={localConfig} onChange={(key: string, value: unknown) => update(key, value)} />
         ) : (
-          Object.entries(localConfig).map(([key, value]) => {
-            if (typeof value === 'boolean') {
-              return (
-                <div key={key} className="flex items-center gap-2">
-                  <input type="checkbox" checked={value} onChange={(e) => update(key, e.target.checked)} id={`cfg-${block.id}-${key}`} className="rounded" />
-                  <label htmlFor={`cfg-${block.id}-${key}`} className="text-xs">{key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</label>
-                </div>
-              );
-            }
-            if (typeof value === 'number') {
-              return <NumberField key={key} label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())} value={value} onChange={(v) => update(key, v)} />;
-            }
-            if (typeof value === 'string') {
-              const isUrl = key.toLowerCase().includes('url') || key.toLowerCase().includes('src');
-              const isMultiline = key === 'html' || key === 'content' || key === 'answer';
-              const isColor = key.toLowerCase().includes('color');
-              if (isColor) return <ColorField key={key} label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())} value={value} onChange={(v) => update(key, v)} />;
-              return <TextField key={key} label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())} value={value} onChange={(v) => update(key, v)} multiline={isMultiline} type={isUrl ? 'url' : undefined} />;
-            }
-            if (Array.isArray(value)) {
-              return <ArrayField key={key} label={key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())} value={value} onChange={(v) => update(key, v)} />;
-            }
-            return null;
-          })
+          <p className="text-[10px] text-muted-foreground italic">Nenhuma configuração disponível para este bloco.</p>
         )}
       </div>
 
-      <StylePanel style={block.style} onChange={updateStyle} />
+      <div className="mt-4 pt-4 border-t">
+        <StylePanel style={block.style} onChange={updateStyle} />
+      </div>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { IconPickerTrigger } from '@/components/ui/icon-picker';
+import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -64,7 +66,8 @@ const primaryColumns: Record<string, string[]> = {
 
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 
-const imageColumnNames = ['image_url', 'image', 'icon_url', 'cover_url', 'logo_url'];
+const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
+const iconColumnNames = ['icon_url', 'icon_id'];
 
 const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision'];
 
@@ -183,6 +186,7 @@ export default function DataTablePage() {
     systemColumns.includes(col) || col.startsWith('embedding');
 
   const isImageColumn = (col: string) => imageColumnNames.includes(col);
+  const isIconColumn = (col: string) => iconColumnNames.includes(col);
 
   const isEditableColumn = (col: string) => !isSystemColumn(col) && col !== 'id';
 
@@ -194,7 +198,7 @@ export default function DataTablePage() {
   };
 
   const getDetailColumns = (allCols: string[]) =>
-    allCols.filter((c) => !isSystemColumn(c) && !primary.includes(c) && !imageColumnNames.includes(c));
+    allCols.filter((c) => !isSystemColumn(c) && !primary.includes(c) && !imageColumnNames.includes(c) && !iconColumnNames.includes(c));
 
   const startEdit = (row: Row) => {
     setEditingId(row.id as string);
@@ -368,6 +372,31 @@ export default function DataTablePage() {
     if (col === 'embedding' || col.startsWith('embedding')) return null;
 
     const dataType = getColumnDataType(col, tableColumns);
+
+    if (isIconColumn(col)) {
+      return (
+        <div className="space-y-2">
+          {value && value.includes(':') ? (
+            <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+              <IconRenderer icon={value} size="sm" />
+              <span className="font-mono">{value}</span>
+            </div>
+          ) : value && !value.includes(':') ? (
+            <ImageUpload
+              bucket="game-items"
+              pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
+              value={value}
+              onChange={(url) => onChange(col, url)}
+              previewSize="w-8 h-8"
+            />
+          ) : null}
+          <IconPickerTrigger
+            value={value?.includes(':') ? value : ''}
+            onChange={(iconId) => onChange(col, iconId)}
+          />
+        </div>
+      );
+    }
 
     if (isImageColumn(col)) {
       return (

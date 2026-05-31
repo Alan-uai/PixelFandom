@@ -16,6 +16,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
 import { Loader2, Save, Check, ShieldAlert, Sparkles, Text, History } from 'lucide-react';
+import { IconPickerTrigger } from '@/components/ui/icon-picker';
+import { IconRenderer } from '@/components/ui/icon-renderer';
 
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
@@ -618,7 +620,7 @@ function EditPageContent() {
 }
 
 function IconField({ slug, form }: { slug: string; form: any }) {
-  const [mode, setMode] = useState<'upload' | 'text'>('upload');
+  const [mode, setMode] = useState<'upload' | 'text' | 'icon'>('upload');
 
   return (
     <FormField
@@ -635,6 +637,15 @@ function IconField({ slug, form }: { slug: string; form: any }) {
               }`}
             >
               Upload
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('icon')}
+              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                mode === 'icon' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+              }`}
+            >
+              Ícone
             </button>
             <button
               type="button"
@@ -655,6 +666,24 @@ function IconField({ slug, form }: { slug: string; form: any }) {
                 onChange={field.onChange}
                 previewSize="w-12 h-12"
               />
+            </div>
+          ) : mode === 'icon' ? (
+            <div className="flex items-center gap-3">
+              <IconPickerTrigger
+                value={field.value?.includes(':') ? field.value : ''}
+                onChange={(iconId) => field.onChange(iconId)}
+              />
+              {field.value?.includes(':') && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <IconRenderer icon={field.value} size="sm" />
+                  <span className="font-mono">{field.value}</span>
+                </div>
+              )}
+              {field.value && !field.value.includes(':') && field.value.startsWith('http') && (
+                <span className="text-[10px] text-muted-foreground italic">
+                  (imagem atual — selecione um ícone para substituir)
+                </span>
+              )}
             </div>
           ) : (
             <FloatingLabelInput

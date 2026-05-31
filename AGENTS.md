@@ -92,8 +92,8 @@ Nenhum usuário da plataforma — **incluindo owners, admins, editors e viewers 
 
 ### Única coisa que USUÁRIOS podem personalizar
 Usuários (incluindo admin/owner de wiki) **só podem montar páginas usando blocos pré-definidos**:
-- Escolher entre **8 tipos de bloco** (Hero, Article Grid, Featured List, Discord Embed, News Feed, Image Gallery, Ranking Table, Rich Text)
-- Preencher campos de texto/links/cores dentro de cada bloco (sempre sanitizados)
+- Escolher entre **57+ tipos de bloco** categorizados (layout, content, media, dynamic, data, interactive, footer, error/404)
+- Preencher campos de texto/links/cores dentro de cada bloco (sempre sanitizados e validados via Zod)
 - Escolher **posição de floating islands** (left/center/right) entre opções pré-definidas
 - Configurar **cores do tema** via seletor HSL (apenas valores HSL, sem CSS arbitrário)
 - Escolher **fontes** do par pré-definido no tema
@@ -119,18 +119,20 @@ Usuários (incluindo admin/owner de wiki) **só podem montar páginas usando blo
 | Rich Text | title, html | **HTML obrigatoriamente sanitizado com DOMPurify** |
 
 ### Onde estas regras estão aplicadas
+- `src/lib/block-schemas.ts` — Zod schemas de configuração para todos os 57+ blocos, com `safeParseBlockConfig()` para validação runtime
+- `src/components/page-builder/config-panels/` — painéis de configuração estruturados com inputs tipados (SelectField, ItemsListEditor, etc.), sem campos JSON livre
 - `src/components/page-builder/blocks/rich-text-block.tsx` — rich-text com dangerouslySetInnerHTML (deve usar DOMPurify)
 - `src/components/page-builder/renderer/page-renderer.tsx` — renderização pública de blocos (deve sanitizar rich-text e URLs)
-- `src/components/page-builder/block-config-panel.tsx` — painel de configuração de blocos (inputs de texto/URL)
-- `src/app/api/tenants/[id]/page-layout/route.ts` — API de salvar layout (deve validar e sanitizar server-side)
+- `src/components/page-builder/block-config-panel.tsx` — painel de configuração de blocos (agora usa inputs estruturados dos config-panels)
+- `src/app/api/tenants/[id]/page-layout/route.ts` — API de salvar layout (valida com Zod + sanitiza server-side)
 - `src/components/page-builder/types.ts` — definições de tipos dos blocos
 - `src/components/page-builder/page-builder-editor.tsx` — editor de páginas
 
 ### ⚠️ ATENÇÃO
-- `block-config-panel.tsx` gera inputs dinamicamente sem validação — qualquer chave `html` recebe textarea para HTML arbitrário
-- `page-layout/route.ts` salva o JSONB sem sanitização server-side
-- Nenhuma biblioteca de sanitização HTML (`DOMPurify`) está instalada atualmente
-- `Record<string, unknown>` nos tipos permite qualquer chave em qualquer bloco
+- `page-layout/route.ts` agora valida cada bloco com `safeParseBlockConfig()` antes de salvar — se um config não passar no Zod schema, o request é rejeitado com status 400
+- `DOMPurify` (isomorphic-dompurify) está instalado e é usado em `sanitize.ts` para limpeza de HTML e URLs
+- Os schemas Zod em `block-schemas.ts` são a única fonte de verdade para configs válidos — qualquer campo extra ou tipo incorreto é rejeitado
+- Nenhum bloco usa mais `ArrayField` (textarea JSON) — todos foram migrados para painéis com inputs tipados
 
 ## Config globais do usuário
 - `src/context/user-preferences-context.tsx` — `UserPreferences` com `chat_settings`, `voice_settings`, `theme_preset`

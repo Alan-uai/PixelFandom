@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase, useUser } from '@/supabase';
+import { applyThemePreset } from '@/lib/theme-presets';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type Density = 'comfortable' | 'compact';
@@ -86,6 +87,12 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveLocal(preferences);
   }, [preferences]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      applyThemePreset(preferences.theme_preset);
+    }
+  }, [preferences.theme_preset]);
 
   useEffect(() => {
     if (!user || synced) return;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
+import { safeParseBlockConfig, BlockSchemaKey } from '@/lib/block-schemas';
 import { sanitizeBlock } from '@/lib/sanitize';
 
 function getPageType(request: NextRequest): string {
@@ -64,6 +65,23 @@ export async function PUT(
 
     if (!body.blocks || !Array.isArray(body.blocks)) {
       return NextResponse.json({ error: 'layout.blocks required' }, { status: 400 });
+    }
+
+    for (const block of body.blocks) {
+      const type = (block as any)?.type;
+      if (!type || typeof type !== 'string') {
+        return NextResponse.json({ error: `Block missing type` }, { status: 400 });
+      }
+      const config = (block as any)?.config;
+      if (config !== undefined) {
+        const result = safeParseBlockConfig(type as BlockSchemaKey, config);
+        if (!result.success) {
+          return NextResponse.json({
+            error: `Block "${type}" config validation failed`,
+            details: result.error.issues,
+          }, { status: 400 });
+        }
+      }
     }
 
     const sanitizedBlocks = body.blocks.map((block: unknown) =>

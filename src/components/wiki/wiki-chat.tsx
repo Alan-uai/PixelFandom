@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, Send, Bot, User, AlertCircle, MessageSquare, Trash2, Clock } from 'lucide-react';
 import StreamingAccordion from './streaming-accordion';
+import { MessageFeedback } from '@/components/chat/message-feedback';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 
@@ -13,6 +14,7 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   isStreaming?: boolean;
+  feedback?: 'positive' | 'negative';
 };
 
 type DBSession = {
@@ -98,6 +100,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
           id: m.id,
           role: m.role,
           content: m.content,
+          feedback: m.feedback ?? undefined,
         }));
         setMessages(chatMessages);
         setSessionId(sid);
@@ -203,6 +206,25 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     }
   }, [input, loading, tenantSlug, sessionId, user]);
 
+  const handleFeedback = async (messageId: string, type: 'positive' | 'negative') => {
+    const message = messages.find((m) => m.id === messageId);
+    const newFeedback = message?.feedback === type ? undefined : type;
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId ? { ...m, feedback: newFeedback } : m
+      )
+    );
+
+    try {
+      await fetch(`/api/chat/messages/${messageId}/feedback`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback: newFeedback || null }),
+      });
+    } catch {}
+  };
+
   const renderHeader = () => (
     <div className="flex items-center justify-between gap-2 mb-3">
       <div className="flex items-center gap-2">
@@ -271,37 +293,47 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     if (showHistory) return renderHistory();
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full min-h-0">
         {renderHeader()}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-              <Bot className="h-8 w-8 mb-2" />
-              <p className="text-sm">Pergunte algo sobre esta wiki.</p>
-            </div>
-          )}
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-              {msg.role === 'assistant' && <Bot className="h-6 w-6 shrink-0 mt-1 text-primary" />}
-              <div className={`rounded-lg px-3 py-2 text-sm max-w-[85%] ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                {msg.role === 'assistant' ? (
-                  <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
-                ) : (
-                  msg.content
-                )}
+        {messages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground min-h-0">
+            <Bot className="h-8 w-8 mb-2" />
+            <p className="text-sm">Pergunte algo sobre esta wiki.</p>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                {msg.role === 'assistant' && <Bot className="h-6 w-6 shrink-0 mt-1 text-primary" />}
+                <div className="flex flex-col gap-1 max-w-[85%]">
+                  <div className={`rounded-lg px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    {msg.role === 'assistant' ? (
+                      <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                  {msg.role === 'assistant' && !msg.isStreaming && (
+                    <MessageFeedback
+                      messageId={msg.id}
+                      currentFeedback={msg.feedback}
+                      onFeedback={handleFeedback}
+                    />
+                  )}
+                </div>
+                {msg.role === 'user' && <User className="h-6 w-6 shrink-0 mt-1 text-muted-foreground" />}
               </div>
-              {msg.role === 'user' && <User className="h-6 w-6 shrink-0 mt-1 text-muted-foreground" />}
-            </div>
-          ))}
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              {error}
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 p-3 border-t">
+            ))}
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 p-3 border-t shrink-0">
           <div className="flex-1">
             <FloatingLabelInput
               ref={inputRef}
@@ -320,8 +352,8 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
   }
 
   return (
-    <div className="flex flex-col flex-1 max-w-3xl mx-auto w-full">
-      <div className="text-center mb-6">
+    <div className="flex flex-col flex-1 max-w-3xl mx-auto w-full h-full min-h-0">
+      <div className="text-center mb-6 shrink-0">
         <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
           <Bot className="h-6 w-6 text-primary" />
           Assistente da Wiki
@@ -330,13 +362,13 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
       </div>
 
       {showHistory ? (
-        <div className="flex-1 border rounded-lg p-4">
+        <div className="flex-1 border rounded-lg p-4 min-h-0">
           <h2 className="text-lg font-semibold mb-4">Histórico de Conversas</h2>
           {renderHistory()}
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 shrink-0">
             {sessionId && (
               <Button variant="outline" size="sm" onClick={newChat}>
                 <MessageSquare className="h-3.5 w-3.5 mr-1" />
@@ -351,58 +383,65 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-4 px-2">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Bot className="h-16 w-16 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Faça uma pergunta sobre o conteúdo da wiki.</p>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {['O que tem nesta wiki?', 'Quais são os artigos recentes?', 'Me ajude a encontrar...'].map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                      className="rounded-full border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
+          {messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center min-h-0">
+              <Bot className="h-16 w-16 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Faça uma pergunta sobre o conteúdo da wiki.</p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {['O que tem nesta wiki?', 'Quais são os artigos recentes?', 'Me ajude a encontrar...'].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                    className="rounded-full border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
               </div>
-            )}
-
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                {msg.role === 'assistant' && (
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="h-4 w-4 text-primary" />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-4 px-2 min-h-0">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Bot className="h-4 w-4 text-primary" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1 max-w-[85%]">
+                    <div className={`rounded-xl px-4 py-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      {msg.role === 'assistant' ? (
+                        <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                    </div>
+                    {msg.role === 'assistant' && !msg.isStreaming && (
+                      <MessageFeedback
+                        messageId={msg.id}
+                        currentFeedback={msg.feedback}
+                        onFeedback={handleFeedback}
+                      />
+                    )}
                   </div>
-                )}
-                <div className={`rounded-xl px-4 py-3 max-w-[85%] ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                  {msg.role === 'assistant' ? (
-                    <StreamingAccordion streamContent={msg.content} isStreaming={!!msg.isStreaming} tenantSlug={tenantSlug} />
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === 'user' && (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   )}
                 </div>
-                {msg.role === 'user' && (
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+              {error && (
+                <div className="flex items-center justify-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
+                  <AlertCircle className="h-4 w-4" />
+                  {error}
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
-            {error && (
-              <div className="flex items-center justify-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
-                <AlertCircle className="h-4 w-4" />
-                {error}
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4 shrink-0">
             <div className="flex-1">
               <FloatingLabelInput
                 ref={inputRef}
