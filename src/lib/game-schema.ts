@@ -172,6 +172,12 @@ export async function getCategoryMap(): Promise<CategoryMap> {
   return buildCategoryMap(schema);
 }
 
+export async function getTableSchema(tableName: string): Promise<ColumnInfo[]> {
+  const schema = await getGameSchema();
+  const table = schema.tables.find((t) => t.table_name === tableName);
+  return table?.columns ?? [];
+}
+
 export function invalidateCache(): void {
   cachedSchema = null;
   cacheTime = 0;

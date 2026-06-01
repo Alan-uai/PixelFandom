@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import type { ColumnInfo } from '@/lib/game-schema';
 
 type Props = {
   data: Record<string, any>;
@@ -20,6 +21,7 @@ type Props = {
   tenantSlug?: string;
   sourceTable?: string;
   comparisonMode?: 'modal' | 'page';
+  schema?: ColumnInfo[];
 };
 
 function detectType(data: Record<string, unknown>): string {
@@ -200,7 +202,231 @@ const ALREADY_RENDERED = new Set([
   'crafting_cost', 'obtain_method',
 ]);
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal' }: Props) {
+// ── Dynamic schema-driven rendering helpers ──
+
+const NUMERIC_TYPES = new Set([
+  'integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision',
+  'double', 'float', 'decimal',
+]);
+
+function isNumericType(t: string): boolean {
+  return NUMERIC_TYPES.has(t);
+}
+
+function isLongText(v: unknown): boolean {
+  if (typeof v !== 'string') return false;
+  return v.length > 60 || v.includes('\n');
+}
+
+function isShortText(v: unknown): boolean {
+  if (typeof v !== 'string') return false;
+  return v.length <= 60 && !v.includes('\n');
+}
+
+const DYNAMIC_SKIP = new Set([
+  'id', 'tenant_id', 'created_at', 'updated_at',
+  'name', 'title', 'description', 'summary',
+  'rarity', 'tier', 'element',
+  'image', 'image_url', 'icon', 'icon_url',
+  'world_name',
+  '_source_table',
+]);
+
+function renderDynamicSections(
+  data: Record<string, any>,
+  schema: ColumnInfo[],
+  tenantId: string | undefined,
+  tenantSlug: string | undefined,
+  table: string,
+  comparisonMode_: 'modal' | 'page',
+) {
+  const rendered = new Set<string>();
+  const sections: React.ReactNode[] = [];
+
+  // 1. Numeric stat cards
+  const numCols = schema.filter(
+    (c) => isNumericType(c.data_type) && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
+  );
+  if (numCols.length > 0) {
+    numCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+        {numCols.map((c) => {
+          const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+          return (
+            <StatCard
+              key={c.column_name}
+              label={label}
+              value={fmt(data[c.column_name])}
+              onClick={tenantId ? () => {
+                if (comparisonMode_ === 'page') {
+                  window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
+                }
+              } : undefined}
+            />
+          );
+        })}
+      </div>,
+    );
+  }
+
+  // 2. Booleans → tags
+  const boolCols = schema.filter(
+    (c) => c.data_type === 'boolean' && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
+  );
+  if (boolCols.length > 0) {
+    boolCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-bools" className="flex flex-wrap gap-2 mb-6">
+        {boolCols.map((c) => (
+          <Tag key={c.column_name}
+            className={data[c.column_name]
+              ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+              : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
+            }
+          >
+            {data[c.column_name]
+              ? `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Sim`
+              : `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Não`}
+          </Tag>
+        ))}
+      </div>,
+    );
+  }
+
+  // 3. Short text → tags (only text/varchar columns)
+  const textCols = schema.filter(
+    (c) =>
+      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
+      !DYNAMIC_SKIP.has(c.column_name) &&
+      data[c.column_name] != null &&
+      data[c.column_name] !== '' &&
+      isShortText(data[c.column_name]),
+  );
+  if (textCols.length > 0) {
+    textCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-tags" className="flex flex-wrap gap-2 mb-6">
+        {textCols.map((c) => (
+          <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
+            {String(data[c.column_name])}
+          </Tag>
+        ))}
+      </div>,
+    );
+  }
+
+  // 4. Long text → labeled sections
+  const longCols = schema.filter(
+    (c) =>
+      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
+      !DYNAMIC_SKIP.has(c.column_name) &&
+      data[c.column_name] != null &&
+      data[c.column_name] !== '' &&
+      isLongText(data[c.column_name]),
+  );
+  for (const c of longCols) {
+    rendered.add(c.column_name);
+    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    sections.push(
+      <div key={c.column_name} className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data[c.column_name])}</p>
+      </div>,
+    );
+  }
+
+  // 5. JSON arrays → tag lists
+  const arrCols = schema.filter(
+    (c) =>
+      (c.data_type === 'jsonb' || c.data_type === 'json') &&
+      !DYNAMIC_SKIP.has(c.column_name) &&
+      Array.isArray(data[c.column_name]) &&
+      data[c.column_name].length > 0,
+  );
+  for (const c of arrCols) {
+    rendered.add(c.column_name);
+    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    sections.push(
+      <div key={c.column_name} className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h3>
+        <div className="flex flex-wrap gap-2">
+          {data[c.column_name].map((item: unknown, i: number) => (
+            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
+              {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+            </Tag>
+          ))}
+        </div>
+      </div>,
+    );
+  }
+
+  // 6. JSON objects → sub-sections
+  const objCols = schema.filter(
+    (c) =>
+      (c.data_type === 'jsonb' || c.data_type === 'json') &&
+      !DYNAMIC_SKIP.has(c.column_name) &&
+      typeof data[c.column_name] === 'object' &&
+      data[c.column_name] !== null &&
+      !Array.isArray(data[c.column_name]),
+  );
+  for (const c of objCols) {
+    rendered.add(c.column_name);
+    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    const obj = data[c.column_name] as Record<string, unknown>;
+    sections.push(
+      <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
+        <h3 className="text-sm font-semibold mb-3">{label}</h3>
+        <div className="space-y-2">
+          {Object.entries(obj).map(([k, v]) => (
+            <div key={k} className="flex items-start gap-3 text-sm">
+              <span className="text-xs font-medium text-muted-foreground min-w-[100px] shrink-0">
+                {k.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+              </span>
+              <span className="text-foreground">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+            </div>
+          ))}
+        </div>
+      </div>,
+    );
+  }
+
+  if (sections.length === 0) return null;
+  return <>{sections}</>;
+}
+
+// ── Fallback for columns not covered by schema or hardcoded sections ──
+function renderFallbackFields(data: Record<string, any>) {
+  const extra = Object.entries(data).filter(
+    ([k, v]) => !SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '',
+  );
+  if (extra.length === 0) return null;
+  return (
+    <div className="mb-3">
+      <Accordion title="Informações Adicionais" icon={<ScrollText className="h-4 w-4 text-primary" />}>
+        <div>
+          {extra.map(([k, v]) => (
+            <FieldRow key={k} label={k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}>
+              {typeof v === 'object' && v !== null ? (
+                isArrStr(v) ? (
+                  <div className="flex flex-wrap gap-1">
+                    {v.map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
+                  </div>
+                ) : (
+                  <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
+                )
+              ) : (
+                <ColoredText text={fmt(v)} />
+              )}
+            </FieldRow>
+          ))}
+        </div>
+      </Accordion>
+    </div>
+  );
+}
+
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema }: Props) {
   const type = collectionType || detectType(data);
   const table = sourceTable || type;
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
@@ -688,8 +914,11 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         </div>
       )}
 
-      {/* Accordion: Additional Info */}
-      {(() => {
+      {/* Dynamic schema-driven sections (when schema is available) */}
+      {schema && renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode)}
+
+      {/* Fallback: accordion for fields not covered by hardcoded sections or schema */}
+      {!schema && (() => {
         const extra = Object.entries(data).filter(([k, v]) => !SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '');
         if (extra.length === 0) return null;
         return (

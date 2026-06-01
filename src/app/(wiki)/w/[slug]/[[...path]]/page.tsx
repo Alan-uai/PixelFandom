@@ -19,9 +19,8 @@ import { FloatingIslandsBar } from '@/components/floating-islands/floating-islan
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
 import { FollowButton } from '@/components/wiki/follow-button';
+import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
 import type { FloatingIslandConfig, CardPosition } from '@/components/page-builder/types';
-
-const GAME_TABLES = ['weapons', 'armors', 'rings', 'enemies', 'bosses', 'potions', 'upgrades', 'worlds'] as const;
 
 export default function WikiPage() {
   const params = useParams();
@@ -65,6 +64,8 @@ export default function WikiPage() {
   const [custom404Layout, setCustom404Layout] = useState<any>(null);
   const layoutCache = useRef<Record<string, any>>({});
   const articleCache = useRef<Record<string, any>>({});
+  const [gameSchema, setGameSchema] = useState<{ tables: { table_name: string; columns: ColumnInfo[] }[] } | null>(null);
+  const schemaCache = useRef<typeof gameSchema>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -100,6 +101,23 @@ export default function WikiPage() {
       setLoadingLayout(false);
     })();
   }, [articleSlug, tenant?.id]);
+
+  // Fetch game schema dynamically (cached)
+  useEffect(() => {
+    if (schemaCache.current) {
+      setGameSchema(schemaCache.current);
+      return;
+    }
+    (async () => {
+      try {
+        const schema = await getGameSchema();
+        if (schema.tables.length > 0) {
+          schemaCache.current = schema;
+          setGameSchema(schema);
+        }
+      } catch {}
+    })();
+  }, []);
 
   // Fetch 404 layout + floating islands (only overwrite if non-empty)
   useEffect(() => {
@@ -165,10 +183,28 @@ export default function WikiPage() {
         return;
       }
 
-      // 2. Try each game table by slugified name
+      // 2. Try each game table dynamically (from getGameSchema)
       const searchName = articleSlug.replace(/-/g, ' ');
+      const tablesToSearch = schemaCache.current?.tables.map((t) => t.table_name) ?? [];
 
-      for (const table of GAME_TABLES) {
+      for (const table of tablesToSearch) {
+        const { data } = await supabase
+          .from(table)
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .or(`name.ilike.%${searchName}%,code.ilike.%${articleSlug}%`)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (data) {
+          saveToCache({ ...data, _source_table: table });
+          return;
+        }
+      }
+
+      // 3. Fallback: try name-only match with exact slug
+      for (const table of tablesToSearch) {
         const { data } = await supabase
           .from(table)
           .select('*')
@@ -184,16 +220,8 @@ export default function WikiPage() {
         }
       }
 
-      // 3. Try codes table (uses 'code' field)
-      const { data: codeItem } = await supabase
-        .from('codes')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .ilike('code', articleSlug)
-        .maybeSingle();
-
       if (!cancelled) {
-        saveToCache(codeItem ? { ...codeItem, _source_table: 'codes' } : null);
+        saveToCache(null);
       }
     };
 
@@ -275,6 +303,12 @@ export default function WikiPage() {
                 comparisonMode={comparisonMode as 'modal' | 'page'}
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
+                schema={(() => {
+                  if (!gameSchema) return undefined;
+                  const st = (isGameItem ? article._source_table : undefined);
+                  const tab = gameSchema.tables.find((t) => t.table_name === st);
+                  return tab?.columns;
+                })()}
               />
             ) : (
               <>
