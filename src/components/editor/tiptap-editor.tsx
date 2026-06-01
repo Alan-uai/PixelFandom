@@ -24,8 +24,12 @@ import {
   Redo,
   Upload,
   Loader2,
+  Gamepad2,
+  Layers,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { GameItemEmbed, TierlistBlock } from './extensions';
+import { GameItemSelector } from './game-item-selector';
 
 type TiptapEditorProps = {
   content: string;
@@ -44,6 +48,8 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       ImageExtension,
       LinkExtension.configure({ openOnClick: false }),
       Underline,
+      GameItemEmbed,
+      TierlistBlock,
     ],
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
@@ -61,6 +67,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [slug, setSlug] = useState('');
+  const [showGameItemSelector, setShowGameItemSelector] = useState(false);
 
   useEffect(() => {
     const parts = window.location.pathname.split('/');
@@ -69,6 +76,33 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       setSlug(parts[dashIdx + 1]);
     }
   }, []);
+
+  const handleGameItemSelect = useCallback((table: string, itemId: string, itemName: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({
+      type: 'gameItemEmbed',
+      attrs: { table, itemId, itemName },
+    }).run();
+  }, [editor]);
+
+  const handleInsertTierlist = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({
+      type: 'tierlistBlock',
+      attrs: {
+        table: '',
+        title: 'Nova Tierlist',
+        tiers: JSON.stringify([
+          { label: 'S', color: 'red', itemIds: [] },
+          { label: 'A', color: 'orange', itemIds: [] },
+          { label: 'B', color: 'yellow', itemIds: [] },
+          { label: 'C', color: 'green', itemIds: [] },
+          { label: 'D', color: 'blue', itemIds: [] },
+          { label: 'F', color: 'gray', itemIds: [] },
+        ]),
+      },
+    }).run();
+  }, [editor]);
 
   const handleImageUpload = useCallback(() => {
     const url = window.prompt('URL da imagem:');
@@ -169,6 +203,15 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
 
         <Divider />
 
+        <ToolbarButton onClick={() => setShowGameItemSelector(true)}>
+          <Gamepad2 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={handleInsertTierlist}>
+          <Layers className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
         <input
           type="file"
           ref={imageInputRef}
@@ -196,6 +239,14 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
         </ToolbarButton>
       </div>
       <EditorContent editor={editor} />
+      {slug && (
+        <GameItemSelector
+          open={showGameItemSelector}
+          onClose={() => setShowGameItemSelector(false)}
+          onSelect={handleGameItemSelect}
+          tenantId={slug}
+        />
+      )}
     </div>
   );
 }

@@ -15,10 +15,14 @@ import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Loader2, Save, Check, ShieldAlert, Sparkles, Text, History } from 'lucide-react';
+import { Sparkles, FileText, Wand2, Loader2, ChevronRight, Save, Check, ShieldAlert, Text, History } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { generateGuide } from '@/ai/flows/generate-guide-flow';
+import { improveArticle } from '@/ai/flows/improve-article-flow';
+import { searchAll } from '@/lib/search';
+import { getGameSchema } from '@/lib/game-schema';
 
-
-import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
@@ -56,6 +60,12 @@ function EditPageContent() {
   const [changeSummary, setChangeSummary] = useState('');
   const [versions, setVersions] = useState<any[]>([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const [showAiSidebar, setShowAiSidebar] = useState(false);
+  const [aiSidebarTab, setAiSidebarTab] = useState<'generate' | 'improve'>('generate');
+  const [guideTopic, setGuideTopic] = useState('');
+  const [guideTone, setGuideTone] = useState<'guia' | 'tutorial' | 'analise'>('guia');
 
   useEffect(() => {
     return () => {
@@ -69,7 +79,7 @@ function EditPageContent() {
   const fromGeneration = searchParams.get('from-generation') === 'true';
 
   const isNewArticle = articleIdParam === 'new';
-  const [articleId, setArticleId] = useState(isNewArticle ? nanoid() : articleIdParam);
+  const [articleId, setArticleId] = useState(isNewArticle ? crypto.randomUUID() : articleIdParam);
 
   const [article, setArticle] = useState<any>(null);
   const [isArticleLoading, setIsArticleLoading] = useState(false);
@@ -133,7 +143,7 @@ function EditPageContent() {
       if (generatedArticleJson) {
         try {
           const generatedArticle = JSON.parse(generatedArticleJson);
-          setArticleId(generatedArticle.id || nanoid());
+          setArticleId(generatedArticle.id || crypto.randomUUID());
           form.reset({
             title: generatedArticle.title || '',
             summary: generatedArticle.summary || '',
@@ -275,6 +285,99 @@ function EditPageContent() {
       toast({ variant: 'destructive', title: 'Erro na Formatação', description: 'Não foi possível formatar o texto para JSON.' });
     } finally {
       setIsFormatting(false);
+    }
+  };
+
+  const handleGenerateGuide = async () => {
+    if (!guideTopic.trim() || !tenantId || !slug) return;
+    setIsGeneratingGuide(true);
+    try {
+      const { data: gameData } = await supabase
+        .from('wiki_articles')
+        .select('title')
+        .eq('tenant_id', tenantId)
+        .limit(5);
+      
+      let gameDataContext = '';
+      try {
+        const searchResult = await searchAll(slug, guideTopic, { limit: 10 });
+        gameDataContext = JSON.stringify({
+          wiki_articles: searchResult.wiki.map(w => ({ title: w.title, summary: w.summary })),
+          game_items: searchResult.game_items.map(i => ({ 
+            source_type: i.source_type, name: i.name, description: i.description, 
+            raw_data: i.raw_data 
+          }))
+        }, null, 2);
+      } catch {}
+
+      const result = await generateGuide({
+        topic: guideTopic,
+        gameDataContext,
+        tone: guideTone,
+      });
+
+      if (result.content) {
+        form.setValue('content', result.content);
+        form.setValue('summary', result.summary || '');
+        form.setValue('tags', result.tags || '');
+        if (result.tables) {
+          form.setValue('tables', result.tables);
+        }
+        if (result.title) {
+          form.setValue('title', result.title);
+        }
+        toast({ title: 'Guia Gerado!', description: 'O guia foi gerado pela IA. Revise e salve.' });
+      }
+    } catch (error) {
+      console.error('Erro ao gerar guia:', error);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível gerar o guia.' });
+    } finally {
+      setIsGeneratingGuide(false);
+    }
+  };
+
+  const handleImproveArticle = async () => {
+    if (!tenantId || !slug) return;
+    setIsImproving(true);
+    try {
+      const values = form.getValues();
+      const contentText = values.content;
+      
+      let gameDataContext = '';
+      try {
+        const searchResult = await searchAll(slug, values.title, { limit: 10 });
+        gameDataContext = JSON.stringify({
+          game_items: searchResult.game_items.map(i => ({
+            source_type: i.source_type, name: i.name, description: i.description,
+            raw_data: i.raw_data
+          }))
+        }, null, 2);
+      } catch {}
+
+      const result = await improveArticle({
+        title: values.title,
+        content: contentText,
+        summary: values.summary,
+        tags: values.tags,
+        tables: values.tables || '[]',
+        gameDataContext,
+        tone: guideTone,
+      });
+
+      if (result.content) {
+        form.setValue('content', result.content);
+        form.setValue('summary', result.summary || values.summary);
+        form.setValue('tags', result.tags || values.tags);
+        if (result.tables) {
+          form.setValue('tables', result.tables);
+        }
+        toast({ title: 'Artigo Melhorado!', description: 'O artigo foi reestruturado. Revise e salve.' });
+      }
+    } catch (error) {
+      console.error('Erro ao melhorar artigo:', error);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível melhorar o artigo.' });
+    } finally {
+      setIsImproving(false);
     }
   };
 
@@ -581,6 +684,112 @@ function EditPageContent() {
                     Histórico ({versions.length})
                   </Button>
                 )}
+
+                  <Sheet open={showAiSidebar} onOpenChange={setShowAiSidebar}>
+                    <SheetTrigger asChild>
+                      <Button type="button" variant="outline" className="gap-2">
+                        <Wand2 className="h-4 w-4" />
+                        Assistente IA
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                      <SheetHeader>
+                        <SheetTitle>Assistente de Guias</SheetTitle>
+                      </SheetHeader>
+                      <ScrollArea className="h-full pr-4 mt-6">
+                        <div className="space-y-6">
+                          {/* Generate Tab */}
+                          <div>
+                            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              Gerar Guia Completo
+                            </h3>
+                            <div className="space-y-3">
+                              <input
+                                type="text"
+                                placeholder="Ex: Melhores armas para iniciantes, Como derrotar o Goblin Rei..."
+                                value={guideTopic}
+                                onChange={(e) => setGuideTopic(e.target.value)}
+                                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                              />
+                              <select
+                                value={guideTone}
+                                onChange={(e) => setGuideTone(e.target.value as any)}
+                                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                              >
+                                <option value="guia">Guia Prático</option>
+                                <option value="tutorial">Tutorial Passo-a-Passo</option>
+                                <option value="analise">Análise Detalhada</option>
+                              </select>
+                              <Button
+                                type="button"
+                                className="w-full gap-2"
+                                disabled={isGeneratingGuide || !guideTopic.trim()}
+                                onClick={handleGenerateGuide}
+                              >
+                                {isGeneratingGuide ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-4 w-4" />
+                                )}
+                                {isGeneratingGuide ? 'Gerando...' : 'Gerar Guia'}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="border-t pt-6">
+                            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                              <Wand2 className="h-4 w-4 text-primary" />
+                              Melhorar Artigo Atual
+                            </h3>
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Reestrutura o artigo existente para o formato de guia, removendo duplicações e adicionando referências a dados do jogo.
+                            </p>
+                            <select
+                              value={guideTone}
+                              onChange={(e) => setGuideTone(e.target.value as any)}
+                              className="w-full rounded-md border bg-background px-3 py-2 text-sm mb-3"
+                            >
+                              <option value="guia">Guia Prático</option>
+                              <option value="tutorial">Tutorial Passo-a-Passo</option>
+                              <option value="analise">Análise Detalhada</option>
+                            </select>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="w-full gap-2"
+                              disabled={isImproving}
+                              onClick={handleImproveArticle}
+                            >
+                              {isImproving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-4 w-4" />
+                              )}
+                              {isImproving ? 'Melhorando...' : 'Melhorar Artigo'}
+                            </Button>
+                          </div>
+
+                          <div className="border-t pt-6">
+                            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                              <FileText className="h-4 w-4 text-primary" />
+                              O que são Guias?
+                            </h3>
+                            <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
+                              <p>Guias são artigos que <strong>não duplicam stats</strong> do jogo. Em vez disso, eles:</p>
+                              <ul className="list-disc pl-4 space-y-1">
+                                <li>Explicam <strong>como obter</strong> itens</li>
+                                <li>Mostram <strong>melhores builds</strong> e estratégias</li>
+                                <li>Criam <strong>tierlists</strong> comparativas</li>
+                                <li>Dão <strong>dicas de progressão</strong> por mundo</li>
+                              </ul>
+                              <p className="mt-2">Os stats dos itens são puxados automaticamente das tabelas do jogo — você só linka eles via o campo "Tabelas (JSON)".</p>
+                            </div>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </SheetContent>
+                  </Sheet>
 
                 {savedFeedback ? (
                   <div className="flex items-center gap-2 text-sm text-green-500 font-medium">

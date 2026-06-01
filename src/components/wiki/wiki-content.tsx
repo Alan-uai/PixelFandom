@@ -151,6 +151,12 @@ function renderProseMirrorNode(node: any): string {
     case 'hardBreak':
       return '<br />';
 
+    case 'gameItemEmbed':
+      return renderGameItemEmbed(node);
+
+    case 'tierlistBlock':
+      return renderTierlistBlock(node);
+
     default:
       if (node.content) {
         return (node.content || []).map(renderProseMirrorNode).join('\n');
@@ -204,6 +210,69 @@ function renderMarks(text: string, marks?: any[]): string {
     }
   }
   return result;
+}
+
+function renderGameItemEmbed(node: any): string {
+  const table = node.attrs?.table || '';
+  const itemName = node.attrs?.itemName || '';
+  const itemId = node.attrs?.itemId || '';
+
+  const tableLabels: Record<string, string> = {
+    weapons: 'Arma', armors: 'Armadura', rings: 'Anel', enemies: 'Inimigo',
+    bosses: 'Chefe', potions: 'Poção', upgrades: 'Upgrade', worlds: 'Mundo',
+    codes: 'Código', crafting_recipes: 'Receita', resources: 'Recurso', build_presets: 'Build',
+  };
+
+  const label = tableLabels[table] || table;
+
+  return `<div class="game-item-embed rounded-lg border border-primary/20 bg-primary/5 p-4 my-3 flex items-center gap-3">
+    <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">${label.charAt(0)}</div>
+    <div>
+      <div class="font-medium text-sm">${escapeHtml(itemName)}</div>
+      <div class="text-xs text-muted-foreground">${escapeHtml(label)} · ID: ${escapeHtml(itemId)}</div>
+    </div>
+  </div>`;
+}
+
+function renderTierlistBlock(node: any): string {
+  const table = node.attrs?.table || '';
+  const title = node.attrs?.title || 'Tierlist';
+  let tiers: { label: string; color: string; itemIds: string[] }[] = [];
+  try {
+    if (node.attrs?.tiers) {
+      tiers = typeof node.attrs.tiers === 'string'
+        ? JSON.parse(node.attrs.tiers)
+        : node.attrs.tiers;
+    }
+  } catch {}
+
+  const tierColors: Record<string, string> = {
+    S: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
+    A: 'bg-green-500/20 border-green-500/30 text-green-400',
+    B: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+    C: 'bg-purple-500/20 border-purple-500/30 text-purple-400',
+    D: 'bg-gray-500/20 border-gray-500/30 text-gray-400',
+    F: 'bg-red-500/20 border-red-500/30 text-red-400',
+  };
+
+  const parts: string[] = [
+    `<div class="tierlist-block rounded-xl border border-border overflow-hidden my-4">`,
+    `<div class="px-4 py-2 font-semibold text-sm bg-muted/50 border-b border-border">${escapeHtml(title)}</div>`,
+  ];
+
+  for (const tier of tiers) {
+    const tc = tierColors[tier.label] || 'bg-muted border-border text-muted-foreground';
+    parts.push(`<div class="flex items-stretch border-b border-border/50 last:border-0">
+      <div class="flex items-center justify-center w-12 font-bold text-sm ${tc} border-r border-inherit">${escapeHtml(tier.label)}</div>
+      <div class="flex-1 px-3 py-2 text-xs text-muted-foreground">
+        ${tier.itemIds.length > 0 ? tier.itemIds.join(', ') : '<span class="italic">Vazio</span>'}
+      </div>
+      <div class="flex items-center px-3 text-xs text-muted-foreground">${tier.itemIds.length} itens</div>
+    </div>`);
+  }
+
+  parts.push('</div>');
+  return parts.join('\n');
 }
 
 function escapeHtml(text: string): string {
