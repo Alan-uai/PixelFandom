@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
@@ -15,12 +15,12 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (loaded) return;
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     fetchState();
-    setLoaded(true);
   }, [tenantId]);
 
   const fetchState = async () => {

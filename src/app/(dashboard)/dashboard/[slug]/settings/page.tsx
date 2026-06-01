@@ -44,6 +44,7 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
+  const [comparisonDisplayMode, setComparisonDisplayMode] = useState<'modal' | 'page'>('modal');
 
   useEffect(() => {
     (async () => {
@@ -83,6 +84,8 @@ export default function WikiSettingsPage() {
           setSidebarWidth(theme.sidebar_width || 'normal');
           setHeaderStyle(theme.header_style || 'compact');
           setArticlesPerRow(theme.articles_per_row || 3);
+          const widgets = (theme.widgets as Record<string, any>) || {};
+          setComparisonDisplayMode(widgets.comparison?.display_mode || 'modal');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
@@ -132,6 +135,11 @@ export default function WikiSettingsPage() {
             sidebar_width: sidebarWidth,
             header_style: headerStyle,
             articles_per_row: articlesPerRow,
+            widgets: {
+              comparison: {
+                display_mode: comparisonDisplayMode,
+              },
+            },
           },
         })
         .eq('slug', slug);
@@ -376,6 +384,23 @@ export default function WikiSettingsPage() {
             <div className="flex justify-between text-[10px] text-muted-foreground">
               <span>1</span>
               <span>6</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Comparação de Itens</Label>
+            <div className="flex gap-2">
+              {([{ v: 'modal', l: 'Modal' }, { v: 'page', l: 'Página dedicada' }] as const).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setComparisonDisplayMode(opt.v)}
+                  className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                    comparisonDisplayMode === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  {opt.l}
+                </button>
+              ))}
             </div>
           </div>
           <div className="space-y-2">

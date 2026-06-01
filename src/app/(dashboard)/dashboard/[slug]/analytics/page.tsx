@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Eye, MessageSquare, TrendingUp, BarChart3, Calendar } from 'lucide-react';
@@ -24,12 +24,18 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('7d');
+  const cache = useRef<Record<string, any>>({});
 
   useEffect(() => {
+    const key = `${slug}:${period}`;
+    if (cache.current[key]) {
+      setData(cache.current[key]);
+      return;
+    }
     setLoading(true);
     fetch(`/api/analytics?slug=${slug}&period=${period}`)
       .then(r => r.json())
-      .then(d => setData(d))
+      .then(d => { cache.current[key] = d; setData(d); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [slug, period]);

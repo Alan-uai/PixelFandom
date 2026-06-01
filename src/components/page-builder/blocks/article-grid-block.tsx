@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FileText, Calendar } from 'lucide-react';
 
 const gridClasses: Record<number, string> = {
@@ -21,10 +21,16 @@ export function ArticleGridBlock({ config, tenantId }: { config: Record<string, 
 
   const [fetchedArticles, setFetchedArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const cacheRef = useRef<{ key: string; items: any[] } | null>(null);
 
   useEffect(() => {
     if (mode !== 'tag' || !tag || !tenantId) {
       setFetchedArticles([]);
+      return;
+    }
+    const cacheKey = `${tenantId}:${tag}`;
+    if (cacheRef.current && cacheRef.current.key === cacheKey) {
+      setFetchedArticles(cacheRef.current.items);
       return;
     }
     let cancelled = false;
@@ -33,15 +39,15 @@ export function ArticleGridBlock({ config, tenantId }: { config: Record<string, 
       .then((res) => (res.ok ? res.json() : { articles: [] }))
       .then((data) => {
         if (cancelled) return;
-        setFetchedArticles(
-          (data.articles || []).map((a: any) => ({
-            title: a.title,
-            slug: a.slug,
-            imageUrl: a.image_url,
-            summary: a.summary,
-            date: a.updated_at ? new Date(a.updated_at).toLocaleDateString('pt-BR') : undefined,
-          }))
-        );
+        const items = (data.articles || []).map((a: any) => ({
+          title: a.title,
+          slug: a.slug,
+          imageUrl: a.image_url,
+          summary: a.summary,
+          date: a.updated_at ? new Date(a.updated_at).toLocaleDateString('pt-BR') : undefined,
+        }));
+        cacheRef.current = { key: cacheKey, items };
+        setFetchedArticles(items);
       })
       .catch(() => {})
       .finally(() => {

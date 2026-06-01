@@ -16,8 +16,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
 import { Loader2, Save, Check, ShieldAlert, Sparkles, Text, History } from 'lucide-react';
-import { IconPickerTrigger } from '@/components/ui/icon-picker';
-import { IconRenderer } from '@/components/ui/icon-renderer';
+
 
 import { nanoid } from 'nanoid';
 import { useApp } from '@/context/app-provider';
@@ -489,7 +488,7 @@ function EditPageContent() {
                 )}
               />
 
-              <IconField slug={slug ?? ''} form={form} />
+
 
               <FormField
                 control={form.control}
@@ -616,87 +615,6 @@ function EditPageContent() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function IconField({ slug, form }: { slug: string; form: any }) {
-  const [mode, setMode] = useState<'upload' | 'text' | 'icon'>('upload');
-
-  return (
-    <FormField
-      control={form.control}
-      name="icon"
-      render={({ field, fieldState }) => (
-        <div className="space-y-3">
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setMode('upload')}
-              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
-                mode === 'upload' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-              }`}
-            >
-              Upload
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('icon')}
-              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
-                mode === 'icon' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-              }`}
-            >
-              Ícone
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('text')}
-              className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
-                mode === 'text' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-              }`}
-            >
-              Emoji / URL
-            </button>
-          </div>
-          {mode === 'upload' ? (
-            <div className="flex gap-3 items-start">
-              <ImageUpload
-                bucket="wiki-images"
-                pathPrefix={`${slug}/icons`}
-                value={field.value || ''}
-                onChange={field.onChange}
-                previewSize="w-12 h-12"
-              />
-            </div>
-          ) : mode === 'icon' ? (
-            <div className="flex items-center gap-3">
-              <IconPickerTrigger
-                value={field.value?.includes(':') ? field.value : ''}
-                onChange={(iconId) => field.onChange(iconId)}
-              />
-              {field.value?.includes(':') && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <IconRenderer icon={field.value} size="sm" />
-                  <span className="font-mono">{field.value}</span>
-                </div>
-              )}
-              {field.value && !field.value.includes(':') && field.value.startsWith('http') && (
-                <span className="text-[10px] text-muted-foreground italic">
-                  (imagem atual — selecione um ícone para substituir)
-                </span>
-              )}
-            </div>
-          ) : (
-            <FloatingLabelInput
-              label="📷 ou URL do ícone"
-              value={field.value || ''}
-              onChange={field.onChange}
-              error={fieldState.error?.message}
-              className="font-mono text-sm"
-            />
-          )}
-        </div>
-      )}
-    />
   );
 }
 

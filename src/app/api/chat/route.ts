@@ -4,7 +4,17 @@ import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
 import { chatStreamGemini } from '@/lib/gemini-chat';
 import { createClient } from '@/supabase/server';
-import { SECTION_PROMPT, getSchemaPrompt } from '@/lib/chat-utils';
+import {
+  SECTION_PROMPT,
+  TEXT_CHAT_SYSTEM_PROMPT,
+  getSchemaPrompt,
+  loadChatHistory,
+} from '@/lib/chat-utils';
+import {
+  TEXT_CHAT_TOOLS,
+  executeTextChatTool,
+  type ToolContext,
+} from '@/lib/text-chat-tools';
 
 const FALLBACK_CHAIN = (
   process.env.FALLBACK_CHAIN ||
@@ -18,7 +28,7 @@ const STREAM_HEADERS = {
 };
 
 async function streamOpenRouter(
-  messages: { role: string; content: string }[],
+  messages: Record<string, unknown>[],
   modelsToTry: string[],
   apiKey: string
 ): Promise<ReadableStream> {
@@ -103,6 +113,105 @@ async function streamOpenRouter(
   });
 }
 
+async function callOpenRouter(
+  messages: Record<string, unknown>[],
+  modelsToTry: string[],
+  apiKey: string,
+  tools?: typeof TEXT_CHAT_TOOLS
+): Promise<Record<string, unknown>> {
+  const body: Record<string, unknown> = {
+    model: modelsToTry[0],
+    models: modelsToTry.slice(0, 3),
+    route: 'fallback',
+    messages,
+    stream: false,
+    max_tokens: 4096,
+  };
+  if (tools) body.tools = tools;
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://pixelfandom.vercel.app',
+      'X-Title': 'PixelFandom',
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
+  }
+
+  const data = await res.json();
+  return data;
+}
+
+function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string): string {
+  const parts = [TEXT_CHAT_SYSTEM_PROMPT, schemaPrompt, SECTION_PROMPT];
+  if (userPrompt) {
+    parts.unshift(userPrompt);
+  }
+  return parts.join('\n\n');
+}
+
+async function saveMessage(
+  sessionId: string,
+  role: string,
+  content: string
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase.from('chat_messages').insert({
+      session_id: sessionId,
+      role,
+      content,
+      provider: 'text',
+    });
+  } catch (e) {
+    console.error('Failed to save message:', e);
+  }
+}
+
+function createTextStream(
+  text: string
+): ReadableStream {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(text));
+      controller.close();
+    },
+  });
+}
+
+async function buildMessages(
+  schemaPrompt: string,
+  message: string,
+  sessionId?: string,
+  userPrompt?: string,
+  tenantSlug?: string,
+): Promise<Record<string, unknown>[]> {
+  let history: Record<string, unknown>[] = [];
+
+  if (sessionId) {
+    const chatHistory = await loadChatHistory(sessionId, 20);
+    history = chatHistory.filter(
+      (m) => m.role === 'user' || m.role === 'assistant'
+    ).map((m) => ({ role: m.role, content: m.content }));
+  }
+
+  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt);
+
+  return [
+    { role: 'system', content: systemPrompt },
+    ...history,
+    { role: 'user', content: message },
+  ];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, session_id } = await request.json();
@@ -112,7 +221,6 @@ export async function POST(request: NextRequest) {
 
     const requestTenant = getTenantFromRequest(request);
     const schemaPrompt = await getSchemaPrompt();
-    let systemPrompt = `${schemaPrompt}\n\n${SECTION_PROMPT}`;
     let provider = 'openrouter';
     let model = 'openai/gpt-4o-mini';
     let customApiKey = '';
@@ -123,16 +231,14 @@ export async function POST(request: NextRequest) {
     let primaryProvider = 'openrouter';
     let tenantSlug = requestTenant?.slug || '';
     let tenantId: string | null = null;
+    let userPrompt = '';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
       tenantId = tenant?.id || null;
       if (tenant?.ai_enabled && tenant.ai_config) {
         const config = tenant.ai_config as Record<string, unknown>;
-        let userPrompt = (config.system_prompt as string) || '';
-        if (userPrompt) {
-          systemPrompt = `${userPrompt}\n\n${schemaPrompt}\n\n${SECTION_PROMPT}`;
-        }
+        userPrompt = (config.system_prompt as string) || '';
         provider = (config.provider as string) || 'openrouter';
         model = (config.model as string) || model;
         customApiKey = (config.custom_api_key as string) || '';
@@ -144,57 +250,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const abortCtx = new AbortController();
-
-    const contextPromise = (async () => {
-      if (!tenantSlug) return '';
-      try {
-        const result = await searchAll(tenantSlug, message, {
-          signal: abortCtx.signal,
-        });
-        return formatSearchContext(result);
-      } catch {
-        return '';
-      }
-    })();
-
-    const context = await Promise.race([
-      contextPromise,
-      new Promise<string>((resolve) => {
-        setTimeout(() => {
-          abortCtx.abort();
-          resolve('');
-        }, 5000);
-      }),
-    ]);
-
-    const ragPrompt = context
-      ? `${systemPrompt}
-
-## Contexto encontrado na base de conhecimento
-${context}
-
-Use o contexto acima como fonte primária para responder. Se o contexto não tiver informação suficiente, complemente com seu conhecimento. Priorize dados dos artigos e itens listados acima.`
-      : systemPrompt;
-
-    const messages: { role: string; content: string }[] = [
-      { role: 'system', content: ragPrompt },
-      { role: 'user', content: message },
-    ];
-
-    // Save user message to DB if session_id provided
     if (session_id) {
-      try {
-        const supabase = await createClient();
-        await supabase.from('chat_messages').insert({
-          session_id,
-          role: 'user',
-          content: message,
-          provider: 'text',
-        });
-      } catch (e) {
-        console.error('Failed to save user message:', e);
-      }
+      await saveMessage(session_id, 'user', message);
     }
 
     if (provider === 'gemini') {
@@ -202,8 +259,47 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       if (!geminiApiKey) {
         throw new Error('GEMINI_API_KEY not configured');
       }
+
+      const abortCtx = new AbortController();
+      const contextPromise = (async () => {
+        if (!tenantSlug) return '';
+        try {
+          const result = await searchAll(tenantSlug, message, {
+            signal: abortCtx.signal,
+          });
+          return formatSearchContext(result);
+        } catch {
+          return '';
+        }
+      })();
+
+      const context = await Promise.race([
+        contextPromise,
+        new Promise<string>((resolve) => {
+          setTimeout(() => {
+            abortCtx.abort();
+            resolve('');
+          }, 5000);
+        }),
+      ]);
+
+      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt);
+      const ragPrompt = context
+        ? `${geminiSystem}
+
+## Contexto encontrado na base de conhecimento
+${context}
+
+Use o contexto acima como fonte primária para responder. Se o contexto não tiver informação suficiente, complemente com seu conhecimento. Priorize dados dos artigos e itens listados acima.`
+        : geminiSystem;
+
+      const geminiMessages: { role: string; content: string }[] = [
+        { role: 'system', content: ragPrompt },
+        { role: 'user', content: message },
+      ];
+
       const stream = await chatStreamGemini({
-        messages,
+        messages: geminiMessages,
         model: geminiModel,
         config: {
           apiKey: geminiApiKey,
@@ -217,35 +313,151 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
     const modelsToTry = model
       ? [model, ...effectiveFallbackChain.filter((m) => m !== model)]
       : effectiveFallbackChain;
-
     const apiKey = customApiKey || process.env.OPENROUTER_API_KEY || '';
+    const toolCtx: ToolContext = { slug: tenantSlug, tenantId };
 
     try {
-      if (provider === 'hybrid') {
-        try {
-          const stream = await streamOpenRouter(messages, modelsToTry, apiKey);
-          return new NextResponse(stream, { headers: STREAM_HEADERS });
-        } catch (orError) {
-          console.warn('OpenRouter failed, trying Gemini fallback:', orError);
-          const geminiApiKey = geminiCustomApiKey || process.env.GEMINI_API_KEY;
-          if (!geminiApiKey) throw orError;
-          const stream = await chatStreamGemini({
-            messages,
-            model: geminiModel,
-            config: {
-              apiKey: geminiApiKey,
-              fallbackChain: geminiFallbackChain,
-            },
-          });
-          return new NextResponse(stream, { headers: STREAM_HEADERS });
+      let messages = await buildMessages(
+        schemaPrompt, message, session_id, userPrompt, tenantSlug
+      );
+      let finalText: string | null = null;
+      const MAX_TOOL_ROUNDS = 3;
+
+      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        const response = await callOpenRouter(messages, modelsToTry, apiKey, TEXT_CHAT_TOOLS);
+        const choice = (response.choices as any[])?.[0];
+        const responseMsg = choice?.message;
+
+        if (!responseMsg || !responseMsg.tool_calls || responseMsg.tool_calls.length === 0) {
+          finalText = responseMsg?.content || '';
+          break;
         }
+
+        messages.push({
+          role: 'assistant',
+          content: null,
+          tool_calls: responseMsg.tool_calls,
+        });
+
+        const toolResults = await Promise.all(
+          responseMsg.tool_calls.map(async (tc: any) => {
+            try {
+              const args = JSON.parse(tc.function.arguments);
+              const result = await executeTextChatTool(tc.function.name, args, toolCtx);
+              return {
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: JSON.stringify(result),
+              };
+            } catch (e: any) {
+              return {
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: JSON.stringify({ error: e.message }),
+              };
+            }
+          })
+        );
+
+        messages.push(...toolResults);
       }
 
-      const stream = await streamOpenRouter(messages, modelsToTry, apiKey);
+      let stream: ReadableStream;
+
+      if (finalText !== null) {
+        stream = createTextStream(finalText);
+      } else {
+        stream = await streamOpenRouter(messages, modelsToTry, apiKey);
+      }
+
+      if (session_id) {
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+
+        const capturingStream = new ReadableStream({
+          async start(controller) {
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                  controller.close();
+                  if (fullResponse) {
+                    saveMessage(session_id, 'assistant', fullResponse);
+                  }
+                  return;
+                }
+                fullResponse += decoder.decode(value, { stream: true });
+                controller.enqueue(value);
+              }
+            } catch (error) {
+              controller.error(error);
+            }
+          },
+          cancel() {
+            reader.cancel();
+          },
+        });
+
+        return new NextResponse(capturingStream, { headers: STREAM_HEADERS });
+      }
+
       return new NextResponse(stream, { headers: STREAM_HEADERS });
-    } catch (error) {
-      console.error('Chat error:', error);
-      return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+    } catch (orError) {
+      if (primaryProvider === 'hybrid' || provider === 'hybrid') {
+        console.warn('OpenRouter failed, trying Gemini fallback:', orError);
+        const geminiApiKey = geminiCustomApiKey || process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) throw orError;
+
+        const abortCtx = new AbortController();
+        const contextPromise = (async () => {
+          if (!tenantSlug) return '';
+          try {
+            const result = await searchAll(tenantSlug, message, {
+              signal: abortCtx.signal,
+            });
+            return formatSearchContext(result);
+          } catch {
+            return '';
+          }
+        })();
+
+        const context = await Promise.race([
+          contextPromise,
+          new Promise<string>((resolve) => {
+            setTimeout(() => {
+              abortCtx.abort();
+              resolve('');
+            }, 5000);
+          }),
+        ]);
+
+        const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt);
+        const ragPrompt = context
+          ? `${geminiSystem}
+
+## Contexto encontrado na base de conhecimento
+${context}
+
+Use o contexto acima como fonte primária para responder. Se o contexto não tiver informação suficiente, complemente com seu conhecimento. Priorize dados dos artigos e itens listados acima.`
+          : geminiSystem;
+
+        const geminiMessages = [
+          { role: 'system', content: ragPrompt },
+          { role: 'user', content: message },
+        ];
+
+        const stream = await chatStreamGemini({
+          messages: geminiMessages,
+          model: geminiModel,
+          config: {
+            apiKey: geminiApiKey,
+            fallbackChain: geminiFallbackChain,
+          },
+        });
+        return new NextResponse(stream, { headers: STREAM_HEADERS });
+      }
+      throw orError;
     }
   } catch (error) {
     console.error('Chat error:', error);

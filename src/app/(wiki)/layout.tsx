@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose, Gamepad2, SunMoon } from 'lucide-react';
@@ -67,12 +67,21 @@ function WikiLayoutContent({
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [footerLayout, setFooterLayout] = useState<any>(null);
+  const footerCache = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (!tenant?.id) return;
+    if (footerCache.current[tenant.id] !== undefined) {
+      setFooterLayout(footerCache.current[tenant.id]);
+      return;
+    }
     fetch(`/api/tenants/${tenant.id}/page-layout?type=footer`)
       .then((r) => r.json())
-      .then((data) => setFooterLayout(data?.blocks?.length ? { blocks: data.blocks } : null))
+      .then((data) => {
+        const layout = data?.blocks?.length ? { blocks: data.blocks } : null;
+        footerCache.current[tenant.id] = layout;
+        setFooterLayout(layout);
+      })
       .catch(() => {});
   }, [tenant?.id]);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,14 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<Tenant[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [voteData, setVoteData] = useState<Record<string, { upvotes: number; downvotes: number; score: number; user_vote: string | null }>>({});
+  const cache = useRef<{ wikis?: Tenant[]; voteData?: any }>({});
 
   useEffect(() => {
+    if (cache.current.wikis) {
+      setWikis(cache.current.wikis);
+      setLoading(false);
+      return;
+    }
     supabase
       .from('tenants')
       .select('*')
@@ -44,6 +50,7 @@ export default function Home() {
           setError(err.message);
         } else if (data) {
           setWikis(data);
+          cache.current.wikis = data;
           fetchVoteData(data.map((w) => w.id));
         }
         setLoading(false);
@@ -53,7 +60,11 @@ export default function Home() {
   const fetchVoteData = async (ids: string[]) => {
     if (ids.length === 0) return;
     const res = await fetch(`/api/tenants/vote/batch?ids=${ids.join(',')}`);
-    if (res.ok) setVoteData(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      cache.current.voteData = data;
+      setVoteData(data);
+    }
   };
 
   // Debounced wiki search

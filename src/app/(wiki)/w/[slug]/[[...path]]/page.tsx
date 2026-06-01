@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
@@ -43,6 +43,7 @@ export default function WikiPage() {
   const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
   const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
   const marketingCardVotePos = (cardPositions.marketing_card as { vote?: CardPosition } | undefined)?.vote;
+  const comparisonMode = ((widgetConfig.comparison as Record<string, unknown>)?.display_mode as string) || 'modal';
   const { searchQuery, setSearchQuery } = useWikiSearch();
 
   // Sync ?search= URL param to context on mount
@@ -62,6 +63,8 @@ export default function WikiPage() {
   const [loadingLayout, setLoadingLayout] = useState(false);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const [custom404Layout, setCustom404Layout] = useState<any>(null);
+  const layoutCache = useRef<Record<string, any>>({});
+  const articleCache = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -74,11 +77,19 @@ export default function WikiPage() {
 
   useEffect(() => {
     if (articleSlug || !tenant?.id) return;
+    const key = tenant.id;
+    if (layoutCache.current[key]) {
+      const cached = layoutCache.current[key];
+      if (cached.blocks?.length > 0) setLandingLayout({ blocks: cached.blocks });
+      if (cached.floatingIslands?.length > 0) setFloatingIslands(cached.floatingIslands);
+      return;
+    }
     setLoadingLayout(true);
     (async () => {
       try {
         const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
         const data = await res.json();
+        layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
         }
@@ -93,9 +104,17 @@ export default function WikiPage() {
   // Fetch 404 layout + floating islands (only overwrite if non-empty)
   useEffect(() => {
     if (!tenant?.id) return;
+    const key = `404-${tenant.id}`;
+    if (layoutCache.current[key]) {
+      const cached = layoutCache.current[key];
+      if (cached.blocks?.length > 0) setCustom404Layout({ blocks: cached.blocks });
+      if (cached.floatingIslands?.length > 0) setFloatingIslands(cached.floatingIslands);
+      return;
+    }
     fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
       .then((r) => r.json())
       .then((data) => {
+        layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
         if (data?.floatingIslands?.length > 0) {
           setFloatingIslands(data.floatingIslands);
@@ -107,7 +126,25 @@ export default function WikiPage() {
   useEffect(() => {
     if (!articleSlug || !tenant?.id) return;
 
+    const cacheKey = `${tenant.id}:${articleSlug}`;
+    if (articleCache.current[cacheKey] !== undefined) {
+      const cached = articleCache.current[cacheKey];
+      if (cached === null) {
+        setFetchedArticle(null);
+      } else {
+        setFetchedArticle(cached);
+      }
+      setFetchingArticle(false);
+      return;
+    }
+
     let cancelled = false;
+
+    const saveToCache = (result: any) => {
+      articleCache.current[cacheKey] = result;
+      setFetchedArticle(result);
+      setFetchingArticle(false);
+    };
 
     const doFetch = async () => {
       setFetchingArticle(true);
@@ -124,8 +161,7 @@ export default function WikiPage() {
       if (cancelled) return;
 
       if (wikiArticle) {
-        setFetchedArticle(wikiArticle);
-        setFetchingArticle(false);
+        saveToCache(wikiArticle);
         return;
       }
 
@@ -143,8 +179,7 @@ export default function WikiPage() {
         if (cancelled) return;
 
         if (data) {
-          setFetchedArticle({ ...data, _source_table: table });
-          setFetchingArticle(false);
+          saveToCache({ ...data, _source_table: table });
           return;
         }
       }
@@ -158,8 +193,7 @@ export default function WikiPage() {
         .maybeSingle();
 
       if (!cancelled) {
-        setFetchedArticle(codeItem ? { ...codeItem, _source_table: 'codes' } : null);
-        setFetchingArticle(false);
+        saveToCache(codeItem ? { ...codeItem, _source_table: 'codes' } : null);
       }
     };
 
@@ -235,6 +269,10 @@ export default function WikiPage() {
             {isGameItem || collectionItemData ? (
               <CollectionItemView
                 data={isGameItem ? article : collectionItemData!}
+                tenantId={tenant.id}
+                tenantSlug={slug}
+                sourceTable={isGameItem ? article._source_table : undefined}
+                comparisonMode={comparisonMode as 'modal' | 'page'}
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
               />

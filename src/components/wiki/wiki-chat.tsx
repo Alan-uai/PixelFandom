@@ -42,6 +42,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
   const [loadingHistory, setLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sessionsCache = useRef<DBSession[] | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,11 +53,16 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
   }, [user, tenantSlug]);
 
   const loadSessions = async () => {
+    if (sessionsCache.current) {
+      setSessions(sessionsCache.current);
+      return;
+    }
     setLoadingHistory(true);
     try {
       const res = await fetch(`/api/chat/sessions?tenant_slug=${tenantSlug}&limit=20`);
       if (res.ok) {
         const data = await res.json();
+        sessionsCache.current = data;
         setSessions(data);
       }
     } catch {} finally {
@@ -118,6 +124,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
   const deleteSession = async (sid: string) => {
     try {
       await fetch(`/api/chat/sessions/${sid}`, { method: 'DELETE' });
+      sessionsCache.current = null;
       setSessions((prev) => prev.filter((s) => s.id !== sid));
       if (sessionId === sid) {
         setSessionId(null);
@@ -195,6 +202,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
             messages: [{ role: 'assistant', content: accumulated, provider: 'text' }],
           }),
         });
+        sessionsCache.current = null;
         loadSessions();
       }
     } catch (err) {
@@ -241,7 +249,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               </Button>
             )}
             {user && (
-              <Button variant="ghost" size="sm" onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadSessions(); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setShowHistory(!showHistory); if (!showHistory) { sessionsCache.current = null; loadSessions(); } }}>
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 Histórico
               </Button>
@@ -376,7 +384,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               </Button>
             )}
             {user && (
-              <Button variant="ghost" size="sm" onClick={() => { setShowHistory(true); loadSessions(); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setShowHistory(true); sessionsCache.current = null; loadSessions(); }}>
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 Histórico
               </Button>

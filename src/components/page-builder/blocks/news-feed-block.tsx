@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Newspaper, Calendar, ExternalLink } from 'lucide-react';
 
 export function NewsFeedBlock({ config, tenantId }: { config: Record<string, any>; tenantId?: string }) {
@@ -12,10 +12,16 @@ export function NewsFeedBlock({ config, tenantId }: { config: Record<string, any
 
   const [fetchedItems, setFetchedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const cacheRef = useRef<{ key: string; items: any[] } | null>(null);
 
   useEffect(() => {
     if (mode !== 'tag' || !tag || !tenantId) {
       setFetchedItems([]);
+      return;
+    }
+    const cacheKey = `${tenantId}:${tag}`;
+    if (cacheRef.current && cacheRef.current.key === cacheKey) {
+      setFetchedItems(cacheRef.current.items);
       return;
     }
     let cancelled = false;
@@ -24,15 +30,15 @@ export function NewsFeedBlock({ config, tenantId }: { config: Record<string, any
       .then((res) => (res.ok ? res.json() : { articles: [] }))
       .then((data) => {
         if (cancelled) return;
-        setFetchedItems(
-          (data.articles || []).slice(0, maxItems).map((a: any) => ({
-            title: a.title,
-            excerpt: a.summary,
-            date: a.updated_at ? new Date(a.updated_at).toLocaleDateString('pt-BR') : undefined,
-            link: a.slug ? `/article/${a.slug}` : undefined,
-            imageUrl: a.image_url,
-          }))
-        );
+        const items = (data.articles || []).slice(0, maxItems).map((a: any) => ({
+          title: a.title,
+          excerpt: a.summary,
+          date: a.updated_at ? new Date(a.updated_at).toLocaleDateString('pt-BR') : undefined,
+          link: a.slug ? `/article/${a.slug}` : undefined,
+          imageUrl: a.image_url,
+        }));
+        cacheRef.current = { key: cacheKey, items };
+        setFetchedItems(items);
       })
       .catch(() => {})
       .finally(() => {

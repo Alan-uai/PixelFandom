@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save, Star, ArrowUpDown } from 'lucide-react';
 import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
 import { CardPositionEditor } from './card-position-editor';
@@ -69,13 +69,19 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const cacheRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!tenantId) return;
+    if (cacheRef.current === tenantId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(`/api/tenants/${tenantId}/widget-config`)
       .then((r) => r.json())
       .then((data: WidgetLayout) => {
+        cacheRef.current = tenantId;
         if (data.chat) setChat((prev) => ({ ...prev, ...data.chat }));
         if (data.voice) setVoice((prev) => ({ ...prev, ...data.voice }));
         if (data.cardPositions) {

@@ -166,3 +166,38 @@ Usuários (incluindo admin/owner de wiki) **só podem montar páginas usando blo
 - Game data: fetched from Supabase `game_config` table, falls back to static data
 - Dark mode forced: `<html className="dark">` — no theme toggle
 - CSS vars define colors (`--primary: 198 100% 65%` = cyan-blue `#4BC5FF`)
+
+## Engineering principles — Local-first
+
+### Regra geral
+Toda feature deve adotar **local-first**: a primeira fonte de dados é o estado local
+(useState/useRef/Zustand). A requisição à API só acontece se não houver dados
+em cache. Resultados de API são sempre salvos em cache local no primeiro uso.
+
+### Padrão obrigatório
+```
+1. Verificar cache local (useRef / Zustand store / localStorage)
+2. Se cache hit → usar imediatamente, zero requests
+3. Se cache miss → disparar request, salvar resultado no cache
+4. Navegação entre estados (filtro, ordenação, abas) opera só no cache local
+```
+
+### Implementação
+- **useRef** para cache de dados fetched (items de comparação, listas, etc.)
+- O ref persiste durante todo o ciclo de vida do componente (incluindo
+  transições de searchParams na App Router)
+- O estado (useState) é populado a partir do ref; nunca sobrescrever o ref
+  com dados parciais
+- Evitar `localStorage` quando o dado é específico da sessão — useRef é
+  suficiente e mais performático
+
+### Exemplo
+```ts
+const cache = useRef<Item[] | null>(null);
+
+async function fetchData() {
+  if (cache.current) { setItems(cache.current); return; }
+  const { data } = await api.fetch();
+  if (data) { cache.current = data; setItems(data); }
+}
+```

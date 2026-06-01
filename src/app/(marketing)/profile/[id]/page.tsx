@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Trophy, Flame, FileText, MessageSquare, Heart, Calendar, ArrowLeft } from 'lucide-react';
@@ -34,12 +34,22 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const cache = useRef<Record<string, any>>({});
 
   useEffect(() => {
+    if (cache.current[id]) {
+      setProfile(cache.current[id]);
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`/api/profile?user_id=${id}`);
-        if (res.ok) setProfile(await res.json());
+        if (res.ok) {
+          const data = await res.json();
+          cache.current[id] = data;
+          setProfile(data);
+        }
       } catch {} finally {
         setLoading(false);
       }

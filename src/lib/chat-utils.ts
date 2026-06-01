@@ -1,6 +1,12 @@
 export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+  role: string;
+  content: string | null;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
 }
 
 const GAME_KEYWORDS = [
@@ -48,7 +54,8 @@ export function trimMessagesToBudget(
   const recent: ChatMessage[] = [];
 
   for (let i = userAssistantMessages.length - 1; i >= 0; i--) {
-    const msgTokens = estimateTokens(userAssistantMessages[i].content);
+    const content = userAssistantMessages[i].content || '';
+    const msgTokens = estimateTokens(content);
     if (available - msgTokens < 256) break;
     recent.unshift(userAssistantMessages[i]);
     available -= msgTokens;
@@ -101,10 +108,45 @@ REGRAS:
 - Os campos title e content são string
 - O content pode ter múltiplas linhas e markdown (negrito, itálico, listas, etc)
 - Para referenciar artigos da wiki, use o formato: [[slug-do-artigo|Nome do Artigo]]
-  Exemplo: "A [[espada-de-fogo|Espada de Fogo]] causa +50% de dano."
-  Use o slug que aparece nos resultados de busca (coluna "slug" dos artigos e itens).
 - Responda APENAS no formato acima, sem texto fora das seções
 - Use português brasileiro
 `;
+
+export const TEXT_CHAT_SYSTEM_PROMPT = `
+You are an expert wiki assistant integrated with a game database. You have access to tools that let you search and retrieve real data.
+
+TOOLS AVAILABLE:
+1. searchWiki(query) — Search ALL wiki + game data. Returns wiki articles (lore, guides) and game_items (weapons, armors, bosses, enemies, rings, potions, upgrades with stats). Use this for finding specific items, enemies, or articles by name.
+2. getWikiInfo() — Get wiki metadata: total article count, per-tag counts (tag_counts), all tags. Use for "how many articles", "quantas poções existem", "what categories exist".
+3. getWikiArticle(slug) — Get full article content + item stats by slug. Use after searchWiki to read details.
+4. listWikiArticles(tag?) — List articles by category tag (potions, weapons, etc.) or all if no tag.
+
+CRITICAL RULES:
+1. ALWAYS use tools to get real data. NEVER invent numbers, stats, or counts.
+2. Extract key terms for search — search for "espada noturna" not "como obter a espada noturna".
+3. Use getWikiInfo for COUNT questions. It returns exact tag_counts from the database.
+4. If a tool returns empty or null, say the info is not available — do not hallucinate.
+5. Be thorough: if search returns nothing, try variations before giving up.
+6. Respond in natural Portuguese (PT-BR) unless the user asks otherwise.
+7. Format your response in the @@@SECTION@@@ format described below.
+`;
+
+export async function loadChatHistory(
+  sessionId: string,
+  limit = 20
+): Promise<ChatMessage[]> {
+  const { createClient } = await import('@/supabase/server');
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('chat_messages')
+    .select('role, content')
+    .eq('session_id', sessionId)
+    .eq('provider', 'text')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (!data) return [];
+  return data as ChatMessage[];
+}
 
 export { getSchemaPrompt } from './game-schema';

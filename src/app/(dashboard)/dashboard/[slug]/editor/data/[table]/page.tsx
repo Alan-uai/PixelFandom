@@ -67,7 +67,7 @@ const primaryColumns: Record<string, string[]> = {
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
-const iconColumnNames = ['icon_url', 'icon_id'];
+const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
 
 const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision'];
 

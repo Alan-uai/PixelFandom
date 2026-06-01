@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, History, FileText, Users, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
@@ -34,6 +34,7 @@ export default function ActivityPage() {
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const cache = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (!slug) return;
@@ -46,9 +47,14 @@ export default function ActivityPage() {
 
   useEffect(() => {
     if (!tenantId) return;
+    if (cache.current[tenantId]) {
+      setItems(cache.current[tenantId]);
+      setLoading(false);
+      return;
+    }
     fetch(`/api/activity?tenant_id=${tenantId}&limit=100`)
       .then(r => r.json())
-      .then(data => setItems(data))
+      .then(data => { cache.current[tenantId] = data; setItems(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [tenantId]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Search, Download, FileText, Layout as LayoutIcon, Trash2 } from 'lucide-react';
 import type { BlockConfig } from './types';
 import { BUILT_IN_TEMPLATES, type BuiltInTemplate } from '@/data/built-in-templates';
@@ -25,14 +25,22 @@ export function TemplateLibrary({ tenantId, onApply, onClose }: TemplateLibraryP
   const [category, setCategory] = useState<string | null>(null);
   const [savedTemplates, setSavedTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const cacheRef = useRef<Template[] | null>(null);
 
   useEffect(() => {
+    if (cacheRef.current) {
+      setSavedTemplates(cacheRef.current);
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`/api/tenants/${tenantId}/templates`);
         if (res.ok) {
           const data = await res.json();
-          setSavedTemplates((data.templates || []).map((t: any) => ({ ...t, builtIn: false })));
+          const templates = (data.templates || []).map((t: any) => ({ ...t, builtIn: false }));
+          cacheRef.current = templates;
+          setSavedTemplates(templates);
         }
       } catch (e) {
         console.error('Failed to load templates:', e);
@@ -72,6 +80,7 @@ export function TemplateLibrary({ tenantId, onApply, onClose }: TemplateLibraryP
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
+        cacheRef.current = null;
         setSavedTemplates((prev) => prev.filter((t) => t.id !== id));
       }
     } catch (e) {

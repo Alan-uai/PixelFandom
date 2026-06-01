@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -18,12 +18,17 @@ export default function LeaderboardPage() {
   const [activeMetric, setActiveMetric] = useState('reputation_points');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const cache = useRef<Record<string, any>>({});
 
   useEffect(() => {
+    if (cache.current[activeMetric]) {
+      setData(cache.current[activeMetric]);
+      return;
+    }
     setLoading(true);
     fetch(`/api/leaderboard?metric=${activeMetric}&limit=50`)
       .then((r) => r.json())
-      .then((d) => setData(d))
+      .then((d) => { cache.current[activeMetric] = d; setData(d); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [activeMetric]);

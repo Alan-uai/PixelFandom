@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { CommentForm } from './comment-form';
 import { CommentThread } from './comment-thread';
@@ -16,21 +16,32 @@ export function CommentsSection({ articleId, tenantId, tenantSlug }: Props) {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const cacheRef = useRef<any[] | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
   const fetchComments = useCallback(async () => {
+    if (cacheRef.current) {
+      setComments(cacheRef.current);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/comments?article_id=${articleId}&limit=50`);
-      if (res.ok) setComments(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        cacheRef.current = data;
+        setComments(data);
+      }
     } catch {} finally {
       setLoading(false);
     }
   }, [articleId]);
 
   useEffect(() => {
+    cacheRef.current = null;
     fetchComments();
   }, [fetchComments]);
 

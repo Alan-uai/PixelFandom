@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
@@ -45,8 +45,17 @@ export default function WikiMembersPage() {
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [sendingInvite, setSendingInvite] = useState(false);
+  const cache = useRef<Record<string, any>>({});
 
   useEffect(() => {
+    if (cache.current[slug]) {
+      const cached = cache.current[slug];
+      setTenantId(cached.tenantId);
+      setMembers(cached.members);
+      setInvites(cached.invites);
+      setLoading(false);
+      return;
+    }
     (async () => {
       const { data: tenant } = await supabase
         .from('tenants')
@@ -62,8 +71,11 @@ export default function WikiMembersPage() {
         fetch(`/api/invitations?tenant_id=${tenant.id}`).then(r => r.ok ? r.json() : []),
       ]);
 
-      if (membersRes.data) setMembers(membersRes.data);
-      setInvites(invitesRes || []);
+      const membersData = membersRes.data || [];
+      const invitesData = invitesRes || [];
+      cache.current[slug] = { tenantId: tenant.id, members: membersData, invites: invitesData };
+      setMembers(membersData);
+      setInvites(invitesData);
       setLoading(false);
     })();
   }, [slug]);

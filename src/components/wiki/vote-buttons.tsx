@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
@@ -20,12 +20,12 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [userVote, setUserVote] = useState<string | null>(initialUserVote);
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (loaded) return;
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     fetchVotes();
-    setLoaded(true);
   }, [targetId]);
 
   const fetchVotes = async () => {

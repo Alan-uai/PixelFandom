@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser, useSupabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { LogIn, LayoutDashboard, Trophy, Medal, User, Settings, LogOut, Bell, BellRing } from 'lucide-react';
+import { LogIn, LayoutDashboard, Trophy, User, Settings, LogOut, Bell, BellRing } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/hooks/use-notifications';
 
@@ -29,26 +29,7 @@ export default function MainNav({ onLogin }: MainNavProps) {
         <Link href="/">
           <span className="text-xl font-bold">PixelFandom</span>
         </Link>
-        <div className="hidden md:flex items-center gap-1">
-          <Link
-            href="/leaderboard"
-            className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-              pathname === '/leaderboard' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-          >
-            <Trophy className="h-3.5 w-3.5 inline mr-1" />
-            Leaderboard
-          </Link>
-          <Link
-            href="/badges"
-            className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-              pathname === '/badges' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-          >
-            <Medal className="h-3.5 w-3.5 inline mr-1" />
-            Conquistas
-          </Link>
-        </div>
+
       </div>
       <div className="flex items-center gap-1">
         {isLoading ? null : user ? (
@@ -74,6 +55,13 @@ export default function MainNav({ onLogin }: MainNavProps) {
             >
               <LogOut className="h-4 w-4" />
             </button>
+            <Link
+              href="/leaderboard"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Leaderboard"
+            >
+              <Trophy className="h-4 w-4" />
+            </Link>
             <BellLink />
             <div className="mx-1 h-5 w-px bg-border" />
             <Button variant="ghost" size="sm" asChild>
@@ -84,10 +72,19 @@ export default function MainNav({ onLogin }: MainNavProps) {
             </Button>
           </>
         ) : (
-          <Button variant="default" size="sm" onClick={onLogin}>
-            <LogIn className="h-4 w-4 mr-1.5" />
-            Entrar
-          </Button>
+          <>
+            <Link
+              href="/leaderboard"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Leaderboard"
+            >
+              <Trophy className="h-4 w-4" />
+            </Link>
+            <Button variant="default" size="sm" onClick={onLogin}>
+              <LogIn className="h-4 w-4 mr-1.5" />
+              Entrar
+            </Button>
+          </>
         )}
       </div>
     </nav>

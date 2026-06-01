@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'lucide-react';
@@ -36,13 +36,23 @@ function PageBuilderPageInner() {
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
+  const layoutCache = useRef<Record<string, { blocks: any[]; floatingIslands: any[] }>>({});
 
   const fetchLayout = useCallback(async (tenantId: string, type: string) => {
+    const cacheKey = `${tenantId}:${type}`;
+    if (layoutCache.current[cacheKey]) {
+      setLayout(layoutCache.current[cacheKey]);
+      setLoadedPageType(type);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
       const data = await res.json();
-      setLayout({ blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] });
+      const result = { blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] };
+      layoutCache.current[cacheKey] = result;
+      setLayout(result);
       setLoadedPageType(type);
     } catch (err) {
       console.error('Fetch layout error:', err);
