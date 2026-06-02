@@ -1,17 +1,16 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 export function RichTextBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || '';
   const [html, setHtml] = useState('');
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    sanitizeHtml((config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>').then(setHtml);
+    sanitizeHtml((config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>')
+      .then(setHtml)
+      .catch(() => setHtml((config.html as string) || ''));
   }, [config.html]);
 
   return (
