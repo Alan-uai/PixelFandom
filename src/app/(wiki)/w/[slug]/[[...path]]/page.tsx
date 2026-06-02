@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
+import GameTableListing from '@/components/wiki/game-table-listing';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
@@ -57,7 +58,7 @@ export default function WikiPage() {
 
   // ── Fetch individual article by slug (not provided by WikiDataProvider)
   const [fetchedArticle, setFetchedArticle] = useState<any>(null);
-  const [fetchingArticle, setFetchingArticle] = useState(false);
+  const [fetchingArticle, setFetchingArticle] = useState<boolean>(() => !!articleSlug);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [landingLayout, setLandingLayout] = useState<any>(null);
   const [loadingLayout, setLoadingLayout] = useState(false);
@@ -240,6 +241,13 @@ export default function WikiPage() {
           Voltar para o hub
         </HubLink>
       </div>
+    );
+  }
+
+  // ── Game table listing ──
+  if (articleSlug && !articleSlug.includes('/') && gameSchema?.tables.some((t) => t.table_name === articleSlug)) {
+    return (
+      <GameTableListing tenantSlug={slug} tableName={articleSlug} tenantId={tenant.id} />
     );
   }
 

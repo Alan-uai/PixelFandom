@@ -75,8 +75,6 @@ export default function GameSidebarSection({ tenantSlug, tenantId }: { tenantSlu
     return () => { cancelled = true; };
   }, [expanded, tenantId]);
 
-  if (entries.length === 0 && !loading) return null;
-
   return (
     <div className="border-t">
       <button
