@@ -265,7 +265,9 @@ function WikiLayoutContent({
             </Suspense>
           )}
           <main className={`flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full ${preferences.density === 'compact' ? 'space-y-3' : 'space-y-6'}`}>
-            {children}
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
           </main>
         </div>
 
