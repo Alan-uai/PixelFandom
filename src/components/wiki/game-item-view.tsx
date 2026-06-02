@@ -35,12 +35,20 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
 
     (async () => {
       try {
-        const searchName = itemSlug.replace(/-/g, ' ');
+        // Try by slug first (URL-friendly), fallback to name match
+        let data: any = null;
+        const schemaRes = await getGameSchema();
 
-        const [schemaRes, { data }] = await Promise.all([
-          getGameSchema(),
-          supabase.from(tableName).select('*').eq('tenant_id', tenantId).ilike('name', searchName).maybeSingle(),
-        ]);
+        const slugResult = await supabase
+          .from(tableName).select('*').eq('tenant_id', tenantId).eq('slug', itemSlug).maybeSingle();
+        data = slugResult.data;
+
+        if (!data) {
+          const searchName = itemSlug.replace(/-/g, ' ');
+          const nameResult = await supabase
+            .from(tableName).select('*').eq('tenant_id', tenantId).ilike('name', searchName).maybeSingle();
+          data = nameResult.data;
+        }
 
         if (cancelled) return;
 
