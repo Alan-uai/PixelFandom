@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, Book
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
+import GameItemView from '@/components/wiki/game-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
@@ -249,6 +250,22 @@ export default function WikiPage() {
     return (
       <GameTableListing tenantSlug={slug} tableName={articleSlug} tenantId={tenant.id} />
     );
+  }
+
+  // ── Game item view: path = table/item-slug ──
+  if (articleSlug && articleSlug.includes('/') && gameSchema) {
+    const parts = articleSlug.split('/');
+    if (parts.length === 2 && gameSchema.tables.some((t) => t.table_name === parts[0])) {
+      return (
+        <GameItemView
+          tenantSlug={slug}
+          tableName={parts[0]}
+          itemSlug={parts[1]}
+          tenantId={tenant.id}
+          comparisonMode={comparisonMode as 'modal' | 'page'}
+        />
+      );
+    }
   }
 
   // ── Article view ──
