@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
 import { safeParseBlockConfig, BlockSchemaKey } from '@/lib/block-schemas';
-import { sanitizeBlock } from '@/lib/sanitize';
+import { sanitizeBlock } from '@/lib/sanitize.server';
 
 function getPageType(request: NextRequest): string {
   const url = new URL(request.url);
