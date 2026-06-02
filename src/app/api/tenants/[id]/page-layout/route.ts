@@ -84,15 +84,19 @@ export async function PUT(
       }
     }
 
-    const sanitizedBlocks = body.blocks.map((block: unknown) =>
-      sanitizeBlock(block as Record<string, unknown>)
+    const sanitizedBlocks = await Promise.all(
+      body.blocks.map((block: unknown) =>
+        sanitizeBlock(block as Record<string, unknown>)
+      )
     );
 
     const floatingIslands = Array.isArray(body.floatingIslands)
-      ? body.floatingIslands.map((fi: any) => ({
-          ...fi,
-          config: fi.config ? sanitizeBlock({ config: fi.config }).config : {},
-        }))
+      ? await Promise.all(
+          body.floatingIslands.map(async (fi: any) => ({
+            ...fi,
+            config: fi.config ? (await sanitizeBlock({ config: fi.config })).config : {},
+          }))
+        )
       : [];
 
     // Manual upsert: try update first, then insert if no row exists

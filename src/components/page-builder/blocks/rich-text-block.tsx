@@ -1,10 +1,18 @@
 'use client';
 
+import { useRef, useState, useEffect } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 export function RichTextBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || '';
-  const html = sanitizeHtml((config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>');
+  const [html, setHtml] = useState('');
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    sanitizeHtml((config.html as string) || '<p>Adicione conteúdo de texto rico aqui.</p>').then(setHtml);
+  }, [config.html]);
 
   return (
     <div className="space-y-4">
