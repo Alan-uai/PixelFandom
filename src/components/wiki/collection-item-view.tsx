@@ -226,6 +226,7 @@ function isShortText(v: unknown): boolean {
 const DYNAMIC_SKIP = new Set([
   'id', 'tenant_id', 'created_at', 'updated_at',
   'name', 'title', 'description', 'summary',
+  'slug', 'code',
   'rarity', 'tier', 'element',
   'image', 'image_url', 'icon', 'icon_url',
   'world_name',

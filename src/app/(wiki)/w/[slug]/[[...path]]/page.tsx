@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, Book
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
+import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
 import { supabase } from '@/supabase';
 import { useWikiSearch } from '@/context/wiki-search-context';
@@ -185,25 +186,15 @@ export default function WikiPage() {
 
       // 2. Try each game table dynamically (from getGameSchema)
       const searchName = articleSlug.replace(/-/g, ' ');
-      const tablesToSearch = schemaCache.current?.tables.map((t) => t.table_name) ?? [];
-
-      for (const table of tablesToSearch) {
-        const { data } = await supabase
-          .from(table)
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .or(`name.ilike.%${searchName}%,code.ilike.%${articleSlug}%`)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        if (data) {
-          saveToCache({ ...data, _source_table: table });
-          return;
+      let tablesToSearch = schemaCache.current?.tables.map((t) => t.table_name) ?? [];
+      if (tablesToSearch.length === 0) {
+        try {
+          tablesToSearch = (await getGameSchema()).tables.map((t) => t.table_name);
+        } catch {
+          tablesToSearch = [];
         }
       }
 
-      // 3. Fallback: try name-only match with exact slug
       for (const table of tablesToSearch) {
         const { data } = await supabase
           .from(table)
@@ -467,6 +458,8 @@ export default function WikiPage() {
 
       <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
 
+      {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
+
       {/* Articles */}
       {articles && articles.length > 0 ? (
         <>
@@ -493,11 +486,7 @@ export default function WikiPage() {
                       href={wikiArticlePath(article.slug || article.id)}
                       className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
                     >
-                      {article.icon && article.icon.startsWith('http') ? (
-                        <img src={article.icon} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
-                      ) : article.icon ? (
-                        <span className="text-lg shrink-0">{article.icon}</span>
-                      ) : article.image_url ? (
+                      {article.image_url ? (
                         <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
                       ) : (
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />

@@ -38,7 +38,6 @@ const articleSchema = z.object({
   imageUrl: z.string().optional(),
   bannerImage: z.string().optional(),
   ogImage: z.string().optional(),
-  icon: z.string().optional(),
   tables: z.string().optional(),
 });
 
@@ -130,7 +129,6 @@ function EditPageContent() {
       imageUrl: '',
       bannerImage: '',
       ogImage: '',
-      icon: '',
       tables: '',
     },
   });
@@ -171,7 +169,6 @@ function EditPageContent() {
         imageUrl: article.image_url,
         bannerImage: article.banner_image || '',
         ogImage: article.og_image || '',
-        icon: article.icon || '',
         tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
       });
       supabase
@@ -414,7 +411,6 @@ function EditPageContent() {
         image_url: values.imageUrl || null,
         banner_image: values.bannerImage || null,
         og_image: values.ogImage || null,
-        icon: values.icon || null,
         tables: parsedTables,
         tenant_id: tenantId,
         created_at: isNewArticle ? now : article?.created_at,
@@ -449,7 +445,6 @@ function EditPageContent() {
           imageUrl: values.imageUrl || undefined,
           bannerImage: values.bannerImage || undefined,
           ogImage: values.ogImage || undefined,
-          icon: values.icon || undefined,
           tables: values.tables || '',
         };
         form.reset(valuesToReset);

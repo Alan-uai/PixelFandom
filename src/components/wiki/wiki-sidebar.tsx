@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useWikiData } from '@/context/wiki-provider';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import GameSidebarSection from '@/components/wiki/game-sidebar-section';
 
 type SidebarArticle = {
   id: string;
@@ -224,6 +225,10 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
           </nav>
         )}
       </div>
+
+      {data?.tenant?.id && (
+        <GameSidebarSection tenantSlug={tenantSlug} tenantId={data.tenant.id} />
+      )}
 
       {/* View toggle */}
       <div className="p-3 border-t">
