@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/supabase';
 import { GAME_TABLE_META } from '@/lib/game-table-labels';
-import { Loader2, FileText, Database, ArrowLeft } from 'lucide-react';
+import { FileText, Database, ArrowLeft } from 'lucide-react';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 
 function toSlug(text: string): string {
@@ -77,8 +77,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-3 animate-pulse">
+          <div className="h-5 w-32 bg-muted rounded mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl bg-muted" />
+            ))}
+          </div>
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-20 rounded-xl border bg-card">

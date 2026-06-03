@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
 import CollectionItemView from '@/components/wiki/collection-item-view';
@@ -39,9 +39,13 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
         let data: any = null;
         const schemaRes = await getGameSchema();
 
-        const slugResult = await supabase
-          .from(tableName).select('*').eq('tenant_id', tenantId).eq('slug', itemSlug).maybeSingle();
-        data = slugResult.data;
+        try {
+          const slugResult = await supabase
+            .from(tableName).select('*').eq('tenant_id', tenantId).eq('slug', itemSlug).maybeSingle();
+          data = slugResult.data;
+        } catch {
+          // Table lacks slug column, fall through to name search
+        }
 
         if (!data) {
           const searchName = itemSlug.replace(/-/g, ' ');
@@ -81,8 +85,14 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
       </Link>
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-4 animate-pulse">
+          <div className="h-5 w-32 bg-muted rounded" />
+          <div className="h-48 rounded-xl bg-muted" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 rounded-xl bg-muted" />
+            ))}
+          </div>
         </div>
       ) : item ? (
         <CollectionItemView

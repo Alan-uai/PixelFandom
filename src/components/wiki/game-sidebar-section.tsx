@@ -8,7 +8,7 @@ import { supabase } from '@/supabase';
 import { getGameSchema } from '@/lib/game-schema';
 import { GAME_TABLE_META } from '@/lib/game-table-labels';
 import {
-  ChevronDown, ChevronRight, Database, Loader2,
+  ChevronDown, ChevronRight, Database,
   Sword, Shield, CircleDot, Skull, Crown,
   FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
 } from 'lucide-react';
@@ -89,8 +89,10 @@ export default function GameSidebarSection({ tenantSlug, tenantId }: { tenantSlu
       {expanded && (
         <nav className="space-y-0.5 px-2 pb-2">
           {loading ? (
-            <div className="flex justify-center py-3">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <div className="space-y-1.5 px-3 py-1 animate-pulse">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-7 rounded-md bg-muted" />
+              ))}
             </div>
           ) : (
             entries.map((entry) => {

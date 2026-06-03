@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Flame, Snowflake, Skull, Ghost, Globe, Droplets, Gem,
   ScrollText, Lightbulb, MessageCircle, Eye, Crosshair,
-  Coins, Pickaxe, Sparkles, Loader2, ArrowLeft, X,
+  Coins, Pickaxe, Sparkles, Loader2, ArrowLeft, X, Database,
 } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -178,7 +178,7 @@ function isArrStr(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((i) => typeof i === 'string');
 }
 
-const SKIP = new Set(['name', 'title', 'description', 'summary', 'id', 'image', 'image_url', 'rarity', 'tier', 'element', 'updated_at', 'created_at', 'world_name']);
+const SKIP = new Set(['name', 'title', 'description', 'summary', 'id', 'image', 'image_url', 'rarity', 'tier', 'element', 'updated_at', 'created_at', 'world_name', 'item_name']);
 
 const EXTRA_FIELDS = new Set([
   'obtain_method', 'chapter', 'chapters', 'starting_banner', 'drop_wave_requirement',
@@ -918,13 +918,17 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {/* Dynamic schema-driven sections (when schema is available) */}
       {schema && renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode)}
 
-      {/* Fallback: accordion for fields not covered by hardcoded sections or schema */}
-      {!schema && (() => {
-        const extra = Object.entries(data).filter(([k, v]) => !SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '');
-        if (extra.length === 0) return null;
-        return (
-          <div className="mb-3">
-            <Accordion title="Informações Adicionais" icon={<ScrollText className="h-4 w-4 text-primary" />}>
+      {/* Catch-all accordion: always visible, shows all unrendered fields */}
+      <div className="mb-3">
+        <Accordion title="Game" icon={<Database className="h-4 w-4 text-primary" />}>
+          {(() => {
+            const extra = Object.entries(data).filter(
+              ([k, v]) => !SKIP.has(k) && !DYNAMIC_SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '',
+            );
+            if (extra.length === 0) {
+              return <p className="text-sm text-muted-foreground">Nenhum campo adicional</p>;
+            }
+            return (
               <div>
                 {extra.map(([k, v]) => (
                   <FieldRow key={k} label={k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}>
@@ -935,10 +939,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                   </FieldRow>
                 ))}
               </div>
-            </Accordion>
-          </div>
-        );
-      })()}
+            );
+          })()}
+        </Accordion>
+      </div>
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

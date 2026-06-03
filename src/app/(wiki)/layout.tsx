@@ -18,7 +18,8 @@ import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
-import type { WidgetChatConfig, WidgetVoiceConfig } from '@/components/page-builder/types';
+import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig } from '@/components/page-builder/types';
+import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
 
 export default function WikiLayout({
   children,
@@ -68,6 +69,8 @@ function WikiLayoutContent({
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [footerLayout, setFooterLayout] = useState<any>(null);
   const footerCache = useRef<Record<string, any>>({});
+  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
+  const islandsCache = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (!tenant?.id) return;
@@ -81,6 +84,22 @@ function WikiLayoutContent({
         const layout = data?.blocks?.length ? { blocks: data.blocks } : null;
         footerCache.current[tenant.id] = layout;
         setFooterLayout(layout);
+      })
+      .catch(() => {});
+  }, [tenant?.id]);
+
+  useEffect(() => {
+    if (!tenant?.id) return;
+    if (islandsCache.current[tenant.id] !== undefined) {
+      setFloatingIslands(islandsCache.current[tenant.id]);
+      return;
+    }
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=landing`)
+      .then((r) => r.json())
+      .then((data) => {
+        const islands = data?.floatingIslands?.length > 0 ? data.floatingIslands : [];
+        islandsCache.current[tenant.id] = islands;
+        setFloatingIslands(islands);
       })
       .catch(() => {});
   }, [tenant?.id]);
@@ -229,6 +248,12 @@ function WikiLayoutContent({
             <NotificationBell />
           </div>
         </header>
+
+        {floatingIslands.length > 0 && (
+          <div className="sticky top-14 z-40">
+            <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
+          </div>
+        )}
 
         {showTitleStrip && (
           <div className="flex items-center border-b bg-background/50">

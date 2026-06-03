@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
@@ -18,12 +18,12 @@ import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { CommentsSection } from '@/components/comments/comments-section';
-import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
+
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
 import { FollowButton } from '@/components/wiki/follow-button';
 import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
-import type { FloatingIslandConfig, CardPosition } from '@/components/page-builder/types';
+import type { CardPosition } from '@/components/page-builder/types';
 
 export default function WikiPage() {
   const params = useParams();
@@ -63,11 +63,11 @@ export default function WikiPage() {
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [landingLayout, setLandingLayout] = useState<any>(null);
   const [loadingLayout, setLoadingLayout] = useState(false);
-  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const [custom404Layout, setCustom404Layout] = useState<any>(null);
   const layoutCache = useRef<Record<string, any>>({});
   const articleCache = useRef<Record<string, any>>({});
   const [gameSchema, setGameSchema] = useState<{ tables: { table_name: string; columns: ColumnInfo[] }[] } | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(true);
   const schemaCache = useRef<typeof gameSchema>(null);
 
   useEffect(() => {
@@ -85,7 +85,6 @@ export default function WikiPage() {
     if (layoutCache.current[key]) {
       const cached = layoutCache.current[key];
       if (cached.blocks?.length > 0) setLandingLayout({ blocks: cached.blocks });
-      if (cached.floatingIslands?.length > 0) setFloatingIslands(cached.floatingIslands);
       return;
     }
     setLoadingLayout(true);
@@ -97,9 +96,6 @@ export default function WikiPage() {
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
         }
-        if (data?.floatingIslands?.length > 0) {
-          setFloatingIslands(data.floatingIslands);
-        }
       } catch {}
       setLoadingLayout(false);
     })();
@@ -109,6 +105,7 @@ export default function WikiPage() {
   useEffect(() => {
     if (schemaCache.current) {
       setGameSchema(schemaCache.current);
+      setSchemaLoading(false);
       return;
     }
     (async () => {
@@ -119,17 +116,17 @@ export default function WikiPage() {
           setGameSchema(schema);
         }
       } catch {}
+      setSchemaLoading(false);
     })();
   }, []);
 
-  // Fetch 404 layout + floating islands (only overwrite if non-empty)
+  // Fetch 404 layout
   useEffect(() => {
     if (!tenant?.id) return;
     const key = `404-${tenant.id}`;
     if (layoutCache.current[key]) {
       const cached = layoutCache.current[key];
       if (cached.blocks?.length > 0) setCustom404Layout({ blocks: cached.blocks });
-      if (cached.floatingIslands?.length > 0) setFloatingIslands(cached.floatingIslands);
       return;
     }
     fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
@@ -137,9 +134,6 @@ export default function WikiPage() {
       .then((data) => {
         layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
-        if (data?.floatingIslands?.length > 0) {
-          setFloatingIslands(data.floatingIslands);
-        }
       })
       .catch(() => {});
   }, [tenant?.id]);
@@ -223,11 +217,14 @@ export default function WikiPage() {
   }, [articleSlug, tenant?.id]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    if (articleSlug) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      );
+    }
+    return <WikiPageSkeleton />;
   }
 
   if (!wiki || !tenant) {
@@ -243,6 +240,11 @@ export default function WikiPage() {
         </HubLink>
       </div>
     );
+  }
+
+  // Home page: wait for all async data before rendering
+  if (!articleSlug && (schemaLoading || loadingLayout)) {
+    return <WikiPageSkeleton />;
   }
 
   // ── Game table listing ──
@@ -305,8 +307,13 @@ export default function WikiPage() {
         </Link>
 
         {fetchingArticle ? (
-          <div className="flex items-center justify-center min-h-[40vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="space-y-4 animate-pulse">
+            <div className="h-5 w-32 bg-muted rounded" />
+            <div className="h-56 rounded-xl bg-muted" />
+            <div className="h-7 w-2/3 bg-muted rounded" />
+            <div className="h-4 w-full bg-muted rounded" />
+            <div className="h-4 w-4/5 bg-muted rounded" />
+            <div className="h-4 w-3/5 bg-muted rounded" />
           </div>
         ) : article ? (
           <>
@@ -402,10 +409,7 @@ export default function WikiPage() {
             )}
           </>
         ) : custom404Layout ? (
-          <>
-            <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
-            <PageRenderer layout={custom404Layout} tenant={tenant} basePath={basePath} />
-          </>
+          <PageRenderer layout={custom404Layout} tenant={tenant} basePath={basePath} />
         ) : (
           <div className="text-center py-20 rounded-xl border bg-card">
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -437,7 +441,6 @@ export default function WikiPage() {
   if (!articleSlug && landingLayout && !loadingLayout) {
     return (
       <div>
-        <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
         <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
       </div>
     );
@@ -481,12 +484,10 @@ export default function WikiPage() {
         </div>
       </div>
 
-      <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
-
       {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
 
       {/* Articles */}
-      {articles && articles.length > 0 ? (
+      {articles && articles.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -549,15 +550,37 @@ export default function WikiPage() {
             </div>
           )}
         </>
-      ) : (
-        <div className="text-center py-20 rounded-xl border bg-card">
-          <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Nenhum artigo ainda</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Esta wiki ainda não tem conteúdo publicado.
-          </p>
-        </div>
       )}
+    </div>
+  );
+}
+
+function WikiPageSkeleton() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="rounded-xl overflow-hidden mb-8 border">
+        <div className="h-48 md:h-64 lg:h-72 bg-muted animate-pulse" />
+      </div>
+      <div className="mb-10">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-14 w-14 rounded-xl bg-muted animate-pulse shrink-0" />
+          <div className="space-y-2 flex-1">
+            <div className="h-7 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-72 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-12">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+      <div className="space-y-3">
+        <div className="h-6 w-40 bg-muted animate-pulse rounded mb-5" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
+        ))}
+      </div>
     </div>
   );
 }

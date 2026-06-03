@@ -7,9 +7,10 @@ import { FloatingIslandWrapper } from './floating-island-wrapper';
 interface FloatingIslandsBarProps {
   islands: FloatingIslandConfig[];
   basePath?: string;
+  className?: string;
 }
 
-export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBarProps) {
+export function FloatingIslandsBar({ islands, basePath = '', className = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const handleAutoExpand = useCallback((id: string) => {
@@ -44,7 +45,7 @@ export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBa
   };
 
   return (
-    <div className="border-b bg-muted/20">
+    <div className={`bg-muted/20 ${className}`}>
       <div className="mx-auto max-w-6xl px-4 py-2">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
           <div className="sm:justify-self-start sm:w-full max-w-sm">
