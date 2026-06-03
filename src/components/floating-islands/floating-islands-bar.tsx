@@ -12,6 +12,10 @@ interface FloatingIslandsBarProps {
 export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  const handleAutoExpand = useCallback((id: string) => {
+    setActiveId(id);
+  }, []);
+
   const enabled = islands.filter((i) => i.enabled);
   if (enabled.length === 0) return null;
 
@@ -25,10 +29,6 @@ export function FloatingIslandsBar({ islands, basePath = '' }: FloatingIslandsBa
   const handleToggle = (id: string) => {
     setActiveId((prev) => (prev === id ? null : id));
   };
-
-  const handleAutoExpand = useCallback((id: string) => {
-    setActiveId(id);
-  }, []);
 
   const renderIsland = (island: FloatingIslandConfig | null) => {
     if (!island) return <div />;
