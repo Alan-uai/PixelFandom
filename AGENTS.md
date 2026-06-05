@@ -16,6 +16,59 @@
 | Typecheck | `npm run typecheck` | `tsc --noEmit` |
 | No tests | — | Playwright in devDeps but no test script configured |
 
+## Sistema adaptativo — zero exigência ao usuário
+
+### Princípio fundamental
+**O sistema se adapta ao usuário, nunca o contrário.** Em nenhum lugar do site o
+usuário deve ser obrigado a saber inglês, slugs, underscores, formatos técnicos
+ou qualquer convenção interna. Todo input é livre — o sistema resolve tradução,
+slugificação, normalização, deduplicação, correção e persistência automaticamente.
+
+### Onde se aplica
+
+**Game Tables & Columns (Editor)**
+- Nome de tabela: usuário digita em qualquer língua → `translateGameTerm()` +
+  `ensure_game_table()` → slug English criado/adotado automaticamente.
+- Nome de coluna: usuário digita em qualquer língua → `translateGameTerm()` +
+  se coluna já existe → auto-usa; se não → `add_game_column()`.
+- Sugestões de colunas existentes são filtradas dinamicamente contra as já
+  usadas no formulário atual, evitando duplicatas.
+- RPCs (`ensure_game_table`, `add_game_column`) sempre recebem slugs em inglês —
+  a tradução acontece 100% no client, backend nunca vê texto original do usuário.
+
+**Wiki pages (título, descrição, labels, slugs)**
+- Título da página em qualquer idioma → slug automático via slugify + dedup.
+- Descrições, labels e metadados são armazenados como o usuário digitou;
+  apenas identificadores internos (slugs, chaves) são normalizados.
+- Links entre páginas usam slugs gerados automaticamente a partir do título.
+
+**Dashboard (configurações, labels, menus)**
+- Nomes de seções, labels de abas, descrições de configuração aceitos em
+  qualquer idioma. O sistema normaliza chaves internas.
+- Nenhum campo exige formato específico (ex: "apenas letras minúsculas e
+  underscores") — se o backend precisa de slug, o frontend gera.
+
+**AI Chat (personalidade, persona, preferências)**
+- Escolhas do usuário são sempre entre opções fechadas pré-definidas (nunca
+  texto livre). O sistema adapta a montagem do prompt conforme a escolha.
+
+**Em geral (todo o site)**
+- Nenhum placeholder, label ou mensagem de erro deve instruir o usuário a
+  digitar em formato técnico (ex: "use apenas letras minúsculas e underscore").
+- Validações de formato (regex, tipo) são internas — o usuário vê apenas
+  mensagens semanticas ("Este nome já existe", "Valor inválido").
+- Toda criação de recurso passa por: tratar input → traduzir/normalizar →
+  verificar existência → criar ou adotar → notificar.
+
+### Implementação
+- `translateGameTerm(text)` → `{ translated, slug }` em `src/lib/translate.ts`.
+  Cache em memória (`Map`) por sessão de página. Se API Gemini indisponível,
+  fallback para slugify simples do input.
+- Chamado em toda criação de tabela (`editor/page.tsx`), coluna
+  (`data-table-content.tsx`), e deve ser chamado em qualquer novo ponto de
+  criação de recurso nomeado pelo usuário.
+- Cache de tradução vive apenas durante a sessão da página (não persiste).
+
 ## Build quirks
 - `next.config.ts`: `ignoreBuildErrors: true` and `ignoreDuringBuilds: true` — build **will not catch** TS/ESLint errors. Rely on `npm run typecheck` and `npm run lint` separately.
 - Recommended order: `lint -> typecheck -> build`

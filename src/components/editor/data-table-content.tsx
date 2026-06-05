@@ -29,8 +29,8 @@ import {
   PlusCircle,
   ImageIcon,
   CalendarIcon,
-  List,
 } from 'lucide-react';
+import { translateGameTerm } from '@/lib/translate';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -108,10 +108,14 @@ export default function DataTableContent({
   const [schemaBusy, setSchemaBusy] = useState(false);
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
-  const [showExistingFields, setShowExistingFields] = useState(false);
 
   const rowsCache = useRef<Row[] | null>(null);
   const columnsCache = useRef<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
+
+  const currentFormKeys = showNewForm ? Object.keys(newForm) : editingId ? Object.keys(editForm) : [];
+  const unusedColumns = availableColumns.filter(
+    (c) => !currentFormKeys.includes(c.column_name) && !isSystemColumn(c.column_name),
+  );
 
   const label = tableLabels[table] || table;
   const primary = primaryColumns[table] || [];
@@ -339,20 +343,34 @@ export default function DataTableContent({
   };
 
   const handleAddColumn = async () => {
-    const name = newFieldName.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!name) {
+    const rawName = newFieldName.trim();
+    if (!rawName) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para o campo.' });
-      return;
-    }
-    if (!/^[a-z][a-z0-9_]*$/.test(name)) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Use apenas letras minúsculas, números e underscore (ex: meu_campo).' });
       return;
     }
     if (!tenantId) return;
     setSchemaBusy(true);
+
+    const { slug } = await translateGameTerm(rawName);
+
+    const existing = availableColumns.find((c) => c.column_name === slug);
+    if (existing) {
+      if (showNewForm) {
+        setNewForm((prev) => ({ ...prev, [slug]: '' }));
+      }
+      if (editingId) {
+        setEditForm((prev) => ({ ...prev, [slug]: '' }));
+      }
+      toast({ title: `Campo "${slug}" adicionado!` });
+      setShowAddField(false);
+      setNewFieldName('');
+      setSchemaBusy(false);
+      return;
+    }
+
     const { data, error } = await supabase.rpc('add_game_column', {
       p_table: table,
-      p_column: name,
+      p_column: slug,
       p_type: newFieldType,
       p_tenant_id: tenantId,
     });
@@ -361,15 +379,15 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        toast({ title: `Campo "${name}" adicionado!` });
+        toast({ title: `Campo "${slug}" adicionado!` });
         columnsCache.current = null;
         setShowAddField(false);
         setNewFieldName('');
         if (showNewForm) {
-          setNewForm((prev) => ({ ...prev, [name]: '' }));
+          setNewForm((prev) => ({ ...prev, [slug]: '' }));
         }
         if (editingId) {
-          setEditForm((prev) => ({ ...prev, [name]: '' }));
+          setEditForm((prev) => ({ ...prev, [slug]: '' }));
         }
         fetchRows();
       } else {
@@ -622,47 +640,28 @@ export default function DataTableContent({
           <div className="border-t pt-3 mt-3">
             {showAddField ? (
               <div className="space-y-3">
-                {!showExistingFields && availableColumns.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowExistingFields(true)}
-                    className="w-full"
-                  >
-                    <List className="h-3 w-3 mr-1" />
-                    Usar campo existente ({availableColumns.length} disponíveis)
-                  </Button>
-                )}
-
-                {showExistingFields && (
-                  <div className="space-y-1 max-h-40 overflow-y-auto border rounded-md p-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-muted-foreground">Campos existentes na tabela</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowExistingFields(false)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                    {availableColumns.map((col) => (
-                      <button
-                        key={col.column_name}
-                        type="button"
-                        className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors flex items-center justify-between"
-                        onClick={() => {
-                          if (!(col.column_name in newForm)) {
+                {unusedColumns.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                    <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                      Sugestões ({unusedColumns.length} disponíveis)
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {unusedColumns.map((col) => (
+                        <button
+                          key={col.column_name}
+                          type="button"
+                          className="px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono"
+                          onClick={() => {
                             setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
-                          }
-                          setShowExistingFields(false);
-                          setShowAddField(false);
-                        }}
-                      >
-                        <span className="font-mono">{col.column_name}</span>
-                        <span className="text-muted-foreground">{col.data_type}</span>
-                      </button>
-                    ))}
+                            setShowAddField(false);
+                            setNewFieldName('');
+                          }}
+                        >
+                          {col.column_name}
+                          <span className="text-muted-foreground ml-1">{col.data_type}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -691,7 +690,7 @@ export default function DataTableContent({
                     {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
                     Criar
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setShowExistingFields(false); setNewFieldName(''); }}>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
@@ -699,7 +698,6 @@ export default function DataTableContent({
             ) : (
               <Button variant="outline" size="sm" onClick={async () => {
                 setShowAddField(true);
-                setShowExistingFields(false);
                 const colData = await supabase.rpc('list_available_columns', { p_table: table });
                 if (!colData.error && colData.data) {
                   setAvailableColumns(colData.data as { column_name: string; data_type: string }[]);
@@ -814,47 +812,28 @@ export default function DataTableContent({
                     <div className="border-t pt-3">
                       {showAddField ? (
                         <div className="space-y-3">
-                          {!showExistingFields && availableColumns.length > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowExistingFields(true)}
-                              className="w-full"
-                            >
-                              <List className="h-3 w-3 mr-1" />
-                              Usar campo existente ({availableColumns.length} disponíveis)
-                            </Button>
-                          )}
-
-                          {showExistingFields && (
-                            <div className="space-y-1 max-h-40 overflow-y-auto border rounded-md p-2">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-muted-foreground">Campos existentes na tabela</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowExistingFields(false)}
-                                  className="text-muted-foreground hover:text-foreground"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                              {availableColumns.map((col) => (
-                                <button
-                                  key={col.column_name}
-                                  type="button"
-                                  className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors flex items-center justify-between"
-                                  onClick={() => {
-                                    if (!(col.column_name in editForm)) {
+                          {unusedColumns.length > 0 && (
+                            <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                              <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                                Sugestões ({unusedColumns.length} disponíveis)
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {unusedColumns.map((col) => (
+                                  <button
+                                    key={col.column_name}
+                                    type="button"
+                                    className="px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono"
+                                    onClick={() => {
                                       setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
-                                    }
-                                    setShowExistingFields(false);
-                                    setShowAddField(false);
-                                  }}
-                                >
-                                  <span className="font-mono">{col.column_name}</span>
-                                  <span className="text-muted-foreground">{col.data_type}</span>
-                                </button>
-                              ))}
+                                      setShowAddField(false);
+                                      setNewFieldName('');
+                                    }}
+                                  >
+                                    {col.column_name}
+                                    <span className="text-muted-foreground ml-1">{col.data_type}</span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
 
@@ -864,7 +843,6 @@ export default function DataTableContent({
                               <Input
                                 value={newFieldName}
                                 onChange={(e) => setNewFieldName(e.target.value)}
-                                placeholder="ex: novo_campo"
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -884,7 +862,7 @@ export default function DataTableContent({
                               {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
                               Criar
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setShowExistingFields(false); setNewFieldName(''); }}>
+                            <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
                               <X className="h-3 w-3" />
                             </Button>
                           </div>
@@ -892,7 +870,6 @@ export default function DataTableContent({
                       ) : (
                         <Button variant="outline" size="sm" onClick={async () => {
                           setShowAddField(true);
-                          setShowExistingFields(false);
                           const colData = await supabase.rpc('list_available_columns', { p_table: table });
                           if (!colData.error && colData.data) {
                             setAvailableColumns(colData.data as { column_name: string; data_type: string }[]);

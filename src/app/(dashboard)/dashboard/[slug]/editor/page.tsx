@@ -23,6 +23,7 @@ import {
   ArrowUp, Bug, Star, Hash, FlaskConical, Package, Settings,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
+import { translateGameTerm } from '@/lib/translate';
 
 interface Article {
   id: string;
@@ -69,9 +70,6 @@ export default function EditorArticlesPage() {
   const [createName, setCreateName] = useState('');
   const [createLabel, setCreateLabel] = useState('');
   const [creating, setCreating] = useState(false);
-  const [availableTables, setAvailableTables] = useState<{ table_name: string; display_label: string }[]>([]);
-  const [availableLoading, setAvailableLoading] = useState(false);
-  const [createMode, setCreateMode] = useState<'adopt' | 'create'>('create');
 
   const [renameTable, setRenameTable] = useState<string | null>(null);
   const [renameLabel, setRenameLabel] = useState('');
@@ -168,45 +166,31 @@ export default function EditorArticlesPage() {
     setDeleting(null);
   };
 
-  const openCreateDialog = async () => {
+  const openCreateDialog = () => {
     setCreateName('');
     setCreateLabel('');
-    setCreateMode('create');
     setShowCreateDialog(true);
-    if (tenantId) {
-      setAvailableLoading(true);
-      try {
-        const { data, error } = await supabase.rpc('list_available_tables', { p_tenant_id: tenantId });
-        if (!error && data) {
-          const list = data as { table_name: string; display_label?: string; row_count?: number }[];
-          setAvailableTables(list.filter((t) => t.table_name !== tenantId).map((t) => ({ table_name: t.table_name, display_label: t.display_label || t.table_name })));
-        }
-      } catch {}
-      setAvailableLoading(false);
-    }
   };
 
   const handleCreateTable = async () => {
     if (!tenantId) return;
-    const name = createMode === 'create'
-      ? createName.trim().toLowerCase().replace(/\s+/g, '_')
-      : createName;
-    const label = createLabel.trim() || name;
-    if (!name) {
+    const rawName = createName.trim();
+    if (!rawName) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para a tabela.' });
-      return;
-    }
-    if (createMode === 'create' && !/^[a-z][a-z0-9_]*$/.test(name)) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Use apenas letras minúsculas, números e underscore.' });
       return;
     }
 
     setCreating(true);
+
+    const { translated, slug } = await translateGameTerm(rawName);
+    const label = createLabel.trim() || rawName;
+
     const { data, error } = await supabase.rpc('ensure_game_table', {
-      p_table: name,
+      p_table: slug,
       p_tenant_id: tenantId,
       p_label: label,
     });
+
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
@@ -223,10 +207,14 @@ export default function EditorArticlesPage() {
           setCatalog(cat);
         }
         setShowCreateDialog(false);
-        setActiveTab(name);
+        setActiveTab(slug);
         toast({ title: `Tabela "${label}" adicionada!` });
       } else {
-        toast({ variant: 'destructive', title: 'Erro', description: result.error });
+        if (result.error?.includes('Você já tem esta tabela')) {
+          toast({ title: 'Você já usa esta tabela.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Erro', description: result.error });
+        }
       }
     }
     setCreating(false);
@@ -459,113 +447,42 @@ export default function EditorArticlesPage() {
         ))}
       </Tabs>
 
-      {/* Create/Adopt Dialog */}
+      {/* Create Table Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Adicionar Tabela</DialogTitle>
             <DialogDescription>
-              Adote uma tabela existente ou crie uma nova para sua wiki.
+              Digite o nome da tabela. O sistema traduz automaticamente para o formato interno.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Toggle mode */}
-            <div className="flex gap-2">
-              <Button
-                variant={createMode === 'create' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCreateMode('create')}
-              >
-                Criar nova
-              </Button>
-              <Button
-                variant={createMode === 'adopt' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCreateMode('adopt')}
-              >
-                Adotar existente
-              </Button>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nome da tabela</Label>
+              <Input
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="ex: Armas de longo alcance"
+              />
             </div>
-
-            {createMode === 'create' ? (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Nome da tabela (em inglês, slug)</Label>
-                  <Input
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="ex: weapons_distance"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Apenas letras minúsculas, números e underscore.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label>Nome de exibição</Label>
-                  <Input
-                    value={createLabel}
-                    onChange={(e) => setCreateLabel(e.target.value)}
-                    placeholder="ex: Armas de Longa Distância"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Label>Tabelas disponíveis</Label>
-                {availableLoading ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                ) : availableTables.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    Nenhuma tabela disponível para adotar.
-                  </p>
-                ) : (
-                  <div className="max-h-60 overflow-y-auto space-y-1">
-                    {availableTables.map((t) => (
-                      <button
-                        key={t.table_name}
-                        type="button"
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          createName === t.table_name
-                            ? 'bg-primary text-primary-foreground'
-                            : 'hover:bg-muted'
-                        }`}
-                        onClick={() => {
-                          setCreateName(t.table_name);
-                          setCreateLabel(t.display_label || t.table_name);
-                        }}
-                      >
-                        <span className="font-medium">{t.display_label || t.table_name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({t.table_name})
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {createName && (
-                  <div className="space-y-1">
-                    <Label>Nome de exibição</Label>
-                    <Input
-                      value={createLabel}
-                      onChange={(e) => setCreateLabel(e.target.value)}
-                      placeholder={createName}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="space-y-1">
+              <Label>Nome de exibição (opcional)</Label>
+              <Input
+                value={createLabel}
+                onChange={(e) => setCreateLabel(e.target.value)}
+                placeholder="Igual ao nome digitado"
+              />
+            </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button onClick={handleCreateTable} disabled={creating || !createName}>
+            <Button onClick={handleCreateTable} disabled={creating || !createName.trim()}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              {createMode === 'adopt' ? 'Adotar' : 'Criar'}
+              Adicionar
             </Button>
           </DialogFooter>
         </DialogContent>
