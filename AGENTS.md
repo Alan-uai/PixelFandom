@@ -62,7 +62,9 @@ slugificação, normalização, deduplicação, correção e persistência autom
 
 ### Implementação
 - `translateGameTerm(text)` → `{ translated, slug }` em `src/lib/translate.ts`.
-  Cache em memória (`Map`) por sessão de página. Se API Gemini indisponível,
+  Cache em memória (`Map`) por sessão de página.
+- O backend (`/api/translate`) usa o endpoint público e gratuito do Google
+  Translate via fetch direto — zero dependências, zero API key. Se falhar,
   fallback para slugify simples do input.
 - Chamado em toda criação de tabela (`editor/page.tsx`), coluna
   (`data-table-content.tsx`), e deve ser chamado em qualquer novo ponto de
