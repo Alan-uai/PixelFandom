@@ -29,6 +29,7 @@ import {
   PlusCircle,
   ImageIcon,
   CalendarIcon,
+  List,
 } from 'lucide-react';
 
 const tableLabels: Record<string, string> = {
@@ -75,7 +76,19 @@ interface Row {
   id: string;
 }
 
-export default function DataTableContent({ slug, table }: { slug: string; table: string }) {
+export default function DataTableContent({
+  slug,
+  table,
+  displayLabel,
+  onRename,
+  onDelete,
+}: {
+  slug: string;
+  table: string;
+  displayLabel?: string;
+  onRename?: () => void;
+  onDelete?: () => void;
+}) {
   const { toast } = useToast();
 
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -94,6 +107,8 @@ export default function DataTableContent({ slug, table }: { slug: string; table:
   const [newFieldType, setNewFieldType] = useState('text');
   const [schemaBusy, setSchemaBusy] = useState(false);
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
+  const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
+  const [showExistingFields, setShowExistingFields] = useState(false);
 
   const rowsCache = useRef<Row[] | null>(null);
   const columnsCache = useRef<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
@@ -562,11 +577,25 @@ export default function DataTableContent({ slug, table }: { slug: string; table:
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">{label}</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Gerencie os registros de {label.toLowerCase()}.
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl font-bold">{displayLabel || label}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Gerencie os registros de {(displayLabel || label).toLowerCase()}.
+            </p>
+          </div>
+          <div className="flex items-center gap-1 self-start mt-1">
+            {onRename && (
+              <Button variant="ghost" size="icon" onClick={onRename} title="Renomear tabela">
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="ghost" size="icon" onClick={onDelete} title="Excluir tabela">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
+          </div>
         </div>
         <Button onClick={() => setShowNewForm(true)} disabled={showNewForm}>
           <Plus className="h-4 w-4 mr-2" />
@@ -592,37 +621,90 @@ export default function DataTableContent({ slug, table }: { slug: string; table:
 
           <div className="border-t pt-3 mt-3">
             {showAddField ? (
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <FloatingLabelInput
-                    label="Nome do campo"
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Tipo</Label>
-                  <select
-                    value={newFieldType}
-                    onChange={(e) => setNewFieldType(e.target.value)}
-                    className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              <div className="space-y-3">
+                {!showExistingFields && availableColumns.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExistingFields(true)}
+                    className="w-full"
                   >
-                    {newFieldTypes.map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                    <List className="h-3 w-3 mr-1" />
+                    Usar campo existente ({availableColumns.length} disponíveis)
+                  </Button>
+                )}
+
+                {showExistingFields && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto border rounded-md p-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-muted-foreground">Campos existentes na tabela</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowExistingFields(false)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {availableColumns.map((col) => (
+                      <button
+                        key={col.column_name}
+                        type="button"
+                        className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors flex items-center justify-between"
+                        onClick={() => {
+                          if (!(col.column_name in newForm)) {
+                            setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                          }
+                          setShowExistingFields(false);
+                          setShowAddField(false);
+                        }}
+                      >
+                        <span className="font-mono">{col.column_name}</span>
+                        <span className="text-muted-foreground">{col.data_type}</span>
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <FloatingLabelInput
+                      label="Nome do campo"
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Tipo</Label>
+                    <select
+                      value={newFieldType}
+                      onChange={(e) => setNewFieldType(e.target.value)}
+                      className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      {newFieldTypes.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
+                    {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                    Criar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setShowExistingFields(false); setNewFieldName(''); }}>
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
-                  {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                  Criar
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
-                  <X className="h-3 w-3" />
-                </Button>
               </div>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setShowAddField(true)}>
+              <Button variant="outline" size="sm" onClick={async () => {
+                setShowAddField(true);
+                setShowExistingFields(false);
+                const colData = await supabase.rpc('list_available_columns', { p_table: table });
+                if (!colData.error && colData.data) {
+                  setAvailableColumns(colData.data as { column_name: string; data_type: string }[]);
+                }
+              }}>
                 <PlusCircle className="h-3 w-3 mr-1" />
                 Adicionar campo
               </Button>
@@ -731,38 +813,91 @@ export default function DataTableContent({ slug, table }: { slug: string; table:
 
                     <div className="border-t pt-3">
                       {showAddField ? (
-                        <div className="flex items-end gap-2">
-                          <div className="space-y-1 flex-1">
-                            <Label className="text-xs text-muted-foreground">Nome do campo</Label>
-                            <Input
-                              value={newFieldName}
-                              onChange={(e) => setNewFieldName(e.target.value)}
-                              placeholder="ex: novo_campo"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Tipo</Label>
-                            <select
-                              value={newFieldType}
-                              onChange={(e) => setNewFieldType(e.target.value)}
-                              className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        <div className="space-y-3">
+                          {!showExistingFields && availableColumns.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowExistingFields(true)}
+                              className="w-full"
                             >
-                              {newFieldTypes.map((t) => (
-                                <option key={t} value={t}>{t}</option>
+                              <List className="h-3 w-3 mr-1" />
+                              Usar campo existente ({availableColumns.length} disponíveis)
+                            </Button>
+                          )}
+
+                          {showExistingFields && (
+                            <div className="space-y-1 max-h-40 overflow-y-auto border rounded-md p-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium text-muted-foreground">Campos existentes na tabela</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowExistingFields(false)}
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                              {availableColumns.map((col) => (
+                                <button
+                                  key={col.column_name}
+                                  type="button"
+                                  className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors flex items-center justify-between"
+                                  onClick={() => {
+                                    if (!(col.column_name in editForm)) {
+                                      setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                                    }
+                                    setShowExistingFields(false);
+                                    setShowAddField(false);
+                                  }}
+                                >
+                                  <span className="font-mono">{col.column_name}</span>
+                                  <span className="text-muted-foreground">{col.data_type}</span>
+                                </button>
                               ))}
-                            </select>
+                            </div>
+                          )}
+
+                          <div className="flex items-end gap-2">
+                            <div className="space-y-1 flex-1">
+                              <Label className="text-xs text-muted-foreground">Nome do campo</Label>
+                              <Input
+                                value={newFieldName}
+                                onChange={(e) => setNewFieldName(e.target.value)}
+                                placeholder="ex: novo_campo"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Tipo</Label>
+                              <select
+                                value={newFieldType}
+                                onChange={(e) => setNewFieldType(e.target.value)}
+                                className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              >
+                                {newFieldTypes.map((t) => (
+                                  <option key={t} value={t}>{t}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
+                              {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                              Criar
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setShowExistingFields(false); setNewFieldName(''); }}>
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
-                          <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
-                            {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                            Criar
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
-                            <X className="h-3 w-3" />
-                          </Button>
                         </div>
                       ) : (
-                        <Button variant="outline" size="sm" onClick={() => setShowAddField(true)}>
+                        <Button variant="outline" size="sm" onClick={async () => {
+                          setShowAddField(true);
+                          setShowExistingFields(false);
+                          const colData = await supabase.rpc('list_available_columns', { p_table: table });
+                          if (!colData.error && colData.data) {
+                            setAvailableColumns(colData.data as { column_name: string; data_type: string }[]);
+                          }
+                        }}>
                           <PlusCircle className="h-3 w-3 mr-1" />
                           Adicionar campo
                         </Button>
