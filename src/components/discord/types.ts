@@ -188,7 +188,8 @@ export const ACTION_ICONS: Record<BotActionType, string> = {
 export type CommandVariableCategory =
   | 'user' | 'server' | 'channel' | 'message'
   | 'command' | 'timestamp' | 'bot'
-  | 'wiki' | 'codes' | 'update' | 'stats';
+  | 'wiki' | 'codes' | 'update' | 'stats'
+  | 'content' | 'game';
 
 export interface CommandVariable {
   key: string;
@@ -287,6 +288,22 @@ export const COMMAND_VARIABLES: CommandVariable[] = [
   { key: 'wiki.article_count', label: 'Artigos na Wiki', description: 'Quantidade de artigos publicados', category: 'wiki', syntax: '{{wiki.article_count}}' },
   { key: 'wiki.last_updated', label: 'Última Atualização', description: 'Data da última atualização da wiki', category: 'wiki', syntax: '{{wiki.last_updated}}' },
   { key: 'wiki.created_at', label: 'Criação da Wiki', description: 'Data de criação da wiki', category: 'wiki', syntax: '{{wiki.created_at}}' },
+  { key: 'wiki.favicon', label: 'Favicon', description: 'URL do favicon da wiki', category: 'wiki', syntax: '{{wiki.favicon}}' },
+  { key: 'wiki.custom_domain', label: 'Domínio Customizado', description: 'Domínio personalizado da wiki', category: 'wiki', syntax: '{{wiki.custom_domain}}' },
+  { key: 'wiki.game_url', label: 'URL do Jogo', description: 'Link para o site oficial do jogo', category: 'wiki', syntax: '{{wiki.game_url}}' },
+  { key: 'wiki.og_image', label: 'Imagem OG', description: 'URL da imagem para compartilhamento social', category: 'wiki', syntax: '{{wiki.og_image}}' },
+  { key: 'wiki.is_public', label: 'É Pública?', description: 'Se a wiki está visível publicamente (true/false)', category: 'wiki', syntax: '{{wiki.is_public}}' },
+  { key: 'wiki.updated_at', label: 'Modificação', description: 'Data da última modificação da configuração', category: 'wiki', syntax: '{{wiki.updated_at}}' },
+  { key: 'wiki.member_count', label: 'Membros', description: 'Quantidade de membros cadastrados na wiki', category: 'wiki', syntax: '{{wiki.member_count}}' },
+  { key: 'wiki.page_count', label: 'Páginas', description: 'Quantidade de landing pages da wiki', category: 'wiki', syntax: '{{wiki.page_count}}' },
+  { key: 'wiki.comment_count', label: 'Comentários', description: 'Total de comentários em artigos', category: 'wiki', syntax: '{{wiki.comment_count}}' },
+  { key: 'wiki.theme_preset', label: 'Tema', description: 'Nome do preset de tema ativo', category: 'wiki', syntax: '{{wiki.theme_preset}}' },
+  { key: 'wiki.primary_color', label: 'Cor Primária', description: 'Cor primária do tema (HSL)', category: 'wiki', syntax: '{{wiki.primary_color}}' },
+  { key: 'wiki.accent_color', label: 'Cor de Destaque', description: 'Cor de destaque do tema (HSL)', category: 'wiki', syntax: '{{wiki.accent_color}}' },
+  { key: 'wiki.latest_article', label: 'Último Artigo', description: 'Título do artigo mais recente', category: 'wiki', syntax: '{{wiki.latest_article}}' },
+  { key: 'wiki.latest_article_url', label: 'URL do Último Artigo', description: 'Link para o artigo mais recente', category: 'wiki', syntax: '{{wiki.latest_article_url}}' },
+  { key: 'wiki.latest_article_author', label: 'Autor do Último Artigo', description: 'Nome do autor do artigo mais recente', category: 'wiki', syntax: '{{wiki.latest_article_author}}' },
+  { key: 'wiki.latest_article_date', label: 'Data do Último Artigo', description: 'Data de publicação do artigo mais recente', category: 'wiki', syntax: '{{wiki.latest_article_date}}' },
   { key: 'codes.all', label: 'Todos os Códigos', description: 'Lista de todos os códigos do jogo', category: 'codes', syntax: '{{codes.all}}' },
   { key: 'codes.available', label: 'Códigos Disponíveis', description: 'Lista de códigos ativos', category: 'codes', syntax: '{{codes.available}}' },
   { key: 'codes.expired', label: 'Códigos Expirados', description: 'Lista de códigos expirados', category: 'codes', syntax: '{{codes.expired}}' },
@@ -305,6 +322,46 @@ export const COMMAND_VARIABLES: CommandVariable[] = [
   { key: 'stats.articles', label: 'Total de Artigos', description: 'Quantidade de artigos na wiki', category: 'stats', syntax: '{{stats.articles}}' },
   { key: 'stats.page_views', label: 'Visualizações', description: 'Total de visualizações de página', category: 'stats', syntax: '{{stats.page_views}}' },
   { key: 'stats.members', label: 'Membros da Wiki', description: 'Membros cadastrados na wiki', category: 'stats', syntax: '{{stats.members}}' },
+  { key: 'content.total_articles', label: 'Total de Artigos', description: 'Quantidade total de artigos publicados', category: 'content', syntax: '{{content.total_articles}}' },
+  { key: 'content.total_comments', label: 'Total de Comentários', description: 'Total de comentários em artigos', category: 'content', syntax: '{{content.total_comments}}' },
+  { key: 'content.total_landing_pages', label: 'Landing Pages', description: 'Quantidade de landing pages publicadas', category: 'content', syntax: '{{content.total_landing_pages}}' },
+  { key: 'content.total_page_views', label: 'Visualizações', description: 'Total de visualizações de páginas', category: 'content', syntax: '{{content.total_page_views}}' },
+  { key: 'content.latest_article', label: 'Artigo Recente', description: 'Título do artigo mais recente', category: 'content', syntax: '{{content.latest_article}}' },
+  { key: 'content.latest_article_url', label: 'URL do Artigo Recente', description: 'Link para o artigo mais recente', category: 'content', syntax: '{{content.latest_article_url}}' },
+  { key: 'content.latest_article_author', label: 'Autor do Artigo Recente', description: 'Autor do artigo mais recente', category: 'content', syntax: '{{content.latest_article_author}}' },
+  { key: 'content.latest_article_date', label: 'Data do Artigo Recente', description: 'Data de publicação do artigo mais recente', category: 'content', syntax: '{{content.latest_article_date}}' },
+  { key: 'content.recent_articles', label: 'Artigos Recentes', description: 'Lista dos 5 artigos mais recentes', category: 'content', syntax: '{{content.recent_articles}}' },
+  { key: 'content.top_article', label: 'Artigo Popular', description: 'Título do artigo mais visto', category: 'content', syntax: '{{content.top_article}}' },
+  { key: 'content.top_article_url', label: 'URL do Artigo Popular', description: 'Link para o artigo mais visto', category: 'content', syntax: '{{content.top_article_url}}' },
+  { key: 'content.articles_this_month', label: 'Artigos do Mês', description: 'Artigos criados neste mês', category: 'content', syntax: '{{content.articles_this_month}}' },
+  { key: 'content.total_tags', label: 'Total de Tags', description: 'Quantidade de tags únicas na wiki', category: 'content', syntax: '{{content.total_tags}}' },
+  { key: 'content.total_images', label: 'Total de Imagens', description: 'Quantidade de imagens nos artigos', category: 'content', syntax: '{{content.total_images}}' },
+  { key: 'content.categories', label: 'Categorias', description: 'Lista de coleções/categorias disponíveis', category: 'content', syntax: '{{content.categories}}' },
+  { key: 'game.total_weapons', label: 'Total de Armas', description: 'Quantidade total de armas no banco de dados', category: 'game', syntax: '{{game.total_weapons}}' },
+  { key: 'game.total_armors', label: 'Total de Armaduras', description: 'Quantidade total de armaduras', category: 'game', syntax: '{{game.total_armors}}' },
+  { key: 'game.total_rings', label: 'Total de Anéis', description: 'Quantidade total de anéis', category: 'game', syntax: '{{game.total_rings}}' },
+  { key: 'game.total_bosses', label: 'Total de Chefes', description: 'Quantidade total de chefes', category: 'game', syntax: '{{game.total_bosses}}' },
+  { key: 'game.total_enemies', label: 'Total de Inimigos', description: 'Quantidade total de inimigos', category: 'game', syntax: '{{game.total_enemies}}' },
+  { key: 'game.total_worlds', label: 'Total de Mundos', description: 'Quantidade total de mundos', category: 'game', syntax: '{{game.total_worlds}}' },
+  { key: 'game.total_potions', label: 'Total de Poções', description: 'Quantidade total de poções', category: 'game', syntax: '{{game.total_potions}}' },
+  { key: 'game.total_upgrades', label: 'Total de Upgrades', description: 'Quantidade total de upgrades', category: 'game', syntax: '{{game.total_upgrades}}' },
+  { key: 'game.total_codes', label: 'Total de Códigos', description: 'Quantidade total de códigos promocionais', category: 'game', syntax: '{{game.total_codes}}' },
+  { key: 'game.total_crafting', label: 'Receitas de Crafting', description: 'Quantidade total de receitas de crafting', category: 'game', syntax: '{{game.total_crafting}}' },
+  { key: 'game.total_items', label: 'Total de Itens', description: 'Total geral de itens cadastrados no jogo', category: 'game', syntax: '{{game.total_items}}' },
+  { key: 'game.active_codes', label: 'Códigos Ativos', description: 'Quantidade de códigos promocionais ativos', category: 'game', syntax: '{{game.active_codes}}' },
+  { key: 'game.weapon_list', label: 'Lista de Armas', description: 'Lista com nomes de todas as armas', category: 'game', syntax: '{{game.weapon_list}}' },
+  { key: 'game.boss_list', label: 'Lista de Chefes', description: 'Lista com nomes de todos os chefes', category: 'game', syntax: '{{game.boss_list}}' },
+  { key: 'game.enemy_list', label: 'Lista de Inimigos', description: 'Lista com nomes de todos os inimigos', category: 'game', syntax: '{{game.enemy_list}}' },
+  { key: 'game.world_list', label: 'Lista de Mundos', description: 'Lista com nomes de todos os mundos', category: 'game', syntax: '{{game.world_list}}' },
+  { key: 'game.latest_weapon', label: 'Arma Recente', description: 'Nome da arma adicionada mais recentemente', category: 'game', syntax: '{{game.latest_weapon}}' },
+  { key: 'game.latest_boss', label: 'Chefe Recente', description: 'Nome do chefe adicionado mais recentemente', category: 'game', syntax: '{{game.latest_boss}}' },
+  { key: 'game.rarest_weapon', label: 'Arma Mais Rara', description: 'Arma com a maior raridade', category: 'game', syntax: '{{game.rarest_weapon}}' },
+  { key: 'game.highest_damage_weapon', label: 'Arma de Maior Dano', description: 'Arma com o maior dano base', category: 'game', syntax: '{{game.highest_damage_weapon}}' },
+  { key: 'game.best_armor', label: 'Melhor Armadura', description: 'Armadura com a melhor defesa', category: 'game', syntax: '{{game.best_armor}}' },
+  { key: 'game.version', label: 'Versão do Jogo', description: 'Versão atual do jogo', category: 'game', syntax: '{{game.version}}' },
+  { key: 'game.last_update', label: 'Última Atualização', description: 'Data da última atualização do jogo', category: 'game', syntax: '{{game.last_update}}' },
+  { key: 'game.resource_list', label: 'Lista de Recursos', description: 'Lista de recursos/materiais do jogo', category: 'game', syntax: '{{game.resource_list}}' },
+  { key: 'game.build_presets', label: 'Presets de Build', description: 'Lista de presets de build disponíveis', category: 'game', syntax: '{{game.build_presets}}' },
 ];
 
 export const VARIABLE_CATEGORY_LABELS: Record<CommandVariableCategory, string> = {
@@ -319,6 +376,8 @@ export const VARIABLE_CATEGORY_LABELS: Record<CommandVariableCategory, string> =
   codes: 'Códigos',
   update: 'Atualizações',
   stats: 'Estatísticas',
+  content: 'Conteúdo',
+  game: 'Jogo',
 };
 
 export function getVariablesByCategory(): Record<CommandVariableCategory, CommandVariable[]> {
