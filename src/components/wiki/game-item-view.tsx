@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { supabase } from '@/supabase';
-import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
+import { getGameSchema, getTableSchema, findLabelColumn, findSlugColumn, type ColumnInfo } from '@/lib/game-schema';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 
@@ -22,6 +22,7 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
   const [item, setItem] = useState<any | null>(null);
   const [schema, setSchema] = useState<ColumnInfo[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [labelCol, setLabelCol] = useState('name');
   const { homePath } = useWikiPath(tenantSlug);
 
   useEffect(() => {
@@ -35,31 +36,32 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
 
     (async () => {
       try {
-        // Try by slug first (URL-friendly), fallback to name match
-        let data: any = null;
-        const schemaRes = await getGameSchema();
+        const columns = await getTableSchema(tableName);
+        if (cancelled) return;
+        schemaCache.current = columns;
+        const label = findLabelColumn(columns);
+        const slugCol = findSlugColumn(columns);
+        if (!cancelled) setLabelCol(label);
 
-        try {
+        let data: any = null;
+
+        if (slugCol) {
           const slugResult = await supabase
-            .from(tableName).select('*').eq('tenant_id', tenantId).eq('slug', itemSlug).maybeSingle();
+            .from(tableName).select('*').eq('tenant_id', tenantId).eq(slugCol, itemSlug).maybeSingle();
           data = slugResult.data;
-        } catch {
-          // Table lacks slug column, fall through to name search
         }
 
         if (!data) {
           const searchName = itemSlug.replace(/-/g, ' ');
           const nameResult = await supabase
-            .from(tableName).select('*').eq('tenant_id', tenantId).ilike('name', searchName).maybeSingle();
+            .from(tableName).select('*').eq('tenant_id', tenantId).ilike(label, searchName).maybeSingle();
           data = nameResult.data;
         }
 
         if (cancelled) return;
 
-        schemaCache.current = schemaRes.tables.find((t) => t.table_name === tableName)?.columns;
         cache.current = data ?? null;
-
-        setSchema(schemaCache.current);
+        setSchema(columns);
         setItem(data ?? null);
       } catch {
         if (!cancelled) {
@@ -81,7 +83,7 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
       >
         <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-        Voltar para {tableName}
+        Voltar para {tableName.replace(/_/g, ' ')}
       </Link>
 
       {loading ? (
@@ -108,7 +110,7 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Item não encontrado</h1>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Este item não existe na tabela &ldquo;{tableName}&rdquo;.
+            Este item não existe na tabela &ldquo;{tableName.replace(/_/g, ' ')}&rdquo;.
           </p>
         </div>
       )}

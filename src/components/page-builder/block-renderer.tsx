@@ -46,6 +46,22 @@ import { PaymentIconsBlock } from './blocks/payment-icons-block';
 import { FooterBrandBlock } from './blocks/footer-brand-block';
 import { LanguageSwitcherBlock } from './blocks/language-switcher-block';
 import { FooterMenuBlock } from './blocks/footer-menu-block';
+import { ErrorDisplayBlock } from './blocks/error-display-block';
+import { ErrorSearchBlock } from './blocks/error-search-block';
+import { ErrorSuggestionsBlock } from './blocks/error-suggestions-block';
+import { ErrorActionsBlock } from './blocks/error-actions-block';
+import { ErrorFunBlock } from './blocks/error-fun-block';
+import { ErrorImageBlock } from './blocks/error-image-block';
+import { ErrorMapBlock } from './blocks/error-map-block';
+import { ErrorQuoteBlock } from './blocks/error-quote-block';
+import { ErrorFeedbackBlock } from './blocks/error-feedback-block';
+import { ErrorCountdownBlock } from './blocks/error-countdown-block';
+import { ErrorParticleBlock } from './blocks/error-particle-block';
+import { ErrorMazeBlock } from './blocks/error-maze-block';
+import { ErrorPollBlock } from './blocks/error-poll-block';
+import { ErrorFactBlock } from './blocks/error-fact-block';
+import { ErrorSocialBlock } from './blocks/error-social-block';
+import { ErrorCharacterBlock } from './blocks/error-character-block';
 
 interface BlockRendererProps {
   block: BlockConfig;
@@ -146,6 +162,38 @@ export function BlockRenderer({ block, tenantId, preview, basePath }: BlockRende
         return <LanguageSwitcherBlock config={block.config as any} />;
       case 'footer-menu':
         return <FooterMenuBlock config={block.config as any} />;
+      case 'error-display':
+        return <ErrorDisplayBlock config={block.config as any} />;
+      case 'error-search':
+        return <ErrorSearchBlock config={block.config as any} />;
+      case 'error-suggestions':
+        return <ErrorSuggestionsBlock config={block.config as any} />;
+      case 'error-actions':
+        return <ErrorActionsBlock config={block.config as any} />;
+      case 'error-fun':
+        return <ErrorFunBlock config={block.config as any} />;
+      case 'error-image':
+        return <ErrorImageBlock config={block.config as any} />;
+      case 'error-map':
+        return <ErrorMapBlock config={block.config as any} />;
+      case 'error-quote':
+        return <ErrorQuoteBlock config={block.config as any} />;
+      case 'error-feedback':
+        return <ErrorFeedbackBlock config={block.config as any} />;
+      case 'error-countdown':
+        return <ErrorCountdownBlock config={block.config as any} />;
+      case 'error-particle':
+        return <ErrorParticleBlock config={block.config as any} />;
+      case 'error-maze':
+        return <ErrorMazeBlock config={block.config as any} />;
+      case 'error-poll':
+        return <ErrorPollBlock config={block.config as any} />;
+      case 'error-fact':
+        return <ErrorFactBlock config={block.config as any} />;
+      case 'error-social':
+        return <ErrorSocialBlock config={block.config as any} />;
+      case 'error-character':
+        return <ErrorCharacterBlock config={block.config as any} />;
       default:
         return <div className="p-4 text-sm text-muted-foreground">Bloco desconhecido: {block.type}</div>;
     }

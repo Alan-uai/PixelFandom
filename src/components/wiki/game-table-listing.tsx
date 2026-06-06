@@ -3,9 +3,9 @@
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/supabase';
-import { GAME_TABLE_META } from '@/lib/game-table-labels';
 import { FileText, Database, ArrowLeft } from 'lucide-react';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import { getGameSchema, getTableSchema, findLabelColumn, findSlugColumn, type ColumnInfo } from '@/lib/game-schema';
 
 function toSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -19,10 +19,11 @@ type Props = {
 
 export default function GameTableListing({ tenantSlug, tableName, tenantId }: Props) {
   const cache = useRef<any[] | null>(null);
+  const columnsRef = useRef<ColumnInfo[] | undefined>(undefined);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [labelCol, setLabelCol] = useState('name');
   const { homePath } = useWikiPath(tenantSlug);
-  const meta = GAME_TABLE_META[tableName];
 
   useEffect(() => {
     if (cache.current) {
@@ -35,17 +36,26 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
 
     (async () => {
       try {
+        const columns = await getTableSchema(tableName);
+        if (cancelled) return;
+        columnsRef.current = columns;
+        const label = findLabelColumn(columns);
+        if (!cancelled) setLabelCol(label);
+
         const { data } = await supabase
           .from(tableName)
           .select('*')
           .eq('tenant_id', tenantId)
-          .order('name');
+          .order(label);
 
         if (cancelled) return;
         cache.current = data ?? [];
         setItems(data ?? []);
       } catch {
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          cache.current = [];
+          setItems([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -70,7 +80,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
             <Database className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">{meta?.label ?? tableName}</h1>
+            <h1 className="text-2xl font-bold capitalize">{tableName.replace(/_/g, ' ')}</h1>
             <p className="text-sm text-muted-foreground">{items.length} ite{items.length === 1 ? 'm' : 'ns'}</p>
           </div>
         </div>
@@ -94,15 +104,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {items.map((item) => {
-            const itemSlug = toSlug(item.name);
-            const itemPath = `${homePath}${tableName}/${itemSlug}`;
+            const label = item[labelCol] || item.name || '';
+            const itemSlug = toSlug(String(label));
             const image = item.image_url || item.image || item.icon || item.icon_url;
-            const subtitle = item.rarity || item.weapon_type || item.obtain_method || item.description || '';
+            const subtitle = item.rarity || item.type || item.weapon_type || item.obtain || item.description || '';
 
             return (
               <Link
                 key={item.id}
-                href={itemPath}
+                href={`${homePath}${tableName}/${itemSlug}`}
                 className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:border-primary/50 hover:bg-accent/50 transition-all group"
               >
                 {image ? (
@@ -116,7 +126,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
                 )}
                 <div className="min-w-0">
                   <p className="text-sm font-medium group-hover:text-primary transition-colors truncate">
-                    {item.name}
+                    {label}
                   </p>
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">

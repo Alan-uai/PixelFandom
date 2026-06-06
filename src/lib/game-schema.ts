@@ -178,6 +178,18 @@ export async function getTableSchema(tableName: string): Promise<ColumnInfo[]> {
   return table?.columns ?? [];
 }
 
+export function findLabelColumn(columns: ColumnInfo[]): string {
+  if (columns.some((c) => c.column_name === 'name')) return 'name';
+  const nameCol = columns.find((c) => c.column_name.endsWith('_name'));
+  if (nameCol) return nameCol.column_name;
+  if (columns.some((c) => c.column_name === 'code')) return 'code';
+  return 'name';
+}
+
+export function findSlugColumn(columns: ColumnInfo[]): string | null {
+  return columns.some((c) => c.column_name === 'slug') ? 'slug' : null;
+}
+
 export function invalidateCache(): void {
   cachedSchema = null;
   cacheTime = 0;
