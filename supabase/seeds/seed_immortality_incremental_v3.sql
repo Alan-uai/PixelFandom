@@ -39,13 +39,11 @@ BEGIN
   CREATE INDEX IF NOT EXISTS idx_bloodlines_tenant ON bloodlines(tenant_id);
 
   -- Fix pre-existing table that may lack the unique constraint
-  DO $$ BEGIN
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_constraint WHERE conname = 'bloodlines_tenant_id_name_key'
-    ) THEN
-      ALTER TABLE bloodlines ADD UNIQUE(tenant_id, name);
-    END IF;
-  END $$;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'bloodlines_tenant_id_name_key'
+  ) THEN
+    ALTER TABLE bloodlines ADD UNIQUE(tenant_id, name);
+  END IF;
 
   ALTER TABLE bloodlines ENABLE ROW LEVEL SECURITY;
 
@@ -100,15 +98,12 @@ BEGIN
     UNIQUE(tenant_id, name)
   );
 
-  -- Drop existing table if no unique constraint (recreate correctly)
-  -- This handles the case where CREATE TABLE IF NOT EXISTS skipped the DDL fix
-  DO $$ BEGIN
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_constraint WHERE conname = 'manuals_tenant_id_name_key'
-    ) THEN
-      ALTER TABLE manuals ADD UNIQUE(tenant_id, name);
-    END IF;
-  END $$;
+  -- Fix pre-existing table that may lack the unique constraint
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'manuals_tenant_id_name_key'
+  ) THEN
+    ALTER TABLE manuals ADD UNIQUE(tenant_id, name);
+  END IF;
 
   CREATE INDEX IF NOT EXISTS idx_manuals_tenant ON manuals(tenant_id);
 
@@ -284,6 +279,20 @@ BEGIN
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(tenant_id, code)
   );
+
+  -- codes table pre-exists from app (created by ensure_game_table);
+  -- its columns are: id, tenant_id, name, slug, description, image_url
+  -- We need to add code, reward, is_active if missing
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS code TEXT;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS reward TEXT;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+  -- Fix pre-existing table that may lack the unique constraint
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'codes_tenant_id_code_key'
+  ) THEN
+    ALTER TABLE codes ADD UNIQUE(tenant_id, code);
+  END IF;
 
   CREATE INDEX IF NOT EXISTS idx_codes_tenant ON codes(tenant_id);
 
