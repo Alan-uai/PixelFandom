@@ -273,19 +273,32 @@ BEGIN
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     code TEXT NOT NULL,
-    reward TEXT,
+    rewards JSONB NOT NULL DEFAULT '[]'::jsonb,
+    reward_type TEXT,
+    code_type TEXT,
     is_active BOOLEAN DEFAULT true,
+    verified_date DATE,
+    verified_by TEXT,
+    is_expired BOOLEAN DEFAULT false,
+    expired_date DATE,
+    image_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(tenant_id, code)
   );
 
-  -- codes table pre-exists from app (created by ensure_game_table);
-  -- its columns are: id, tenant_id, name, slug, description, image_url
-  -- We need to add code, reward, is_active if missing
+  -- codes table may pre-exist from app (created by ensure_game_table);
+  -- ensure all columns exist
   ALTER TABLE codes ADD COLUMN IF NOT EXISTS code TEXT;
-  ALTER TABLE codes ADD COLUMN IF NOT EXISTS reward TEXT;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS rewards JSONB NOT NULL DEFAULT '[]'::jsonb;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS reward_type TEXT;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS code_type TEXT;
   ALTER TABLE codes ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS verified_date DATE;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS verified_by TEXT;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS is_expired BOOLEAN DEFAULT false;
+  ALTER TABLE codes ADD COLUMN IF NOT EXISTS expired_date DATE;
+  ALTER TABLE codes ALTER COLUMN rewards SET DEFAULT '[]'::jsonb;
 
   -- Fix pre-existing table that may lack the unique constraint
   IF NOT EXISTS (
@@ -314,33 +327,33 @@ BEGIN
   VALUES (v_tenant_id, 'codes', 'Códigos')
   ON CONFLICT (tenant_id, table_name) DO UPDATE SET display_label = 'Códigos';
 
-  INSERT INTO codes (tenant_id, code, reward, is_active) VALUES
+  INSERT INTO codes (tenant_id, code, rewards, is_active) VALUES
     -- Active codes
-    (v_tenant_id, '5MVISITS', 'Qi +5M, Luck +5M', true),
-    (v_tenant_id, 'MINI2', 'Recompensa Mini 2', true),
-    (v_tenant_id, 'COOLBEANS', 'Qi +1M, Luck +1M', true),
-    (v_tenant_id, 'NERF', 'Qi +2M, Luck +2M', true),
-    (v_tenant_id, '100KGROUP', 'Qi +100K, Luck +100K', true),
-    (v_tenant_id, 'MINI', 'Qi +500K, Luck +500K', true),
-    (v_tenant_id, '100KFAV', 'Qi +100K, Luck +100K', true),
-    (v_tenant_id, 'HYPE', 'Qi +1M, Luck +1M', true),
-    (v_tenant_id, 'ASH', 'Qi +2M, Luck +2M', true),
-    (v_tenant_id, '5KCCU', 'Qi +5K, Luck +5K', true),
-    (v_tenant_id, '1MVISITS', 'Qi +1M, Luck +1M', true),
-    (v_tenant_id, 'HOTFIXING', 'Qi +500K, Luck +500K', true),
-    (v_tenant_id, 'EXTRACODE', 'Qi +3M, Luck +3M', true),
-    (v_tenant_id, '50KGROUP', 'Qi +50K, Luck +50K', true),
-    (v_tenant_id, 'PART1', 'Qi +1M, Luck +1M', true),
-    (v_tenant_id, '1KGOATS', 'Qi +1K, Luck +1K', true),
-    (v_tenant_id, 'DELAY', 'Qi +500K, Luck +500K', true),
-    (v_tenant_id, 'PART2', 'Qi +1M, Luck +1M', true),
-    (v_tenant_id, 'DurpJade', 'Qi +10M, Luck +10M', true),
-    (v_tenant_id, 'MEMBERS', 'Qi +2M, Luck +2M', true),
-    (v_tenant_id, 'UPDATE2', 'Qi +5M, Luck +5M', true),
-    (v_tenant_id, 'HOTFIX', 'Qi +250K, Luck +250K', true),
-    (v_tenant_id, 'RELEASE', 'Qi +5M, Luck +5M', true),
+    (v_tenant_id, '5MVISITS', '["Qi +5M, Luck +5M"]'::jsonb, true),
+    (v_tenant_id, 'MINI2', '["Recompensa Mini 2"]'::jsonb, true),
+    (v_tenant_id, 'COOLBEANS', '["Qi +1M, Luck +1M"]'::jsonb, true),
+    (v_tenant_id, 'NERF', '["Qi +2M, Luck +2M"]'::jsonb, true),
+    (v_tenant_id, '100KGROUP', '["Qi +100K, Luck +100K"]'::jsonb, true),
+    (v_tenant_id, 'MINI', '["Qi +500K, Luck +500K"]'::jsonb, true),
+    (v_tenant_id, '100KFAV', '["Qi +100K, Luck +100K"]'::jsonb, true),
+    (v_tenant_id, 'HYPE', '["Qi +1M, Luck +1M"]'::jsonb, true),
+    (v_tenant_id, 'ASH', '["Qi +2M, Luck +2M"]'::jsonb, true),
+    (v_tenant_id, '5KCCU', '["Qi +5K, Luck +5K"]'::jsonb, true),
+    (v_tenant_id, '1MVISITS', '["Qi +1M, Luck +1M"]'::jsonb, true),
+    (v_tenant_id, 'HOTFIXING', '["Qi +500K, Luck +500K"]'::jsonb, true),
+    (v_tenant_id, 'EXTRACODE', '["Qi +3M, Luck +3M"]'::jsonb, true),
+    (v_tenant_id, '50KGROUP', '["Qi +50K, Luck +50K"]'::jsonb, true),
+    (v_tenant_id, 'PART1', '["Qi +1M, Luck +1M"]'::jsonb, true),
+    (v_tenant_id, '1KGOATS', '["Qi +1K, Luck +1K"]'::jsonb, true),
+    (v_tenant_id, 'DELAY', '["Qi +500K, Luck +500K"]'::jsonb, true),
+    (v_tenant_id, 'PART2', '["Qi +1M, Luck +1M"]'::jsonb, true),
+    (v_tenant_id, 'DurpJade', '["Qi +10M, Luck +10M"]'::jsonb, true),
+    (v_tenant_id, 'MEMBERS', '["Qi +2M, Luck +2M"]'::jsonb, true),
+    (v_tenant_id, 'UPDATE2', '["Qi +5M, Luck +5M"]'::jsonb, true),
+    (v_tenant_id, 'HOTFIX', '["Qi +250K, Luck +250K"]'::jsonb, true),
+    (v_tenant_id, 'RELEASE', '["Qi +5M, Luck +5M"]'::jsonb, true),
     -- Inactive codes
-    (v_tenant_id, 'SORRYFORMISTAKE', 'Qi +1M, Luck +1M', false)
+    (v_tenant_id, 'SORRYFORMISTAKE', '["Qi +1M, Luck +1M"]'::jsonb, false)
   ON CONFLICT (tenant_id, code) DO NOTHING;
 
   -- ============================================================

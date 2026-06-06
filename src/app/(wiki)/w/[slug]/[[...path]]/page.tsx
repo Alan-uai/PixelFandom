@@ -438,121 +438,124 @@ export default function WikiPage() {
       )
     : allArticles;
 
-  if (!articleSlug && landingLayout && !loadingLayout) {
+  if (!articleSlug && !loadingLayout) {
     return (
-      <div>
-        <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
+      <div className="max-w-4xl mx-auto">
+        {/* Cover Image */}
+        {(tenant as any).cover_image && (
+          <div className="rounded-xl overflow-hidden mb-8 border">
+            <img
+              src={(tenant as any).cover_image}
+              alt=""
+              className="w-full h-48 md:h-64 lg:h-72 object-cover"
+            />
+          </div>
+        )}
+
+        {/* Hero */}
+        <div className="mb-10">
+          <div className="flex items-center gap-4 mb-4">
+            {tenant.logo_url && (
+              <div className="h-14 w-14 rounded-xl overflow-hidden border shrink-0">
+                <img src={tenant.logo_url} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{tenant.name}</h1>
+              {tenant.description && (
+                <p className="text-muted-foreground mt-1">{tenant.description}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4" />
+            <span>{articles?.length || 0} artigo{(articles?.length || 0) !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="mt-3">
+            <FollowButton tenantId={tenant.id} />
+          </div>
+        </div>
+
+        {landingLayout ? (
+          <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
+        ) : (
+          <>
+
+            {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
+
+            {articles && articles.length > 0 && (
+              <>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {searchQuery ? `Resultados (${displayArticles.length})` : 'Artigos Recentes'}
+                  </h2>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <LayoutGrid className={`h-4 w-4 ${isGrid ? 'text-primary' : ''}`} />
+                    <span className="mx-1">|</span>
+                    <LayoutList className={`h-4 w-4 ${!isGrid ? 'text-primary' : ''}`} />
+                  </div>
+                </div>
+
+                {displayArticles.length > 0 ? (
+                  isGrid ? (
+                    <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} votePosition={articleCardVotePos} />
+                  ) : (
+                    <div className="space-y-2">
+                      {displayArticles.map((article: any) => (
+                        <div key={article.id} className="relative pb-1">
+                          <Link
+                            href={wikiArticlePath(article.slug || article.id)}
+                            className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
+                          >
+                            {article.image_url ? (
+                              <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                            )}
+                            <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
+                              {article.title}
+                            </span>
+                            {article.tags && article.tags.length > 0 && (
+                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                {article.tags[0]}
+                              </span>
+                            )}
+                            {article.updated_at && (
+                              <span className="text-[11px] text-muted-foreground hidden md:inline">
+                                {new Date(article.updated_at).toLocaleDateString('pt-BR')}
+                              </span>
+                            )}
+                            <CardSymbols
+                              targetType="article"
+                              targetId={article.id}
+                              votePosition={articleCardVotePos}
+                            />
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center py-16 rounded-xl border bg-card">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h2 className="text-lg font-semibold mb-1">Nenhum resultado</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum artigo encontrado para &ldquo;{searchQuery}&rdquo;
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Cover Image */}
-      {(tenant as any).cover_image && (
-        <div className="rounded-xl overflow-hidden mb-8 border">
-          <img
-            src={(tenant as any).cover_image}
-            alt=""
-            className="w-full h-48 md:h-64 lg:h-72 object-cover"
-          />
-        </div>
-      )}
-
-      {/* Hero */}
-      <div className="mb-10">
-        <div className="flex items-center gap-4 mb-4">
-          {tenant.logo_url && (
-            <div className="h-14 w-14 rounded-xl overflow-hidden border shrink-0">
-              <img src={tenant.logo_url} alt="" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{tenant.name}</h1>
-            {tenant.description && (
-              <p className="text-muted-foreground mt-1">{tenant.description}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <BookOpen className="h-4 w-4" />
-          <span>{articles?.length || 0} artigo{(articles?.length || 0) !== 1 ? 's' : ''}</span>
-        </div>
-        <div className="mt-3">
-          <FollowButton tenantId={tenant.id} />
-        </div>
-      </div>
-
-      {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
-
-      {/* Articles */}
-      {articles && articles.length > 0 && (
-        <>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              {searchQuery ? `Resultados (${displayArticles.length})` : 'Artigos Recentes'}
-            </h2>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <LayoutGrid className={`h-4 w-4 ${isGrid ? 'text-primary' : ''}`} />
-              <span className="mx-1">|</span>
-              <LayoutList className={`h-4 w-4 ${!isGrid ? 'text-primary' : ''}`} />
-            </div>
-          </div>
-
-          {displayArticles.length > 0 ? (
-            isGrid ? (
-              <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} votePosition={articleCardVotePos} />
-            ) : (
-              <div className="space-y-2">
-                {displayArticles.map((article: any) => (
-                  <div key={article.id} className="relative pb-1">
-                    <Link
-                      href={wikiArticlePath(article.slug || article.id)}
-                      className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
-                    >
-                      {article.image_url ? (
-                        <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      <span className="flex-1 font-medium text-sm group-hover:text-primary transition-colors truncate">
-                        {article.title}
-                      </span>
-                      {article.tags && article.tags.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                          {article.tags[0]}
-                        </span>
-                      )}
-                      {article.updated_at && (
-                        <span className="text-[11px] text-muted-foreground hidden md:inline">
-                          {new Date(article.updated_at).toLocaleDateString('pt-BR')}
-                        </span>
-                      )}
-                      <CardSymbols
-                        targetType="article"
-                        targetId={article.id}
-                        votePosition={articleCardVotePos}
-                      />
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="text-center py-16 rounded-xl border bg-card">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-lg font-semibold mb-1">Nenhum resultado</h2>
-              <p className="text-sm text-muted-foreground">
-                Nenhum artigo encontrado para &ldquo;{searchQuery}&rdquo;
-              </p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+  // Unreachable fallback (all landing/article/table cases handled above)
+  return null;
 }
 
 function WikiPageSkeleton() {

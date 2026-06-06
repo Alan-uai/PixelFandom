@@ -40,7 +40,13 @@ export async function GET(
           });
         }
       }
-      return NextResponse.json({ blocks: [], floatingIslands: [] });
+      return NextResponse.json({
+        blocks: [
+          { id: 'default-gdc', type: 'game-data-cards' as const, config: { title: 'Dados do Jogo' } },
+          { id: 'default-af', type: 'article-feed' as const, config: { title: 'Artigos Recentes', sortBy: 'recent', layout: 'grid', columns: 3, count: 6, showImages: true, showSummaries: true } },
+        ],
+        floatingIslands: [],
+      });
     }
 
     return NextResponse.json({

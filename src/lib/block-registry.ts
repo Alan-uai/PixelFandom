@@ -8,7 +8,7 @@ import {
   Copyright, Mail, Smartphone, ArrowUpToLine, CreditCard, Globe, Menu,
   TriangleAlert, SearchX, Shuffle, ArrowUpRight, Gamepad2, ImageOff,
   Route, Quote, BugOff, TimerOff, Sparkles, Rabbit, Vote,
-  Lightbulb, HeartHandshake, Bot,
+  Lightbulb, HeartHandshake, Bot, Database,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -42,6 +42,8 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
   { type: 'featured-list', label: 'Lista Destaques', icon: Star as LucideIcon, category: 'dynamic', description: 'Itens em destaque', defaultConfig: { title: 'Destaques', layout: 'list', items: [] } },
   { type: 'category-list', label: 'Categorias', icon: FolderOpen as LucideIcon, category: 'dynamic', description: 'Lista de categorias', defaultConfig: { title: 'Categorias', showCount: true, layout: 'list' } },
   { type: 'latest-articles', label: 'Artigos Recentes', icon: FileText as LucideIcon, category: 'dynamic', description: 'Artigos recentes automáticos', defaultConfig: { title: 'Recentes', count: 6, columns: 3, showImages: true, showSummaries: true } },
+  { type: 'game-data-cards', label: 'Grid de Dados', icon: Database as LucideIcon, category: 'dynamic', description: 'Grid de tabelas do jogo da wiki', defaultConfig: { title: 'Dados do Jogo' } },
+  { type: 'article-feed', label: 'Lista de Artigos', icon: Grid3X3 as LucideIcon, category: 'dynamic', description: 'Artigos com filtro e ordenação (recentes, votados, comentados)', defaultConfig: { title: 'Artigos', sortBy: 'recent', layout: 'grid', columns: 3, count: 6, showImages: true, showSummaries: true } },
 
   // ── Data ──
   { type: 'ranking-table', label: 'Tabela Ranking', icon: Trophy as LucideIcon, category: 'data', description: 'Tabela de rankings', defaultConfig: { title: 'Ranking', headers: ['#', 'Item', 'Valor'], rows: [['1', '', '']], variant: 'default' } },

@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { supabase } from '@/supabase';
-import { getGameSchema } from '@/lib/game-schema';
-import { GAME_TABLE_META } from '@/lib/game-table-labels';
 import {
   ChevronDown, ChevronRight, Database,
   Sword, Shield, CircleDot, Skull, Crown,
@@ -17,6 +15,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sword, Shield, CircleDot, Skull, Crown,
   FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
 };
+
+const DEFAULT_ICON = Database;
 
 type TableEntry = {
   table_name: string;
@@ -41,26 +41,31 @@ export default function GameSidebarSection({ tenantSlug, tenantId }: { tenantSlu
 
     (async () => {
       try {
-        const schema = await getGameSchema();
-        if (cancelled) return;
+        const { data: catalog } = await supabase
+          .from('tenant_game_tables')
+          .select('table_name, display_label')
+          .eq('tenant_id', tenantId);
+
+        if (cancelled || !catalog) return;
 
         const result: TableEntry[] = [];
-        for (const t of schema.tables) {
+        for (const entry of catalog) {
           const { count } = await supabase
-            .from(t.table_name)
+            .from(entry.table_name)
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenantId);
 
           if (cancelled) return;
 
-          const meta = GAME_TABLE_META[t.table_name];
-          const Icon = ICON_MAP[meta?.icon ?? ''] ?? Database;
-          result.push({
-            table_name: t.table_name,
-            label: meta?.label ?? t.table_name,
-            icon: Icon,
-            count: count ?? 0,
-          });
+          if (count && count > 0) {
+            const Icon = ICON_MAP[entry.table_name] ?? DEFAULT_ICON;
+            result.push({
+              table_name: entry.table_name,
+              label: entry.display_label,
+              icon: Icon,
+              count,
+            });
+          }
         }
 
         cache.current = result;

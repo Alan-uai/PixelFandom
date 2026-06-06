@@ -36,6 +36,8 @@ export type BlockType =
   | 'featured-list'
   | 'category-list'
   | 'latest-articles'
+  | 'game-data-cards'
+  | 'article-feed'
   // Data
   | 'ranking-table'
   | 'pricing-table'
@@ -415,6 +417,24 @@ export interface LatestArticlesConfig {
   tag?: string;
 }
 
+export interface GameDataCardsConfig {
+  title?: string;
+}
+
+export type ArticleSortBy = 'recent' | 'most_voted' | 'most_commented' | 'popular';
+export type ArticleFeedLayout = 'grid' | 'list' | 'carousel';
+
+export interface ArticleFeedConfig {
+  title?: string;
+  sortBy?: ArticleSortBy;
+  tag?: string;
+  layout?: ArticleFeedLayout;
+  columns?: number;
+  count?: number;
+  showImages?: boolean;
+  showSummaries?: boolean;
+}
+
 // Data
 export interface RankingTableConfig {
   title?: string;
@@ -771,6 +791,8 @@ export type BlockConfigMap = {
   'featured-list': FeaturedListConfig;
   'category-list': CategoryListConfig;
   'latest-articles': LatestArticlesConfig;
+  'game-data-cards': GameDataCardsConfig;
+  'article-feed': ArticleFeedConfig;
   'ranking-table': RankingTableConfig;
   'pricing-table': PricingTableConfig;
   'statistics': StatisticsConfig;

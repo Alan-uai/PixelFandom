@@ -23,6 +23,8 @@ import { NewsFeedBlock } from './blocks/news-feed-block';
 import { FeaturedListBlock } from './blocks/featured-list-block';
 import { CategoryListBlock } from './blocks/category-list-block';
 import { LatestArticlesBlock } from './blocks/latest-articles-block';
+import { GameDataCardsBlock } from './blocks/game-data-cards-block';
+import { ArticleFeedBlock } from './blocks/article-feed-block';
 import { RankingTableBlock } from './blocks/ranking-table-block';
 import { PricingTableBlock } from './blocks/pricing-table-block';
 import { StatisticsBlock } from './blocks/statistics-block';
@@ -49,9 +51,10 @@ interface BlockRendererProps {
   block: BlockConfig;
   tenantId?: string;
   preview?: boolean;
+  basePath?: string;
 }
 
-export function BlockRenderer({ block, tenantId, preview }: BlockRendererProps) {
+export function BlockRenderer({ block, tenantId, preview, basePath }: BlockRendererProps) {
   const baseClasses = buildBlockClasses(block.style);
   const baseStyle = buildBlockStyle(block.style);
 
@@ -99,6 +102,10 @@ export function BlockRenderer({ block, tenantId, preview }: BlockRendererProps) 
         return <CategoryListBlock config={block.config as any} />;
       case 'latest-articles':
         return <LatestArticlesBlock config={block.config as any} />;
+      case 'game-data-cards':
+        return <GameDataCardsBlock config={block.config as any} tenantId={tenantId} basePath={basePath} />;
+      case 'article-feed':
+        return <ArticleFeedBlock config={block.config as any} tenantId={tenantId} basePath={basePath} />;
       case 'ranking-table':
         return <RankingTableBlock config={block.config as any} />;
       case 'pricing-table':

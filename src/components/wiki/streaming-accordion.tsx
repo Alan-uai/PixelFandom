@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { micromark } from 'micromark';
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { ChevronDown, FileText, ExternalLink } from 'lucide-react';
 
 type Section = {
@@ -53,7 +54,7 @@ function processWikiLinks(html: string, tenantSlug?: string): string {
 
 function renderContent(content: string, tenantSlug?: string): string {
   try {
-    const rawHtml = micromark(content, { allowDangerousHtml: false });
+    const rawHtml = micromark(content, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
     return processWikiLinks(rawHtml, tenantSlug);
   } catch {
     return `<p>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;

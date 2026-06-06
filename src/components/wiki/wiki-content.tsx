@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { micromark } from 'micromark';
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 
 type WikiContentProps = {
   content: string | null;
@@ -33,7 +34,7 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
 
     // Default: render as markdown
     try {
-      return micromark(content, { allowDangerousHtml: true });
+      return micromark(content, { allowDangerousHtml: true, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
     } catch {
       return `<p>${escapeHtml(content)}</p>`;
     }
@@ -156,6 +157,18 @@ function renderProseMirrorNode(node: any): string {
 
     case 'tierlistBlock':
       return renderTierlistBlock(node);
+
+    case 'table':
+      return `<div class="overflow-x-auto my-4"><table class="min-w-full border-collapse border border-border"><tbody>${(node.content || []).map(renderProseMirrorNode).join('\n')}</tbody></table></div>`;
+
+    case 'tableRow':
+      return `<tr>${(node.content || []).map(renderProseMirrorNode).join('\n')}</tr>`;
+
+    case 'tableHeader':
+      return `<th class="border border-border px-3 py-2 text-left text-sm font-semibold bg-muted/50">${renderInline(node)}</th>`;
+
+    case 'tableCell':
+      return `<td class="border border-border px-3 py-2 text-sm">${renderInline(node)}</td>`;
 
     default:
       if (node.content) {
