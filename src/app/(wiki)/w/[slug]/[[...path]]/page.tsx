@@ -477,13 +477,12 @@ export default function WikiPage() {
           </div>
         </div>
 
+        {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
+
         {landingLayout ? (
           <PageRenderer layout={landingLayout} tenant={tenant} basePath={basePath} />
         ) : (
           <>
-
-            {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
-
             {articles && articles.length > 0 && (
               <>
                 <div className="flex items-center justify-between mb-5">

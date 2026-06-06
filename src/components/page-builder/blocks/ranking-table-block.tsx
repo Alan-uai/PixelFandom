@@ -5,7 +5,8 @@ import { Trophy } from 'lucide-react';
 export function RankingTableBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || 'Ranking';
   const headers = (config.headers as string[]) || ['#', 'Item', 'Valor'];
-  const rows = (config.rows as string[][]) || [];
+  const rawRows = (config.rows as unknown[]) || [];
+  const rows = rawRows.filter((r): r is string[] => Array.isArray(r));
 
   return (
     <div className="space-y-4">

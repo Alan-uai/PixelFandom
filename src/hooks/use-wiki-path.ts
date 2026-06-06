@@ -14,7 +14,7 @@ export function useWikiPath(tenantSlug: string) {
 
   return {
     basePath,
-    homePath: isSubdomain ? '/' : `/w/${tenantSlug}`,
+    homePath: isSubdomain ? '/' : `/w/${tenantSlug}/`,
     articlePath: (articleSlug: string) =>
       isSubdomain ? `/${articleSlug}` : `/w/${tenantSlug}/${articleSlug}`,
     isSubdomain,
