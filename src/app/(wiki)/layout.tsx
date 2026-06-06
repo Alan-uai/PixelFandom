@@ -20,6 +20,7 @@ import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
 import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig } from '@/components/page-builder/types';
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
+import { getGameSchema } from '@/lib/game-schema';
 
 export default function WikiLayout({
   children,
@@ -71,6 +72,8 @@ function WikiLayoutContent({
   const footerCache = useRef<Record<string, any>>({});
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const islandsCache = useRef<Record<string, any>>({});
+  const [gameTableNames, setGameTableNames] = useState<string[]>([]);
+  const gameSchemaCache = useRef<string[] | null>(null);
 
   useEffect(() => {
     if (!tenant?.id) return;
@@ -103,6 +106,26 @@ function WikiLayoutContent({
       })
       .catch(() => {});
   }, [tenant?.id]);
+
+  useEffect(() => {
+    if (gameSchemaCache.current) {
+      setGameTableNames(gameSchemaCache.current);
+      return;
+    }
+    (async () => {
+      try {
+        const schema = await getGameSchema();
+        const names = schema.tables.map((t) => t.table_name);
+        gameSchemaCache.current = names;
+        setGameTableNames(names);
+      } catch {}
+    })();
+  }, []);
+
+  // Only show footer on non-game-table pages
+  const pathAfterSlug = pathname.replace(`/w/${slug}`, '').replace(/^\/+/, '');
+  const pathParts = pathAfterSlug.split('/').filter(Boolean);
+  const isGameTablePage = gameTableNames.length > 0 && pathParts.length >= 1 && gameTableNames.includes(pathParts[0]);
 
   useEffect(() => {
     setSidebarCollapsed(preferences.sidebar_collapsed);
@@ -296,7 +319,7 @@ function WikiLayoutContent({
           </main>
         </div>
 
-        {footerLayout && (
+        {footerLayout && !isGameTablePage && (
           <footer className="border-t bg-background/80 px-4 py-6">
             <div className="max-w-5xl mx-auto">
               <PageRenderer layout={footerLayout} tenant={tenant} basePath={basePath} />

@@ -8,6 +8,35 @@ function getPageType(request: NextRequest): string {
   return url.searchParams.get('type') || 'landing';
 }
 
+// ── Default page templates ──
+
+const LANDING_DEFAULT_BLOCKS = [
+  { id: 'default-landing-welcome', type: 'heading' as const, config: { content: 'Bem-vindo à Wiki!', level: 'h2', align: 'center' } },
+  { id: 'default-landing-desc', type: 'paragraph' as const, config: { content: 'Explore nosso universo de conteúdo criado pela comunidade. Navegue pelos dados do jogo e artigos mais recentes.', size: 'md', align: 'center' } },
+  { id: 'default-landing-game-data', type: 'game-data-cards' as const, config: { title: 'Dados do Jogo' } },
+  { id: 'default-landing-divider', type: 'divider' as const, config: { style: 'dashed', thickness: 'sm' } },
+  { id: 'default-landing-articles-heading', type: 'heading' as const, config: { content: 'Artigos Recentes', level: 'h2' } },
+  { id: 'default-landing-article-feed', type: 'article-feed' as const, config: { sortBy: 'recent', layout: 'grid', columns: 3, count: 9, showImages: true, showSummaries: true } },
+];
+
+const FOOTER_DEFAULT_BLOCKS = [
+  { id: 'default-footer-brand', type: 'footer-brand' as const, config: { tagline: 'Wiki Comunitária', description: 'Conteúdo criado por fãs, para fãs. Este site não tem vínculo oficial com os desenvolvedores.', showSocialLinks: false, socialLinks: [], align: 'center' } },
+  { id: 'default-footer-credits', type: 'footer-credits' as const, config: { brandName: '', year: 'auto', showHeart: true, showRights: true, align: 'center', size: 'sm' } },
+];
+
+const ERROR_404_DEFAULT_BLOCKS = [
+  { id: 'default-404-display', type: 'error-display' as const, config: { number: '404', size: 'xl', font: 'display', title: 'Página não encontrada', subtitle: 'Ops! O conteúdo que você procura não está aqui ou foi movido.', glitchEnabled: false, showDecoration: true } },
+  { id: 'default-404-search', type: 'error-search' as const, config: { placeholder: 'Buscar na wiki...', showSuggestions: true } },
+  { id: 'default-404-actions', type: 'error-actions' as const, config: { buttons: [{ label: 'Voltar ao Início', url: '/', variant: 'primary', icon: 'home' }, { label: 'Explorar Artigos', url: '/artigos', variant: 'outline', icon: 'back' }], layout: 'row', size: 'md' } },
+  { id: 'default-404-character', type: 'error-character' as const, config: { character: 'sad-robot', mood: 'sad', speech: 'Hmm... não encontrei nada por aqui. Que tal tentar uma busca?', size: 'md', showBubble: true } },
+];
+
+function getDefaultBlocks(pageType: string) {
+  if (pageType === 'footer') return FOOTER_DEFAULT_BLOCKS;
+  if (pageType === '404') return ERROR_404_DEFAULT_BLOCKS;
+  return LANDING_DEFAULT_BLOCKS;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -41,10 +70,7 @@ export async function GET(
         }
       }
       return NextResponse.json({
-        blocks: [
-          { id: 'default-gdc', type: 'game-data-cards' as const, config: { title: 'Dados do Jogo' } },
-          { id: 'default-af', type: 'article-feed' as const, config: { title: 'Artigos Recentes', sortBy: 'recent', layout: 'grid', columns: 3, count: 6, showImages: true, showSummaries: true } },
-        ],
+        blocks: getDefaultBlocks(pageType),
         floatingIslands: [],
       });
     }
