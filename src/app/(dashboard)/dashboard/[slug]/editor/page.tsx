@@ -36,6 +36,7 @@ interface Article {
 interface TenantTable {
   table_name: string;
   display_label: string;
+  parent_table: string | null;
 }
 
 const PREDEFINED_ICONS: Record<string, React.ElementType> = {
@@ -138,7 +139,7 @@ export default function EditorArticlesPage() {
       } else {
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label')
+          .select('table_name, display_label, parent_table')
           .eq('tenant_id', tenant.id)
           .order('created_at');
 
@@ -199,7 +200,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label')
+          .select('table_name, display_label, parent_table')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -246,7 +247,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label')
+          .select('table_name, display_label, parent_table')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -282,7 +283,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label')
+          .select('table_name, display_label, parent_table')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -434,17 +435,21 @@ export default function EditorArticlesPage() {
           )}
         </TabsContent>
 
-        {allTabs.slice(1).map(({ key, label }) => (
-          <TabsContent key={key} value={key} className="mt-6">
-            <DataTableContent
-              slug={slug}
-              table={key}
-              displayLabel={label}
-              onRename={() => openRenameDialog(key, label)}
-              onDelete={() => openDeleteDialog(key, label)}
-            />
-          </TabsContent>
-        ))}
+        {allTabs.slice(1).map(({ key, label }) => {
+          const tableInfo = catalog.find(t => t.table_name === key);
+          return (
+            <TabsContent key={key} value={key} className="mt-6">
+              <DataTableContent
+                slug={slug}
+                table={key}
+                displayLabel={label}
+                parentTable={tableInfo?.parent_table ?? null}
+                onRename={() => openRenameDialog(key, label)}
+                onDelete={() => openDeleteDialog(key, label)}
+              />
+            </TabsContent>
+          );
+        })}
       </Tabs>
 
       {/* Create Table Dialog */}

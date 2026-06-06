@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +30,7 @@ import {
   PlusCircle,
   ImageIcon,
   CalendarIcon,
+  Link2,
 } from 'lucide-react';
 import { translateGameTerm } from '@/lib/translate';
 
@@ -80,12 +82,14 @@ export default function DataTableContent({
   slug,
   table,
   displayLabel,
+  parentTable,
   onRename,
   onDelete,
 }: {
   slug: string;
   table: string;
   displayLabel?: string;
+  parentTable?: string | null;
   onRename?: () => void;
   onDelete?: () => void;
 }) {
@@ -108,6 +112,36 @@ export default function DataTableContent({
   const [schemaBusy, setSchemaBusy] = useState(false);
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
+  const [showParentDialog, setShowParentDialog] = useState(false);
+  const [potentialParents, setPotentialParents] = useState<string[]>([]);
+  const [parentLoading, setParentLoading] = useState(false);
+
+  const getParentLabel = (t: string) => tableLabels[t] || t;
+
+  const handleOpenParentDialog = async () => {
+    setShowParentDialog(true);
+    setParentLoading(true);
+    const { data } = await supabase.rpc('list_potential_parents', { p_table: table });
+    if (data) setPotentialParents(data as string[]);
+    setParentLoading(false);
+  };
+
+  const handleSetParent = async (parent: string | null) => {
+    if (!tenantId) return;
+    setParentLoading(true);
+    const { error } = await supabase.rpc('update_table_parent', {
+      p_table: table,
+      p_parent_table: parent,
+      p_tenant_id: tenantId,
+    });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      toast({ title: parent ? `Vinculado a "${getParentLabel(parent)}"` : 'Vínculo removido.' });
+      setShowParentDialog(false);
+    }
+    setParentLoading(false);
+  };
 
   const rowsCache = useRef<Row[] | null>(null);
   const columnsCache = useRef<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
@@ -628,6 +662,22 @@ export default function DataTableContent({
         </div>
       )}
 
+      {parentTable !== undefined && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Link2 className="h-3 w-3 shrink-0" />
+          {parentTable ? (
+            <button onClick={handleOpenParentDialog} className="hover:text-foreground transition-colors">
+              Vinculado a: <strong>{getParentLabel(parentTable)}</strong>
+              <span className="underline ml-1">alterar</span>
+            </button>
+          ) : (
+            <button onClick={handleOpenParentDialog} className="underline hover:text-foreground transition-colors">
+              Vincular a uma tabela pai
+            </button>
+          )}
+        </div>
+      )}
+
       {showNewForm && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
           <p className="text-sm font-medium">Novo Registro</p>
@@ -898,6 +948,65 @@ export default function DataTableContent({
           })}
         </div>
       )}
+
+      {/* Parent link dialog */}
+      <Dialog open={showParentDialog} onOpenChange={setShowParentDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Vincular Tabela Pai</DialogTitle>
+            <DialogDescription>
+              Escolha uma tabela existente como pai de <strong>{displayLabel || label}</strong>.
+              Itens desta tabela serão vinculados aos itens da tabela pai.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-1 max-h-60 overflow-y-auto">
+            {parentLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : potentialParents.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2 text-center">
+                Nenhuma tabela disponível para vínculo.
+              </p>
+            ) : (
+              potentialParents.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                    parentTable === p
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-muted'
+                  }`}
+                  onClick={() => handleSetParent(p)}
+                  disabled={parentLoading}
+                >
+                  {parentTable === p && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  <span className={parentTable === p ? '' : 'ml-5'}>{getParentLabel(p)}</span>
+                </button>
+              ))
+            )}
+          </div>
+
+          {parentTable && (
+            <DialogFooter className="flex items-center justify-between sm:justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSetParent(null)}
+                disabled={parentLoading}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Desvincular
+              </Button>
+              <Button variant="default" size="sm" onClick={() => setShowParentDialog(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
