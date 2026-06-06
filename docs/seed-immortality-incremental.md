@@ -186,12 +186,12 @@ Tabela única unificada com **57 registros** (7 famílias × 8 tiers, exceto Ins
 
 ## 4. Config do Jogo
 
-Duas entradas em `game_config` (chave-valor):
+Duas entradas em `game_config` (chave-valor, scoped por tenant):
 
-| Chave | Valor |
-|-------|-------|
-| `gameDataVersion` | `"1.0.0"` |
-| `allGameData` | `{}` |
+| Chave | Valor | Tenant |
+|-------|-------|--------|
+| `gameDataVersion` | `"1.0.0"` | `immortality-incremental` |
+| `allGameData` | `{}` | `immortality-incremental` |
 
 ## 5. Landing Page
 

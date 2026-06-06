@@ -10,13 +10,18 @@
 ALTER TABLE tenant_game_tables ADD COLUMN IF NOT EXISTS parent_table TEXT;
 
 -- =====================================================
--- 2. Dynamic game-table check (replaces hardcoded list)
+-- 2. is_game_table() — hardcoded legado + detecção dinâmica
+--    Qualquer tabela com coluna tenant_id é game table
 -- =====================================================
 
-CREATE OR REPLACE FUNCTION is_game_table_dynamic(t TEXT) RETURNS boolean
+CREATE OR REPLACE FUNCTION is_game_table(t TEXT) RETURNS boolean
 LANGUAGE sql STABLE
 AS $$
-  SELECT EXISTS (
+  SELECT t = ANY(ARRAY[
+    'weapons', 'armors', 'enemies', 'bosses', 'rings',
+    'potions', 'upgrades', 'worlds', 'codes', 'crafting_recipes',
+    'resources', 'build_presets'
+  ]) OR EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = t
@@ -62,22 +67,22 @@ BEGIN
     candidate := array_to_string(parts[1:i], '_');
     IF candidate = p_table THEN CONTINUE; END IF;
 
-    IF public.is_game_table_dynamic(candidate) THEN
+    IF public.is_game_table(candidate) THEN
       RETURN candidate;
     END IF;
 
-    IF public.is_game_table_dynamic(candidate || 's') THEN
+    IF public.is_game_table(candidate || 's') THEN
       RETURN candidate || 's';
     END IF;
 
-    IF public.is_game_table_dynamic(candidate || 'es') THEN
+    IF public.is_game_table(candidate || 'es') THEN
       RETURN candidate || 'es';
     END IF;
 
     IF candidate LIKE '%y' THEN
       DECLARE ies TEXT := left(candidate, -1) || 'ies';
       BEGIN
-        IF public.is_game_table_dynamic(ies) THEN
+        IF public.is_game_table(ies) THEN
           RETURN ies;
         END IF;
       END;
@@ -89,22 +94,7 @@ END;
 $$;
 
 -- =====================================================
--- 4. Update is_game_table() to be STABLE + dynamic
---    Mantém hardcoded legado + aceita qualquer tabela dinâmica
--- =====================================================
-
-CREATE OR REPLACE FUNCTION is_game_table(t TEXT) RETURNS boolean
-LANGUAGE sql STABLE
-AS $$
-  SELECT t = ANY(ARRAY[
-    'weapons', 'armors', 'enemies', 'bosses', 'rings',
-    'potions', 'upgrades', 'worlds', 'codes', 'crafting_recipes',
-    'resources', 'build_presets'
-  ]) OR public.is_game_table_dynamic(t);
-$$;
-
--- =====================================================
--- 5. ensure_game_table — auto-detect parent
+-- 4. ensure_game_table — auto-detect parent
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION ensure_game_table(
@@ -198,7 +188,7 @@ END;
 $$;
 
 -- =====================================================
--- 6. remove_tenant_table — limpa parent_table dos filhos
+-- 5. remove_tenant_table — limpa parent_table dos filhos
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION remove_tenant_table(
@@ -273,7 +263,7 @@ END;
 $$;
 
 -- =====================================================
--- 7. rename_tenant_table — re-detects parent + updates children
+-- 6. rename_tenant_table — re-detects parent + updates children
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION rename_tenant_table(
@@ -436,7 +426,7 @@ END;
 $$;
 
 -- =====================================================
--- 8. RPC: update_table_parent — link/unlink manual
+-- 7. RPC: update_table_parent — link/unlink manual
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION update_table_parent(
@@ -455,7 +445,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Tabela não encontrada no catálogo.');
   END IF;
 
-  IF p_parent_table IS NOT NULL AND NOT public.is_game_table_dynamic(p_parent_table) THEN
+  IF p_parent_table IS NOT NULL AND NOT public.is_game_table(p_parent_table) THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Tabela pai não encontrada ou inválida.');
   END IF;
 
@@ -472,7 +462,7 @@ END;
 $$;
 
 -- =====================================================
--- 9. RPC: list_potential_parents — dropdown de link manual
+-- 8. RPC: list_potential_parents — dropdown de link manual
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION list_potential_parents(
@@ -514,7 +504,7 @@ END;
 $$;
 
 -- =====================================================
--- 10. RPC: get_child_tables — descobre filhos de uma tabela
+-- 9. RPC: get_child_tables — descobre filhos de uma tabela
 --      Usado pelo frontend para mostrar relacionamentos
 -- =====================================================
 
@@ -548,7 +538,7 @@ END;
 $$;
 
 -- =====================================================
--- 11. Backfill: detectar parent_table para registros existentes
+-- 10. Backfill: detectar parent_table para registros existentes
 -- =====================================================
 
 DO $$

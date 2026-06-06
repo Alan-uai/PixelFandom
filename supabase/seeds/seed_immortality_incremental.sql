@@ -280,29 +280,30 @@ BEGIN
   -- ============================================================
   -- 7. Config do Jogo (game_config)
   -- ============================================================
-  INSERT INTO game_config (tenant_id, config_key, config_value)
-  VALUES (v_tenant_id, 'gameDataVersion', '"1.0.0"'::jsonb)
-  ON CONFLICT DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM game_config WHERE tenant_id = v_tenant_id AND config_key = 'gameDataVersion') THEN
+    INSERT INTO game_config (tenant_id, config_key, config_value)
+    VALUES (v_tenant_id, 'gameDataVersion', '"1.0.0"'::jsonb);
+  END IF;
 
-  INSERT INTO game_config (tenant_id, config_key, config_value)
-  VALUES (v_tenant_id, 'allGameData', '{}'::jsonb)
-  ON CONFLICT DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM game_config WHERE tenant_id = v_tenant_id AND config_key = 'allGameData') THEN
+    INSERT INTO game_config (tenant_id, config_key, config_value)
+    VALUES (v_tenant_id, 'allGameData', '{}'::jsonb);
+  END IF;
 
   -- ============================================================
   -- 8. Artigos da Wiki
   -- ============================================================
 
-  -- Helper function to insert articles
+  -- Helper table to insert articles
   CREATE TEMP TABLE IF NOT EXISTS temp_articles (
     idx SERIAL PRIMARY KEY,
     title TEXT,
     summary TEXT,
     content TEXT,
-    tags TEXT[],
-    icon TEXT
+    tags TEXT[]
   );
 
-  INSERT INTO temp_articles (title, summary, content, tags, icon) VALUES
+  INSERT INTO temp_articles (title, summary, content, tags) VALUES
 
   -- Article 1: Visão Geral
   ('Immortality Incremental — Visão Geral',
@@ -328,8 +329,7 @@ O segundo mundo desbloqueia Marcas cósmicas:
 A progressão segue um ciclo de grind: colete recursos (Qi, Luck, Essência, etc.), combine em Marcas mais poderosas e avance para o próximo tier. Cada Mark oferece multiplicadores que aceleram sua coleta de recursos — quanto mais você sobe, mais rápido fica.
 
 Domine todas as 57 Marcas para alcançar a imortalidade verdadeira.',
-   ARRAY['visão-geral', 'introdução', 'guia'],
-   '📖'
+   ARRAY['visão-geral', 'introdução', 'guia']
   ),
 
   -- Article 2: Mark of Insight
@@ -357,8 +357,7 @@ Domine todas as 57 Marcas para alcançar a imortalidade verdadeira.',
 - **Omniscience** é o ápice do Mundo 1 para Insight — os multiplicadores disparam.
 
 A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepseeing → Farsight → Truesight → Omniscience.',
-   ARRAY['insight', 'percepção', 'guia', 'mundo-1'],
-   '👁️'
+   ARRAY['insight', 'percepção', 'guia', 'mundo-1']
   ),
 
   -- Article 3: Mark of Essence
@@ -383,8 +382,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - Essência escala muito rápido — Shard já dá x172 Essência.
 - **Nucleus** introduz Soulfire e Mark Speed.
 - **Eternal** é o topo: x449.5 Essência + bônus de Stars, Soulfire e bulk.',
-   ARRAY['essência', 'essence', 'guia', 'mundo-1'],
-   '💎'
+   ARRAY['essência', 'essence', 'guia', 'mundo-1']
   ),
 
   -- Article 4: Mark of Soulfire
@@ -409,8 +407,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - **Pyre** é seu primeiro contato com Mark Speed.
 - **Everflame** introduz Beast Core Chance — essencial para endgame.
 - **Soulnova** é o ápice: x91 Soulfire com bônus massivos de bulk e speed.',
-   ARRAY['soulfire', 'alma', 'fogo', 'guia', 'mundo-1'],
-   '🔥'
+   ARRAY['soulfire', 'alma', 'fogo', 'guia', 'mundo-1']
   ),
 
   -- Article 5: Mark of Karma
@@ -435,8 +432,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - Karma é a última família do Mundo 1 — você precisará das outras Marcas primeiro.
 - **Samsara** e **Nirvana** exigem 18.750 de Qi — um salto gigante dos tiers anteriores.
 - **Nirvana** desbloqueia Stars (x4) e Karma x19 — essencial para transição ao Mundo 2.',
-   ARRAY['karma', 'guia', 'mundo-1'],
-   '☯️'
+   ARRAY['karma', 'guia', 'mundo-1']
   ),
 
   -- Article 6: Mark of Stars
@@ -461,8 +457,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - Os valores de Qi e Luck agora estão na casa dos milhares — prepare-se para grind pesado.
 - **Radiant** e **Celestial** introduzem Nebulae.
 - **Supernova** oferece x22.5 Nebulae + Mark Speed x9 — um dos melhores tiers para speed.',
-   ARRAY['stars', 'estrelas', 'guia', 'mundo-2'],
-   '⭐'
+   ARRAY['stars', 'estrelas', 'guia', 'mundo-2']
   ),
 
   -- Article 7: Mark of Nebulae
@@ -487,8 +482,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - **Mistglow** exige x4.5K Karma — um investimento pesado.
 - **Moonwake** é um dos tiers mais balanceados: x60 Stars + x30 Nebulae + x9 Speed.
 - **Cometheart** tem o maior Mark Bulk (x12) de todas as Marcas de Nebulae.',
-   ARRAY['nebulae', 'nebulosas', 'guia', 'mundo-2'],
-   '🌌'
+   ARRAY['nebulae', 'nebulosas', 'guia', 'mundo-2']
   ),
 
   -- Article 8: Mark of Quasar
@@ -514,8 +508,7 @@ A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepse
 - **Sear** exige mais Qi que qualquer outra Mark (x18K).
 - **Surge** tem o maior multiplicador de Quasar puro (x390).
 - **Zenith** é a Mark final: combine Mark Bulk x4.5 com Mark Luck x6.',
-   ARRAY['quasar', 'guia', 'mundo-2'],
-   '💫'
+   ARRAY['quasar', 'guia', 'mundo-2']
   ),
 
   -- Article 9: Guia de Progressão Mundo 1
@@ -549,8 +542,7 @@ Comece com as Marcas de Insight mais básicas:
 - [ ] Soulnova (Mark of Soulfire)
 - [ ] Nirvana (Mark of Karma)
 - [ ] Mark Bulk e Mark Speed razoáveis',
-   ARRAY['progressão', 'guia', 'mundo-1', 'iniciante'],
-   '🗺️'
+   ARRAY['progressão', 'guia', 'mundo-1', 'iniciante']
   ),
 
   -- Article 10: Guia de Progressão Mundo 2
@@ -578,8 +570,7 @@ Comece com as Marcas de Insight mais básicas:
 - Foque em Mark Speed para加速 o grind.
 - Mark Bulk aumenta a eficiência de todas as outras Marcas.
 - Mark Luck é raro mas poderoso — aparece apenas em Omniscience, Soulnova, Halo e Zenith.',
-   ARRAY['progressão', 'guia', 'mundo-2', 'endgame'],
-   '🚀'
+   ARRAY['progressão', 'guia', 'mundo-2', 'endgame']
   ),
 
   -- Article 11: Tier List
@@ -627,8 +618,7 @@ Comece com as Marcas de Insight mais básicas:
 | **Dim** (Insight) | Apenas Luck — serve como porta de entrada |
 | **Trace** (Karma) | Multiplicadores muito baixos |
 | **Spark** (Stars) | Apenas Luck e Stars — início do Mundo 2 |',
-   ARRAY['tier-list', 'ranking', 'melhores'],
-   '🏆'
+   ARRAY['tier-list', 'ranking', 'melhores']
   ),
 
   -- Article 12: Sistema de Crafting e Evolução
@@ -672,35 +662,86 @@ Cada Mark é criada a partir de recursos brutos (Qi, Luck, Essência, etc.). Ao 
 2. **Balanceie Mark Bulk e Speed** — bulk aumenta produção, speed acelera cycles
 3. **Guarde Remnants** — eles são necessários para os tiers mais altos
 4. **Transição para Mundo 2** — só faça quando tiver todas as Marcas do Mundo 1 no mínimo tier 6',
-   ARRAY['crafting', 'evolução', 'mecânicas', 'guia'],
-   '⚒️'
+   ARRAY['crafting', 'evolução', 'mecânicas', 'guia']
   );
 
-  -- Insert articles into wiki_articles
-  INSERT INTO wiki_articles (tenant_id, created_by, title, summary, content, tags, icon, status, slug)
-  SELECT
-    v_tenant_id,
-    v_user_id,
-    ta.title,
-    ta.summary,
-    ta.content,
-    ta.tags,
-    ta.icon,
-    'published',
-    lower(regexp_replace(regexp_replace(ta.title, '[^a-zA-Z0-9]+', '-', 'g'), '^-|-$', 'g'))
-  FROM temp_articles ta
-  ON CONFLICT DO NOTHING;
+  -- Insert articles into wiki_articles (skip if any already exist)
+  IF NOT EXISTS (SELECT 1 FROM wiki_articles WHERE tenant_id = v_tenant_id LIMIT 1) THEN
+    INSERT INTO wiki_articles (tenant_id, created_by, title, summary, content, tags, status, slug)
+    SELECT
+      v_tenant_id,
+      v_user_id,
+      ta.title,
+      ta.summary,
+      ta.content,
+      ta.tags,
+      'published',
+      lower(regexp_replace(regexp_replace(ta.title, '[^a-zA-Z0-9]+', '-', 'g'), '^-|-$', 'g'))
+    FROM temp_articles ta;
+  END IF;
 
   DROP TABLE IF EXISTS temp_articles;
 
   -- ============================================================
   -- 9. Landing Page (tenant_pages)
   -- ============================================================
-  INSERT INTO tenant_pages (tenant_id, page_type, layout)
-  VALUES (
-    v_tenant_id,
-    'landing',
-    '{
+  -- Insert or update landing page
+  IF NOT EXISTS (SELECT 1 FROM tenant_pages WHERE tenant_id = v_tenant_id AND page_type = 'landing') THEN
+    INSERT INTO tenant_pages (tenant_id, page_type, layout)
+    VALUES (
+      v_tenant_id,
+      'landing',
+      '{
+        "blocks": [
+          {
+            "id": "hero-1",
+            "type": "hero",
+            "config": {
+              "title": "Immortality Incremental",
+              "subtitle": "Domine as Marcas. Alcance a Imortalidade.",
+              "ctaText": "Explorar Marcas",
+              "ctaUrl": "/w/immortality-incremental/immortality-incremental-—-visão-geral",
+              "backgroundColor": "270 40% 15%"
+            }
+          },
+          {
+            "id": "featured-list-1",
+            "type": "featured_list",
+            "config": {
+              "title": "Marcas do Mundo 1",
+              "items": [
+                {"label": "Mark of Insight", "description": "9 tiers de percepção — de Dim a Omniscience"},
+                {"label": "Mark of Essence", "description": "8 tiers de essência pura — de Fragment a Eternal"},
+                {"label": "Mark of Soulfire", "description": "8 tiers de fogo da alma — de Mote a Soulnova"},
+                {"label": "Mark of Karma", "description": "8 tiers cármicos — de Trace a Nirvana"}
+              ]
+            }
+          },
+          {
+            "id": "featured-list-2",
+            "type": "featured_list",
+            "config": {
+              "title": "Marcas do Mundo 2",
+              "items": [
+                {"label": "Mark of Stars", "description": "8 tiers estelares — de Spark a Genesis"},
+                {"label": "Mark of Nebulae", "description": "8 tiers cósmicos — de Mistglow a Astral Crown"},
+                {"label": "Mark of Quasar", "description": "8 tiers de quasar — de Flare a Zenith"}
+              ]
+            }
+          },
+          {
+            "id": "rich-text-1",
+            "type": "rich_text",
+            "config": {
+              "title": "Sobre o Jogo",
+              "html": "<p>Immortality Incremental é um jogo incremental no Roblox onde você coleta e evolui Marcas místicas para alcançar a imortalidade. Com dois mundos, 7 famílias de Marcas e 57 tiers para dominar, o grind nunca acaba.</p><p>Cada Mark oferece multiplicadores que aceleram sua coleta — quanto mais você sobe, mais rápido fica.</p>"
+            }
+          }
+        ]
+      }'::jsonb
+    );
+  ELSE
+    UPDATE tenant_pages SET layout = '{
       "blocks": [
         {
           "id": "hero-1",
@@ -748,9 +789,8 @@ Cada Mark é criada a partir de recursos brutos (Qi, Luck, Essência, etc.). Ao 
         }
       ]
     }'::jsonb
-  )
-  ON CONFLICT (tenant_id, page_type) DO UPDATE SET
-    layout = EXCLUDED.layout;
+    WHERE tenant_id = v_tenant_id AND page_type = 'landing';
+  END IF;
 
   RAISE NOTICE 'Seed Immortality Incremental concluído com sucesso! Tenant ID: %', v_tenant_id;
 
