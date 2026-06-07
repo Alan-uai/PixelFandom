@@ -21,7 +21,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
 import { improveArticle } from '@/ai/flows/improve-article-flow';
 import { searchAll } from '@/lib/search';
-import { getGameSchema } from '@/lib/game-schema';
 
 import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';

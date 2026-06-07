@@ -20,7 +20,7 @@ import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
 import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig } from '@/components/page-builder/types';
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
-import { getGameSchema } from '@/lib/game-schema';
+import { getTableCatalog } from '@/lib/data-access';
 
 export default function WikiLayout({
   children,
@@ -73,7 +73,6 @@ function WikiLayoutContent({
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const islandsCache = useRef<Record<string, any>>({});
   const [gameTableNames, setGameTableNames] = useState<string[]>([]);
-  const gameSchemaCache = useRef<string[] | null>(null);
 
   useEffect(() => {
     if (!tenant?.id) return;
@@ -108,19 +107,15 @@ function WikiLayoutContent({
   }, [tenant?.id]);
 
   useEffect(() => {
-    if (gameSchemaCache.current) {
-      setGameTableNames(gameSchemaCache.current);
-      return;
-    }
+    if (!slug) return;
     (async () => {
       try {
-        const schema = await getGameSchema();
-        const names = schema.tables.map((t) => t.table_name);
-        gameSchemaCache.current = names;
+        const catalog = await getTableCatalog(slug, false);
+        const names = catalog.map((t) => t.table_name);
         setGameTableNames(names);
       } catch {}
     })();
-  }, []);
+  }, [slug]);
 
   // Only show footer on non-game-table pages
   const pathAfterSlug = pathname.replace(`/w/${slug}`, '').replace(/^\/+/, '');

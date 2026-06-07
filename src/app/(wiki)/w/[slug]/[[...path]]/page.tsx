@@ -22,8 +22,7 @@ import { CommentsSection } from '@/components/comments/comments-section';
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
 import { FollowButton } from '@/components/wiki/follow-button';
-import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
-import { useSlugResolution } from '@/hooks/use-data-access';
+import { useSlugResolution, useTableCatalog } from '@/hooks/use-data-access';
 import type { CardPosition } from '@/components/page-builder/types';
 
 export default function WikiPage() {
@@ -70,9 +69,7 @@ export default function WikiPage() {
     articleSlug && tenant?.id ? slug : null,
     articleSlug,
   );
-  const [gameSchema, setGameSchema] = useState<{ tables: { table_name: string; columns: ColumnInfo[] }[] } | null>(null);
-  const [schemaLoading, setSchemaLoading] = useState(true);
-  const schemaCache = useRef<typeof gameSchema>(null);
+  const { data: catalog } = useTableCatalog(articleSlug ? slug : null, true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,25 +101,6 @@ export default function WikiPage() {
       setLoadingLayout(false);
     })();
   }, [articleSlug, tenant?.id]);
-
-  // Fetch game schema dynamically (cached)
-  useEffect(() => {
-    if (schemaCache.current) {
-      setGameSchema(schemaCache.current);
-      setSchemaLoading(false);
-      return;
-    }
-    (async () => {
-      try {
-        const schema = await getGameSchema();
-        if (schema.tables.length > 0) {
-          schemaCache.current = schema;
-          setGameSchema(schema);
-        }
-      } catch {}
-      setSchemaLoading(false);
-    })();
-  }, []);
 
   // Fetch 404 layout
   useEffect(() => {
@@ -182,22 +160,22 @@ export default function WikiPage() {
     );
   }
 
-  // Home page: wait for all async data before rendering
-  if (!articleSlug && (schemaLoading || loadingLayout)) {
+  // Home page: wait for layout before rendering
+  if (!articleSlug && loadingLayout) {
     return <WikiPageSkeleton />;
   }
 
   // ── Game table listing ──
-  if (articleSlug && !articleSlug.includes('/') && gameSchema?.tables.some((t) => t.table_name === articleSlug)) {
+  if (articleSlug && !articleSlug.includes('/') && catalog?.some((t) => t.table_name === articleSlug)) {
     return (
       <GameTableListing tenantSlug={slug} tableName={articleSlug} tenantId={tenant.id} />
     );
   }
 
   // ── Game item view: path = table/item-slug ──
-  if (articleSlug && articleSlug.includes('/') && gameSchema) {
+  if (articleSlug && articleSlug.includes('/') && catalog) {
     const parts = articleSlug.split('/');
-    if (parts.length === 2 && gameSchema.tables.some((t) => t.table_name === parts[0])) {
+    if (parts.length === 2 && catalog.some((t) => t.table_name === parts[0])) {
       return (
         <GameItemView
           tenantSlug={slug}
@@ -266,12 +244,7 @@ export default function WikiPage() {
                 comparisonMode={comparisonMode as 'modal' | 'page'}
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
-                schema={(() => {
-                  if (!gameSchema) return undefined;
-                  const st = (isGameItem ? article._source_table : undefined);
-                  const tab = gameSchema.tables.find((t) => t.table_name === st);
-                  return tab?.columns;
-                })()}
+                schema={undefined}
               />
             ) : (
               <>
