@@ -35,7 +35,7 @@ export function WikiCard({
     <div className={`snap-start shrink-0 ${cardWidth} ${cardHeight} relative pb-2`}>
       <Link href={`/w/${wiki.slug}`} className="block group h-full">
         <Card className="h-full relative">
-          {/* Background — clipped to rounded corners so CardSymbols stay visible */}
+          {/* Background — clipped to rounded corners */}
           <div className="absolute inset-0 overflow-hidden rounded-lg">
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
@@ -53,12 +53,12 @@ export function WikiCard({
           {/* Content */}
           <div className="relative z-10 flex flex-col h-full p-5">
             {/* Logo + Name */}
-            <div className="flex items-center gap-3 mb-auto min-h-[3rem]">
-              <div className="h-12 w-12 rounded-lg overflow-hidden shrink-0 bg-white/10 flex items-center justify-center ring-1 ring-white/20">
+            <div className="flex items-center gap-3 mb-auto min-h-[4rem]">
+              <div className="h-16 w-16 rounded-lg overflow-hidden shrink-0 bg-white/10 flex items-center justify-center ring-1 ring-white/20">
                 {wiki.logo_url ? (
                   <img src={wiki.logo_url} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <BookOpen className="h-6 w-6 text-white/60" />
+                  <BookOpen className="h-8 w-8 text-white/60" />
                 )}
               </div>
               <h3 className="font-semibold text-sm text-white truncate leading-tight">
@@ -79,8 +79,10 @@ export function WikiCard({
               <span className="truncate">{wiki.custom_domain || `/w/${wiki.slug}`}</span>
             </div>
           </div>
+        </Card>
 
-          {/* Floating overlay symbols */}
+        {/* Floating overlay symbols — outside Card to avoid rounded-lg clipping */}
+        <div className="absolute inset-0 pointer-events-none" style={{ top: '1px', bottom: '1px' }}>
           <CardSymbols
             targetType="tenant"
             targetId={wiki.id}
@@ -91,7 +93,7 @@ export function WikiCard({
             votePosition={votePosition}
             followPosition={followPosition}
           />
-        </Card>
+        </div>
       </Link>
     </div>
   );

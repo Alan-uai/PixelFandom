@@ -85,7 +85,7 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
   const score = upvotes - downvotes;
 
   return (
-    <div className="inline-flex items-center gap-0.5 bg-background px-1 text-xs">
+    <div className="inline-flex items-center gap-0.5 px-1 text-xs">
       <button
         onClick={() => handleVote('up')}
         disabled={loading}

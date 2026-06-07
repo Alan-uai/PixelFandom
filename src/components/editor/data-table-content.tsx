@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { invalidateDataCache } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -115,6 +116,10 @@ export default function DataTableContent({
   const [showParentDialog, setShowParentDialog] = useState(false);
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
+  const [displayFormat, setDisplayFormat] = useState('grid');
+  const [columnsCount, setColumnsCount] = useState(4);
+  const [displaySettingsLoading, setDisplaySettingsLoading] = useState(false);
+  const [displaySaving, setDisplaySaving] = useState(false);
 
   const getParentLabel = (t: string) => tableLabels[t] || t;
 
@@ -166,6 +171,20 @@ export default function DataTableContent({
       }
     }
   }, [table, tenantId]);
+
+  const fetchDisplaySettings = useCallback(async () => {
+    if (!tenantId) return;
+    const { data } = await supabase
+      .from('tenant_game_tables')
+      .select('display_format, columns_count')
+      .eq('tenant_id', tenantId)
+      .eq('table_name', table)
+      .maybeSingle();
+    if (data) {
+      if (data.display_format) setDisplayFormat(data.display_format);
+      if (data.columns_count) setColumnsCount(data.columns_count);
+    }
+  }, [tenantId, table]);
 
   const fetchRows = useCallback(async () => {
     if (!tenantId) return;
@@ -220,8 +239,9 @@ export default function DataTableContent({
     if (tenantId) {
       fetchRows();
       fetchColumns();
+      fetchDisplaySettings();
     }
-  }, [tenantId, fetchRows, fetchColumns]);
+  }, [tenantId, fetchRows, fetchColumns, fetchDisplaySettings]);
 
   const isSystemColumn = (col: string) =>
     systemColumns.includes(col) || col.startsWith('embedding');
@@ -298,6 +318,7 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      invalidateDataCache(slug);
       rowsCache.current = null;
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
@@ -313,6 +334,7 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      invalidateDataCache(slug);
       rowsCache.current = null;
       setRows((prev) => prev.filter((r) => r.id !== rowId));
       toast({ title: 'Registro excluído.' });
@@ -331,6 +353,7 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      invalidateDataCache(slug);
       rowsCache.current = null;
       setShowNewForm(false);
       setNewForm({});
@@ -339,6 +362,22 @@ export default function DataTableContent({
       fetchRows();
     }
     setSaving(false);
+  };
+
+  const handleSaveDisplaySettings = async () => {
+    if (!tenantId) return;
+    setDisplaySaving(true);
+    const { error } = await supabase
+      .from('tenant_game_tables')
+      .update({ display_format: displayFormat, columns_count: columnsCount })
+      .eq('tenant_id', tenantId)
+      .eq('table_name', table);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      toast({ title: 'Configuração de exibição salva!' });
+    }
+    setDisplaySaving(false);
   };
 
   const handleClearField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
@@ -359,6 +398,7 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
+        invalidateDataCache(slug);
         toast({ title: `Coluna "${col}" removida.` });
         if (editingId) {
           setEditForm((prev) => {
@@ -385,17 +425,17 @@ export default function DataTableContent({
     if (!tenantId) return;
     setSchemaBusy(true);
 
-    const { slug } = await translateGameTerm(rawName);
+    const { slug: colSlug } = await translateGameTerm(rawName);
 
-    const existing = availableColumns.find((c) => c.column_name === slug);
+    const existing = availableColumns.find((c) => c.column_name === colSlug);
     if (existing) {
       if (showNewForm) {
-        setNewForm((prev) => ({ ...prev, [slug]: '' }));
+        setNewForm((prev) => ({ ...prev, [colSlug]: '' }));
       }
       if (editingId) {
-        setEditForm((prev) => ({ ...prev, [slug]: '' }));
+        setEditForm((prev) => ({ ...prev, [colSlug]: '' }));
       }
-      toast({ title: `Campo "${slug}" adicionado!` });
+      toast({ title: `Campo "${colSlug}" adicionado!` });
       setShowAddField(false);
       setNewFieldName('');
       setSchemaBusy(false);
@@ -404,7 +444,7 @@ export default function DataTableContent({
 
     const { data, error } = await supabase.rpc('add_game_column', {
       p_table: table,
-      p_column: slug,
+      p_column: colSlug,
       p_type: newFieldType,
       p_tenant_id: tenantId,
     });
@@ -413,15 +453,16 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        toast({ title: `Campo "${slug}" adicionado!` });
+        invalidateDataCache(slug);
+        toast({ title: `Campo "${colSlug}" adicionado!` });
         columnsCache.current = null;
         setShowAddField(false);
         setNewFieldName('');
         if (showNewForm) {
-          setNewForm((prev) => ({ ...prev, [slug]: '' }));
+          setNewForm((prev) => ({ ...prev, [colSlug]: '' }));
         }
         if (editingId) {
-          setEditForm((prev) => ({ ...prev, [slug]: '' }));
+          setEditForm((prev) => ({ ...prev, [colSlug]: '' }));
         }
         fetchRows();
       } else {
@@ -661,6 +702,38 @@ export default function DataTableContent({
           Alterações salvas!
         </div>
       )}
+
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          Exibição:
+          <select
+            value={displayFormat}
+            onChange={(e) => setDisplayFormat(e.target.value)}
+            className="h-7 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="grid">Grid</option>
+            <option value="list">Lista</option>
+            <option value="carousel">Carrossel</option>
+            <option value="carousel_infinite">Carrossel Infinito</option>
+          </select>
+        </span>
+        <span className="flex items-center gap-1">
+          Colunas:
+          <select
+            value={columnsCount}
+            onChange={(e) => setColumnsCount(Number(e.target.value))}
+            className="h-7 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            {[2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </span>
+        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={handleSaveDisplaySettings} disabled={displaySaving}>
+          {displaySaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+          Salvar
+        </Button>
+      </div>
 
       {parentTable !== undefined && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

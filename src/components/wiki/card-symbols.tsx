@@ -31,6 +31,21 @@ function positionStyle(pos: CardPosition): React.CSSProperties {
 const DEFAULT_VOTE: CardPosition = { edge: 'bottom', offsetPct: 95 };
 const DEFAULT_FOLLOW: CardPosition = { edge: 'top', offsetPct: 95 };
 
+function BorderCut({ edge }: { edge: 'top' | 'bottom' }) {
+  return (
+    <div
+      className="absolute bg-background pointer-events-none"
+      style={{
+        left: '-8px',
+        right: '-8px',
+        height: '3px',
+        top: edge === 'top' ? 0 : undefined,
+        bottom: edge === 'bottom' ? 0 : undefined,
+      }}
+    />
+  );
+}
+
 export function CardSymbols({
   votePosition,
   followPosition,
@@ -44,6 +59,7 @@ export function CardSymbols({
   return (
     <>
       <div style={positionStyle(votePosition ?? DEFAULT_VOTE)} className="absolute z-10">
+        <BorderCut edge="bottom" />
         <VoteButtons
           targetType={targetType}
           targetId={targetId}
@@ -54,6 +70,7 @@ export function CardSymbols({
       </div>
       {tenantId && (
         <div style={positionStyle(followPosition ?? DEFAULT_FOLLOW)} className="absolute z-10">
+          <BorderCut edge="top" />
           <FollowButton tenantId={tenantId} />
         </div>
       )}

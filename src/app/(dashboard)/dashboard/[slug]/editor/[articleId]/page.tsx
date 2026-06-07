@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
 import { improveArticle } from '@/ai/flows/improve-article-flow';
 import { searchAll } from '@/lib/search';
+import { invalidateDataCache } from '@/lib/data-access';
 
 import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
@@ -422,6 +423,8 @@ function EditPageContent() {
         .upsert(dataToSave, { onConflict: 'id' });
 
       if (upsertError) throw upsertError;
+
+      invalidateDataCache(slug);
 
       if (changeSummary.trim() && !isNewArticle) {
         try {

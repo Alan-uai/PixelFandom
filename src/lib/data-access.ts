@@ -5,6 +5,8 @@ export interface CatalogEntry {
   display_label: string;
   parent_table: string | null;
   count: number;
+  display_format?: string;
+  columns_count?: number;
 }
 
 export interface TableItem {
@@ -26,23 +28,14 @@ export interface SearchResult {
   match_type: string;
 }
 
-interface CacheEntry<T> {
-  data: T;
-  expiry: number;
-}
-
-const cache = new Map<string, CacheEntry<unknown>>();
-const TTL = 5 * 60 * 1000;
+const cache = new Map<string, unknown>();
 
 function getCached<T>(key: string): T | undefined {
-  const entry = cache.get(key) as CacheEntry<T> | undefined;
-  if (entry && Date.now() < entry.expiry) return entry.data;
-  cache.delete(key);
-  return undefined;
+  return cache.get(key) as T | undefined;
 }
 
-function setCache<T>(key: string, data: T, ttl = TTL): void {
-  cache.set(key, { data, expiry: Date.now() + ttl });
+function setCache<T>(key: string, data: T): void {
+  cache.set(key, data);
 }
 
 export function invalidateDataCache(pattern?: string): void {
@@ -53,6 +46,7 @@ export function invalidateDataCache(pattern?: string): void {
   } else {
     cache.clear();
   }
+  cachedSchema = null;
 }
 
 async function getSupabase() {
@@ -73,7 +67,7 @@ async function getTenantId(slug: string): Promise<string | null> {
     .maybeSingle();
 
   if (data?.id) {
-    setCache(idKey, data.id, 60 * 60 * 1000);
+    setCache(idKey, data.id);
     return data.id;
   }
   return null;
@@ -105,7 +99,7 @@ export async function searchTenant(
   }
 
   const results = (data ?? []) as unknown as SearchResult[];
-  setCache(cacheKey, results, 60_000);
+  setCache(cacheKey, results);
   return results;
 }
 
@@ -202,11 +196,11 @@ export async function getTableCatalog(
   if (!tenantId) return [];
 
   const supabase = await getSupabase();
-  const { data: rows, error } = await supabase
-    .from('tenant_game_tables')
-    .select('table_name, display_label, parent_table')
-    .eq('tenant_id', tenantId)
-    .order('created_at');
+    const { data: rows, error } = await supabase
+      .from('tenant_game_tables')
+      .select('table_name, display_label, parent_table, display_format, columns_count')
+      .eq('tenant_id', tenantId)
+      .order('created_at');
 
   if (error) {
     console.error('getTableCatalog error:', error);
@@ -218,6 +212,8 @@ export async function getTableCatalog(
     display_label: r.display_label,
     parent_table: r.parent_table ?? null,
     count: 0,
+    display_format: r.display_format ?? undefined,
+    columns_count: r.columns_count ?? undefined,
   }));
 
   if (includeCounts && entries.length > 0) {
@@ -291,13 +287,11 @@ export async function resolveSlug(
 }
 
 let cachedSchema: GameSchema | null = null;
-let schemaExpiry = 0;
 
 async function getSchema(): Promise<GameSchema> {
-  if (cachedSchema && Date.now() < schemaExpiry) return cachedSchema;
+  if (cachedSchema) return cachedSchema;
   const { getGameSchema } = await import('./game-schema');
   cachedSchema = await getGameSchema();
-  schemaExpiry = Date.now() + TTL;
   return cachedSchema;
 }
 

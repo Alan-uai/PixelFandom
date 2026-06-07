@@ -54,17 +54,15 @@ Immortality Incremental possui **11 famílias de marcas** distribuídas em 2 mun
 
 As Marcas da Percepção são a primeira família encontrada no Mundo 1. Focam em multiplicar Qi, Luck e Insight.
 
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Stars | Mark Bulk | Mark Speed | Mark Luck |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|-----------|
-| 1 | Dim | — | x14.5 | — | — | — | — | — | — | — | — |
-| 2 | Aware | x23.5 | x1.75 | x2.5 | — | — | — | — | — | — | — |
-| 3 | Keen | — | x7 | x4 | — | — | — | — | — | — | — |
-| 4 | Clear | x59.5 | x10 | x4 | x1.75 | — | — | — | — | — | — |
-| 5 | Piercing | x112 | x11.5 | — | x3.5 | — | — | — | — | — | — |
-| 6 | Deepseeing | x224.5 | — | x5.5 | — | x3.25 | — | — | — | — | — |
-| 7 | Farsight | x374.5 | x20.5 | — | x5.5 | — | — | — | — | — | — |
-| 8 | Truesight | — | x29.5 | x8.5 | — | x7 | — | x2.5 | x3.25 | x2.88 | — |
-| 9 | Omniscience | x749.5 | x44.5 | x14.5 | x14.5 | x11.5 | x7 | — | x4 | x4 | x2.5 |
+1. **Dim** — Luck x14.5
+2. **Aware** — Qi x23.5, Luck x1.75, Insight x2.5
+3. **Keen** — Luck x7, Insight x4
+4. **Clear** — Qi x59.5, Luck x10, Insight x4, Essência x1.75
+5. **Piercing** — Qi x112, Luck x11.5, Essência x3.5
+6. **Deepseeing** — Qi x224.5, Insight x5.5, Soulfire x3.25
+7. **Farsight** — Qi x374.5, Luck x20.5, Essência x5.5
+8. **Truesight** — Luck x29.5, Insight x8.5, Soulfire x7, Stars x2.5, Mark Bulk +3.25, Mark Speed +2.88
+9. **Omniscience** — Qi x749.5, Luck x44.5, Insight x14.5, Essência x14.5, Soulfire x11.5, Remnants x7, Mark Bulk +4, Mark Speed +4, Mark Luck +2.5
 
 **Dicas:**
 - **Dim** é sua primeira Mark — farme Luck para evoluir.
@@ -78,16 +76,14 @@ As Marcas da Percepção são a primeira família encontrada no Mundo 1. Focam e
 
 As Marcas da Essência são a segunda família do Mundo 1. Oferecem altos multiplicadores de Essência combinados com Qi e Luck.
 
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Stars | Mark Bulk | Mark Speed |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|
-| 1 | Fragment | x44.5 | x82 | — | — | — | — | — | — | — |
-| 2 | Shard | x82 | x44.5 | — | x172 | — | — | — | — | — |
-| 3 | Node | — | x37 | x172 | — | — | — | — | — | — |
-| 4 | Crest | x17.5 | x86.5 | — | x32.5 | — | — | — | — | — |
-| 5 | Ruby | — | x59.5 | — | x62.5 | — | — | — | — | — |
-| 6 | Nucleus | — | x52 | — | x89.5 | x3.25 | — | — | — | x2.12 |
-| 7 | Prism | x119.5 | — | x14.5 | x239.5 | — | x3.25 | — | — | — |
-| 8 | Eternal | x224.5 | x37 | — | x449.5 | x8.5 | — | x2.5 | x2.5 | x2.5 |
+1. **Fragment** — Qi x44.5, Luck x82
+2. **Shard** — Qi x82, Luck x44.5, Essência x172
+3. **Node** — Luck x37, Insight x172
+4. **Crest** — Qi x17.5, Luck x86.5, Essência x32.5
+5. **Ruby** — Luck x59.5, Essência x62.5
+6. **Nucleus** — Luck x52, Essência x89.5, Soulfire x3.25, Mark Speed +2.12
+7. **Prism** — Qi x119.5, Insight x14.5, Essência x239.5, Remnants x3.25
+8. **Eternal** — Qi x224.5, Luck x37, Essência x449.5, Soulfire x8.5, Stars x2.5, Mark Bulk +2.5, Mark Speed +2.5
 
 **Dicas:**
 - Essência escala muito rápido — Shard já dá x172 Essência.
@@ -100,16 +96,14 @@ As Marcas da Essência são a segunda família do Mundo 1. Oferecem altos multip
 
 As Marcas da Alma de Fogo são a terceira família do Mundo 1. Combinam Soulfire com Remnants, Karma e bônus de bulk/velocidade.
 
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Karma | Mark Bulk | Mark Speed | Mark Luck | Beast Core |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|-----------|------------|
-| 1 | Mote | x14.5 | — | — | x11.5 | x2.5 | — | — | — | — | — | — |
-| 2 | Kindling | — | x16 | x26.5 | — | x5.5 | — | — | — | — | — | — |
-| 3 | Wraith | x11.5 | — | — | — | — | — | x2.5 | — | — | — | — |
-| 4 | Pyre | — | x26.5 | — | — | x14.5 | x5.5 | — | — | x1.75 | — | — |
-| 5 | Brand | x52 | x29.5 | — | — | — | — | x5.5 | — | — | — | — |
-| 6 | Inferno | — | — | — | x37 | x29.5 | x13 | — | x2.12 | — | — | — |
-| 7 | Everflame | x121 | x44.5 | — | x59.5 | x44.5 | — | — | x2.5 | — | — | x1.38 |
-| 8 | Soulnova | x271 | — | — | — | x91 | x2.5 | — | x4 | x3.25 | x2.5 | — |
+1. **Mote** — Qi x14.5, Essência x11.5, Soulfire x2.5
+2. **Kindling** — Luck x16, Insight x26.5, Soulfire x5.5
+3. **Wraith** — Qi x11.5, Karma x2.5
+4. **Pyre** — Luck x26.5, Soulfire x14.5, Remnants x5.5, Mark Speed +1.75
+5. **Brand** — Qi x52, Luck x29.5, Karma x5.5
+6. **Inferno** — Essência x37, Soulfire x29.5, Remnants x13, Mark Bulk +2.12
+7. **Everflame** — Qi x121, Luck x44.5, Essência x59.5, Soulfire x44.5, Mark Bulk +2.5, Beast Core +1.38
+8. **Soulnova** — Qi x271, Soulfire x91, Remnants x2.5, Mark Bulk +4, Mark Speed +3.25, Mark Luck +2.5
 
 **Dicas:**
 - **Pyre** é seu primeiro contato com Mark Speed.
@@ -122,16 +116,14 @@ As Marcas da Alma de Fogo são a terceira família do Mundo 1. Combinam Soulfire
 
 As Marcas do Karma são a quarta e última família do Mundo 1. Únicas por terem custos massivos de Qi nos tiers mais altos (18.75K).
 
-| Tier | Nome | Qi | Luck | Essência | Soulfire | Remnants | Stars | Karma | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|----------|----------|-------|-------|-----------|------------|
-| 1 | Trace | x7 | — | — | — | — | — | x7 | — | — |
-| 2 | Ledger | x7 | — | — | x5.5 | — | — | x5.5 | — | — |
-| 3 | Burden | x5.5 | x10 | — | — | — | — | x5.5 | — | — |
-| 4 | Mercy | x29.5 | x14.5 | — | — | x2.5 | — | x8.5 | — | — |
-| 5 | Balance | x29.5 | x22 | — | x7 | — | — | x2.5 | — | — |
-| 6 | Reckoning | x56.5 | x19 | x23.5 | — | — | — | x2.5 | — | — |
-| 7 | Samsara | x18.75K | x187 | — | — | — | — | x4 | x4 | x2.5 |
-| 8 | Nirvana | x18.75K | x562 | — | — | — | x4 | x19 | x2.5 | — |
+1. **Trace** — Qi x7, Karma x7
+2. **Ledger** — Qi x7, Soulfire x5.5, Karma x5.5
+3. **Burden** — Qi x5.5, Luck x10, Karma x5.5
+4. **Mercy** — Qi x29.5, Luck x14.5, Remnants x2.5, Karma x8.5
+5. **Balance** — Qi x29.5, Luck x22, Soulfire x7, Karma x2.5
+6. **Reckoning** — Qi x56.5, Luck x19, Insight x23.5, Karma x2.5
+7. **Samsara** — Qi x18.75K, Luck x187, Karma x4, Mark Bulk +4, Mark Speed +2.5
+8. **Nirvana** — Qi x18.75K, Luck x562, Stars x4, Karma x19, Mark Bulk +2.5
 
 **Dicas:**
 - Karma é a última família do Mundo 1 — você precisará das outras Marcas primeiro.
@@ -146,16 +138,14 @@ As Marcas do Karma são a quarta e última família do Mundo 1. Únicas por tere
 
 As Marcas das Estrelas são a primeira família do Mundo 2. Os multiplicadores saltam para a casa dos milhares.
 
-| Tier | Nome | Qi | Luck | Essência | Stars | Nebulae | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|-------|---------|-----------|------------|
-| 1 | Spark | — | x600 | — | x7.5 | — | — | — |
-| 2 | Stardust | x600 | — | — | x18 | — | — | — |
-| 3 | Astral | x1.5K | x1.5K | — | x24 | — | x3 | — |
-| 4 | Comet | x2.4K | x3K | — | x30 | — | x10.5 | — |
-| 5 | Radiant | x3.6K | x3K | — | — | x3 | — | — |
-| 6 | Celestial | x1.2K | x1.2K | — | — | x2.25 | — | — |
-| 7 | Supernova | x900 | x1.5K | x7.5 | — | x22.5 | — | x9 |
-| 8 | Genesis | x3K | x3K | — | — | x9 | x3 | — |
+1. **Spark** — Luck x600, Stars x7.5
+2. **Stardust** — Qi x600, Stars x18
+3. **Astral** — Qi x1.5K, Luck x1.5K, Stars x24, Mark Bulk +3
+4. **Comet** — Qi x2.4K, Luck x3K, Stars x30, Mark Bulk +10.5
+5. **Radiant** — Qi x3.6K, Luck x3K, Nebulae x3
+6. **Celestial** — Qi x1.2K, Luck x1.2K, Nebulae x2.25
+7. **Supernova** — Qi x900, Luck x1.5K, Essência x7.5, Nebulae x22.5, Mark Speed +9
+8. **Genesis** — Qi x3K, Luck x3K, Nebulae x9, Mark Bulk +3
 
 **Dicas:**
 - Os valores de Qi e Luck agora estão na casa dos milhares — prepare-se para grind pesado.
@@ -168,16 +158,14 @@ As Marcas das Estrelas são a primeira família do Mundo 2. Os multiplicadores s
 
 As Marcas das Nebulosas são a segunda família do Mundo 2. Combinam Karma massivo com multiplicadores de Nebulae e Stars.
 
-| Tier | Nome | Qi | Luck | Essência | Stars | Nebulae | Karma | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|-------|---------|-------|-----------|------------|
-| 1 | Mistglow | — | x3K | — | — | x6.9 | x4.5K | — | — |
-| 2 | Gasveil | x4.5K | x6K | — | — | x8.1 | — | — | x7.5 |
-| 3 | Starseed | x3.75K | x7.2K | — | x18 | x9 | — | x3 | — |
-| 4 | Moonwake | x2.4K | x2.4K | — | x60 | x30 | x2.25 | — | x9 |
-| 5 | Cometheart | x3.6K | x3K | — | — | x60 | — | x12 | — |
-| 6 | Voidpetal | x1.5K | x1.5K | — | x30 | x30 | — | — | — |
-| 7 | Novashard | x450 | x750 | x15 | — | x7.5 | x150 | — | x6 |
-| 8 | Astral Crown | x3K | x1.5K | — | — | x30 | x450 | x4.5 | — |
+1. **Mistglow** — Luck x3K, Nebulae x6.9, Karma x4.5K
+2. **Gasveil** — Qi x4.5K, Luck x6K, Nebulae x8.1, Mark Speed +7.5
+3. **Starseed** — Qi x3.75K, Luck x7.2K, Stars x18, Nebulae x9, Mark Bulk +3
+4. **Moonwake** — Qi x2.4K, Luck x2.4K, Stars x60, Nebulae x30, Karma x2.25, Mark Speed +9
+5. **Cometheart** — Qi x3.6K, Luck x3K, Nebulae x60, Mark Bulk +12
+6. **Voidpetal** — Qi x1.5K, Luck x1.5K, Stars x30, Nebulae x30
+7. **Novashard** — Qi x450, Luck x750, Essência x15, Nebulae x7.5, Karma x150, Mark Speed +6
+8. **Astral Crown** — Qi x3K, Luck x1.5K, Nebulae x30, Karma x450, Mark Bulk +4.5
 
 **Dicas:**
 - **Mistglow** exige x4.5K Karma — um investimento pesado.
@@ -190,16 +178,14 @@ As Marcas das Nebulosas são a segunda família do Mundo 2. Combinam Karma massi
 
 As Marcas do Quasar são a terceira e última família do Mundo 2 — o ápice da progressão base.
 
-| Tier | Nome | Qi | Luck | Stars | Nebulae | Karma | Remnants | Quasar | Mark Bulk | Mark Luck |
-|------|------|----|------|-------|---------|-------|----------|--------|-----------|-----------|
-| 1 | Flare | x12K | — | — | — | — | — | x450 | — | — |
-| 2 | Vanta | — | x12K | — | x24 | x6K | — | x198 | — | — |
-| 3 | Sear | x18K | — | x72 | — | x4.5K | — | x168 | x4.5 | — |
-| 4 | Halo | x4.5K | — | — | — | x9K | — | x198 | — | x2.25 |
-| 5 | Lumen | x9K | x4.5K | — | — | — | — | x222 | x18 | — |
-| 6 | Surge | x4.8K | — | — | — | — | x4.5 | x390 | — | — |
-| 7 | Corona | x4.5K | x4.5K | — | — | x3K | — | x180 | — | — |
-| 8 | Zenith | x12K | — | — | — | — | — | x360 | x4.5 | x6 |
+1. **Flare** — Qi x12K, Quasar x450
+2. **Vanta** — Luck x12K, Nebulae x24, Karma x6K, Quasar x198
+3. **Sear** — Qi x18K, Stars x72, Karma x4.5K, Quasar x168, Mark Bulk +4.5
+4. **Halo** — Qi x4.5K, Karma x9K, Quasar x198, Mark Luck +2.25
+5. **Lumen** — Qi x9K, Luck x4.5K, Quasar x222, Mark Bulk +18
+6. **Surge** — Qi x4.8K, Remnants x4.5, Quasar x390
+7. **Corona** — Qi x4.5K, Luck x4.5K, Karma x3K, Quasar x180
+8. **Zenith** — Qi x12K, Quasar x360, Mark Bulk +4.5, Mark Luck +6
 
 **Dicas:**
 - Quasar é o endgame — os requisitos de Qi chegam a x18K.
@@ -213,9 +199,18 @@ As Marcas do Quasar são a terceira e última família do Mundo 2 — o ápice d
 
 ### Mark of Miasma (8 tiers)
 
-A primeira camada do Underworld. Marca focada em Breakthrough Luck e dano.
+A primeira camada do Underworld. Marca focada em Breakthrough Luck, Miasma e dano.
 
-> Veja o **[Guia de Miasma](/w/immortality-incremental/miasma-guide)** para a tabela completa de tiers, manuais e estratégias de progressão.
+1. **Spore** — Miasma x32, Quasar +56, Mark Speed +18
+2. **Seed** — Miasma x48, Mark Bulk +8, Breakthrough Luck +8K
+3. **Rotbrand** — Miasma x86, Qi +128K, Stars +512
+4. **Vein** — Miasma x144, Breakthrough Luck +256K, Damage +2
+5. **Bloom** — Miasma x56, Qi +336K, Stars +128, Mark Luck +2, Beast Remnants +12
+6. **Wormmoon** — Miasma x72, Qi +4.8M, Breakthrough Luck +4.8M
+7. **Tombmire** — Miasma x20, Qi +1.2M, Mark Bulk +2, Mark Speed +3, Breakthrough Luck +1.6M
+8. **Abyssplague** — Miasma x32, Qi +12M, Breakthrough Luck +12M, Manual Luck +2
+
+> Veja o **[Guia de Miasma](/w/immortality-incremental/miasma-guide)** para manuais, upgrade board e estratégias de progressão.
 
 ### Mark of Ash (8 tiers)
 
@@ -225,7 +220,16 @@ A segunda camada do Underworld. Focada em poder bruto e upgrades de dano.
 
 ### Mark of Laws (8 tiers)
 
-*Em breve* — informações serão adicionadas quando disponíveis.
+A família mais poderosa do jogo. Marcas que manipulam as leis da realidade com multiplicadores astronômicos.
+
+1. **Edict** — Laws x7.5, Mark Bulk +2
+2. **Clause** — Laws x11.5, Mark Bulk +4.5
+3. **Verdict** — Qi x512M, Insight x1B, Essence x1B, Laws x11.5
+4. **Tribunal** — Laws x7.5, Mark Speed +2.75, Mark Luck +2.5, Damage +2
+5. **Mandate** — Laws x17.5, Soulfire x1B, Karma x1B
+6. **Decree** — Laws x7.5, Stars x1B, Nebulae x1B, Mark Bulk +4, Mark Speed +32.5
+7. **Statute** — Laws x22.5, Qi x5B, Luck x4M
+8. **Absolute** — Laws x37.5, Quasar x1B, Mark Bulk +7.5, Mark Speed +7.5, Mark Luck +2
 
 ### Mark of Reputation (5 tiers)
 

@@ -65,7 +65,7 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
       onClick={handleToggle}
       disabled={loading}
       className={cn(
-        'inline-flex items-center gap-0.5 bg-background px-1 text-xs leading-none transition-colors',
+        'inline-flex items-center gap-0.5 px-1 text-xs leading-none transition-colors',
         following
           ? 'text-amber-400 hover:text-amber-500'
           : 'text-muted-foreground hover:text-foreground'

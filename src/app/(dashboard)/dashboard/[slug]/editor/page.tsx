@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import { translateGameTerm } from '@/lib/translate';
+import { invalidateDataCache } from '@/lib/data-access';
 
 interface Article {
   id: string;
@@ -160,6 +161,7 @@ export default function EditorArticlesPage() {
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      invalidateDataCache(slug);
       articlesCache.current = null;
       setArticles((prev) => prev.filter((a) => a.id !== id));
       toast({ title: 'Artigo excluído.' });
@@ -197,6 +199,7 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string; table: string };
       if (result.ok) {
+        invalidateDataCache(slug);
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
@@ -244,6 +247,7 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
+        invalidateDataCache(slug);
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
@@ -280,6 +284,7 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string; dropped_table?: boolean; dropped_columns?: string[] };
       if (result.ok) {
+        invalidateDataCache(slug);
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
