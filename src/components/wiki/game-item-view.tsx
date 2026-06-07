@@ -1,80 +1,22 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { supabase } from '@/supabase';
-import { getGameSchema, getTableSchema, findLabelColumn, findSlugColumn, type ColumnInfo } from '@/lib/game-schema';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import { useWikiPath } from '@/hooks/use-wiki-path';
+import { useTableItem } from '@/hooks/use-data-access';
 
 type Props = {
   tenantSlug: string;
   tableName: string;
   itemSlug: string;
-  tenantId: string;
+  tenantId?: string;
   comparisonMode: 'modal' | 'page';
 };
 
 export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId, comparisonMode }: Props) {
-  const cache = useRef<any | null>(null);
-  const schemaCache = useRef<ColumnInfo[] | undefined>(undefined);
-  const [item, setItem] = useState<any | null>(null);
-  const [schema, setSchema] = useState<ColumnInfo[] | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [labelCol, setLabelCol] = useState('name');
+  const { data: item, loading } = useTableItem(tenantSlug, tableName, itemSlug);
   const { homePath } = useWikiPath(tenantSlug);
-
-  useEffect(() => {
-    if (cache.current !== undefined) {
-      setItem(cache.current);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const columns = await getTableSchema(tableName);
-        if (cancelled) return;
-        schemaCache.current = columns;
-        const label = findLabelColumn(columns);
-        const slugCol = findSlugColumn(columns);
-        if (!cancelled) setLabelCol(label);
-
-        let data: any = null;
-
-        if (slugCol) {
-          const slugResult = await supabase
-            .from(tableName).select('*').eq('tenant_id', tenantId).eq(slugCol, itemSlug).maybeSingle();
-          data = slugResult.data;
-        }
-
-        if (!data) {
-          const searchName = itemSlug.replace(/-/g, ' ');
-          const nameResult = await supabase
-            .from(tableName).select('*').eq('tenant_id', tenantId).ilike(label, searchName).maybeSingle();
-          data = nameResult.data;
-        }
-
-        if (cancelled) return;
-
-        cache.current = data ?? null;
-        setSchema(columns);
-        setItem(data ?? null);
-      } catch {
-        if (!cancelled) {
-          cache.current = null;
-          setItem(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [tableName, itemSlug, tenantId]);
 
   return (
     <article className="max-w-3xl mx-auto">
@@ -103,7 +45,7 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
           tenantSlug={tenantSlug}
           sourceTable={tableName}
           comparisonMode={comparisonMode}
-          schema={schema}
+          schema={undefined}
         />
       ) : (
         <div className="text-center py-20 rounded-xl border bg-card">

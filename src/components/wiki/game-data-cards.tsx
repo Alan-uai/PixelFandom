@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
-import { supabase } from '@/supabase';
+import { useTableCatalog } from '@/hooks/use-data-access';
 import {
   Database, Sword, Shield, CircleDot, Skull, Crown,
   FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
@@ -24,58 +23,17 @@ type TableCard = {
 };
 
 export default function GameDataCards({ slug, tenantId }: { slug: string; tenantId: string }) {
-  const cache = useRef<TableCard[] | null>(null);
-  const [cards, setCards] = useState<TableCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: catalog = [], loading } = useTableCatalog(slug, true);
   const { homePath } = useWikiPath(slug);
 
-  useEffect(() => {
-    if (cache.current) {
-      setCards(cache.current);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const { data: catalog } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label')
-          .eq('tenant_id', tenantId);
-
-        if (cancelled || !catalog) return;
-
-        const withCounts: TableCard[] = [];
-        for (const entry of catalog) {
-          const { count } = await supabase
-            .from(entry.table_name)
-            .select('*', { count: 'exact', head: true })
-            .eq('tenant_id', tenantId);
-
-          if (cancelled) return;
-
-          const Icon = ICON_MAP[entry.table_name] ?? DEFAULT_ICON;
-          withCounts.push({
-            table_name: entry.table_name,
-            label: entry.display_label,
-            icon: Icon,
-            count: count ?? 0,
-          });
-        }
-
-        cache.current = withCounts;
-        setCards(withCounts);
-      } catch {
-        if (!cancelled) setCards([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [tenantId]);
+  const cards: TableCard[] = (catalog ?? [])
+    .filter((entry) => entry.count > 0)
+    .map((entry) => ({
+      table_name: entry.table_name,
+      label: entry.display_label,
+      icon: ICON_MAP[entry.table_name] ?? DEFAULT_ICON,
+      count: entry.count,
+    }));
 
   if (loading) return null;
   if (cards.length === 0) return null;

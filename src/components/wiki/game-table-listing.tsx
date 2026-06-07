@@ -1,11 +1,9 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/supabase';
 import { FileText, Database, ArrowLeft } from 'lucide-react';
 import { useWikiPath } from '@/hooks/use-wiki-path';
-import { getGameSchema, getTableSchema, findLabelColumn, findSlugColumn, type ColumnInfo } from '@/lib/game-schema';
+import { useTableItems } from '@/hooks/use-data-access';
 
 function toSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -14,55 +12,14 @@ function toSlug(text: string): string {
 type Props = {
   tenantSlug: string;
   tableName: string;
-  tenantId: string;
+  tenantId?: string;
 };
 
-export default function GameTableListing({ tenantSlug, tableName, tenantId }: Props) {
-  const cache = useRef<any[] | null>(null);
-  const columnsRef = useRef<ColumnInfo[] | undefined>(undefined);
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [labelCol, setLabelCol] = useState('name');
+export default function GameTableListing({ tenantSlug, tableName }: Props) {
+  const { data, loading } = useTableItems(tenantSlug, tableName);
+  const items: any[] = data?.items ?? [];
+  const labelCol = data?.labelCol ?? 'name';
   const { homePath } = useWikiPath(tenantSlug);
-
-  useEffect(() => {
-    if (cache.current) {
-      setItems(cache.current);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const columns = await getTableSchema(tableName);
-        if (cancelled) return;
-        columnsRef.current = columns;
-        const label = findLabelColumn(columns);
-        if (!cancelled) setLabelCol(label);
-
-        const { data } = await supabase
-          .from(tableName)
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .order(label);
-
-        if (cancelled) return;
-        cache.current = data ?? [];
-        setItems(data ?? []);
-      } catch {
-        if (!cancelled) {
-          cache.current = [];
-          setItems([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [tableName, tenantId]);
 
   return (
     <article className="max-w-3xl mx-auto">

@@ -23,6 +23,7 @@ import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
 import { FollowButton } from '@/components/wiki/follow-button';
 import { getGameSchema, type ColumnInfo } from '@/lib/game-schema';
+import { useSlugResolution } from '@/hooks/use-data-access';
 import type { CardPosition } from '@/components/page-builder/types';
 
 export default function WikiPage() {
@@ -65,7 +66,10 @@ export default function WikiPage() {
   const [loadingLayout, setLoadingLayout] = useState(false);
   const [custom404Layout, setCustom404Layout] = useState<any>(null);
   const layoutCache = useRef<Record<string, any>>({});
-  const articleCache = useRef<Record<string, any>>({});
+  const { data: slugResolved } = useSlugResolution(
+    articleSlug && tenant?.id ? slug : null,
+    articleSlug,
+  );
   const [gameSchema, setGameSchema] = useState<{ tables: { table_name: string; columns: ColumnInfo[] }[] } | null>(null);
   const [schemaLoading, setSchemaLoading] = useState(true);
   const schemaCache = useRef<typeof gameSchema>(null);
@@ -138,83 +142,19 @@ export default function WikiPage() {
       .catch(() => {});
   }, [tenant?.id]);
 
+  // Slug resolution now uses useSlugResolution hook
   useEffect(() => {
-    if (!articleSlug || !tenant?.id) return;
-
-    const cacheKey = `${tenant.id}:${articleSlug}`;
-    if (articleCache.current[cacheKey] !== undefined) {
-      const cached = articleCache.current[cacheKey];
-      if (cached === null) {
-        setFetchedArticle(null);
-      } else {
-        setFetchedArticle(cached);
-      }
+    if (!articleSlug || !slugResolved) {
       setFetchingArticle(false);
       return;
     }
-
-    let cancelled = false;
-
-    const saveToCache = (result: any) => {
-      articleCache.current[cacheKey] = result;
-      setFetchedArticle(result);
-      setFetchingArticle(false);
-    };
-
-    const doFetch = async () => {
-      setFetchingArticle(true);
-      setFetchedArticle(null);
-
-      // 1. Try wiki_articles by slug
-      const { data: wikiArticle } = await supabase
-        .from('wiki_articles')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .eq('slug', articleSlug)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (wikiArticle) {
-        saveToCache(wikiArticle);
-        return;
-      }
-
-      // 2. Try each game table dynamically (from getGameSchema)
-      const searchName = articleSlug.replace(/-/g, ' ');
-      let tablesToSearch = schemaCache.current?.tables.map((t) => t.table_name) ?? [];
-      if (tablesToSearch.length === 0) {
-        try {
-          tablesToSearch = (await getGameSchema()).tables.map((t) => t.table_name);
-        } catch {
-          tablesToSearch = [];
-        }
-      }
-
-      for (const table of tablesToSearch) {
-        const { data } = await supabase
-          .from(table)
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .ilike('name', searchName)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        if (data) {
-          saveToCache({ ...data, _source_table: table });
-          return;
-        }
-      }
-
-      if (!cancelled) {
-        saveToCache(null);
-      }
-    };
-
-    doFetch();
-    return () => { cancelled = true; };
-  }, [articleSlug, tenant?.id]);
+    if (slugResolved.table === 'wiki_articles') {
+      setFetchedArticle(slugResolved.item);
+    } else {
+      setFetchedArticle({ ...slugResolved.item, _source_table: slugResolved.table });
+    }
+    setFetchingArticle(false);
+  }, [articleSlug, slugResolved]);
 
   if (loading) {
     if (articleSlug) {

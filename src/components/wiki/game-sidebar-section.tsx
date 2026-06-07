@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWikiPath } from '@/hooks/use-wiki-path';
-import { supabase } from '@/supabase';
+import { useTableCatalog } from '@/hooks/use-data-access';
 import {
   ChevronDown, ChevronRight, Database,
   Sword, Shield, CircleDot, Skull, Crown,
@@ -25,60 +25,20 @@ type TableEntry = {
   count: number;
 };
 
-export default function GameSidebarSection({ tenantSlug, tenantId }: { tenantSlug: string; tenantId: string }) {
+export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string; tenantId?: string }) {
   const [expanded, setExpanded] = useState(false);
-  const [entries, setEntries] = useState<TableEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const cache = useRef<TableEntry[] | null>(null);
+  const { data: catalog = [], loading } = useTableCatalog(expanded ? tenantSlug : null, true);
   const pathname = usePathname();
   const { homePath } = useWikiPath(tenantSlug);
 
-  useEffect(() => {
-    if (!expanded || cache.current) return;
-
-    let cancelled = false;
-    setLoading(true);
-
-    (async () => {
-      try {
-        const { data: catalog } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label')
-          .eq('tenant_id', tenantId);
-
-        if (cancelled || !catalog) return;
-
-        const result: TableEntry[] = [];
-        for (const entry of catalog) {
-          const { count } = await supabase
-            .from(entry.table_name)
-            .select('*', { count: 'exact', head: true })
-            .eq('tenant_id', tenantId);
-
-          if (cancelled) return;
-
-          if (count && count > 0) {
-            const Icon = ICON_MAP[entry.table_name] ?? DEFAULT_ICON;
-            result.push({
-              table_name: entry.table_name,
-              label: entry.display_label,
-              icon: Icon,
-              count,
-            });
-          }
-        }
-
-        cache.current = result;
-        setEntries(result);
-      } catch {
-        if (!cancelled) setEntries([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [expanded, tenantId]);
+  const entries: TableEntry[] = (catalog ?? [])
+    .filter((entry) => entry.count > 0)
+    .map((entry) => ({
+      table_name: entry.table_name,
+      label: entry.display_label,
+      icon: ICON_MAP[entry.table_name] ?? DEFAULT_ICON,
+      count: entry.count,
+    }));
 
   return (
     <div className="border-t">
