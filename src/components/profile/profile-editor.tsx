@@ -6,7 +6,6 @@ import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useToast } from '@/hooks/use-toast';
@@ -86,16 +85,6 @@ export default function ProfileEditor() {
           <CardDescription>Atualize suas informações públicas.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Foto do Perfil</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`avatars/${user?.id || 'new'}`}
-              value={avatarUrl}
-              onChange={setAvatarUrl}
-              previewSize="w-20 h-20 rounded-full"
-            />
-          </div>
           <FloatingLabelInput
             label="Nome de Exibição"
             info="Seu nome público na plataforma"
@@ -115,16 +104,46 @@ export default function ProfileEditor() {
             onChange={(e) => setBio(e.target.value)}
             rows={3}
           />
-          <div className="space-y-2">
-            <Label>Imagem de Capa</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`profile-covers/${user?.id || 'new'}`}
-              value={coverImage}
-              onChange={setCoverImage}
-              previewSize="w-full h-24"
-            />
-          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <User className="h-4 w-4" />
+            Foto do Perfil
+          </CardTitle>
+          <CardDescription>Sua imagem de perfil pública.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`avatars/${user?.id || 'new'}`}
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            previewSize="w-20 h-20 rounded-full"
+          />
+          <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 512x512.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <User className="h-4 w-4" />
+            Imagem de Capa
+          </CardTitle>
+          <CardDescription>Imagem de fundo do seu perfil.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            bucket="wiki-images"
+            pathPrefix={`profile-covers/${user?.id || 'new'}`}
+            value={coverImage}
+            onChange={setCoverImage}
+            previewSize="w-full h-24"
+          />
+          <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x300.</p>
         </CardContent>
       </Card>
 

@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Loader2, Upload, ImageIcon, X } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
@@ -85,12 +85,22 @@ export function ImageUpload({
 
   return (
     <div className="flex flex-col sm:flex-row items-start gap-4">
-      <div className={`${previewSize} relative rounded-md border bg-muted overflow-hidden shrink-0 max-w-full w-full sm:w-auto sm:max-w-none`}>
+      <div
+        className={`${previewSize} relative rounded-lg border-2 overflow-hidden shrink-0 max-w-full w-full sm:w-auto sm:max-w-none cursor-pointer transition-colors ${
+          value
+            ? 'border-border'
+            : 'border-dashed border-muted-foreground/30 hover:border-primary/30 hover:bg-accent/50'
+        }`}
+        onClick={() => !value && inputRef.current?.click()}
+      >
         {value ? (
           <img src={value} alt="Preview" className="object-cover w-full h-full" />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <ImageIcon className="h-8 w-8" />
+          <div className="flex flex-col items-center justify-center h-full gap-1.5 text-muted-foreground">
+            <Upload className="h-6 w-6" />
+            <span className="text-[10px] font-medium leading-tight text-center px-1">
+              Enviar Imagem
+            </span>
           </div>
         )}
       </div>

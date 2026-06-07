@@ -233,9 +233,22 @@ const DYNAMIC_SKIP = new Set([
   '_source_table',
 ]);
 
+function inferSchema(data: Record<string, any>): ColumnInfo[] {
+  return Object.entries(data)
+    .filter(([k]) => !DYNAMIC_SKIP.has(k))
+    .map(([k, v]) => {
+      let data_type = 'text';
+      if (typeof v === 'number') data_type = 'numeric';
+      else if (typeof v === 'boolean') data_type = 'boolean';
+      else if (Array.isArray(v)) data_type = 'jsonb';
+      else if (typeof v === 'object' && v !== null) data_type = 'jsonb';
+      return { column_name: k, data_type, is_nullable: true, column_default: null, is_system: false };
+    });
+}
+
 function renderDynamicSections(
   data: Record<string, any>,
-  schema: ColumnInfo[],
+  schema: ColumnInfo[] | undefined,
   tenantId: string | undefined,
   tenantSlug: string | undefined,
   table: string,
@@ -243,9 +256,10 @@ function renderDynamicSections(
 ) {
   const rendered = new Set<string>();
   const sections: React.ReactNode[] = [];
+  const cols = schema ?? inferSchema(data);
 
   // 1. Numeric stat cards
-  const numCols = schema.filter(
+  const numCols = cols.filter(
     (c) => isNumericType(c.data_type) && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
   );
   if (numCols.length > 0) {
@@ -272,7 +286,7 @@ function renderDynamicSections(
   }
 
   // 2. Booleans → tags
-  const boolCols = schema.filter(
+  const boolCols = cols.filter(
     (c) => c.data_type === 'boolean' && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
   );
   if (boolCols.length > 0) {
@@ -296,7 +310,7 @@ function renderDynamicSections(
   }
 
   // 3. Short text → tags (only text/varchar columns)
-  const textCols = schema.filter(
+  const textCols = cols.filter(
     (c) =>
       (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
       !DYNAMIC_SKIP.has(c.column_name) &&
@@ -318,7 +332,7 @@ function renderDynamicSections(
   }
 
   // 4. Long text → labeled sections
-  const longCols = schema.filter(
+  const longCols = cols.filter(
     (c) =>
       (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
       !DYNAMIC_SKIP.has(c.column_name) &&
@@ -338,7 +352,7 @@ function renderDynamicSections(
   }
 
   // 5. JSON arrays → tag lists
-  const arrCols = schema.filter(
+  const arrCols = cols.filter(
     (c) =>
       (c.data_type === 'jsonb' || c.data_type === 'json') &&
       !DYNAMIC_SKIP.has(c.column_name) &&
@@ -363,7 +377,7 @@ function renderDynamicSections(
   }
 
   // 6. JSON objects → sub-sections
-  const objCols = schema.filter(
+  const objCols = cols.filter(
     (c) =>
       (c.data_type === 'jsonb' || c.data_type === 'json') &&
       !DYNAMIC_SKIP.has(c.column_name) &&
@@ -437,6 +451,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const element = data.element as string | undefined;
   const imageUrl = (data.image_url || data.image) as string | undefined;
   const [fullImg, setFullImg] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
@@ -707,7 +722,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             <div className="flex items-center gap-2 rounded-xl border bg-muted/50 p-4">
               <ScrollText className="h-5 w-5 text-primary shrink-0" />
               <code className="flex-1 font-mono text-lg font-bold tracking-wider">{code}</code>
-              <button onClick={() => navigator.clipboard.writeText(code)} className="text-xs text-primary hover:text-primary/80 font-medium shrink-0">Copiar</button>
+              <button onClick={() => { navigator.clipboard.writeText(code); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="text-xs text-primary hover:text-primary/80 font-medium shrink-0">{copiedCode ? 'Copiado!' : 'Copiar'}</button>
             </div>
             {data.rewards && <p className="text-sm text-muted-foreground mt-2">Recompensa: <span className="text-foreground">{isArrStr(data.rewards) ? data.rewards.join(', ') : String(data.rewards)}</span></p>}
             {data.code_type && <p className="text-xs text-muted-foreground mt-1">Tipo: <span className="font-medium text-foreground">{String(data.code_type)}</span>{data.verified_date && <> · Verificado: {data.verified_date}</>}</p>}
@@ -894,6 +909,69 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         );
       })()}
 
+      {/* Type-specific expanded info cards */}
+      {(type === 'enemies' || type === 'bosses') && (
+        <div className="rounded-xl border bg-card p-5 mb-6">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Crosshair className="h-4 w-4 text-red-400" />
+            Perfil do {type === 'enemies' ? 'Inimigo' : 'Chefe'}
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {data.enemy_type && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Tipo</div><div className="text-sm font-medium">{String(data.enemy_type)}</div></div>}
+            {data.boss_type && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Tipo</div><div className="text-sm font-medium">{String(data.boss_type)}</div></div>}
+            {data.difficulty && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Dificuldade</div><div className={`text-sm font-medium ${String(data.difficulty).toLowerCase().includes('hard') ? 'text-red-400' : 'text-yellow-400'}`}>{String(data.difficulty)}</div></div>}
+            {data.health_level && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">HP</div><div className="text-sm font-medium">{String(data.health_level)}</div></div>}
+            {data.speed_level && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Velocidade</div><div className="text-sm font-medium">{String(data.speed_level)}</div></div>}
+            {data.strength_level !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Força</div><div className="text-sm font-medium">{String(data.strength_level)}</div></div>}
+          </div>
+        </div>
+      )}
+
+      {type === 'potions' && (
+        <div className="rounded-xl border bg-card p-5 mb-6">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Droplets className="h-4 w-4 text-emerald-400" />
+            Informações da Poção
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {data.effects && (() => {
+              const txt = typeof data.effects === 'string' ? data.effects : Array.isArray(data.effects) ? data.effects.join(', ') : String(data.effects);
+              return <div className="rounded-lg bg-muted/50 p-3 col-span-2"><div className="text-xs text-muted-foreground mb-0.5">Efeitos</div><div className="text-sm"><ColoredText text={txt} /></div></div>;
+            })()}
+            {data.shop_price !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Preço</div><div className="text-sm font-medium"><Coins className="h-3 w-3 inline -ml-0.5 mr-0.5" />{String(data.shop_price)}</div></div>}
+            {data.max_uses_per_run !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Usos por Run</div><div className="text-sm font-medium">{String(data.max_uses_per_run)}</div></div>}
+            {data.craft_cost !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Custo de Craft</div><div className="text-sm font-medium">{String(data.craft_cost)}</div></div>}
+          </div>
+        </div>
+      )}
+
+      {type === 'worlds' && (
+        <div className="rounded-xl border bg-card p-5 mb-6">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Globe className="h-4 w-4 text-cyan-400" />
+            Sobre o Mundo
+          </h3>
+          <div className="space-y-3">
+            {data.environment && <div><div className="text-xs text-muted-foreground mb-0.5">Ambiente</div><p className="text-sm">{String(data.environment)}</p></div>}
+            {data.chapters && <div><div className="text-xs text-muted-foreground mb-0.5">Capítulos</div><p className="text-sm">{isArrStr(data.chapters) ? (data.chapters as string[]).join(', ') : String(data.chapters)}</p></div>}
+            {data.warning && <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3"><div className="text-xs text-yellow-400 mb-0.5">⚠ Atenção</div><p className="text-sm text-yellow-300">{String(data.warning)}</p></div>}
+          </div>
+        </div>
+      )}
+
+      {type === 'crafting-recipes' && (
+        <div className="rounded-xl border bg-card p-5 mb-6">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Pickaxe className="h-4 w-4 text-amber-400" />
+            Receita
+          </h3>
+          <div className="space-y-3">
+            {data.item_name && <div><div className="text-xs text-muted-foreground mb-0.5">Item Resultante</div><p className="text-sm font-medium">{String(data.item_name)}</p></div>}
+            {data.obtain_method && <div><div className="text-xs text-muted-foreground mb-0.5">Onde Obter a Receita</div><p className="text-sm">{String(data.obtain_method)}</p></div>}
+          </div>
+        </div>
+      )}
+
       {/* Accordion: Tips */}
       {(data.tips || data.important_notes) && (() => {
         const content = data.tips || data.important_notes;
@@ -915,34 +993,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         </div>
       )}
 
-      {/* Dynamic schema-driven sections (when schema is available) */}
-      {schema && renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode)}
-
-      {/* Catch-all accordion: always visible, shows all unrendered fields */}
-      <div className="mb-3">
-        <Accordion title="Game" icon={<Database className="h-4 w-4 text-primary" />}>
-          {(() => {
-            const extra = Object.entries(data).filter(
-              ([k, v]) => !SKIP.has(k) && !DYNAMIC_SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '',
-            );
-            if (extra.length === 0) {
-              return <p className="text-sm text-muted-foreground">Nenhum campo adicional</p>;
-            }
-            return (
-              <div>
-                {extra.map(([k, v]) => (
-                  <FieldRow key={k} label={k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}>
-                    {typeof v === 'object' && v !== null ? (
-                      isArrStr(v) ? <div className="flex flex-wrap gap-1">{v.map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}</div>
-                        : <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
-                    ) : <ColoredText text={fmt(v)} />}
-                  </FieldRow>
-                ))}
-              </div>
-            );
-          })()}
-        </Accordion>
-      </div>
+      {/* Dynamic schema-driven sections */}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

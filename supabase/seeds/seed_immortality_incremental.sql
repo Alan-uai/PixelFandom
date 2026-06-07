@@ -332,184 +332,9 @@ Domine todas as 57 Marcas para alcançar a imortalidade verdadeira.',
    ARRAY['visão-geral', 'introdução', 'guia']
   ),
 
-  -- Article 2: Mark of Insight
-  ('Marcas da Percepção (Mark of Insight)',
-   'Guia completo das Marcas da Percepção — do estágio Dim à Onisciência.',
-   'As Marcas da Percepção (Mark of Insight) são a primeira família de Marcas encontrada no Mundo 1. Elas focam em multiplicar Qi, Luck e Insight.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Stars | Mark Bulk | Mark Speed | Mark Luck |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|-----------|
-| 1 | Dim | — | x14.5 | — | — | — | — | — | — | — | — |
-| 2 | Aware | x23.5 | x1.75 | x2.5 | — | — | — | — | — | — | — |
-| 3 | Keen | — | x7 | x4 | — | — | — | — | — | — | — |
-| 4 | Clear | x59.5 | x10 | x4 | x1.75 | — | — | — | — | — | — |
-| 5 | Piercing | x112 | x11.5 | — | x3.5 | — | — | — | — | — | — |
-| 6 | Deepseeing | x224.5 | — | x5.5 | — | x3.25 | — | — | — | — | — |
-| 7 | Farsight | x374.5 | x20.5 | — | x5.5 | — | — | — | — | — | — |
-| 8 | Truesight | — | x29.5 | x8.5 | — | x7 | — | x2.5 | x3.25 | x2.88 | — |
-| 9 | Omniscience | x749.5 | x44.5 | x14.5 | x14.5 | x11.5 | x7 | — | x4 | x4 | x2.5 |
-
-## Dicas
-- **Dim** é sua primeira Mark — farme Luck para evoluir.
-- **Truesight** é um marco importante: desbloqueia Stars, Mark Bulk e Mark Speed.
-- **Omniscience** é o ápice do Mundo 1 para Insight — os multiplicadores disparam.
-
-A progressão ideal é: Dim → Aware → Keen → Clear → Piercing → Deepseeing → Farsight → Truesight → Omniscience.',
-   ARRAY['insight', 'percepção', 'guia', 'mundo-1']
-  ),
-
-  -- Article 3: Mark of Essence
-  ('Marcas da Essência (Mark of Essence)',
-   'Guia completo das Marcas da Essência — de Fragment a Eternal.',
-   'As Marcas da Essência (Mark of Essence) são a segunda família do Mundo 1. Elas oferecem altos multiplicadores de Essência combinados com Qi e Luck.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Stars | Mark Bulk | Mark Speed |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|
-| 1 | Fragment | x44.5 | x82 | — | — | — | — | — | — | — |
-| 2 | Shard | x82 | x44.5 | — | x172 | — | — | — | — | — |
-| 3 | Node | — | x37 | x172 | — | — | — | — | — | — |
-| 4 | Crest | x17.5 | x86.5 | — | x32.5 | — | — | — | — | — |
-| 5 | Ruby | — | x59.5 | — | x62.5 | — | — | — | — | — |
-| 6 | Nucleus | — | x52 | — | x89.5 | x3.25 | — | — | — | x2.12 |
-| 7 | Prism | x119.5 | — | x14.5 | x239.5 | — | x3.25 | — | — | — |
-| 8 | Eternal | x224.5 | x37 | — | x449.5 | x8.5 | — | x2.5 | x2.5 | x2.5 |
-
-## Dicas
-- Essência escala muito rápido — Shard já dá x172 Essência.
-- **Nucleus** introduz Soulfire e Mark Speed.
-- **Eternal** é o topo: x449.5 Essência + bônus de Stars, Soulfire e bulk.',
-   ARRAY['essência', 'essence', 'guia', 'mundo-1']
-  ),
-
-  -- Article 4: Mark of Soulfire
-  ('Marcas da Alma de Fogo (Mark of Soulfire)',
-   'Guia completo das Marcas da Alma de Fogo — de Mote a Soulnova.',
-   'As Marcas da Alma de Fogo (Mark of Soulfire) são a terceira família do Mundo 1. Elas combinam Soulfire com Remnants, Karma e bônus de bulk/velocidade.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Insight | Essência | Soulfire | Remnants | Karma | Mark Bulk | Mark Speed | Mark Luck | Beast Core |
-|------|------|----|------|---------|----------|----------|----------|-------|-----------|------------|-----------|------------|
-| 1 | Mote | x14.5 | — | — | x11.5 | x2.5 | — | — | — | — | — | — |
-| 2 | Kindling | — | x16 | x26.5 | — | x5.5 | — | — | — | — | — | — |
-| 3 | Wraith | x11.5 | — | — | — | — | — | x2.5 | — | — | — | — |
-| 4 | Pyre | — | x26.5 | — | — | x14.5 | x5.5 | — | — | x1.75 | — | — |
-| 5 | Brand | x52 | x29.5 | — | — | — | — | x5.5 | — | — | — | — |
-| 6 | Inferno | — | — | — | x37 | x29.5 | x13 | — | x2.12 | — | — | — |
-| 7 | Everflame | x121 | x44.5 | — | x59.5 | x44.5 | — | — | x2.5 | — | — | x1.38 |
-| 8 | Soulnova | x271 | — | — | — | x91 | x2.5 | — | x4 | x3.25 | x2.5 | — |
-
-## Dicas
-- **Pyre** é seu primeiro contato com Mark Speed.
-- **Everflame** introduz Beast Core Chance — essencial para endgame.
-- **Soulnova** é o ápice: x91 Soulfire com bônus massivos de bulk e speed.',
-   ARRAY['soulfire', 'alma', 'fogo', 'guia', 'mundo-1']
-  ),
-
-  -- Article 5: Mark of Karma
-  ('Marcas do Karma (Mark of Karma)',
-   'Guia completo das Marcas do Karma — de Trace a Nirvana.',
-   'As Marcas do Karma (Mark of Karma) são a quarta e última família do Mundo 1. Elas são únicas por terem custos massivos de Qi nos tiers mais altos (18.75K).
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Essência | Soulfire | Remnants | Stars | Karma | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|----------|----------|-------|-------|-----------|------------|
-| 1 | Trace | x7 | — | — | — | — | — | x7 | — | — |
-| 2 | Ledger | x7 | — | — | x5.5 | — | — | x5.5 | — | — |
-| 3 | Burden | x5.5 | x10 | — | — | — | — | x5.5 | — | — |
-| 4 | Mercy | x29.5 | x14.5 | — | — | x2.5 | — | x8.5 | — | — |
-| 5 | Balance | x29.5 | x22 | — | x7 | — | — | x2.5 | — | — |
-| 6 | Reckoning | x56.5 | x19 | x23.5 | — | — | — | x2.5 | — | — |
-| 7 | Samsara | x18.75K | x187 | — | — | — | — | x4 | x4 | x2.5 |
-| 8 | Nirvana | x18.75K | x562 | — | — | — | x4 | x19 | x2.5 | — |
-
-## Dicas
-- Karma é a última família do Mundo 1 — você precisará das outras Marcas primeiro.
-- **Samsara** e **Nirvana** exigem 18.750 de Qi — um salto gigante dos tiers anteriores.
-- **Nirvana** desbloqueia Stars (x4) e Karma x19 — essencial para transição ao Mundo 2.',
-   ARRAY['karma', 'guia', 'mundo-1']
-  ),
-
-  -- Article 6: Mark of Stars
-  ('Marcas das Estrelas (Mark of Stars)',
-   'Guia completo das Marcas das Estrelas — de Spark a Genesis.',
-   'As Marcas das Estrelas (Mark of Stars) são a primeira família do Mundo 2. Os multiplicadores saltam para a casa dos milhares.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Essência | Stars | Nebulae | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|-------|---------|-----------|------------|
-| 1 | Spark | — | x600 | — | x7.5 | — | — | — |
-| 2 | Stardust | x600 | — | — | x18 | — | — | — |
-| 3 | Astral | x1.5K | x1.5K | — | x24 | — | x3 | — |
-| 4 | Comet | x2.4K | x3K | — | x30 | — | x10.5 | — |
-| 5 | Radiant | x3.6K | x3K | — | — | x3 | — | — |
-| 6 | Celestial | x1.2K | x1.2K | — | — | x2.25 | — | — |
-| 7 | Supernova | x900 | x1.5K | x7.5 | — | x22.5 | — | x9 |
-| 8 | Genesis | x3K | x3K | — | — | x9 | x3 | — |
-
-## Dicas
-- Os valores de Qi e Luck agora estão na casa dos milhares — prepare-se para grind pesado.
-- **Radiant** e **Celestial** introduzem Nebulae.
-- **Supernova** oferece x22.5 Nebulae + Mark Speed x9 — um dos melhores tiers para speed.',
-   ARRAY['stars', 'estrelas', 'guia', 'mundo-2']
-  ),
-
-  -- Article 7: Mark of Nebulae
-  ('Marcas das Nebulosas (Mark of Nebulae)',
-   'Guia completo das Marcas das Nebulosas — de Mistglow a Astral Crown.',
-   'As Marcas das Nebulosas (Mark of Nebulae) são a segunda família do Mundo 2. Combinam Karma massivo com multiplicadores de Nebulae e Stars.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Essência | Stars | Nebulae | Karma | Mark Bulk | Mark Speed |
-|------|------|----|------|----------|-------|---------|-------|-----------|------------|
-| 1 | Mistglow | — | x3K | — | — | x6.9 | x4.5K | — | — |
-| 2 | Gasveil | x4.5K | x6K | — | — | x8.1 | — | — | x7.5 |
-| 3 | Starseed | x3.75K | x7.2K | — | x18 | x9 | — | x3 | — |
-| 4 | Moonwake | x2.4K | x2.4K | — | x60 | x30 | x2.25 | — | x9 |
-| 5 | Cometheart | x3.6K | x3K | — | — | x60 | — | x12 | — |
-| 6 | Voidpetal | x1.5K | x1.5K | — | x30 | x30 | — | — | — |
-| 7 | Novashard | x450 | x750 | x15 | — | x7.5 | x150 | — | x6 |
-| 8 | Astral Crown | x3K | x1.5K | — | — | x30 | x450 | x4.5 | — |
-
-## Dicas
-- **Mistglow** exige x4.5K Karma — um investimento pesado.
-- **Moonwake** é um dos tiers mais balanceados: x60 Stars + x30 Nebulae + x9 Speed.
-- **Cometheart** tem o maior Mark Bulk (x12) de todas as Marcas de Nebulae.',
-   ARRAY['nebulae', 'nebulosas', 'guia', 'mundo-2']
-  ),
-
-  -- Article 8: Mark of Quasar
-  ('Marcas do Quasar (Mark of Quasar)',
-   'Guia completo das Marcas do Quasar — de Flare a Zenith.',
-   'As Marcas do Quasar (Mark of Quasar) são a terceira e última família do Mundo 2 — o ápice da progressão em Immortality Incremental.
-
-## Tiers
-
-| Tier | Nome | Qi | Luck | Stars | Nebulae | Karma | Remnants | Quasar | Mark Bulk | Mark Luck |
-|------|------|----|------|-------|---------|-------|----------|--------|-----------|-----------|
-| 1 | Flare | x12K | — | — | — | — | — | x450 | — | — |
-| 2 | Vanta | — | x12K | — | x24 | x6K | — | x198 | — | — |
-| 3 | Sear | x18K | — | x72 | — | x4.5K | — | x168 | x4.5 | — |
-| 4 | Halo | x4.5K | — | — | — | x9K | — | x198 | — | x2.25 |
-| 5 | Lumen | x9K | x4.5K | — | — | — | — | x222 | x18 | — |
-| 6 | Surge | x4.8K | — | — | — | — | x4.5 | x390 | — | — |
-| 7 | Corona | x4.5K | x4.5K | — | — | x3K | — | x180 | — | — |
-| 8 | Zenith | x12K | — | — | — | — | — | x360 | x4.5 | x6 |
-
-## Dicas
-- Quasar é o endgame — os requisitos de Qi chegam a x18K.
-- **Sear** exige mais Qi que qualquer outra Mark (x18K).
-- **Surge** tem o maior multiplicador de Quasar puro (x390).
-- **Zenith** é a Mark final: combine Mark Bulk x4.5 com Mark Luck x6.',
-   ARRAY['quasar', 'guia', 'mundo-2']
-  ),
+  -- Note: Articles 2-8 (individual mark family guides) were removed in V10.
+  -- They have been merged into the single comprehensive "Famílias de Marcas"
+  -- article created in V3 and updated in V10 (slug: mark-families).
 
   -- Article 9: Guia de Progressão Mundo 1
   ('Guia de Progressão — Mundo 1',
@@ -700,7 +525,7 @@ Cada Mark é criada a partir de recursos brutos (Qi, Luck, Essência, etc.). Ao 
               "title": "Immortality Incremental",
               "subtitle": "Domine as Marcas. Alcance a Imortalidade.",
               "ctaText": "Explorar Marcas",
-              "ctaUrl": "/w/immortality-incremental/immortality-incremental-—-visão-geral",
+              "ctaUrl": "/w/immortality-incremental/mark-families",
               "backgroundColor": "270 40% 15%"
             }
           },
@@ -750,7 +575,7 @@ Cada Mark é criada a partir de recursos brutos (Qi, Luck, Essência, etc.). Ao 
             "title": "Immortality Incremental",
             "subtitle": "Domine as Marcas. Alcance a Imortalidade.",
             "ctaText": "Explorar Marcas",
-            "ctaUrl": "/w/immortality-incremental/immortality-incremental-—-visão-geral",
+            "ctaUrl": "/w/immortality-incremental/mark-families",
             "backgroundColor": "270 40% 15%"
           }
         },

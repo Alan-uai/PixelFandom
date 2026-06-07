@@ -226,17 +226,25 @@ export default function WikiDiscordPage() {
               onChange={(e) => setBotName(e.target.value)}
             />
 
-            <div className="space-y-2">
-              <Label>Avatar do Bot</Label>
-              <ImageUpload
-                bucket="wiki-images"
-                pathPrefix={`discord-avatars/${slug}`}
-                value={botAvatar || ''}
-                onChange={(url) => setBotAvatar(url || null)}
-                previewSize="w-16 h-16 rounded-full"
-              />
-              <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Bot className="h-4 w-4" />
+                  Avatar do Bot
+                </CardTitle>
+                <CardDescription>Imagem de perfil do bot no Discord.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ImageUpload
+                  bucket="wiki-images"
+                  pathPrefix={`discord-avatars/${slug}`}
+                  value={botAvatar || ''}
+                  onChange={(url) => setBotAvatar(url || null)}
+                  previewSize="w-16 h-16 rounded-full"
+                />
+                <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
+              </CardContent>
+            </Card>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>

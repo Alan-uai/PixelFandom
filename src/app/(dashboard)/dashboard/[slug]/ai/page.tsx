@@ -812,28 +812,44 @@ Quais são as melhores armas?"
               className="text-xs min-h-[80px]"
             />
           </div>
-          <div className="space-y-2">
-            <Label>Logo do Bot</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`bot-logos/${slug}`}
-              value={botLogo}
-              onChange={setBotLogo}
-              previewSize="w-16 h-16 rounded-full"
-            />
-            <p className="text-xs text-muted-foreground">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Banner do Chat</Label>
-            <ImageUpload
-              bucket="wiki-images"
-              pathPrefix={`bot-banners/${slug}`}
-              value={botBanner}
-              onChange={setBotBanner}
-              previewSize="w-full h-20"
-            />
-            <p className="text-xs text-muted-foreground">Imagem de fundo do cabeçalho do chat.</p>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-4 w-4" />
+                Logo do Bot
+              </CardTitle>
+              <CardDescription>Imagem de perfil do assistente IA.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageUpload
+                bucket="wiki-images"
+                pathPrefix={`bot-logos/${slug}`}
+                value={botLogo}
+                onChange={setBotLogo}
+                previewSize="w-16 h-16 rounded-full"
+              />
+              <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageSquare className="h-4 w-4" />
+                Banner do Chat
+              </CardTitle>
+              <CardDescription>Imagem de fundo do cabeçalho do chat.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageUpload
+                bucket="wiki-images"
+                pathPrefix={`bot-banners/${slug}`}
+                value={botBanner}
+                onChange={setBotBanner}
+                previewSize="w-full h-20"
+              />
+              <p className="text-xs text-muted-foreground mt-2">Imagem de fundo do cabeçalho do chat.</p>
+            </CardContent>
+          </Card>
         </CardContent>
       </Card>
       </section>
