@@ -11,7 +11,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 
 export default function WikiSettingsPage() {
@@ -45,6 +46,10 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
+  const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
+  const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
+  const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
+  const [gameTableTabsSubFormat, setGameTableTabsSubFormat] = useState('list');
 
   useEffect(() => {
     (async () => {
@@ -84,6 +89,11 @@ export default function WikiSettingsPage() {
           setSidebarWidth(theme.sidebar_width || 'normal');
           setHeaderStyle(theme.header_style || 'compact');
           setArticlesPerRow(theme.articles_per_row || 3);
+          const gtDisplay = (theme.game_tables_display as Record<string, any>) || {};
+          setGameTableDisplayFormat(gtDisplay.default_format || 'grid');
+          setGameTableColumnsCount(gtDisplay.default_columns || 4);
+          setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
+          setGameTableTabsSubFormat(gtDisplay.tabs_sub_format || 'list');
           const widgets = (theme.widgets as Record<string, any>) || {};
           initialRef.current = {
             name: data.name,
@@ -142,6 +152,12 @@ export default function WikiSettingsPage() {
             sidebar_width: sidebarWidth,
             header_style: headerStyle,
             articles_per_row: articlesPerRow,
+            game_tables_display: {
+              default_format: gameTableDisplayFormat,
+              default_columns: gameTableColumnsCount,
+              tabs_enabled: gameTableTabsEnabled,
+              tabs_sub_format: gameTableTabsSubFormat,
+            },
             widgets: {},
           },
         })
@@ -333,6 +349,90 @@ export default function WikiSettingsPage() {
               <option value="0.75rem">Grande (0.75rem)</option>
               <option value="1rem">Extra (1rem)</option>
             </select>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <Database className="h-4 w-4 text-primary" />
+              Game Tables
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              Configuração padrão de exibição das game tables. Cada tabela pode sobrescrever no editor.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Formato de Exibição</Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'grid', l: 'Grid' },
+                    { v: 'list', l: 'Lista' },
+                    { v: 'carousel', l: 'Carrossel' },
+                    { v: 'carousel_infinite', l: 'Carrossel Infinito' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setGameTableDisplayFormat(opt.v)}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                        gameTableDisplayFormat === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gameTableColumns">Colunas ({gameTableColumnsCount})</Label>
+                <input
+                  id="gameTableColumns"
+                  type="range"
+                  min={2}
+                  max={5}
+                  value={gameTableColumnsCount}
+                  onChange={(e) => setGameTableColumnsCount(Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>2</span>
+                  <span>5</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Label htmlFor="gameTableTabs" className="shrink-0">Modo Abas (Tabs)</Label>
+                <Switch
+                  id="gameTableTabs"
+                  checked={gameTableTabsEnabled}
+                  onCheckedChange={setGameTableTabsEnabled}
+                />
+              </div>
+
+              {gameTableTabsEnabled && (
+                <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                  <Label>Sub-formato das Abas</Label>
+                  <div className="flex gap-2">
+                    {[
+                      { v: 'list', l: 'Lista' },
+                      { v: 'carousel', l: 'Carrossel' },
+                      { v: 'grid', l: 'Grid' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setGameTableTabsSubFormat(opt.v)}
+                        className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                          gameTableTabsSubFormat === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CollapsibleSection>

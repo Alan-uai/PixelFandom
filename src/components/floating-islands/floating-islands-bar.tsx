@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { FloatingIslandConfig } from '@/components/page-builder/types';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
@@ -24,48 +24,59 @@ function getClipPath(pos: 'left' | 'center' | 'right', alone: boolean): string {
   }
 }
 
-function shouldAlone(enabled: FloatingIslandConfig[], pos: 'left' | 'center' | 'right'): boolean {
-  const positions = new Set(enabled.map((i) => i.position));
-  switch (pos) {
-    case 'left':
-      return !positions.has('center') && !positions.has('right');
-    case 'center':
-      return !positions.has('left') && !positions.has('right');
-    case 'right':
-      return !positions.has('left') && !positions.has('center');
-  }
-}
-
 export function FloatingIslandsBar({ islands, basePath = '', className = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleAutoExpand = useCallback((id: string) => {
     setActiveId(id);
   }, []);
 
-  const enabled = islands.filter((i) => i.enabled);
-  if (enabled.length === 0) return null;
+  const isExpired = (i: FloatingIslandConfig) => {
+    if (!i.endsAt) return false;
+    return new Date(i.endsAt).getTime() <= now;
+  };
 
-  const getIslandByPosition = (pos: 'left' | 'center' | 'right') =>
-    enabled.find((i) => i.position === pos) || null;
+  const enabled = islands.filter((i) => i.enabled && !isExpired(i));
 
   const handleToggle = (id: string) => {
     setActiveId((prev) => (prev === id ? null : id));
   };
 
-  const positions: Array<'left' | 'center' | 'right'> = ['left', 'center', 'right'];
+  if (enabled.length === 0) return null;
+
+  const sorted = [...enabled];
+  const count = sorted.length;
+
+  const slot = (index: number): 'left' | 'center' | 'right' => {
+    if (count === 1) return 'center';
+    if (count === 2) return index === 0 ? 'left' : 'right';
+    return ['left', 'center', 'right'][index] as 'left' | 'center' | 'right';
+  };
+
+  const positions: Array<'left' | 'center' | 'right'> = count === 1
+    ? ['center']
+    : count === 2
+    ? ['left', 'right']
+    : ['left', 'center', 'right'];
 
   return (
     <div className={`bg-muted/20 ${className}`}>
       <div className="mx-auto max-w-6xl">
         <div className="flex items-stretch">
-          {positions.map((pos) => {
-            const island = getIslandByPosition(pos);
+          {positions.map((pos, idx) => {
+            const island = sorted[idx] || null;
+            const alone = count === 1;
             return (
               <div
                 key={pos}
                 className="flex-1"
-                style={{ clipPath: getClipPath(pos, !island || shouldAlone(enabled, pos)) }}
+                style={{ clipPath: getClipPath(pos, alone && pos === 'center') }}
               >
                 {island ? (
                   <FloatingIslandWrapper

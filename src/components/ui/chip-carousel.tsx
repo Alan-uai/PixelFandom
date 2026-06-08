@@ -32,7 +32,7 @@ export function ChipCarousel({ children, className = '' }: { children: React.Rea
   };
 
   return (
-    <div className={`relative group ${className}`}>
+    <div className={`relative group min-w-0 ${className}`}>
       {canScrollL && (
         <button
           onClick={() => scroll(-1)}

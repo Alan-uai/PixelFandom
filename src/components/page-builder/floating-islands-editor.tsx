@@ -14,6 +14,7 @@ const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.Compo
       events: [{ name: 'Evento', targetDate: '', displayDuration: 10 }],
       displayFormat: 'parallel',
       media: null,
+      cronFirst: false,
     },
   },
   {
@@ -24,6 +25,7 @@ const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.Compo
       items: [{ name: 'Item', time: '14:00' }],
       displayFormat: 'sequential',
       media: null,
+      cronFirst: false,
     },
   },
   { type: 'video-list', label: 'Lista de Vídeos', icon: Video, defaultConfig: { items: [] } },
@@ -73,15 +75,17 @@ interface FloatingIslandsEditorProps {
 export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const POSITION_PRIORITY: FloatingIslandPosition[] = ['center', 'left', 'right'];
+
   const addIsland = useCallback(() => {
     if (islands.length >= 3) return;
     const usedPositions = new Set(islands.map((i) => i.position));
-    const avail = POSITIONS.find((p) => !usedPositions.has(p.value));
+    const avail = POSITION_PRIORITY.find((p) => !usedPositions.has(p));
     if (!avail) return;
     const def = ISLAND_TYPES[0];
     const newIsland: FloatingIslandConfig = {
       id: nanoid(),
-      position: avail.value,
+      position: avail,
       type: def.type,
       title: 'Nova Ilha',
       enabled: true,
@@ -236,6 +240,19 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     <label htmlFor={`enable-${island.id}`} className="text-xs text-muted-foreground">Ativo</label>
                   </div>
 
+                  {/* Ends at */}
+                  <Field label="Expirar em (opcional)">
+                    <input
+                      type="datetime-local"
+                      value={island.endsAt ? island.endsAt.slice(0, 16) : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateIsland(island.id, { endsAt: val ? new Date(val).toISOString() : null });
+                      }}
+                      className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                    />
+                  </Field>
+
                   {/* Type-specific config */}
                   <div className="border-t border-border/30 pt-3">
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -339,6 +356,18 @@ function ConfigFields({
     case 'multi-timer':
       return (
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`cronFirst-${id}`}
+              checked={!!island.config.cronFirst}
+              onChange={(e) => onChange(id, 'cronFirst', e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor={`cronFirst-${id}`} className="text-xs text-muted-foreground">
+              Cron primeiro (timer no cabeçalho)
+            </label>
+          </div>
           <Field label="Formato de Exibição">
             <select
               value={(island.config.displayFormat as string) || 'parallel'}
@@ -372,6 +401,18 @@ function ConfigFields({
     case 'queue-timer':
       return (
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`cronFirst-${id}`}
+              checked={!!island.config.cronFirst}
+              onChange={(e) => onChange(id, 'cronFirst', e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor={`cronFirst-${id}`} className="text-xs text-muted-foreground">
+              Cron primeiro (timer no cabeçalho)
+            </label>
+          </div>
           <Field label="Formato de Exibição">
             <select
               value={(island.config.displayFormat as string) || 'sequential'}

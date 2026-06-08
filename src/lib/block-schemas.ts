@@ -221,6 +221,10 @@ export const LatestArticlesConfigSchema = z.object({
 
 export const GameDataCardsConfigSchema = z.object({
   title: z.string().max(200).optional(),
+  displayFormat: z.enum(['grid', 'list', 'carousel', 'carousel_infinite']).optional(),
+  columnsCount: z.number().int().min(2).max(5).optional(),
+  tabsEnabled: z.boolean().optional(),
+  tabsSubFormat: z.enum(['list', 'carousel', 'grid']).optional(),
 });
 
 export const ArticleSortBySchema = z.enum(['recent', 'most_voted', 'most_commented', 'popular']);

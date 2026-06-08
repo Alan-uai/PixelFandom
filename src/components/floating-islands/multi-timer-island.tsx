@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { IslandMedia } from '@/components/page-builder/types';
 import { IslandMediaDisplay } from './island-media-display';
+import { CountdownDisplay, getRemaining } from './countdown-display';
 
 interface TimerEvent {
   name: string;
@@ -20,44 +21,6 @@ interface MultiTimerConfig {
 interface MultiTimerIslandProps {
   config: Record<string, unknown>;
   onEventTrigger?: () => void;
-}
-
-function getRemaining(target: string) {
-  const diff = new Date(target).getTime() - Date.now();
-  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
-  return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff % 86400000) / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    seconds: Math.floor((diff % 60000) / 1000),
-    expired: false,
-  };
-}
-
-function CountdownGrid({ remaining }: { remaining: { days: number; hours: number; minutes: number; seconds: number; expired: boolean } }) {
-  if (remaining.expired) {
-    return <p className="text-xs font-bold text-destructive text-center animate-pulse">ACONTECENDO AGORA</p>;
-  }
-  return (
-    <div className="grid grid-cols-4 gap-1 text-center">
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{remaining.days}</p>
-        <p className="text-[9px] text-muted-foreground">dias</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.hours).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">horas</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.minutes).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">min</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.seconds).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">seg</p>
-      </div>
-    </div>
-  );
 }
 
 export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandProps) {
@@ -133,7 +96,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
               {rem.expired ? (
                 <p className="text-[10px] font-semibold text-destructive">REALIZADO</p>
               ) : (
-                <CountdownGrid remaining={rem} />
+                <CountdownDisplay targetDate={ev.targetDate} compact />
               )}
             </div>
           );
@@ -154,7 +117,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
         {showMedia && media && <IslandMediaDisplay media={media} />}
         <div className="relative overflow-hidden rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[80px] flex flex-col items-center justify-center">
           <p className="text-xs font-medium text-center mb-2 truncate max-w-full">{slide.name}</p>
-          <CountdownGrid remaining={slideRem} />
+          <CountdownDisplay targetDate={slide.targetDate} />
           {events.length > 1 && (
             <>
               <button onClick={() => setCarouselIndex((p) => (p - 1 + events.length) % events.length)}
@@ -189,7 +152,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
     <div className="space-y-2">
       {showMedia && media && <IslandMediaDisplay media={media} />}
       <p className="text-xs font-medium text-center truncate">{current.name}</p>
-      <CountdownGrid remaining={remaining} />
+      <CountdownDisplay targetDate={current.targetDate} />
       {events.length > 1 && (
         <>
           <div className="flex items-center justify-center gap-1.5 pt-1">

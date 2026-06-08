@@ -16,8 +16,39 @@ const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
   'content', 'details', 'items_dropped', 'notable_loot',
 ]);
+
+const CATEGORY_LABELS: Record<string, string> = {
+  world: 'Mundo',
+  tier: 'Tier',
+  rarity: 'Raridade',
+  mark: 'Marca',
+  weapon: 'Arma',
+  enemy: 'Inimigo',
+  boss: 'Chefe',
+  element: 'Elemento',
+  difficulty: 'Dificuldade',
+  type: 'Tipo',
+  category: 'Categoria',
+};
+
 function isTypeLike(col: string): boolean {
   return col === 'type' || col === 'category' || col.endsWith('_type');
+}
+
+function deriveLabel(col: string): string {
+  const base = col.replace(/^(is_|has_)/, '').replace(/_type$/, '');
+  return CATEGORY_LABELS[base] ?? CATEGORY_LABELS[col] ?? col.replace(/_/g, ' ');
+}
+
+function formatCategoryValue(col: string, val: unknown): string {
+  if (typeof val === 'boolean') {
+    const label = deriveLabel(col);
+    return val ? label : `Não ${label[0].toLowerCase() + label.slice(1)}`;
+  }
+  if (typeof val === 'number') {
+    return `${deriveLabel(col)} ${val}`;
+  }
+  return String(val);
 }
 
 function summaryFields(item: Record<string, any>): { icon: React.ReactNode; label: string; value: string }[] {
@@ -42,10 +73,6 @@ function summaryFields(item: Record<string, any>): { icon: React.ReactNode; labe
 
 function toSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-function columnLabel(col: string): string {
-  return col.replace(/_/g, ' ');
 }
 
 type Props = {
@@ -146,48 +173,39 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
     const allKeys = new Set<string>();
     items.forEach(item => Object.keys(item).forEach(k => allKeys.add(k)));
 
-    const valueCounts: Record<string, string[]> = {};
+    const columnValues: Record<string, string[]> = {};
     for (const key of allKeys) {
       if (SYSTEM_COLS.has(key)) continue;
       if (LONG_TEXT_COLS.has(key)) continue;
       if (key.endsWith('_id') || key.endsWith('_url')) continue;
 
-      const valSet = new Set<string>();
+      const values = new Set<string>();
       items.forEach(item => {
         const v = item[key];
-        if (v != null && v !== '' && v !== 'none') valSet.add(String(v));
+        if (v != null && v !== '' && v !== 'none') values.add(String(v));
       });
-      if (valSet.size >= 2 && valSet.size <= 10) {
-        valueCounts[key] = Array.from(valSet).sort();
+      if (values.size >= 2) {
+        columnValues[key] = Array.from(values).sort();
       }
     }
 
-    const entries = Object.entries(valueCounts);
+    const candidates = Object.keys(columnValues);
     let categoryColumn: string | null = null;
 
-    // 1. Prefer type-like columns with ideal cardinality (3-6 values)
-    const typeLikes = entries.filter(([col]) => isTypeLike(col));
-    for (const [col, vals] of typeLikes) {
-      if (vals.length >= 3 && vals.length <= 6) { categoryColumn = col; break; }
+    for (const col of candidates) {
+      if (isTypeLike(col)) { categoryColumn = col; break; }
     }
-    // 2. Any type-like column
-    if (!categoryColumn) {
-      for (const [col] of typeLikes) { categoryColumn = col; break; }
-    }
-    // 3. Any column with ideal cardinality
-    if (!categoryColumn) {
-      for (const [col, vals] of entries) {
-        if (vals.length >= 3 && vals.length <= 6) { categoryColumn = col; break; }
-      }
-    }
-    // 4. First available column
-    if (!categoryColumn && entries.length > 0) {
-      categoryColumn = entries[0][0];
+    if (!categoryColumn && candidates.length > 0) {
+      categoryColumn = candidates[0];
     }
 
-    const filterColumns = Object.entries(valueCounts)
-      .filter(([col]) => col !== categoryColumn)
-      .map(([col, vals]) => ({ column: col, values: vals, label: columnLabel(col) }));
+    const filterColumns = candidates
+      .filter(col => col !== categoryColumn)
+      .map(col => ({
+        column: col,
+        values: columnValues[col],
+        label: deriveLabel(col),
+      }));
 
     return { categoryColumn, filterColumns };
   }, [items]);
@@ -218,8 +236,10 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
   const groupedItems = useMemo(() => {
     if (!columnAnalysis.categoryColumn) return null;
     const groups: Record<string, typeof items> = {};
+    const catCol = columnAnalysis.categoryColumn!;
     for (const item of filteredItems) {
-      const cat = String(item[columnAnalysis.categoryColumn!] ?? 'Outros');
+      const raw = item[catCol];
+      const cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     }

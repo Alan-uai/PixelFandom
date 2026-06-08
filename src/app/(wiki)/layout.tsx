@@ -309,7 +309,7 @@ function WikiLayoutContent({
           </main>
         </div>
 
-        {footerLayout && !isGameTablePage && !isChatPage && (
+        {footerLayout && !isGameTablePage && !isChatPage && !isVoicePage && (
           <footer className="border-t bg-background/80 px-4 py-6">
             <div className="max-w-5xl mx-auto">
               <PageRenderer layout={footerLayout} tenant={tenant} basePath={basePath} />

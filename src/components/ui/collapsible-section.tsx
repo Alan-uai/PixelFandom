@@ -89,7 +89,7 @@ export function CollapsibleSection({
           overflow: 'hidden',
         }}
       >
-        <div ref={contentRef} className="px-6 pb-4">
+        <div ref={contentRef} className="px-6 pb-4 pt-2">
           {children}
         </div>
       </motion.div>

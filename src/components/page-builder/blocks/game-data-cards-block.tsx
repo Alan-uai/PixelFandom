@@ -10,5 +10,15 @@ export function GameDataCardsBlock({ config, tenantId }: { config: GameDataCards
 
   if (!tenantId) return null;
 
-  return <GameDataCardsComponent slug={slug} tenantId={tenantId} title={config.title} />;
+  return (
+    <GameDataCardsComponent
+      slug={slug}
+      tenantId={tenantId}
+      title={config.title}
+      displayFormat={config.displayFormat}
+      columnsCount={config.columnsCount}
+      tabsEnabled={config.tabsEnabled}
+      tabsSubFormat={config.tabsSubFormat}
+    />
+  );
 }

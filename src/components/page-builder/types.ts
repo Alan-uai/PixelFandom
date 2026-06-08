@@ -419,6 +419,10 @@ export interface LatestArticlesConfig {
 
 export interface GameDataCardsConfig {
   title?: string;
+  displayFormat?: 'grid' | 'list' | 'carousel' | 'carousel_infinite';
+  columnsCount?: number;
+  tabsEnabled?: boolean;
+  tabsSubFormat?: 'list' | 'carousel' | 'grid';
 }
 
 export type ArticleSortBy = 'recent' | 'most_voted' | 'most_commented' | 'popular';
@@ -877,6 +881,7 @@ export interface FloatingIslandConfig {
   title: string;
   enabled: boolean;
   config: Record<string, unknown>;
+  endsAt?: string | null;
 }
 
 // ── Widget Config (Chat + Voice) ──

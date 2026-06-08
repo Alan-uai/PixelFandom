@@ -43,6 +43,8 @@ type Props = {
   displayFormat?: string;
   columnsCount?: number;
   title?: string;
+  tabsEnabled?: boolean;
+  tabsSubFormat?: string;
 };
 
 function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
@@ -63,7 +65,7 @@ function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
   );
 }
 
-export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', columnsCount = 4, title }: Props) {
+export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', columnsCount = 4, title, tabsEnabled = false, tabsSubFormat = 'list' }: Props) {
   const { data: catalog = [], loading } = useTableCatalog(slug, true);
   const { homePath } = useWikiPath(slug);
 
@@ -71,7 +73,7 @@ export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  const fmt = displayFormat;
+  const fmt = tabsEnabled ? tabsSubFormat : displayFormat;
   const cols = Math.max(2, Math.min(5, columnsCount));
   const gridColsClass = ({
     2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2',
@@ -163,33 +165,63 @@ export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', 
         )}
       </div>
 
-      {/* Category chips */}
+      {/* Category filter / Tabs */}
       {categories.length > 1 && !searchQuery && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
-              !activeCategory
-                ? 'bg-primary/10 border-primary/30 text-primary'
-                : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
-            }`}
-          >
-            Todas
-          </button>
-          {categories.map(cat => (
+        tabsEnabled ? (
+          /* ── Tabs mode ── */
+          <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto">
             <button
-              key={cat}
-              onClick={() => { setActiveCategory(cat); setCarouselIndex(0); }}
+              onClick={() => setActiveCategory(null)}
+              className={`shrink-0 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+                !activeCategory
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat); setCarouselIndex(0); }}
+                className={`shrink-0 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+                  activeCategory === cat
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* ── Category chips (original) ── */
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <button
+              onClick={() => setActiveCategory(null)}
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
-                activeCategory === cat
+                !activeCategory
                   ? 'bg-primary/10 border-primary/30 text-primary'
                   : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
               }`}
             >
-              {cat}
+              Todas
             </button>
-          ))}
-        </div>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat); setCarouselIndex(0); }}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-primary/10 border-primary/30 text-primary'
+                    : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )
       )}
 
       {filteredEntries.length === 0 ? (

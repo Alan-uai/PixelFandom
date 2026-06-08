@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Bell } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { ChannelSelect } from '@/components/discord/channel-select';
@@ -37,18 +37,18 @@ export default function WikiDiscordPage() {
     prefix: '!',
     status: 'online' as 'online' | 'idle' | 'dnd' | 'invisible',
     commands: [] as CustomCommand[],
-    textChatChannelId: '',
-    curationChannelId: '',
-    supportRoleId: '',
-    memberRoleId: '',
-    editorRoleId: '',
-    adminRoleId: '',
+    textChatChannelId: '', textChatChannelName: '',
+    curationChannelId: '', curationChannelName: '',
+    supportRoleId: '', supportRoleName: '',
+    memberRoleId: '', memberRoleName: '',
+    editorRoleId: '', editorRoleName: '',
+    adminRoleId: '', adminRoleName: '',
     autoPostCodesEnabled: false,
-    autoPostCodesChannelId: '',
+    autoPostCodesChannelId: '', autoPostCodesChannelName: '',
     autoPostArticlesEnabled: false,
-    autoPostArticlesChannelId: '',
+    autoPostArticlesChannelId: '', autoPostArticlesChannelName: '',
     autoPostUpdatesEnabled: false,
-    autoPostUpdatesChannelId: '',
+    autoPostUpdatesChannelId: '', autoPostUpdatesChannelName: '',
   });
 
   const [enabled, setEnabled] = useState(false);
@@ -59,17 +59,26 @@ export default function WikiDiscordPage() {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
 
   const [textChatChannelId, setTextChatChannelId] = useState('');
+  const [textChatChannelName, setTextChatChannelName] = useState('');
   const [curationChannelId, setCurationChannelId] = useState('');
+  const [curationChannelName, setCurationChannelName] = useState('');
   const [supportRoleId, setSupportRoleId] = useState('');
+  const [supportRoleName, setSupportRoleName] = useState('');
   const [memberRoleId, setMemberRoleId] = useState('');
+  const [memberRoleName, setMemberRoleName] = useState('');
   const [editorRoleId, setEditorRoleId] = useState('');
+  const [editorRoleName, setEditorRoleName] = useState('');
   const [adminRoleId, setAdminRoleId] = useState('');
+  const [adminRoleName, setAdminRoleName] = useState('');
   const [autoPostCodesEnabled, setAutoPostCodesEnabled] = useState(false);
   const [autoPostCodesChannelId, setAutoPostCodesChannelId] = useState('');
+  const [autoPostCodesChannelName, setAutoPostCodesChannelName] = useState('');
   const [autoPostArticlesEnabled, setAutoPostArticlesEnabled] = useState(false);
   const [autoPostArticlesChannelId, setAutoPostArticlesChannelId] = useState('');
+  const [autoPostArticlesChannelName, setAutoPostArticlesChannelName] = useState('');
   const [autoPostUpdatesEnabled, setAutoPostUpdatesEnabled] = useState(false);
   const [autoPostUpdatesChannelId, setAutoPostUpdatesChannelId] = useState('');
+  const [autoPostUpdatesChannelName, setAutoPostUpdatesChannelName] = useState('');
 
   const migrateCommands = (raw: any): CustomCommand[] => {
     if (!raw || !Array.isArray(raw) || raw.length === 0) return [];
@@ -87,17 +96,26 @@ export default function WikiDiscordPage() {
     setCommands(loadedCommands);
 
     setTextChatChannelId(config.text_chat_channel_id ?? '');
+    setTextChatChannelName(config.text_chat_channel_name ?? '');
     setCurationChannelId(config.curation_channel_id ?? '');
+    setCurationChannelName(config.curation_channel_name ?? '');
     setSupportRoleId(config.support_role_id ?? '');
+    setSupportRoleName(config.support_role_name ?? '');
     setMemberRoleId(config.member_role_id ?? '');
+    setMemberRoleName(config.member_role_name ?? '');
     setEditorRoleId(config.editor_role_id ?? '');
+    setEditorRoleName(config.editor_role_name ?? '');
     setAdminRoleId(config.admin_role_id ?? '');
+    setAdminRoleName(config.admin_role_name ?? '');
     setAutoPostCodesEnabled(config.auto_post_codes_enabled ?? false);
     setAutoPostCodesChannelId(config.auto_post_codes_channel_id ?? '');
+    setAutoPostCodesChannelName(config.auto_post_codes_channel_name ?? '');
     setAutoPostArticlesEnabled(config.auto_post_articles_enabled ?? false);
     setAutoPostArticlesChannelId(config.auto_post_articles_channel_id ?? '');
+    setAutoPostArticlesChannelName(config.auto_post_articles_channel_name ?? '');
     setAutoPostUpdatesEnabled(config.auto_post_updates_enabled ?? false);
     setAutoPostUpdatesChannelId(config.auto_post_updates_channel_id ?? '');
+    setAutoPostUpdatesChannelName(config.auto_post_updates_channel_name ?? '');
 
     initialRef.current = {
       enabled: config.enabled ?? false,
@@ -107,17 +125,26 @@ export default function WikiDiscordPage() {
       status: config.status ?? 'online',
       commands: loadedCommands,
       textChatChannelId: config.text_chat_channel_id ?? '',
+      textChatChannelName: config.text_chat_channel_name ?? '',
       curationChannelId: config.curation_channel_id ?? '',
+      curationChannelName: config.curation_channel_name ?? '',
       supportRoleId: config.support_role_id ?? '',
+      supportRoleName: config.support_role_name ?? '',
       memberRoleId: config.member_role_id ?? '',
+      memberRoleName: config.member_role_name ?? '',
       editorRoleId: config.editor_role_id ?? '',
+      editorRoleName: config.editor_role_name ?? '',
       adminRoleId: config.admin_role_id ?? '',
+      adminRoleName: config.admin_role_name ?? '',
       autoPostCodesEnabled: config.auto_post_codes_enabled ?? false,
       autoPostCodesChannelId: config.auto_post_codes_channel_id ?? '',
+      autoPostCodesChannelName: config.auto_post_codes_channel_name ?? '',
       autoPostArticlesEnabled: config.auto_post_articles_enabled ?? false,
       autoPostArticlesChannelId: config.auto_post_articles_channel_id ?? '',
+      autoPostArticlesChannelName: config.auto_post_articles_channel_name ?? '',
       autoPostUpdatesEnabled: config.auto_post_updates_enabled ?? false,
       autoPostUpdatesChannelId: config.auto_post_updates_channel_id ?? '',
+      autoPostUpdatesChannelName: config.auto_post_updates_channel_name ?? '',
     };
   };
 
@@ -181,17 +208,26 @@ export default function WikiDiscordPage() {
         status,
         custom_commands: commands,
         text_chat_channel_id: textChatChannelId || undefined,
+        text_chat_channel_name: textChatChannelName || undefined,
         curation_channel_id: curationChannelId || undefined,
+        curation_channel_name: curationChannelName || undefined,
         support_role_id: supportRoleId || undefined,
+        support_role_name: supportRoleName || undefined,
         member_role_id: memberRoleId || undefined,
+        member_role_name: memberRoleName || undefined,
         editor_role_id: editorRoleId || undefined,
+        editor_role_name: editorRoleName || undefined,
         admin_role_id: adminRoleId || undefined,
+        admin_role_name: adminRoleName || undefined,
         auto_post_codes_enabled: autoPostCodesEnabled || undefined,
         auto_post_codes_channel_id: autoPostCodesChannelId || undefined,
+        auto_post_codes_channel_name: autoPostCodesChannelName || undefined,
         auto_post_articles_enabled: autoPostArticlesEnabled || undefined,
         auto_post_articles_channel_id: autoPostArticlesChannelId || undefined,
+        auto_post_articles_channel_name: autoPostArticlesChannelName || undefined,
         auto_post_updates_enabled: autoPostUpdatesEnabled || undefined,
         auto_post_updates_channel_id: autoPostUpdatesChannelId || undefined,
+        auto_post_updates_channel_name: autoPostUpdatesChannelName || undefined,
       };
 
       const { error } = await supabase
@@ -205,11 +241,15 @@ export default function WikiDiscordPage() {
         initialRef.current = {
           enabled, botName, botAvatar, prefix, status,
           commands: JSON.parse(JSON.stringify(commands)),
-          textChatChannelId, curationChannelId,
-          supportRoleId, memberRoleId, editorRoleId, adminRoleId,
-          autoPostCodesEnabled, autoPostCodesChannelId,
-          autoPostArticlesEnabled, autoPostArticlesChannelId,
-          autoPostUpdatesEnabled, autoPostUpdatesChannelId,
+          textChatChannelId, textChatChannelName,
+          curationChannelId, curationChannelName,
+          supportRoleId, supportRoleName,
+          memberRoleId, memberRoleName,
+          editorRoleId, editorRoleName,
+          adminRoleId, adminRoleName,
+          autoPostCodesEnabled, autoPostCodesChannelId, autoPostCodesChannelName,
+          autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
+          autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
         };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -243,17 +283,26 @@ export default function WikiDiscordPage() {
     status !== initialRef.current.status ||
     JSON.stringify(commands.map((c) => c.enabled)) !== JSON.stringify(initialRef.current.commands.map((c) => c.enabled)) ||
     textChatChannelId !== initialRef.current.textChatChannelId ||
+    textChatChannelName !== initialRef.current.textChatChannelName ||
     curationChannelId !== initialRef.current.curationChannelId ||
+    curationChannelName !== initialRef.current.curationChannelName ||
     supportRoleId !== initialRef.current.supportRoleId ||
+    supportRoleName !== initialRef.current.supportRoleName ||
     memberRoleId !== initialRef.current.memberRoleId ||
+    memberRoleName !== initialRef.current.memberRoleName ||
     editorRoleId !== initialRef.current.editorRoleId ||
+    editorRoleName !== initialRef.current.editorRoleName ||
     adminRoleId !== initialRef.current.adminRoleId ||
+    adminRoleName !== initialRef.current.adminRoleName ||
     autoPostCodesEnabled !== initialRef.current.autoPostCodesEnabled ||
     autoPostCodesChannelId !== initialRef.current.autoPostCodesChannelId ||
+    autoPostCodesChannelName !== initialRef.current.autoPostCodesChannelName ||
     autoPostArticlesEnabled !== initialRef.current.autoPostArticlesEnabled ||
     autoPostArticlesChannelId !== initialRef.current.autoPostArticlesChannelId ||
+    autoPostArticlesChannelName !== initialRef.current.autoPostArticlesChannelName ||
     autoPostUpdatesEnabled !== initialRef.current.autoPostUpdatesEnabled ||
-    autoPostUpdatesChannelId !== initialRef.current.autoPostUpdatesChannelId;
+    autoPostUpdatesChannelId !== initialRef.current.autoPostUpdatesChannelId ||
+    autoPostUpdatesChannelName !== initialRef.current.autoPostUpdatesChannelName;
 
   return (
     <GuildDataProvider>
@@ -449,14 +498,16 @@ export default function WikiDiscordPage() {
                 <ChannelSelect
                   label="Chat de Texto do Jogo"
                   description="Canal onde o chat de texto do jogo opera."
-                  value={textChatChannelId}
-                  onChange={setTextChatChannelId}
+                  channelId={textChatChannelId}
+                  channelName={textChatChannelName}
+                  onChange={(id, name) => { setTextChatChannelId(id); setTextChatChannelName(name); }}
                 />
                 <ChannelSelect
                   label="Curadoria de Respostas"
                   description="Canal onde respostas com reação negativa são enviadas para revisão."
-                  value={curationChannelId}
-                  onChange={setCurationChannelId}
+                  channelId={curationChannelId}
+                  channelName={curationChannelName}
+                  onChange={(id, name) => { setCurationChannelId(id); setCurationChannelName(name); }}
                 />
               </div>
             </CollapsibleSection>
@@ -470,26 +521,30 @@ export default function WikiDiscordPage() {
                 <RoleSelect
                   label="Suporte"
                   description="Cargo mencionado quando o bot não souber responder."
-                  value={supportRoleId}
-                  onChange={setSupportRoleId}
+                  roleId={supportRoleId}
+                  roleName={supportRoleName}
+                  onChange={(id, name) => { setSupportRoleId(id); setSupportRoleName(name); }}
                 />
                 <RoleSelect
                   label="Membro"
                   description="Cargo base de membro da wiki no Discord."
-                  value={memberRoleId}
-                  onChange={setMemberRoleId}
+                  roleId={memberRoleId}
+                  roleName={memberRoleName}
+                  onChange={(id, name) => { setMemberRoleId(id); setMemberRoleName(name); }}
                 />
                 <RoleSelect
                   label="Editor"
                   description="Cargo de editor da wiki no Discord."
-                  value={editorRoleId}
-                  onChange={setEditorRoleId}
+                  roleId={editorRoleId}
+                  roleName={editorRoleName}
+                  onChange={(id, name) => { setEditorRoleId(id); setEditorRoleName(name); }}
                 />
                 <RoleSelect
                   label="Administrador"
                   description="Cargo de administrador da wiki no Discord."
-                  value={adminRoleId}
-                  onChange={setAdminRoleId}
+                  roleId={adminRoleId}
+                  roleName={adminRoleName}
+                  onChange={(id, name) => { setAdminRoleId(id); setAdminRoleName(name); }}
                 />
               </div>
             </CollapsibleSection>
@@ -519,8 +574,9 @@ export default function WikiDiscordPage() {
                     <ChannelSelect
                       label="Canal de Códigos"
                       description="Canal onde os códigos serão publicados."
-                      value={autoPostCodesChannelId}
-                      onChange={setAutoPostCodesChannelId}
+                      channelId={autoPostCodesChannelId}
+                      channelName={autoPostCodesChannelName}
+                      onChange={(id, name) => { setAutoPostCodesChannelId(id); setAutoPostCodesChannelName(name); }}
                     />
                   )}
                 </div>
@@ -544,8 +600,9 @@ export default function WikiDiscordPage() {
                     <ChannelSelect
                       label="Canal de Artigos"
                       description="Canal onde os artigos serão publicados."
-                      value={autoPostArticlesChannelId}
-                      onChange={setAutoPostArticlesChannelId}
+                      channelId={autoPostArticlesChannelId}
+                      channelName={autoPostArticlesChannelName}
+                      onChange={(id, name) => { setAutoPostArticlesChannelId(id); setAutoPostArticlesChannelName(name); }}
                     />
                   )}
                 </div>
@@ -569,8 +626,9 @@ export default function WikiDiscordPage() {
                     <ChannelSelect
                       label="Canal de Updates"
                       description="Canal onde os updates serão publicados."
-                      value={autoPostUpdatesChannelId}
-                      onChange={setAutoPostUpdatesChannelId}
+                      channelId={autoPostUpdatesChannelId}
+                      channelName={autoPostUpdatesChannelName}
+                      onChange={(id, name) => { setAutoPostUpdatesChannelId(id); setAutoPostUpdatesChannelName(name); }}
                     />
                   )}
                 </div>

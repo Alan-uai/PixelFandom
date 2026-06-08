@@ -41,6 +41,7 @@ export default function WikiPage() {
   const articles = wiki?.articles;
   const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
+  const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
   const widgetConfig = (tenantTheme.widgets as Record<string, unknown>) || {};
   const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
   const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
@@ -395,7 +396,16 @@ export default function WikiPage() {
         ) : (
           <>
 
-            {!searchQuery && <GameDataCards slug={slug} tenantId={tenant.id} />}
+            {!searchQuery && (
+              <GameDataCards
+                slug={slug}
+                tenantId={tenant.id}
+                displayFormat={gameTablesDisplay.default_format as string}
+                columnsCount={gameTablesDisplay.default_columns as number}
+                tabsEnabled={gameTablesDisplay.tabs_enabled as boolean}
+                tabsSubFormat={gameTablesDisplay.tabs_sub_format as string}
+              />
+            )}
 
             {articles && articles.length > 0 && (
               <>

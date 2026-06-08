@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { IslandMedia } from '@/components/page-builder/types';
 import { IslandMediaDisplay } from './island-media-display';
+import { CountdownDisplay, getRemaining } from './countdown-display';
 
 interface QueueItem {
   name: string;
@@ -29,44 +30,6 @@ function getNextTargetTime(time: string): Date {
     candidate.setDate(candidate.getDate() + 1);
   }
   return candidate;
-}
-
-function getRemaining(target: Date) {
-  const diff = target.getTime() - Date.now();
-  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
-  return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff % 86400000) / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    seconds: Math.floor((diff % 60000) / 1000),
-    expired: false,
-  };
-}
-
-function CountdownGrid({ remaining }: { remaining: { days: number; hours: number; minutes: number; seconds: number; expired: boolean } }) {
-  if (remaining.expired) {
-    return <p className="text-xs font-bold text-destructive text-center animate-pulse">ACONTECENDO AGORA</p>;
-  }
-  return (
-    <div className="grid grid-cols-4 gap-1 text-center">
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{remaining.days}</p>
-        <p className="text-[9px] text-muted-foreground">dias</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.hours).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">horas</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.minutes).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">min</p>
-      </div>
-      <div className="rounded bg-primary/10 p-1">
-        <p className="text-sm font-bold text-primary">{String(remaining.seconds).padStart(2, '0')}</p>
-        <p className="text-[9px] text-muted-foreground">seg</p>
-      </div>
-    </div>
-  );
 }
 
 export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandProps) {
@@ -142,7 +105,7 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
           <p className="text-xs font-medium text-center mb-1 truncate max-w-full">{slide.name}</p>
           <p className="text-[10px] text-muted-foreground mb-2">{slide.time}</p>
           {slide === currentItem ? (
-            <CountdownGrid remaining={slideRem} />
+            <CountdownDisplay targetDate={slideTarget} />
           ) : (
             <p className="text-[10px] text-muted-foreground">{slideRem.expired ? 'REALIZADO' : 'Aguardando'}</p>
           )}
@@ -187,7 +150,7 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
                 <span className="text-xs font-medium truncate">{item.name}</span>
                 <span className="text-[10px] text-muted-foreground shrink-0">{item.time}</span>
               </div>
-              {isNext && rem && <CountdownGrid remaining={rem} />}
+              {isNext && rem && <CountdownDisplay targetDate={target} compact />}
             </div>
           );
         })}
@@ -201,7 +164,7 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
       {showMedia && media && <IslandMediaDisplay media={media} />}
       <p className="text-xs font-medium text-center truncate">{currentItem?.name}</p>
       <p className="text-[10px] text-muted-foreground text-center">{currentItem?.time}</p>
-      <CountdownGrid remaining={remaining} />
+      {nextTime && <CountdownDisplay targetDate={nextTime} />}
       <p className="text-[10px] text-muted-foreground text-center">
         Próximo: {nextItem?.name} ({nextItem?.time})
       </p>

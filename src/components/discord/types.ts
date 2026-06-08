@@ -442,19 +442,28 @@ export interface DiscordConfig {
   enabled?: boolean;
 
   text_chat_channel_id?: string;
+  text_chat_channel_name?: string;
   curation_channel_id?: string;
+  curation_channel_name?: string;
 
   support_role_id?: string;
+  support_role_name?: string;
   member_role_id?: string;
+  member_role_name?: string;
   editor_role_id?: string;
+  editor_role_name?: string;
   admin_role_id?: string;
+  admin_role_name?: string;
 
   auto_post_codes_enabled?: boolean;
   auto_post_codes_channel_id?: string;
+  auto_post_codes_channel_name?: string;
   auto_post_articles_enabled?: boolean;
   auto_post_articles_channel_id?: string;
+  auto_post_articles_channel_name?: string;
   auto_post_updates_enabled?: boolean;
   auto_post_updates_channel_id?: string;
+  auto_post_updates_channel_name?: string;
 }
 
 export function generateId(): string {
