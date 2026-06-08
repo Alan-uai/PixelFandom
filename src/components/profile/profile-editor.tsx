@@ -121,6 +121,7 @@ export default function ProfileEditor() {
             pathPrefix={`avatars/${user?.id || 'new'}`}
             value={avatarUrl}
             onChange={setAvatarUrl}
+            label="Foto do Perfil"
             previewSize="w-20 h-20 rounded-full"
           />
           <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 512x512.</p>
@@ -141,6 +142,7 @@ export default function ProfileEditor() {
             pathPrefix={`profile-covers/${user?.id || 'new'}`}
             value={coverImage}
             onChange={setCoverImage}
+            label="Capa do Perfil"
             previewSize="w-full h-24"
           />
           <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x300.</p>

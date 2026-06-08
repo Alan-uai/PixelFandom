@@ -111,8 +111,8 @@ function ItemCard({
             <div className="mt-2">
               <ChipCarousel>
                 {fields.map((f, i) => (
-                  <span key={i} className="shrink-0 inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
-                    {f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span>
+                  <span key={i} className="shrink-0 max-w-[200px] overflow-x-auto scrollbar-hide inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                    <span className="whitespace-nowrap">{f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span></span>
                   </span>
                 ))}
               </ChipCarousel>
@@ -283,14 +283,14 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
                     <button
                       key={v}
                       onClick={() => toggleFilter(fc.column, v)}
-                      className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
+                      className={`shrink-0 max-w-[200px] overflow-x-auto scrollbar-hide inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
                         active
                           ? 'bg-primary/10 border-primary/30 text-primary'
                           : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
                       }`}
                     >
-                      {v}
-                      {active && <X className="h-3 w-3" />}
+                      <span className="whitespace-nowrap">{v}</span>
+                      {active && <X className="h-3 w-3 shrink-0" />}
                     </button>
                   );
                 })}

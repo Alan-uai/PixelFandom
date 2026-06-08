@@ -8,6 +8,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
@@ -185,41 +186,25 @@ export default function WikiDiscordPage() {
           <DiscordLoginGate />
         </section>
 
-        <section id="status">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Power className="h-5 w-5" />
-              Status do Bot
-            </CardTitle>
-            <CardDescription>Ligue ou desligue o bot do Discord.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Bot Ativo</p>
-                <p className="text-sm text-muted-foreground">
-                  Quando ativo, o bot responde a comandos no Discord.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300"
-              />
+        <CollapsibleSection id="status" title="Status do Bot" description="Ligue ou desligue o bot do Discord.">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Bot Ativo</p>
+              <p className="text-sm text-muted-foreground">
+                Quando ativo, o bot responde a comandos no Discord.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-        </section>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300"
+            />
+          </div>
+        </CollapsibleSection>
 
-        <section id="identity">
-        <Card>
-          <CardHeader>
-            <CardTitle>Identidade do Bot</CardTitle>
-            <CardDescription>Nome e avatar do bot no Discord.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <CollapsibleSection id="identity" title="Identidade do Bot" description="Nome e avatar do bot no Discord.">
+          <div className="space-y-4">
             <FloatingLabelInput
               label="Nome do Bot"
               value={botName}
@@ -240,6 +225,7 @@ export default function WikiDiscordPage() {
                   pathPrefix={`discord-avatars/${slug}`}
                   value={botAvatar || ''}
                   onChange={(url) => setBotAvatar(url || null)}
+                  label="Avatar do Bot"
                   previewSize="w-16 h-16 rounded-full"
                 />
                 <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
@@ -260,17 +246,11 @@ export default function WikiDiscordPage() {
                 <option value="invisible">Invisível</option>
               </select>
             </div>
-          </CardContent>
-        </Card>
-        </section>
+          </div>
+        </CollapsibleSection>
 
-        <section id="messages">
-        <Card>
-          <CardHeader>
-            <CardTitle>Prefixo de Comandos</CardTitle>
-            <CardDescription>Configure o prefixo dos comandos do bot.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <CollapsibleSection id="messages" title="Prefixo de Comandos" description="Configure o prefixo dos comandos do bot.">
+          <div className="space-y-4">
             <FloatingLabelInput
               label="Prefixo de Comandos"
               value={prefix}
@@ -278,19 +258,11 @@ export default function WikiDiscordPage() {
               maxLength={5}
               className="w-24"
             />
-          </CardContent>
-        </Card>
-        </section>
+          </div>
+        </CollapsibleSection>
 
-        <section id="commands">
-        <Card>
-          <CardHeader>
-            <CardTitle>Comandos Personalizados</CardTitle>
-            <CardDescription>
-              Ative/desative comandos existentes. Clique em "Editar" para configurar triggers, ações e embeds.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <CollapsibleSection id="commands" title="Comandos Personalizados" description='Ative/desative comandos existentes. Clique em "Editar" para configurar triggers, ações e embeds.'>
+          <div className="space-y-3">
             {commands.length === 0 ? (
               <div className="text-center py-6 space-y-3">
                 <p className="text-sm text-muted-foreground">Nenhum comando personalizado ainda.</p>
@@ -352,47 +324,29 @@ export default function WikiDiscordPage() {
                 Novo Comando
               </Button>
             )}
-          </CardContent>
-        </Card>
-        </section>
+          </div>
+        </CollapsibleSection>
 
-        <section id="servers">
-        {dbGuilds.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Servidores Conectados</CardTitle>
-              <CardDescription>Servidores onde o bot está presente.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+        <CollapsibleSection id="servers" title="Servidores Conectados" description="Servidores onde o bot está presente.">
+          {dbGuilds.length > 0 ? (
+            <div className="space-y-3">
               {dbGuilds.map((guild) => (
-                <div
-                  key={guild.guild_id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
+                <div key={guild.guild_id} className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <p className="text-sm font-mono font-medium">{guild.guild_id}</p>
                     {guild.channel_id && (
-                      <p className="text-xs text-muted-foreground">
-                        Canal: {guild.channel_id}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Canal: {guild.channel_id}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        guild.bot_enabled ? 'bg-green-500' : 'bg-muted-foreground'
-                      }`}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {guild.bot_enabled ? 'Ativo' : 'Inativo'}
-                    </span>
+                    <span className={`h-2 w-2 rounded-full ${guild.bot_enabled ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                    <span className="text-xs text-muted-foreground">{guild.bot_enabled ? 'Ativo' : 'Inativo'}</span>
                   </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        )}
-        </section>
+            </div>
+          ) : null}
+        </CollapsibleSection>
 
         {savedFeedback ? (
           <div className="flex items-center gap-2 text-sm text-green-500 font-medium">

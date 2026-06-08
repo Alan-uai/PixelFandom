@@ -10,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot, Sparkles } from 'lucide-react';
+import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
 
@@ -345,39 +346,25 @@ export default function WikiAIConfigPage() {
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
 
-      <section id="activation">
-      <Card>
-        <CardHeader>
-          <CardTitle>Ativação</CardTitle>
-          <CardDescription>Ligue ou desligue o assistente IA.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Assistente IA</p>
-              <p className="text-sm text-muted-foreground">
-                Quando ativo, usuários podem conversar com a IA sobre o conteúdo da wiki.
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300"
-            />
+      <CollapsibleSection id="activation" title="Ativação" description="Ligue ou desligue o assistente IA.">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium">Assistente IA</p>
+            <p className="text-sm text-muted-foreground">
+              Quando ativo, usuários podem conversar com a IA sobre o conteúdo da wiki.
+            </p>
           </div>
-        </CardContent>
-      </Card>
-      </section>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="h-5 w-5 rounded border-gray-300"
+          />
+        </div>
+      </CollapsibleSection>
 
-      <section id="model">
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuração do Modelo</CardTitle>
-          <CardDescription>Escolha o provedor de IA, modelo e personalize o comportamento.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-
+      <CollapsibleSection id="model" title="Configuração do Modelo" description="Escolha o provedor de IA, modelo e personalize o comportamento.">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Provedor</Label>
             <div className="flex gap-2">
@@ -751,8 +738,8 @@ export default function WikiAIConfigPage() {
               Nome exibido na interface do chat (texto e voz).
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleSection>
 
       {savedFeedback ? (
         <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
@@ -765,18 +752,9 @@ export default function WikiAIConfigPage() {
           Salvar Configuração
         </Button>
       ) : null}
-      </section>
 
-      <section id="personality">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            Personalidade
-          </CardTitle>
-          <CardDescription>Escolha o estilo de resposta do assistente IA.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="personality" title="Personalidade" description="Escolha o estilo de resposta do assistente IA.">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {AI_PERSONALITIES.map((p) => (
               <button
@@ -826,6 +804,7 @@ Quais são as melhores armas?"
                 pathPrefix={`bot-logos/${slug}`}
                 value={botLogo}
                 onChange={setBotLogo}
+                label="Logo do Bot"
                 previewSize="w-16 h-16 rounded-full"
               />
               <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
@@ -845,25 +824,17 @@ Quais são as melhores armas?"
                 pathPrefix={`bot-banners/${slug}`}
                 value={botBanner}
                 onChange={setBotBanner}
+                label="Banner do Chat"
                 previewSize="w-full h-20"
               />
               <p className="text-xs text-muted-foreground mt-2">Imagem de fundo do cabeçalho do chat.</p>
             </CardContent>
           </Card>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="voice">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Headphones className="h-5 w-5" />
-            Agente de Voz
-          </CardTitle>
-          <CardDescription>Configure a palavra de ativação do assistente de voz.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="voice" title="Agente de Voz" description="Configure a palavra de ativação do assistente de voz.">
+        <div className="space-y-4">
           <div>
             <FloatingLabelInput
               label="Nome do Agente (Palavra de Ativação)"
@@ -875,26 +846,12 @@ Quais são as melhores armas?"
               Nome usado para ativar o assistente de voz por comando de voz.
             </p>
           </div>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="test">
-      {enabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mic className="h-5 w-5" />
-              Testar Assistente de Voz
-            </CardTitle>
-            <CardDescription>Teste a palavra de ativação do agente de voz.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <WakeWordTest wakeWordText={wakeWordText} />
-          </CardContent>
-        </Card>
-      )}
-      </section>
+      <CollapsibleSection id="test" title="Testar Assistente de Voz" description="Teste a palavra de ativação do agente de voz.">
+        {enabled && <WakeWordTest wakeWordText={wakeWordText} />}
+      </CollapsibleSection>
     </div>
   );
 }

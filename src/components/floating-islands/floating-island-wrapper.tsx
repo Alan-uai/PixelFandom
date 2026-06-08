@@ -73,13 +73,13 @@ export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpa
 
   return (
     <div
-      className={`rounded-lg border bg-card transition-all ${
+      className={`border bg-card transition-all ${
         isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md'
       }`}
     >
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium hover:bg-muted/50 transition-colors rounded-t-lg"
+        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium hover:bg-muted/50 transition-colors"
       >
         {Icon && <Icon className="h-3.5 w-3.5 text-primary shrink-0" />}
         <span className="flex-1 truncate">{island.title || island.type}</span>
@@ -90,7 +90,7 @@ export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpa
         )}
       </button>
       {isExpanded && (
-        <div className="px-3 pb-3 pt-1 border-t border-border/50">
+        <div className="px-4 pb-4 pt-2 border-t border-border/50">
           {renderContent()}
         </div>
       )}

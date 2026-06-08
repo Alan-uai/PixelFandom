@@ -1,42 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Flame, Snowflake, Skull, Ghost, Globe, Droplets, Gem,
   ScrollText, Lightbulb, MessageCircle, Eye, Crosshair,
-  Coins, Pickaxe, Sparkles,
+  Coins, Pickaxe, Sparkles, Crown,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
-
-type Props = {
-  data: Record<string, any>;
-  collectionType?: string;
-  updatedAt?: string;
-  createdAt?: string;
-  tenantId?: string;
-  tenantSlug?: string;
-  sourceTable?: string;
-  comparisonMode?: 'modal' | 'page';
-  schema?: ColumnInfo[];
-};
-
-function detectType(data: Record<string, unknown>): string {
-  if (data.damage_min !== undefined || data.weapon_type) return 'weapons';
-  if (data.health_bonus !== undefined) return 'armors';
-  if (data.key_buffs || data.synergy) return 'rings';
-  if (data.shop_price !== undefined) return 'potions';
-  if (data.max_ranks !== undefined) return 'upgrades';
-  if (data.enemy_type) return 'enemies';
-  if (data.boss_type) return 'bosses';
-  if (data.code !== undefined) return 'codes';
-  if (data.item_name) return 'crafting-recipes';
-  if (data.world_name) return 'worlds';
-  return 'generic';
-}
 
 const RARITY_COLORS: Record<string, string> = {
   common: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
@@ -99,15 +73,20 @@ function ColoredText({ text }: { text: string }) {
   return c ? <span className={c}>{text}</span> : <>{text}</>;
 }
 
-function Tag({ children, className = '', icon }: { children: React.ReactNode; className?: string; icon?: React.ReactNode }) {
-  return <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}>{icon}{children}</span>;
+function Tag({ children, className = '', icon, title }: { children: React.ReactNode; className?: string; icon?: React.ReactNode; title?: string }) {
+  return (
+    <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium max-w-[220px] overflow-x-auto scrollbar-hide shrink-0 ${className}`}>
+      {icon}{children}
+    </span>
+  );
 }
 
-function StatCard({ label, value, icon, color, onClick }: { label: string; value: string; icon?: React.ReactNode; color?: string; onClick?: () => void }) {
+function StatCard({ label, value, icon, color, onClick, title }: { label: string; value: string; icon?: React.ReactNode; color?: string; onClick?: () => void; title?: string }) {
   const Comp = onClick ? 'button' : 'div';
   return (
     <Comp
       onClick={onClick}
+      title={title}
       className={`flex flex-col items-center justify-center rounded-xl border bg-card p-4 min-w-[100px] ${onClick ? 'cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all' : ''}`}
     >
       {icon && <div className="mb-1 text-muted-foreground">{icon}</div>}
@@ -130,15 +109,6 @@ function Accordion({ title, icon, defaultOpen, children }: { title: string; icon
   );
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
-      <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0">{label}</span>
-      <div className="text-sm flex-1">{children}</div>
-    </div>
-  );
-}
-
 function elIcon(el: string): React.ReactNode {
   const e = el.toLowerCase();
   if (e.includes('fire') || e.includes('flame')) return <Flame className="h-3 w-3" />;
@@ -150,19 +120,6 @@ function elIcon(el: string): React.ReactNode {
   if (e.includes('lightning') || e.includes('thunder')) return <Zap className="h-3 w-3" />;
   return <Zap className="h-3 w-3" />;
 }
-
-const COLL_ICON: Record<string, React.ReactNode> = {
-  weapons: <Sword className="h-5 w-5" />,
-  armors: <Shield className="h-5 w-5" />,
-  rings: <Gem className="h-5 w-5" />,
-  potions: <Droplets className="h-5 w-5" />,
-  upgrades: <Zap className="h-5 w-5" />,
-  enemies: <Skull className="h-5 w-5" />,
-  bosses: <Skull className="h-5 w-5" />,
-  codes: <ScrollText className="h-5 w-5" />,
-  'crafting-recipes': <Pickaxe className="h-5 w-5" />,
-  worlds: <Globe className="h-5 w-5" />,
-};
 
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—';
@@ -178,31 +135,66 @@ function isArrStr(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((i) => typeof i === 'string');
 }
 
-const SKIP = new Set(['name', 'title', 'description', 'summary', 'id', 'image', 'image_url', 'rarity', 'tier', 'element', 'updated_at', 'created_at', 'world_name', 'item_name', 'embedding']);
+function toList(v: unknown): string[] | null {
+  if (Array.isArray(v)) return v.map((i) => String(i));
+  if (typeof v === 'string') return v.split(',').map((s) => s.trim());
+  return null;
+}
 
-const EXTRA_FIELDS = new Set([
-  'obtain_method', 'chapter', 'chapters', 'starting_banner', 'drop_wave_requirement',
-  'code', 'code_type', 'rewards', 'reward_type', 'xp_drop', 'coin_drop',
-  'environment', 'warning', 'speed_level', 'strength_level', 'item_name', 'item_type',
-  'worth_notes', 'savings_percentage', 'second_slot_unlock_level',
-  'verified_date', 'verified_by', 'expired_date',
-]);
+type FieldMeta = {
+  label: string;
+  icon?: React.ReactNode;
+  color?: string;
+};
 
-const ALREADY_RENDERED = new Set([
-  'ability', 'key_buffs', 'possible_stats', 'effects', 'attacks', 'weakness',
-  'items_dropped', 'notable_loot', 'set_bonus', 'passive_ability', 'passive_ability_level',
-  'phase_mechanics', 'strategy', 'tips', 'notes', 'important_notes', 'synergy',
-  'per_rank_effect', 'damage_per_spirit', 'craft_materials', 'crafting_materials',
-  'materials', 'weapon_type', 'attack_speed', 'enemy_type', 'difficulty', 'boss_type',
-  'category', 'health_level', 'is_must_pick', 'is_worth_crafting', 'is_active',
-  'is_expired', 'is_craftable', 'damage_min', 'damage_max', 'crit_chance_min',
-  'crit_chance_max', 'knockback', 'health_bonus', 'speed_bonus', 'energy_bonus',
-  'shop_price', 'craft_cost', 'gold_cost', 'max_uses_per_run', 'unlock_level',
-  'max_ranks', 'priority_order', 'drop_rate_percentage', 'drop_rate_multiplier',
-  'crafting_cost', 'obtain_method',
-]);
-
-// ── Dynamic schema-driven rendering helpers ──
+const FIELD_LABELS: Record<string, FieldMeta> = {
+  damage_min: { label: 'Dano Mín', icon: <Sword className="h-4 w-4" /> },
+  damage_max: { label: 'Dano Máx', icon: <Sword className="h-4 w-4" /> },
+  crit_chance_min: { label: 'Chance Crítica', icon: <Crosshair className="h-4 w-4" />, color: 'text-yellow-400' },
+  crit_chance_max: { label: 'Crit Máx', icon: <Crosshair className="h-4 w-4" />, color: 'text-yellow-400' },
+  knockback: { label: 'Repulsão', icon: <Zap className="h-4 w-4" /> },
+  health_bonus: { label: 'Bônus HP', icon: <Shield className="h-4 w-4" />, color: 'text-emerald-400' },
+  speed_bonus: { label: 'Bônus Velocidade', icon: <Zap className="h-4 w-4" />, color: 'text-cyan-400' },
+  energy_bonus: { label: 'Bônus Energia', icon: <Zap className="h-4 w-4" />, color: 'text-purple-400' },
+  shop_price: { label: 'Preço', icon: <Coins className="h-4 w-4" /> },
+  craft_cost: { label: 'Custo Craft', icon: <Pickaxe className="h-4 w-4" /> },
+  gold_cost: { label: 'Custo (Ouro)', icon: <Pickaxe className="h-4 w-4" /> },
+  max_uses_per_run: { label: 'Usos / Run', icon: <Zap className="h-4 w-4" /> },
+  unlock_level: { label: 'Nível Mín', icon: <Star className="h-4 w-4" /> },
+  max_ranks: { label: 'Ranks Máx', icon: <Gem className="h-4 w-4" /> },
+  priority_order: { label: 'Prioridade', icon: <Crosshair className="h-4 w-4" /> },
+  drop_rate_percentage: { label: 'Drop Rate', icon: <Star className="h-4 w-4" />, color: 'text-yellow-400' },
+  drop_rate_multiplier: { label: 'Mult. Drop', icon: <Star className="h-4 w-4" />, color: 'text-yellow-400' },
+  obtain_method: { label: 'Como Obter', icon: <Crosshair className="h-4 w-4" /> },
+  world_name: { label: 'Mundo', icon: <Globe className="h-4 w-4" /> },
+  chapter: { label: 'Capítulo', icon: <Gem className="h-4 w-4" /> },
+  starting_banner: { label: 'Banner Inicial', icon: <Star className="h-4 w-4" /> },
+  drop_wave_requirement: { label: 'Wave Mín', icon: <Zap className="h-4 w-4" />, color: 'text-orange-400' },
+  environment: { label: 'Ambiente', icon: <Globe className="h-4 w-4" /> },
+  warning: { label: 'Atenção', icon: <Sparkles className="h-4 w-4" /> },
+  weapon_type: { label: 'Tipo de Arma', icon: <Sword className="h-4 w-4" /> },
+  attack_speed: { label: 'Velocidade', icon: <Zap className="h-4 w-4" /> },
+  enemy_type: { label: 'Tipo de Inimigo', icon: <Skull className="h-4 w-4" /> },
+  difficulty: { label: 'Dificuldade', icon: <Crosshair className="h-4 w-4" /> },
+  boss_type: { label: 'Tipo de Chefe', icon: <Crown className="h-4 w-4" /> },
+  category: { label: 'Categoria', icon: <Gem className="h-4 w-4" /> },
+  health_level: { label: 'Nível HP', icon: <Shield className="h-4 w-4" /> },
+  speed_level: { label: 'Nível Velocidade', icon: <Zap className="h-4 w-4" /> },
+  strength_level: { label: 'Nível Força', icon: <Crosshair className="h-4 w-4" /> },
+  passive_ability_level: { label: 'Nível Passiva', icon: <Star className="h-4 w-4" /> },
+  xp_drop: { label: 'XP Dropado', icon: <Star className="h-4 w-4" /> },
+  coin_drop: { label: 'Moedas Dropadas', icon: <Coins className="h-4 w-4" /> },
+  item_name: { label: 'Item', icon: <Gem className="h-4 w-4" /> },
+  code_type: { label: 'Tipo de Código', icon: <ScrollText className="h-4 w-4" /> },
+  reward_type: { label: 'Tipo de Recompensa', icon: <Sparkles className="h-4 w-4" /> },
+  worth_notes: { label: 'Vale Anotar', icon: <MessageCircle className="h-4 w-4" /> },
+  savings_percentage: { label: 'Economia (%)', icon: <Coins className="h-4 w-4" /> },
+  second_slot_unlock_level: { label: '2º Slot (Nível)', icon: <Star className="h-4 w-4" /> },
+  verified_date: { label: 'Verificado em', icon: <Star className="h-4 w-4" /> },
+  verified_by: { label: 'Verificado por', icon: <MessageCircle className="h-4 w-4" /> },
+  expired_date: { label: 'Expira em', icon: <Star className="h-4 w-4" /> },
+  crafting_cost: { label: 'Custo Craft', icon: <Pickaxe className="h-4 w-4" /> },
+};
 
 const NUMERIC_TYPES = new Set([
   'integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision',
@@ -223,20 +215,315 @@ function isShortText(v: unknown): boolean {
   return v.length <= 60 && !v.includes('\n');
 }
 
-const DYNAMIC_SKIP = new Set([
+function fieldLabel(key: string): string {
+  const known = FIELD_LABELS[key];
+  if (known) return known.label;
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+function fieldIcon(key: string): React.ReactNode | undefined {
+  return FIELD_LABELS[key]?.icon;
+}
+
+function fieldColor(key: string): string | undefined {
+  return FIELD_LABELS[key]?.color;
+}
+
+const SYSTEM_FIELDS = new Set([
   'id', 'tenant_id', 'created_at', 'updated_at',
   'name', 'title', 'description', 'summary',
-  'slug', 'code',
+  'slug',
   'rarity', 'tier', 'element',
   'image', 'image_url', 'icon', 'icon_url',
-  'world_name',
-  '_source_table',
-  'embedding',
+  '_source_table', 'embedding',
 ]);
+
+const SPECIAL_TEXT_FIELDS = new Set([
+  'weapon_type', 'attack_speed', 'enemy_type', 'difficulty', 'boss_type',
+  'category', 'health_level',
+]);
+
+function hasValue(v: unknown): boolean {
+  return v != null && v !== '' && v !== 'none';
+}
+
+function renderSpecials(
+  data: Record<string, any>,
+  rendered: Set<string>,
+  tenantId: string | undefined,
+  tenantSlug: string | undefined,
+  table: string,
+  comparisonMode: 'modal' | 'page',
+  handleStatClick: (key: string) => void,
+  copiedCode: boolean,
+  setCopiedCode: (v: boolean) => void,
+): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+
+  // Code block
+  const code = data.code || data.name;
+  if (data.code != null || data.code_type != null) {
+    rendered.add('code'); rendered.add('code_type'); rendered.add('rewards'); rendered.add('reward_type');
+    rendered.add('verified_date'); rendered.add('verified_by'); rendered.add('expired_date');
+    nodes.push(
+      <div key="code-block" className="mb-6">
+        <div className="flex items-center gap-2 rounded-xl border bg-muted/50 p-4">
+          <ScrollText className="h-5 w-5 text-primary shrink-0" />
+          <code className="flex-1 font-mono text-lg font-bold tracking-wider">{String(code)}</code>
+          <button onClick={() => { navigator.clipboard.writeText(String(code)); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="text-xs text-primary hover:text-primary/80 font-medium shrink-0">{copiedCode ? 'Copiado!' : 'Copiar'}</button>
+        </div>
+        {data.rewards && <p className="text-sm text-muted-foreground mt-2">Recompensa: <span className="text-foreground">{isArrStr(data.rewards) ? data.rewards.join(', ') : String(data.rewards)}</span></p>}
+        {data.code_type && <p className="text-xs text-muted-foreground mt-1">Tipo: <span className="font-medium text-foreground">{String(data.code_type)}</span>{data.verified_date && <> · Verificado: {data.verified_date}</>}</p>}
+      </div>,
+    );
+  }
+
+  // Ability card
+  if (data.ability && typeof data.ability === 'object') {
+    rendered.add('ability');
+    const a = data.ability as Record<string, any>;
+    nodes.push(
+      <div key="ability" className="rounded-xl border bg-card p-5 mb-6">
+        <div className="flex items-center gap-2 mb-3"><Sparkles className="h-4 w-4 text-yellow-400" /><h3 className="font-semibold text-sm">Habilidade: {String(a.name || '')}</h3></div>
+        {a.description && <p className="text-sm text-muted-foreground mb-3"><ColoredText text={String(a.description)} /></p>}
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          {a.energy_cost !== undefined && <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-purple-400" /> Custo: {String(a.energy_cost)}</span>}
+          {a.cooldown !== undefined && <span className="inline-flex items-center gap-1">⏱ Cooldown: {String(a.cooldown)}s</span>}
+          {a.effect && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3 text-yellow-400" /><ColoredText text={String(a.effect)} /></span>}
+        </div>
+      </div>,
+    );
+  }
+
+  // Passive ability
+  if (hasValue(data.passive_ability)) {
+    rendered.add('passive_ability'); rendered.add('passive_ability_level');
+    nodes.push(
+      <div key="passive" className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 mb-6">
+        <div className="flex items-center gap-2 mb-1"><Star className="h-4 w-4 text-purple-400" /><h3 className="text-sm font-semibold text-purple-400">Habilidade Passiva</h3></div>
+        <p className="text-sm text-muted-foreground">{String(data.passive_ability)}</p>
+        {hasValue(data.passive_ability_level) && <p className="text-xs text-muted-foreground mt-1">Nível: {String(data.passive_ability_level)}</p>}
+      </div>,
+    );
+  }
+
+  // Set bonus
+  if (hasValue(data.set_bonus)) {
+    rendered.add('set_bonus');
+    nodes.push(
+      <div key="set-bonus" className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 mb-6">
+        <div className="flex items-center gap-2 mb-1"><Sparkles className="h-4 w-4 text-emerald-400" /><h3 className="text-sm font-semibold text-emerald-400">Bônus de Set</h3></div>
+        <p className="text-sm text-muted-foreground">{String(data.set_bonus)}</p>
+      </div>,
+    );
+  }
+
+  // Phase mechanics
+  if (hasValue(data.phase_mechanics)) {
+    rendered.add('phase_mechanics');
+    nodes.push(
+      <div key="phase-mechanics" className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 mb-6">
+        <div className="flex items-center gap-2 mb-1"><Eye className="h-4 w-4 text-yellow-400" /><h3 className="text-sm font-semibold text-yellow-400">Mecânica de Fase</h3></div>
+        <p className="text-sm text-muted-foreground">{String(data.phase_mechanics)}</p>
+      </div>,
+    );
+  }
+
+  // Key buffs
+  if (isArrStr(data.key_buffs)) {
+    rendered.add('key_buffs');
+    nodes.push(
+      <div key="key-buffs" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Bônus Principais</h3>
+        <ChipCarousel>
+          {data.key_buffs.map((b: string) => {
+            const c = effectColor(b) || 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
+            return <Tag key={b} className={`${c} border-current/30 bg-current/10`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
+          })}
+        </ChipCarousel>
+      </div>,
+    );
+  }
+
+  // Possible stats
+  if (isArrStr(data.possible_stats)) {
+    rendered.add('possible_stats');
+    nodes.push(
+      <div key="possible-stats" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stats Possíveis</h3>
+        <ChipCarousel>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10">{s}</Tag>)}</ChipCarousel>
+      </div>,
+    );
+  }
+
+  // Synergy
+  if (hasValue(data.synergy)) {
+    rendered.add('synergy');
+    nodes.push(
+      <div key="synergy" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sinergia</h3>
+        <p className="text-sm text-muted-foreground">{String(data.synergy)}</p>
+      </div>,
+    );
+  }
+
+  // Per-rank effect
+  if (hasValue(data.per_rank_effect)) {
+    rendered.add('per_rank_effect');
+    nodes.push(
+      <div key="per-rank" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeito por Rank</h3>
+        <p className="text-sm"><ColoredText text={String(data.per_rank_effect)} /></p>
+      </div>,
+    );
+  }
+
+  // Damage per spirit
+  if (data.damage_per_spirit && typeof data.damage_per_spirit === 'object') {
+    rendered.add('damage_per_spirit');
+    const d = data.damage_per_spirit as Record<string, unknown>;
+    nodes.push(
+      <div key="dmg-spirit" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dano por Espírito</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {d.normal !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Normal</span><p className="text-sm font-medium">{String(d.normal)}</p></div>}
+          {d.boss !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Boss</span><p className="text-sm font-medium">{String(d.boss)}</p></div>}
+        </div>
+      </div>,
+    );
+  }
+
+  // Weakness
+  if (hasValue(data.weakness)) {
+    rendered.add('weakness');
+    const els = toList(data.weakness);
+    if (els) {
+      nodes.push(
+        <div key="weakness" className="mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fraquezas</h3>
+          <ChipCarousel>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)}`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
+        </div>,
+      );
+    }
+  }
+
+  // Effects
+  if (hasValue(data.effects)) {
+    rendered.add('effects');
+    const list = toList(data.effects);
+    if (list) {
+      nodes.push(
+        <div key="effects" className="mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeitos</h3>
+          <ul className="space-y-1">{list.map((e: string, i: number) => <li key={i} className="text-sm flex items-start gap-2"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" /><ColoredText text={e} /></li>)}</ul>
+        </div>,
+      );
+    }
+  }
+
+  // Attacks
+  if (hasValue(data.attacks)) {
+    rendered.add('attacks');
+    const list = toList(data.attacks);
+    if (list) {
+      nodes.push(
+        <div key="attacks" className="mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ataques</h3>
+          <ChipCarousel>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10">{a}</Tag>)}</ChipCarousel>
+        </div>,
+      );
+    }
+  }
+
+  // Drops
+  const drops = data.items_dropped || data.notable_loot;
+  if (drops) {
+    rendered.add('items_dropped'); rendered.add('notable_loot');
+    const list = toList(drops);
+    if (list) {
+      nodes.push(
+        <div key="drops" className="mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens Dropados</h3>
+          <ChipCarousel>{list.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10">{item}</Tag>)}</ChipCarousel>
+        </div>,
+      );
+    }
+  }
+
+  // Strategy
+  if (hasValue(data.strategy)) {
+    rendered.add('strategy');
+    nodes.push(
+      <div key="strategy" className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Estratégia</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{String(data.strategy)}</p>
+      </div>,
+    );
+  }
+
+  // Materials
+  const mats = data.craft_materials || data.crafting_materials || data.materials;
+  if (mats) {
+    rendered.add('craft_materials'); rendered.add('crafting_materials'); rendered.add('materials');
+    let list: string[];
+    if (isArrStr(mats)) list = mats;
+    else if (Array.isArray(mats)) list = mats.map((m: any) => typeof m === 'object' ? `${m.name || m.item || ''}: ${m.quantity || m.amount || ''}` : String(m));
+    else list = [];
+    if (list.length > 0) {
+      nodes.push(
+        <div key="materials" className="mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Materiais</h3>
+          <ChipCarousel>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">{mat}</Tag>)}</ChipCarousel>
+        </div>,
+      );
+    }
+  }
+
+  // Environment / chapters / warning (world info)
+  if (hasValue(data.environment) || hasValue(data.chapters) || hasValue(data.warning)) {
+    rendered.add('environment'); rendered.add('chapters'); rendered.add('warning');
+    nodes.push(
+      <div key="world-info" className="rounded-xl border bg-card p-5 mb-6">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Globe className="h-4 w-4 text-cyan-400" /> Sobre o Mundo</h3>
+        <div className="space-y-3">
+          {hasValue(data.environment) && <div><div className="text-xs text-muted-foreground mb-0.5">Ambiente</div><p className="text-sm">{String(data.environment)}</p></div>}
+          {hasValue(data.chapters) && <div><div className="text-xs text-muted-foreground mb-0.5">Capítulos</div><p className="text-sm">{isArrStr(data.chapters) ? (data.chapters as string[]).join(', ') : String(data.chapters)}</p></div>}
+          {hasValue(data.warning) && <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3"><div className="text-xs text-yellow-400 mb-0.5">⚠ Atenção</div><p className="text-sm text-yellow-300">{String(data.warning)}</p></div>}
+        </div>
+      </div>,
+    );
+  }
+
+  // Accordions (tips, notes)
+  const tips = data.tips || data.important_notes;
+  if (hasValue(tips)) {
+    rendered.add('tips'); rendered.add('important_notes');
+    nodes.push(
+      <div key="tips" className="mb-3">
+        <Accordion title="Dicas" icon={<Lightbulb className="h-4 w-4 text-yellow-400" />} defaultOpen>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(tips)}</p>
+        </Accordion>
+      </div>,
+    );
+  }
+
+  if (hasValue(data.notes) && data.notes !== tips) {
+    rendered.add('notes');
+    nodes.push(
+      <div key="notes" className="mb-3">
+        <Accordion title="Observações" icon={<MessageCircle className="h-4 w-4 text-cyan-400" />}>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data.notes)}</p>
+        </Accordion>
+      </div>,
+    );
+  }
+
+  return nodes;
+}
 
 function inferSchema(data: Record<string, any>): ColumnInfo[] {
   return Object.entries(data)
-    .filter(([k]) => !DYNAMIC_SKIP.has(k))
+    .filter(([k]) => !SYSTEM_FIELDS.has(k))
     .map(([k, v]) => {
       let data_type = 'text';
       if (typeof v === 'number') data_type = 'numeric';
@@ -254,27 +541,34 @@ function renderDynamicSections(
   tenantSlug: string | undefined,
   table: string,
   comparisonMode_: 'modal' | 'page',
-  onStatClick?: (statKey: string) => void,
+  onStatClick: ((statKey: string) => void) | undefined,
+  rendered: Set<string>,
 ) {
-  const rendered = new Set<string>();
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
 
-  // 1. Numeric stat cards
-  const numCols = cols.filter(
-    (c) => isNumericType(c.data_type) && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
+  // Filter out system fields, special-handled fields, and null values
+  const activeCols = cols.filter(
+    (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name]),
+  );
+
+  // 1. Numeric stat cards (skip 0)
+  const numCols = activeCols.filter(
+    (c) => isNumericType(c.data_type) && data[c.column_name] !== 0,
   );
   if (numCols.length > 0) {
     numCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
       <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
         {numCols.map((c) => {
-          const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+          const meta = FIELD_LABELS[c.column_name];
           return (
             <StatCard
               key={c.column_name}
-              label={label}
+              label={meta?.label || fieldLabel(c.column_name)}
               value={fmt(data[c.column_name])}
+              icon={meta?.icon || fieldIcon(c.column_name)}
+              color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
                 if (comparisonMode_ === 'page') {
                   window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
@@ -282,6 +576,7 @@ function renderDynamicSections(
                   onStatClick(c.column_name);
                 }
               } : undefined}
+              title={comparisonMode_ === 'modal' && tenantId ? 'Clique para comparar' : undefined}
             />
           );
         })}
@@ -290,9 +585,7 @@ function renderDynamicSections(
   }
 
   // 2. Booleans → tags
-  const boolCols = cols.filter(
-    (c) => c.data_type === 'boolean' && !DYNAMIC_SKIP.has(c.column_name) && data[c.column_name] != null,
-  );
+  const boolCols = activeCols.filter((c) => c.data_type === 'boolean');
   if (boolCols.length > 0) {
     boolCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
@@ -301,13 +594,11 @@ function renderDynamicSections(
           {boolCols.map((c) => (
             <Tag key={c.column_name}
               className={data[c.column_name]
-                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0'
-                : 'border-muted-foreground/30 text-muted-foreground bg-muted/10 shrink-0'
+                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {data[c.column_name]
-                ? `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Sim`
-                : `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Não`}
+              {fieldLabel(c.column_name)}: {data[c.column_name] ? 'Sim' : 'Não'}
             </Tag>
           ))}
         </ChipCarousel>
@@ -315,13 +606,10 @@ function renderDynamicSections(
     );
   }
 
-  // 3. Short text → tags (only text/varchar columns)
-  const textCols = cols.filter(
+  // 3. Short text → tags
+  const textCols = activeCols.filter(
     (c) =>
       (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
-      !DYNAMIC_SKIP.has(c.column_name) &&
-      data[c.column_name] != null &&
-      data[c.column_name] !== '' &&
       isShortText(data[c.column_name]),
   );
   if (textCols.length > 0) {
@@ -330,8 +618,8 @@ function renderDynamicSections(
       <div key="dyn-tags" className="mb-6">
         <ChipCarousel>
           {textCols.map((c) => (
-            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10 shrink-0">
-              {String(data[c.column_name])}
+            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
+              {metaLabel(c, data)}: {String(data[c.column_name])}
             </Tag>
           ))}
         </ChipCarousel>
@@ -340,42 +628,36 @@ function renderDynamicSections(
   }
 
   // 4. Long text → labeled sections
-  const longCols = cols.filter(
+  const longCols = activeCols.filter(
     (c) =>
       (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
-      !DYNAMIC_SKIP.has(c.column_name) &&
-      data[c.column_name] != null &&
-      data[c.column_name] !== '' &&
       isLongText(data[c.column_name]),
   );
   for (const c of longCols) {
     rendered.add(c.column_name);
-    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     sections.push(
       <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data[c.column_name])}</p>
       </div>,
     );
   }
 
   // 5. JSON arrays → tag lists
-  const arrCols = cols.filter(
+  const arrCols = activeCols.filter(
     (c) =>
       (c.data_type === 'jsonb' || c.data_type === 'json') &&
-      !DYNAMIC_SKIP.has(c.column_name) &&
       Array.isArray(data[c.column_name]) &&
       data[c.column_name].length > 0,
   );
   for (const c of arrCols) {
     rendered.add(c.column_name);
-    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     sections.push(
       <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
         <ChipCarousel>
           {data[c.column_name].map((item: unknown, i: number) => (
-            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">
+            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
               {typeof item === 'object' ? JSON.stringify(item) : String(item)}
             </Tag>
           ))}
@@ -385,21 +667,19 @@ function renderDynamicSections(
   }
 
   // 6. JSON objects → sub-sections
-  const objCols = cols.filter(
+  const objCols = activeCols.filter(
     (c) =>
       (c.data_type === 'jsonb' || c.data_type === 'json') &&
-      !DYNAMIC_SKIP.has(c.column_name) &&
       typeof data[c.column_name] === 'object' &&
       data[c.column_name] !== null &&
       !Array.isArray(data[c.column_name]),
   );
   for (const c of objCols) {
     rendered.add(c.column_name);
-    const label = c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     const obj = data[c.column_name] as Record<string, unknown>;
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3">{label}</h3>
+        <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
         <div className="space-y-2">
           {Object.entries(obj).map(([k, v]) => (
             <div key={k} className="flex items-start gap-3 text-sm">
@@ -418,10 +698,15 @@ function renderDynamicSections(
   return <>{sections}</>;
 }
 
-// ── Fallback for columns not covered by schema or hardcoded sections ──
-function renderFallbackFields(data: Record<string, any>) {
+function metaLabel(col: ColumnInfo, data: Record<string, any>): string {
+  const known = FIELD_LABELS[col.column_name];
+  if (known) return known.label;
+  return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+function renderFallbackFields(data: Record<string, any>, rendered: Set<string>) {
   const extra = Object.entries(data).filter(
-    ([k, v]) => !SKIP.has(k) && !EXTRA_FIELDS.has(k) && !ALREADY_RENDERED.has(k) && v != null && v !== '',
+    ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v),
   );
   if (extra.length === 0) return null;
   return (
@@ -429,19 +714,24 @@ function renderFallbackFields(data: Record<string, any>) {
       <Accordion title="Informações Adicionais" icon={<ScrollText className="h-4 w-4 text-primary" />}>
         <div>
           {extra.map(([k, v]) => (
-            <FieldRow key={k} label={k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}>
-              {typeof v === 'object' && v !== null ? (
-                isArrStr(v) ? (
-                  <div className="flex flex-wrap gap-1">
-                    {v.map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
-                  </div>
+            <div key={k} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
+              <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0">
+                {fieldLabel(k)}
+              </span>
+              <div className="text-sm flex-1">
+                {typeof v === 'object' && v !== null ? (
+                  isArrStr(v) ? (
+                    <div className="flex flex-wrap gap-1">
+                      {v.map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
+                    </div>
+                  ) : (
+                    <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
+                  )
                 ) : (
-                  <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
-                )
-              ) : (
-                <ColoredText text={fmt(v)} />
-              )}
-            </FieldRow>
+                  <ColoredText text={fmt(v)} />
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </Accordion>
@@ -449,9 +739,52 @@ function renderFallbackFields(data: Record<string, any>) {
   );
 }
 
+type Props = {
+  data: Record<string, any>;
+  collectionType?: string;
+  updatedAt?: string;
+  createdAt?: string;
+  tenantId?: string;
+  tenantSlug?: string;
+  sourceTable?: string;
+  comparisonMode?: 'modal' | 'page';
+  schema?: ColumnInfo[];
+};
+
+const COLL_ICON: Record<string, React.ReactNode> = {
+  weapons: <Sword className="h-5 w-5" />,
+  armors: <Shield className="h-5 w-5" />,
+  rings: <Gem className="h-5 w-5" />,
+  potions: <Droplets className="h-5 w-5" />,
+  upgrades: <Zap className="h-5 w-5" />,
+  enemies: <Skull className="h-5 w-5" />,
+  bosses: <Skull className="h-5 w-5" />,
+  codes: <ScrollText className="h-5 w-5" />,
+  'crafting-recipes': <Pickaxe className="h-5 w-5" />,
+  worlds: <Globe className="h-5 w-5" />,
+};
+
+const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
+  weapon_type: (v) => ({ icon: <Sword className="h-3 w-3" />, className: 'border-blue-500/30 text-blue-400 bg-blue-500/10', label: String(v) }),
+  attack_speed: (v) => {
+    const c = v === 'fast' ? 'text-emerald-400' : v === 'slow' ? 'text-red-400' : 'text-yellow-400';
+    return { icon: <Zap className="h-3 w-3" />, className: `shrink-0 border-current/30 ${c} bg-current/10`, label: String(v) };
+  },
+  enemy_type: (v) => ({ className: 'border-red-500/30 text-red-400 bg-red-500/10', label: String(v) }),
+  difficulty: (v) => ({
+    className: `shrink-0 ${String(v).toLowerCase().includes('hard') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'}`,
+    label: String(v),
+  }),
+  boss_type: (v) => ({ className: 'border-purple-500/30 text-purple-400 bg-purple-500/10', label: String(v) }),
+  category: (v) => ({ className: 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10', label: String(v) }),
+  health_level: (v) => {
+    const c = String(v).toLowerCase() === 'high' ? 'text-red-400' : String(v).toLowerCase() === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
+    return { className: `shrink-0 border-current/30 ${c} bg-current/10`, label: `HP: ${String(v)}` };
+  },
+};
+
 export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema }: Props) {
-  const type = collectionType || detectType(data);
-  const table = sourceTable || type;
+  const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
   const rarity = data.rarity != null ? String(data.rarity) : undefined;
@@ -459,6 +792,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const element = data.element != null ? String(data.element) : undefined;
   const imageUrl = (data.image_url || data.image) as string | undefined;
   const [fullImg, setFullImg] = useState<string | null>(null);
+  const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
@@ -472,11 +806,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   ) : data.icon ? (
     <span className="text-lg">{data.icon}</span>
   ) : (
-    COLL_ICON[type] || <Sword className="h-5 w-5" />
+    COLL_ICON[collectionType || ''] || <Sword className="h-5 w-5" />
   );
-
-  // ── Comparison state ──
-  const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 
   const handleStatClick = (statKey: string) => {
     if (comparisonMode === 'page' && tenantId) {
@@ -485,6 +816,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       setShowCompare({ stat: statKey });
     }
   };
+
+  const rendered = new Set<string>();
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -499,8 +832,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         />
       )}
 
-      {/* Header with banner background */}
-      <div className={`rounded-xl mb-6 relative overflow-hidden`}
+      {/* Header */}
+      <div className="rounded-xl mb-6 relative overflow-hidden"
         style={imageUrl ? {
           backgroundImage: `url(${imageUrl})`,
           backgroundSize: 'cover',
@@ -520,17 +853,17 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           <div className="max-w-[200px]">
             <ChipCarousel>
               {rarity && (
-                <Tag className={`${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase shrink-0`} icon={<Star className="h-3 w-3" />}>
+                <Tag className={`${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
                   {rarity}
                 </Tag>
               )}
               {tier && (
-                <Tag className={`${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold shrink-0`}>
+                <Tag className={`${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
                   {TIER_LABEL[tier.toLowerCase()] || tier}
                 </Tag>
               )}
               {element && element !== 'none' && (
-                <Tag className={`${elementClass(element)} bg-background/80 backdrop-blur-sm shrink-0`} icon={elIcon(element)}>
+                <Tag className={`${elementClass(element)} bg-background/80 backdrop-blur-sm`} icon={elIcon(element)}>
                   {element}
                 </Tag>
               )}
@@ -539,325 +872,33 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         </div>
       </div>
 
-      {/* Tags */}
+      {/* Data-driven tags */}
       <div className="mb-6">
         <ChipCarousel>
-          {data.weapon_type && <Tag icon={<Sword className="h-3 w-3" />} className="border-blue-500/30 text-blue-400 bg-blue-500/10 shrink-0">{String(data.weapon_type)}</Tag>}
-          {data.attack_speed && <Tag icon={<Zap className="h-3 w-3" />} className={`shrink-0 border-current/30 ${data.attack_speed === 'fast' ? 'text-emerald-400' : data.attack_speed === 'slow' ? 'text-red-400' : 'text-yellow-400'} bg-current/10`}>{String(data.attack_speed)}</Tag>}
-          {data.enemy_type && <Tag className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">{String(data.enemy_type)}</Tag>}
-          {data.difficulty && <Tag className={`shrink-0 ${String(data.difficulty).toLowerCase().includes('hard') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'}`}>{String(data.difficulty)}</Tag>}
-          {data.boss_type && <Tag className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">{String(data.boss_type)}</Tag>}
-          {data.category && <Tag className="border-cyan-500/30 text-cyan-400 bg-cyan-500/10 shrink-0">{String(data.category)}</Tag>}
-          {data.health_level && <Tag className={`shrink-0 border-current/30 ${String(data.health_level).toLowerCase() === 'high' ? 'text-red-400' : String(data.health_level).toLowerCase() === 'medium' ? 'text-yellow-400' : 'text-emerald-400'} bg-current/10`}>HP: {String(data.health_level)}</Tag>}
-          {data.is_must_pick === true && <Tag icon={<Star className="h-3 w-3" />} className="border-yellow-500/30 text-yellow-400 bg-yellow-500/10 shrink-0">Must Pick</Tag>}
-          {(data.is_worth_crafting === true || data.is_worth_crafting === 'YES') && <Tag icon={<Sparkles className="h-3 w-3" />} className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0">Vale a pena craftar</Tag>}
-          {data.is_active === true && <Tag className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0">Ativo</Tag>}
-          {data.is_expired === true && <Tag className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">Expirado</Tag>}
+          {Object.entries(TAG_FIELDS).map(([key, renderFn]) => {
+            const v = data[key];
+            if (!hasValue(v)) return null;
+            rendered.add(key);
+            const result = renderFn(v);
+            if (!result) return null;
+            return <Tag key={key} className={result.className} icon={result.icon}>{result.label}</Tag>;
+          })}
+          {data.is_must_pick === true && (() => { rendered.add('is_must_pick'); return <Tag key="must-pick" icon={<Star className="h-3 w-3" />} className="border-yellow-500/30 text-yellow-400 bg-yellow-500/10">Must Pick</Tag>; })()}
+          {(data.is_worth_crafting === true || data.is_worth_crafting === 'YES') && (() => { rendered.add('is_worth_crafting'); return <Tag key="worth-craft" icon={<Sparkles className="h-3 w-3" />} className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Vale a pena craftar</Tag>; })()}
+          {data.is_active === true && (() => { rendered.add('is_active'); return <Tag key="active" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Ativo</Tag>; })()}
+          {data.is_expired === true && (() => { rendered.add('is_expired'); return <Tag key="expired" className="border-red-500/30 text-red-400 bg-red-500/10">Expirado</Tag>; })()}
+          {data.is_craftable === true && (() => { rendered.add('is_craftable'); return <Tag key="craftable" icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">Craftável</Tag>; })()}
         </ChipCarousel>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
-        {data.damage_min !== undefined && (
-          <StatCard label="Dano" icon={<Sword className="h-4 w-4" />} value={data.damage_max !== undefined ? `${data.damage_min}-${data.damage_max}` : String(data.damage_min)} onClick={() => handleStatClick('damage_min')} />
-        )}
-        {(data.crit_chance_min !== undefined || data.crit_chance_max !== undefined) && (
-          <StatCard label="Crit" icon={<Crosshair className="h-4 w-4" />} color="text-yellow-400" value={data.crit_chance_max !== undefined ? `${data.crit_chance_min}-${data.crit_chance_max}%` : `${data.crit_chance_min ?? data.crit_chance_max}%`} onClick={() => handleStatClick('crit_chance_min')} />
-        )}
-        {data.knockback !== undefined && <StatCard label="Knockback" icon={<Zap className="h-4 w-4" />} value={String(data.knockback)} onClick={() => handleStatClick('knockback')} />}
-        {data.health_bonus !== undefined && <StatCard label="HP" icon={<Shield className="h-4 w-4" />} color="text-emerald-400" value={`+${data.health_bonus}`} onClick={() => handleStatClick('health_bonus')} />}
-        {data.speed_bonus !== undefined && <StatCard label="Speed" icon={<Zap className="h-4 w-4" />} color="text-cyan-400" value={`+${data.speed_bonus}`} onClick={() => handleStatClick('speed_bonus')} />}
-        {data.energy_bonus !== undefined && <StatCard label="Energy" icon={<Zap className="h-4 w-4" />} color="text-purple-400" value={`+${data.energy_bonus}`} onClick={() => handleStatClick('energy_bonus')} />}
-        {data.shop_price !== undefined && <StatCard label="Preço" icon={<Coins className="h-4 w-4" />} value={`${data.shop_price}`} onClick={() => handleStatClick('shop_price')} />}
-        {(data.craft_cost !== undefined || data.gold_cost !== undefined) && <StatCard label="Custo Craft" icon={<Pickaxe className="h-4 w-4" />} value={`${data.craft_cost ?? data.gold_cost} ouro`} onClick={() => handleStatClick('craft_cost')} />}
-        {data.max_uses_per_run !== undefined && <StatCard label="Usos/run" value={String(data.max_uses_per_run)} onClick={() => handleStatClick('max_uses_per_run')} />}
-        {data.unlock_level !== undefined && <StatCard label="Nível mín" value={String(data.unlock_level)} onClick={() => handleStatClick('unlock_level')} />}
-        {data.max_ranks !== undefined && <StatCard label="Ranks máx" value={String(data.max_ranks)} onClick={() => handleStatClick('max_ranks')} />}
-        {data.priority_order !== undefined && <StatCard label="Prioridade" value={`#${data.priority_order}`} onClick={() => handleStatClick('priority_order')} />}
-        {data.drop_rate_percentage !== undefined && <StatCard label="Drop Rate" color="text-yellow-400" value={String(data.drop_rate_percentage)} onClick={() => handleStatClick('drop_rate_percentage')} />}
-      </div>
-
-      {/* Code Block */}
-      {type === 'codes' && (() => {
-        const code = (data.code || data.name) as string;
-        return (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 rounded-xl border bg-muted/50 p-4">
-              <ScrollText className="h-5 w-5 text-primary shrink-0" />
-              <code className="flex-1 font-mono text-lg font-bold tracking-wider">{code}</code>
-              <button onClick={() => { navigator.clipboard.writeText(code); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="text-xs text-primary hover:text-primary/80 font-medium shrink-0">{copiedCode ? 'Copiado!' : 'Copiar'}</button>
-            </div>
-            {data.rewards && <p className="text-sm text-muted-foreground mt-2">Recompensa: <span className="text-foreground">{isArrStr(data.rewards) ? data.rewards.join(', ') : String(data.rewards)}</span></p>}
-            {data.code_type && <p className="text-xs text-muted-foreground mt-1">Tipo: <span className="font-medium text-foreground">{String(data.code_type)}</span>{data.verified_date && <> · Verificado: {data.verified_date}</>}</p>}
-          </div>
-        );
-      })()}
-
-      {/* Type-specific sections */}
-      {type === 'weapons' && data.ability && (() => {
-        const a = data.ability as Record<string, any>;
-        return (
-          <div className="rounded-xl border bg-card p-5 mb-6">
-            <div className="flex items-center gap-2 mb-3"><Sparkles className="h-4 w-4 text-yellow-400" /><h3 className="font-semibold text-sm">Habilidade: {String(a.name || '')}</h3></div>
-            {a.description && <p className="text-sm text-muted-foreground mb-3"><ColoredText text={String(a.description)} /></p>}
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-              {a.energy_cost !== undefined && <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-purple-400" /> Custo: {String(a.energy_cost)}</span>}
-              {a.cooldown !== undefined && <span className="inline-flex items-center gap-1">⏱ Cooldown: {String(a.cooldown)}s</span>}
-              {a.effect && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3 text-yellow-400" /><ColoredText text={String(a.effect)} /></span>}
-            </div>
-          </div>
-        );
-      })()}
-
-      {type === 'armors' && data.passive_ability && (
-        <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 mb-6">
-          <div className="flex items-center gap-2 mb-1"><Star className="h-4 w-4 text-purple-400" /><h3 className="text-sm font-semibold text-purple-400">Habilidade Passiva</h3></div>
-          <p className="text-sm text-muted-foreground">{String(data.passive_ability)}</p>
-          {data.passive_ability_level !== undefined && <p className="text-xs text-muted-foreground mt-1">Nível: {String(data.passive_ability_level)}</p>}
-        </div>
-      )}
-
-      {type === 'armors' && data.set_bonus && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 mb-6">
-          <div className="flex items-center gap-2 mb-1"><Sparkles className="h-4 w-4 text-emerald-400" /><h3 className="text-sm font-semibold text-emerald-400">Bônus de Set</h3></div>
-          <p className="text-sm text-muted-foreground">{String(data.set_bonus)}</p>
-        </div>
-      )}
-
-      {type === 'rings' && isArrStr(data.key_buffs) && (
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Bônus Principais</h3>
-          <ChipCarousel>
-            {data.key_buffs.map((b: string) => {
-              const c = effectColor(b) || 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
-              return <Tag key={b} className={`${c} border-current/30 bg-current/10 shrink-0`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
-            })}
-          </ChipCarousel>
-        </div>
-      )}
-
-      {type === 'rings' && data.synergy && (
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sinergia</h3>
-          <p className="text-sm text-muted-foreground">{String(data.synergy)}</p>
-        </div>
-      )}
-
-      {type === 'rings' && isArrStr(data.possible_stats) && (
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stats Possíveis</h3>
-          <ChipCarousel>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">{s}</Tag>)}</ChipCarousel>
-        </div>
-      )}
-
-      {type === 'upgrades' && data.per_rank_effect && (
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeito por Rank</h3>
-          <p className="text-sm"><ColoredText text={String(data.per_rank_effect)} /></p>
-        </div>
-      )}
-
-      {type === 'upgrades' && data.damage_per_spirit && (() => {
-        const d = data.damage_per_spirit as Record<string, unknown>;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dano por Espírito</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {d.normal !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Normal</span><p className="text-sm font-medium">{String(d.normal)}</p></div>}
-              {d.boss !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Boss</span><p className="text-sm font-medium">{String(d.boss)}</p></div>}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Weakness */}
-      {data.weakness && (() => {
-        const els = typeof data.weakness === 'string' ? data.weakness.split(',').map((s: string) => s.trim()) : isArrStr(data.weakness) ? data.weakness : null;
-        if (!els) return null;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fraquezas</h3>
-            <ChipCarousel>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)} shrink-0`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
-          </div>
-        );
-      })()}
-
-      {/* Effects */}
-      {data.effects && (() => {
-        const list = isArrStr(data.effects) ? data.effects : typeof data.effects === 'string' ? [data.effects] : null;
-        if (!list) return null;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeitos</h3>
-            <ul className="space-y-1">{list.map((e: string, i: number) => <li key={i} className="text-sm flex items-start gap-2"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" /><ColoredText text={e} /></li>)}</ul>
-          </div>
-        );
-      })()}
-
-      {/* Attacks */}
-      {data.attacks && (() => {
-        const list = isArrStr(data.attacks) ? data.attacks : typeof data.attacks === 'string' ? [data.attacks] : null;
-        if (!list) return null;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ataques</h3>
-            <ChipCarousel>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">{a}</Tag>)}</ChipCarousel>
-          </div>
-        );
-      })()}
-
-      {/* Drops */}
-      {(data.items_dropped || data.notable_loot) && (() => {
-        const drops = isArrStr(data.items_dropped || data.notable_loot) ? (data.items_dropped || data.notable_loot) as string[] : null;
-        if (!drops) return null;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens Dropados</h3>
-            <ChipCarousel>{drops.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10 shrink-0">{item}</Tag>)}</ChipCarousel>
-          </div>
-        );
-      })()}
-
-      {/* Phase Mechanics */}
-      {data.phase_mechanics && (
-        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 mb-6">
-          <div className="flex items-center gap-2 mb-1"><Eye className="h-4 w-4 text-yellow-400" /><h3 className="text-sm font-semibold text-yellow-400">Mecânica de Fase</h3></div>
-          <p className="text-sm text-muted-foreground">{String(data.phase_mechanics)}</p>
-        </div>
-      )}
-
-      {/* Strategy */}
-      {data.strategy && (
-        <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Estratégia</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{String(data.strategy)}</p>
-        </div>
-      )}
-
-      {/* Obtain + Craft */}
-      <div className="rounded-xl border bg-card p-4 mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Obtenção</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {data.obtain_method && (
-            <div className="flex items-center gap-2"><Crosshair className="h-4 w-4 text-primary" /><div><p className="text-xs text-muted-foreground">Como Obter</p><p className="text-sm font-medium">{String(data.obtain_method)}</p></div></div>
-          )}
-          {data.world_name && (
-            <div className="flex items-center gap-2"><Globe className="h-4 w-4 text-cyan-400" /><div><p className="text-xs text-muted-foreground">Mundo</p><p className="text-sm font-medium">{String(data.world_name)}</p></div></div>
-          )}
-          {data.chapter !== undefined && (
-            <div className="flex items-center gap-2"><span className="h-4 w-4 flex items-center justify-center text-purple-400">📖</span><div><p className="text-xs text-muted-foreground">Capítulo</p><p className="text-sm font-medium">{String(data.chapter)}</p></div></div>
-          )}
-          {data.starting_banner && (
-            <div className="flex items-center gap-2"><span className="h-4 w-4 flex items-center justify-center text-yellow-400">🚩</span><div><p className="text-xs text-muted-foreground">Banner Inicial</p><p className="text-sm font-medium">{String(data.starting_banner)}</p></div></div>
-          )}
-          {data.drop_wave_requirement !== undefined && (
-            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-orange-400" /><div><p className="text-xs text-muted-foreground">Wave Mínima</p><p className="text-sm font-medium">Wave {String(data.drop_wave_requirement)}</p></div></div>
-          )}
-        </div>
-      </div>
-
-      {/* Craft Materials */}
-      {(data.craft_materials || data.crafting_materials || data.materials) && (() => {
-        const mats = data.craft_materials || data.crafting_materials || data.materials;
-        let list: string[];
-        if (isArrStr(mats)) list = mats;
-        else if (Array.isArray(mats)) list = mats.map((m: any) => typeof m === 'object' ? `${m.name || m.item || ''}: ${m.quantity || m.amount || ''}` : String(m));
-        else list = [];
-        if (list.length === 0) return null;
-        return (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Materiais</h3>
-            <ChipCarousel>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">{mat}</Tag>)}</ChipCarousel>
-          </div>
-        );
-      })()}
-
-      {/* Type-specific expanded info cards */}
-      {(type === 'enemies' || type === 'bosses') && (
-        <div className="rounded-xl border bg-card p-5 mb-6">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Crosshair className="h-4 w-4 text-red-400" />
-            Perfil do {type === 'enemies' ? 'Inimigo' : 'Chefe'}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {data.enemy_type && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Tipo</div><div className="text-sm font-medium">{String(data.enemy_type)}</div></div>}
-            {data.boss_type && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Tipo</div><div className="text-sm font-medium">{String(data.boss_type)}</div></div>}
-            {data.difficulty && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Dificuldade</div><div className={`text-sm font-medium ${String(data.difficulty).toLowerCase().includes('hard') ? 'text-red-400' : 'text-yellow-400'}`}>{String(data.difficulty)}</div></div>}
-            {data.health_level && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">HP</div><div className="text-sm font-medium">{String(data.health_level)}</div></div>}
-            {data.speed_level && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Velocidade</div><div className="text-sm font-medium">{String(data.speed_level)}</div></div>}
-            {data.strength_level !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Força</div><div className="text-sm font-medium">{String(data.strength_level)}</div></div>}
-          </div>
-        </div>
-      )}
-
-      {type === 'potions' && (
-        <div className="rounded-xl border bg-card p-5 mb-6">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Droplets className="h-4 w-4 text-emerald-400" />
-            Informações da Poção
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {data.effects && (() => {
-              const txt = typeof data.effects === 'string' ? data.effects : Array.isArray(data.effects) ? data.effects.join(', ') : String(data.effects);
-              return <div className="rounded-lg bg-muted/50 p-3 col-span-2"><div className="text-xs text-muted-foreground mb-0.5">Efeitos</div><div className="text-sm"><ColoredText text={txt} /></div></div>;
-            })()}
-            {data.shop_price !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Preço</div><div className="text-sm font-medium"><Coins className="h-3 w-3 inline -ml-0.5 mr-0.5" />{String(data.shop_price)}</div></div>}
-            {data.max_uses_per_run !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Usos por Run</div><div className="text-sm font-medium">{String(data.max_uses_per_run)}</div></div>}
-            {data.craft_cost !== undefined && <div className="rounded-lg bg-muted/50 p-3"><div className="text-xs text-muted-foreground mb-0.5">Custo de Craft</div><div className="text-sm font-medium">{String(data.craft_cost)}</div></div>}
-          </div>
-        </div>
-      )}
-
-      {type === 'worlds' && (
-        <div className="rounded-xl border bg-card p-5 mb-6">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Globe className="h-4 w-4 text-cyan-400" />
-            Sobre o Mundo
-          </h3>
-          <div className="space-y-3">
-            {data.environment && <div><div className="text-xs text-muted-foreground mb-0.5">Ambiente</div><p className="text-sm">{String(data.environment)}</p></div>}
-            {data.chapters && <div><div className="text-xs text-muted-foreground mb-0.5">Capítulos</div><p className="text-sm">{isArrStr(data.chapters) ? (data.chapters as string[]).join(', ') : String(data.chapters)}</p></div>}
-            {data.warning && <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3"><div className="text-xs text-yellow-400 mb-0.5">⚠ Atenção</div><p className="text-sm text-yellow-300">{String(data.warning)}</p></div>}
-          </div>
-        </div>
-      )}
-
-      {type === 'crafting-recipes' && (
-        <div className="rounded-xl border bg-card p-5 mb-6">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Pickaxe className="h-4 w-4 text-amber-400" />
-            Receita
-          </h3>
-          <div className="space-y-3">
-            {data.item_name && <div><div className="text-xs text-muted-foreground mb-0.5">Item Resultante</div><p className="text-sm font-medium">{String(data.item_name)}</p></div>}
-            {data.obtain_method && <div><div className="text-xs text-muted-foreground mb-0.5">Onde Obter a Receita</div><p className="text-sm">{String(data.obtain_method)}</p></div>}
-          </div>
-        </div>
-      )}
-
-      {/* Accordion: Tips */}
-      {(data.tips || data.important_notes) && (() => {
-        const content = data.tips || data.important_notes;
-        return (
-          <div className="mb-3">
-            <Accordion title="Dicas" icon={<Lightbulb className="h-4 w-4 text-yellow-400" />} defaultOpen>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(content)}</p>
-            </Accordion>
-          </div>
-        );
-      })()}
-
-      {/* Accordion: Observations */}
-      {data.notes && data.notes !== data.tips && data.notes !== data.important_notes && (
-        <div className="mb-3">
-          <Accordion title="Observações" icon={<MessageCircle className="h-4 w-4 text-cyan-400" />}>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data.notes)}</p>
-          </Accordion>
-        </div>
-      )}
+      {/* Special field renderers (data-gated, no type detection) */}
+      {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered)}
+
+      {/* Fallback: any remaining unrendered fields */}
+      {renderFallbackFields(data, rendered)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

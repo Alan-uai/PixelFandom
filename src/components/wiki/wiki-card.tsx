@@ -83,28 +83,35 @@ function LinkSection({ gameUrl, discordUrl, slug, customDomain }: {
   slug: string;
   customDomain: string | null;
 }) {
-  const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
+  const openLink = (url: string) => (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    window.open(url, '_blank', 'noopener');
+  };
 
   const gameLink = gameUrl ? (
-    <a
-      href={gameUrl} target="_blank" rel="noopener noreferrer"
-      onClick={stopPropagation}
-      className="flex items-center gap-1.5 text-white/50 hover:text-[#FF451B] transition-colors"
+    <span
+      onClick={openLink(gameUrl)}
+      onKeyDown={(e) => { if (e.key === 'Enter') openLink(gameUrl)(e); }}
+      tabIndex={0}
+      role="link"
+      className="flex items-center gap-1.5 text-white/50 hover:text-[#FF451B] transition-colors cursor-pointer"
     >
       <RobloxIcon className="h-4 w-4" />
       <span className="text-[10px] font-medium">Roblox</span>
-    </a>
+    </span>
   ) : null;
 
   const discordLink = discordUrl ? (
-    <a
-      href={discordUrl} target="_blank" rel="noopener noreferrer"
-      onClick={stopPropagation}
-      className="flex items-center gap-1.5 text-white/50 hover:text-[#5865F2] transition-colors"
+    <span
+      onClick={openLink(discordUrl)}
+      onKeyDown={(e) => { if (e.key === 'Enter') openLink(discordUrl)(e); }}
+      tabIndex={0}
+      role="link"
+      className="flex items-center gap-1.5 text-white/50 hover:text-[#5865F2] transition-colors cursor-pointer"
     >
       <DiscordIcon className="h-4 w-4" />
       <span className="text-[10px] font-medium">Discord</span>
-    </a>
+    </span>
   ) : null;
 
   if (gameLink && discordLink) {

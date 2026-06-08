@@ -541,6 +541,7 @@ function EditPageContent() {
                           pathPrefix={`${slug}/covers/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
+                        label="Imagem do Artigo"
                       />
                     </FormControl>
                     <FormMessage />
@@ -560,6 +561,7 @@ function EditPageContent() {
                         pathPrefix={`${slug}/banners/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
+                        label="Banner"
                         previewSize="w-full h-24"
                       />
                     </FormControl>
@@ -580,6 +582,7 @@ function EditPageContent() {
                         pathPrefix={`${slug}/og/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
+                        label="OG Image"
                         previewSize="w-40 h-24"
                       />
                     </FormControl>

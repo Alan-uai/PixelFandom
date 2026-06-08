@@ -10,6 +10,32 @@ interface FloatingIslandsBarProps {
   className?: string;
 }
 
+const CLIP = 28;
+
+function getClipPath(pos: 'left' | 'center' | 'right', alone: boolean): string {
+  if (alone) return 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
+  switch (pos) {
+    case 'left':
+      return `polygon(0 0, 100% 0, calc(100% - ${CLIP}px) 100%, 0 100%)`;
+    case 'center':
+      return `polygon(0 0, 100% 0, calc(100% - ${CLIP}px) 100%, ${CLIP}px 100%)`;
+    case 'right':
+      return `polygon(0 0, 100% 0, 100% 100%, ${CLIP}px 100%)`;
+  }
+}
+
+function shouldAlone(enabled: FloatingIslandConfig[], pos: 'left' | 'center' | 'right'): boolean {
+  const positions = new Set(enabled.map((i) => i.position));
+  switch (pos) {
+    case 'left':
+      return !positions.has('center') && !positions.has('right');
+    case 'center':
+      return !positions.has('left') && !positions.has('right');
+    case 'right':
+      return !positions.has('left') && !positions.has('center');
+  }
+}
+
 export function FloatingIslandsBar({ islands, basePath = '', className = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -23,40 +49,38 @@ export function FloatingIslandsBar({ islands, basePath = '', className = '' }: F
   const getIslandByPosition = (pos: 'left' | 'center' | 'right') =>
     enabled.find((i) => i.position === pos) || null;
 
-  const left = getIslandByPosition('left');
-  const center = getIslandByPosition('center');
-  const right = getIslandByPosition('right');
-
   const handleToggle = (id: string) => {
     setActiveId((prev) => (prev === id ? null : id));
   };
 
-  const renderIsland = (island: FloatingIslandConfig | null) => {
-    if (!island) return <div />;
-    return (
-      <FloatingIslandWrapper
-        island={island}
-        isExpanded={activeId === island.id}
-        onToggle={() => handleToggle(island.id)}
-        onAutoExpand={() => handleAutoExpand(island.id)}
-        basePath={basePath}
-      />
-    );
-  };
+  const positions: Array<'left' | 'center' | 'right'> = ['left', 'center', 'right'];
 
   return (
     <div className={`bg-muted/20 ${className}`}>
-      <div className="mx-auto max-w-6xl px-4 py-2">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-          <div className="sm:justify-self-start sm:w-full max-w-sm">
-            {renderIsland(left)}
-          </div>
-          <div className="sm:justify-self-center sm:w-full max-w-sm">
-            {renderIsland(center)}
-          </div>
-          <div className="sm:justify-self-end sm:w-full max-w-sm">
-            {renderIsland(right)}
-          </div>
+      <div className="mx-auto max-w-6xl">
+        <div className="flex items-stretch">
+          {positions.map((pos) => {
+            const island = getIslandByPosition(pos);
+            return (
+              <div
+                key={pos}
+                className="flex-1"
+                style={{ clipPath: getClipPath(pos, !island || shouldAlone(enabled, pos)) }}
+              >
+                {island ? (
+                  <FloatingIslandWrapper
+                    island={island}
+                    isExpanded={activeId === island.id}
+                    onToggle={() => handleToggle(island.id)}
+                    onAutoExpand={() => handleAutoExpand(island.id)}
+                    basePath={basePath}
+                  />
+                ) : (
+                  <div className="h-full" />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

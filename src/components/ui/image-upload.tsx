@@ -1,12 +1,12 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 
 type Props = {
   bucket?: string;
@@ -15,7 +15,12 @@ type Props = {
   onChange: (url: string) => void;
   accept?: string;
   previewSize?: string;
+  label?: string;
 };
+
+type Mode = 'upload' | 'url';
+
+const spring = { type: 'spring' as const, stiffness: 350, damping: 28, mass: 0.6 };
 
 export function ImageUpload({
   bucket = 'wiki-images',
@@ -24,16 +29,21 @@ export function ImageUpload({
   onChange,
   accept = 'image/*',
   previewSize = 'w-32 h-32',
+  label = 'Imagem',
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [mode, setMode] = useState<Mode>('upload');
   const { toast } = useToast();
+
+  const showUpload = mode === 'upload';
+  const showUrl = mode === 'url';
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         variant: 'destructive',
@@ -84,74 +94,99 @@ export function ImageUpload({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-start gap-4">
-      <div
-        className={`${previewSize} relative rounded-lg border-2 overflow-hidden shrink-0 max-w-full w-full sm:w-auto sm:max-w-none cursor-pointer transition-colors ${
-          value
-            ? 'border-border'
-            : 'border-dashed border-muted-foreground/30 hover:border-primary/30 hover:bg-accent/50'
-        }`}
-        onClick={() => !value && inputRef.current?.click()}
-      >
-        {value ? (
-          <img src={value} alt="Preview" className="object-cover w-full h-full" />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-1.5 text-muted-foreground">
-            <Upload className="h-6 w-6" />
-            <span className="text-[10px] font-medium leading-tight text-center px-1">
-              Enviar Imagem
-            </span>
-          </div>
+    <div className="relative">
+      <input
+        type="file"
+        ref={inputRef}
+        onChange={handleFile}
+        style={{ display: 'none' }}
+        accept={accept}
+      />
+
+      {/* Card (upload mode) */}
+      <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
+        <motion.div
+          initial={false}
+          animate={{
+            height: showUpload ? 'auto' : 0,
+            opacity: showUpload ? 1 : 0,
+            scaleY: showUpload ? 1 : 0,
+            rotateX: showUpload ? 0 : 90,
+          }}
+          transition={spring}
+          style={{ transformStyle: 'preserve-3d', perspective: 800, transformOrigin: 'bottom' }}
+          className="overflow-hidden"
+        >
+          {value ? (
+            <div className={`${previewSize} flex items-center justify-center`}>
+              <img src={value} alt={label} className="object-cover w-full h-full" />
+            </div>
+          ) : (
+            <div
+              className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50`}
+              onClick={() => inputRef.current?.click()}
+            >
+              {uploading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : (
+                <Upload className="h-5 w-5 text-muted-foreground" />
+              )}
+              <span className="text-[11px] font-medium text-muted-foreground text-center leading-tight px-2">
+                {uploading ? 'Enviando...' : label}
+              </span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* X button - only when image present */}
+        {value && showUpload && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute -top-2 -right-2 z-10 flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+            aria-label="Remover imagem"
+          >
+            <X className="h-3 w-3" />
+          </button>
         )}
       </div>
-      <div className="space-y-3 w-full min-w-0">
-        <input
-          type="file"
-          ref={inputRef}
-          onChange={handleFile}
-          style={{ display: 'none' }}
-          accept={accept}
-        />
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-            className="flex-1 min-w-0"
-          >
-            {uploading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="mr-2 h-4 w-4 shrink-0" />
-            )}
-            <span className="truncate">{uploading ? 'Enviando...' : 'Enviar Imagem'}</span>
-          </Button>
-          {value && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => onChange('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+
+      {/* "ou" toggle */}
+      <div className="flex justify-center -my-2.5 relative z-20">
+        <button
+          type="button"
+          onClick={() => setMode(mode === 'upload' ? 'url' : 'upload')}
+          className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-bold leading-none text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Alternar para URL"
+        >
+          ou
+        </button>
+      </div>
+
+      {/* URL input (URL mode) */}
+      <div className={showUrl ? 'border rounded-lg' : 'border-t'}>
+        <motion.div
+          initial={false}
+          animate={{
+            height: showUrl ? 'auto' : 0,
+            opacity: showUrl ? 1 : 0,
+            scaleY: showUrl ? 1 : 0,
+            rotateX: showUrl ? 0 : -90,
+          }}
+          transition={spring}
+          style={{ transformStyle: 'preserve-3d', perspective: 800, transformOrigin: 'top' }}
+          className="overflow-hidden"
+        >
+          <div className="p-3">
+            <FloatingLabelInput
+              label={`URL da ${label.toLowerCase()}`}
+              info="Cole o link direto da imagem"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="text-xs"
+            />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Ou</span>
-          </div>
-        </div>
-        <FloatingLabelInput
-          label="URL externa"
-          info="Cole o link direto de uma imagem"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        </motion.div>
       </div>
     </div>
   );

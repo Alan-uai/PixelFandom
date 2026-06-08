@@ -498,6 +498,7 @@ export default function DataTableContent({
               value={value}
               onChange={(url) => onChange(col, url)}
               previewSize="w-8 h-8"
+              label="Ícone"
             />
           ) : null}
           <IconPickerTrigger
@@ -515,6 +516,7 @@ export default function DataTableContent({
           pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
           value={value}
           onChange={(url) => onChange(col, url)}
+          label="Imagem"
         />
       );
     }

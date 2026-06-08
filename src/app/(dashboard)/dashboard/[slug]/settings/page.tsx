@@ -8,7 +8,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers } from 'lucide-react';
@@ -189,11 +189,8 @@ export default function WikiSettingsPage() {
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },
-    { id: 'logo', label: 'Logo', icon: Image },
-    { id: 'cover', label: 'Capa', icon: ImageUp },
-    { id: 'favicon', label: 'Favicon', icon: Image },
-    { id: 'og-image', label: 'OG Image', icon: ImageUp },
-    { id: 'theme', label: 'Tema', icon: Image },
+    { id: 'media', label: 'Mídia', icon: Image },
+    { id: 'theme', label: 'Cores do Tema', icon: Pipette },
     { id: 'layout', label: 'Layout', icon: LayoutGrid },
     { id: 'fonts', label: 'Fontes', icon: Type },
     { id: 'pages', label: 'Páginas', icon: FileText },
@@ -204,13 +201,8 @@ export default function WikiSettingsPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
 
-      <section id="basic-info">
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações Básicas</CardTitle>
-          <CardDescription>Nome e descrição da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="basic-info" title="Informações Básicas" description="Nome e descrição da sua wiki.">
+        <div className="space-y-4">
           <FloatingLabelInput
             label="Nome"
             info="Nome público da sua wiki"
@@ -230,93 +222,40 @@ export default function WikiSettingsPage() {
             }}
             className="min-h-[80px]"
           />
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="logo">
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo da Wiki</CardTitle>
-          <CardDescription>Imagem de perfil da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImageUpload
-            bucket="wiki-images"
-            pathPrefix={`wiki-logos/${slug}`}
-            value={logoUrl}
-            onChange={setLogoUrl}
-            previewSize="w-20 h-20"
-          />
-          <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 256x256.</p>
-        </CardContent>
-      </Card>
-      </section>
+      <CollapsibleSection id="media" title="Mídia" description="Logo, capa, favicon e OG Image da sua wiki." defaultOpen={false}>
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-sm font-medium mb-2">Logo da Wiki</h4>
+            <p className="text-xs text-muted-foreground mb-2">Imagem de perfil da sua wiki.</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label="Logo da Wiki" previewSize="w-20 h-20" />
+            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 256x256.</p>
+          </div>
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-2">Capa da Wiki</h4>
+            <p className="text-xs text-muted-foreground mb-2">Imagem de capa da sua wiki.</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label="Capa da Wiki" previewSize="w-40 h-24" />
+            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
+          </div>
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-2">Favicon</h4>
+            <p className="text-xs text-muted-foreground mb-2">Ícone de aba do navegador para sua wiki.</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label="Favicon" previewSize="w-10 h-10" />
+            <p className="text-xs text-muted-foreground mt-2">PNG ou SVG. Tamanho recomendado: 32x32.</p>
+          </div>
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-2">OG Image</h4>
+            <p className="text-xs text-muted-foreground mb-2">Imagem de preview para compartilhamento em redes sociais.</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label="OG Image" previewSize="w-40 h-24" />
+            <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x630.</p>
+          </div>
+        </div>
+      </CollapsibleSection>
 
-      <section id="cover">
-      <Card>
-        <CardHeader>
-          <CardTitle>Capa da Wiki</CardTitle>
-          <CardDescription>Imagem de capa da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImageUpload
-            bucket="wiki-images"
-            pathPrefix={`wiki-covers/${slug}`}
-            value={coverImageUrl}
-            onChange={setCoverImageUrl}
-            previewSize="w-40 h-24"
-          />
-          <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="favicon">
-      <Card>
-        <CardHeader>
-          <CardTitle>Favicon</CardTitle>
-          <CardDescription>Ícone de aba do navegador para sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImageUpload
-            bucket="wiki-images"
-            pathPrefix={`wiki-favicons/${slug}`}
-            value={faviconUrl}
-            onChange={setFaviconUrl}
-            previewSize="w-10 h-10"
-          />
-          <p className="text-xs text-muted-foreground mt-2">PNG ou SVG. Tamanho recomendado: 32x32.</p>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="og-image">
-      <Card>
-        <CardHeader>
-          <CardTitle>OG Image</CardTitle>
-          <CardDescription>Imagem de preview para compartilhamento em redes sociais.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ImageUpload
-            bucket="wiki-images"
-            pathPrefix={`wiki-og/${slug}`}
-            value={ogImage}
-            onChange={setOgImage}
-            previewSize="w-40 h-24"
-          />
-          <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x630.</p>
-        </CardContent>
-      </Card>
-      </section>
-
-      <section id="theme">
-      <Card>
-        <CardHeader>
-          <CardTitle>Cores do Tema</CardTitle>
-          <CardDescription>Personalize as cores da sua wiki (formato HSL).</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="theme" title="Cores do Tema" description="Personalize as cores da sua wiki (formato HSL).">
+        <div className="space-y-4">
           <ColorField id="primaryColor" label="Cor Primária" value={primaryColor} onChange={setPrimaryColor} placeholder="198 100% 65%" />
           <ColorField id="backgroundColor" label="Cor de Fundo" value={backgroundColor} onChange={setBackgroundColor} placeholder="0 0% 13%" />
           <ColorField id="cardColor" label="Cor dos Cards" value={cardColor} onChange={setCardColor} placeholder="0 0% 15%" />
@@ -325,20 +264,11 @@ export default function WikiSettingsPage() {
           <p className="text-xs text-muted-foreground">
             Formato: <code>hue saturation% lightness%</code>. Deixe vazio para usar o valor padrão.
           </p>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="layout">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5" />
-            Layout da Wiki
-          </CardTitle>
-          <CardDescription>Configure a aparência estrutural da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="layout" title="Layout da Wiki" description="Configure a aparência estrutural da sua wiki.">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Largura da Sidebar</Label>
             <div className="flex gap-2">
@@ -404,20 +334,11 @@ export default function WikiSettingsPage() {
               <option value="1rem">Extra (1rem)</option>
             </select>
           </div>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="fonts">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Type className="h-5 w-5" />
-            Fontes
-          </CardTitle>
-          <CardDescription>Escolha as fontes da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="fonts" title="Fontes" description="Escolha as fontes da sua wiki.">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fontFamily">Fonte Principal</Label>
             <select
@@ -451,28 +372,16 @@ export default function WikiSettingsPage() {
               <option value="'Montserrat', sans-serif">Montserrat</option>
             </select>
           </div>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="pages">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Páginas
-          </CardTitle>
-          <CardDescription>Edite visualmente as páginas da sua wiki.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <CollapsibleSection id="pages" title="Páginas" description="Edite visualmente as páginas da sua wiki.">
+        <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Use o editor visual de blocos (drag & drop) para personalizar essas páginas.
           </p>
           <div className="flex flex-col gap-2">
-            <a
-              href={`/dashboard/${slug}/page-builder?type=footer`}
-              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-            >
+            <a href={`/dashboard/${slug}/page-builder?type=footer`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Image className="h-5 w-5" />
               </div>
@@ -481,10 +390,7 @@ export default function WikiSettingsPage() {
                 <p className="text-xs text-muted-foreground">Rodapé da wiki</p>
               </div>
             </a>
-            <a
-              href={`/dashboard/${slug}/page-builder?type=404`}
-              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-            >
+            <a href={`/dashboard/${slug}/page-builder?type=404`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <FileText className="h-5 w-5" />
               </div>
@@ -493,10 +399,7 @@ export default function WikiSettingsPage() {
                 <p className="text-xs text-muted-foreground">Página de erro personalizada</p>
               </div>
             </a>
-            <a
-              href={`/dashboard/${slug}/page-builder?type=landing`}
-              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-            >
+            <a href={`/dashboard/${slug}/page-builder?type=landing`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <LayoutDashboard className="h-5 w-5" />
               </div>
@@ -505,10 +408,7 @@ export default function WikiSettingsPage() {
                 <p className="text-xs text-muted-foreground">Página inicial da wiki</p>
               </div>
             </a>
-            <a
-              href={`/dashboard/${slug}/page-builder?type=landing`}
-              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-            >
+            <a href={`/dashboard/${slug}/page-builder?type=landing`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Layers className="h-5 w-5" />
               </div>
@@ -518,20 +418,11 @@ export default function WikiSettingsPage() {
               </div>
             </a>
           </div>
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="links">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Links Sociais
-          </CardTitle>
-          <CardDescription>Links para o Discord e página do jogo (Roblox).</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleSection id="links" title="Links Sociais" description="Links para o Discord e página do jogo (Roblox).">
+        <div className="space-y-4">
           <FloatingLabelInput
             label="Link do Discord"
             type="url"
@@ -546,26 +437,12 @@ export default function WikiSettingsPage() {
             value={gameUrl}
             onChange={(e) => setGameUrl(e.target.value)}
           />
-        </CardContent>
-      </Card>
-      </section>
+        </div>
+      </CollapsibleSection>
 
-      <section id="danger-zone">
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
-            Zona Perigosa
-          </CardTitle>
-          <CardDescription>
-            Ações destrutivas que afetam toda a wiki.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DeleteWikiSection slug={slug} tenantName={name} />
-        </CardContent>
-      </Card>
-      </section>
+      <CollapsibleSection id="danger-zone" title="Zona Perigosa" description="Ações destrutivas que afetam toda a wiki." className="border-destructive/50">
+        <DeleteWikiSection slug={slug} tenantName={name} />
+      </CollapsibleSection>
 
       {savedFeedback ? (
         <div className="flex items-center gap-2 text-sm text-green-500 font-medium">

@@ -24,9 +24,10 @@ type SidebarArticle = {
 type Props = {
   tenantSlug: string;
   collapsed?: boolean;
+  onClose?: () => void;
 };
 
-export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
+export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,6 +83,18 @@ export default function WikiSidebar({ tenantSlug, collapsed }: Props) {
 
   return (
     <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 transition-all duration-200">
+      {/* Close button */}
+      {onClose && (
+        <div className="flex items-center justify-end p-2 border-b">
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Fechar sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {/* Search */}
       <div className="p-3 border-b">
         <div className="relative">

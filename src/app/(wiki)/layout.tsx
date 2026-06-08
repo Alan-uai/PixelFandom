@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, X, House, MessageCircle, Gamepad2, SunMoon } from 'lucide-react';
+import { Loader2, Search, X, House, MessageCircle, Gamepad2, SunMoon, PanelLeft } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
@@ -65,6 +65,7 @@ function WikiLayoutContent({
   const hasSidebar = isChatPage;
   const showTitleStrip = !isVoicePage;
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [footerLayout, setFooterLayout] = useState<any>(null);
@@ -263,7 +264,14 @@ function WikiLayoutContent({
             {isHome ? (
               <HomeTitleStrip />
             ) : hasSidebar ? (
-              <div className="flex-1 flex items-center justify-center h-7">
+              <div className="flex-1 flex items-center justify-center h-7 px-3">
+                <button
+                  onClick={() => setSidebarOpen((prev) => !prev)}
+                  className="absolute left-3 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Sidebar"
+                >
+                  <PanelLeft className={`h-3.5 w-3.5 transition-opacity ${sidebarOpen ? 'opacity-60' : 'opacity-100'}`} />
+                </button>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
                   Assistente IA
                 </span>
@@ -275,10 +283,24 @@ function WikiLayoutContent({
         <div className="flex flex-1" style={{
           fontSize: preferences.font_size === 'small' ? '0.875rem' : preferences.font_size === 'large' ? '1.125rem' : '1rem',
         }}>
-          {hasSidebar && (
-            <Suspense fallback={<div className="w-64 shrink-0 border-r bg-muted/30" />}>
-              <WikiSidebar tenantSlug={slug} />
-            </Suspense>
+          {isChatPage && (
+            <>
+              {sidebarOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/50"
+                  onClick={() => setSidebarOpen(false)}
+                />
+              )}
+              <div
+                className={`fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transition-transform duration-300 ease-in-out ${
+                  sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+              >
+                <Suspense fallback={<div className="w-64 h-full border-r bg-muted/30" />}>
+                  <WikiSidebar tenantSlug={slug} onClose={() => setSidebarOpen(false)} />
+                </Suspense>
+              </div>
+            </>
           )}
           <main className={`flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full ${preferences.density === 'compact' ? 'space-y-3' : 'space-y-6'}`}>
             <Suspense fallback={null}>
