@@ -37,10 +37,10 @@ export async function middleware(request: NextRequest) {
   const isDev = host === 'localhost' || host === '127.0.0.1';
   const isApiRoute = pathname.startsWith('/api/');
 
-  // Main domain or dev: pass through, set slug cookie from path
+  // Main domain or dev: pass through, rewrite short URLs using tenant cookie
   if (isDev || host === MAIN_DOMAIN) {
-    const response = NextResponse.next();
     if (pathname.startsWith('/w/')) {
+      const response = NextResponse.next();
       const slug = pathname.split('/')[2];
       if (slug) {
         response.cookies.set('x-tenant-slug', slug, {
@@ -49,8 +49,20 @@ export async function middleware(request: NextRequest) {
           sameSite: 'lax',
         });
       }
+      return response;
     }
-    return response;
+
+    // Rewrite short-form URLs (e.g. /marks → /w/{slug}/marks) if we have an active tenant
+    if (!pathname.startsWith('/dashboard') && !isApiRoute && pathname !== '/') {
+      const tenantSlug = request.cookies.get('x-tenant-slug')?.value;
+      if (tenantSlug) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/w/${tenantSlug}${pathname}`;
+        return NextResponse.rewrite(url);
+      }
+    }
+
+    return NextResponse.next();
   }
 
   // Custom domain: lookup tenant and rewrite (only for wiki pages)
