@@ -839,5 +839,162 @@ Call when the user says goodbye: "tchau", "falou", "pode ir", "até logo", "bye"
       },
       ['table', 'itemName']
     ),
+
+    // ── Math tool ──
+
+    q('evaluateMath',
+      'Evaluate mathematical expressions (arithmetic, percentages, trigonometry, etc.). Use for any calculation: "what is 15% of 230?", "how much is (80-50)/50*100?", "sqrt(144)". Returns the computed result. Compose with data tools: getStatSummary → evaluateMath for "what percentage higher is this item?".',
+      {
+        expression: { type: 'string', description: 'Math expression (e.g. "15/100*230", "(80-50)/50*100", "sqrt(144)")' },
+        precision: { type: 'number', description: 'Decimal places (default 4)' },
+      },
+      ['expression']),
+
+    // ── Batch voice tool ──
+
+    new FunctionCallTool(
+      'batchVoiceQuery',
+      `Execute MULTIPLE independent queries in ONE call. Huge speedup — instead of calling 3+ tools sequentially, batch them together.
+
+Use for: "find weapon + armor + ring with fire element" (3 table queries), "get item stats + summary + comparisons" (multiple analysis tools).
+
+PARAMS format: JSON array of {action, params} objects.
+Example: [{"action":"getItem","params":{"table":"weapons","name":"steel sword"}},{"action":"getStatSummary","params":{"table":"weapons","column":"damage_min"}}]`,
+      {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'string',
+            description: 'JSON array of query objects. Each: {action: string, params: object}. Max 6 queries.',
+          },
+        },
+      },
+      async (params: { queries: string }) => {
+        try {
+          const queries = JSON.parse(params.queries).slice(0, 6) as Array<{ action: string; params: Record<string, string> }>
+          const results = await Promise.all(
+            queries.map(q => {
+              const qParams: Record<string, string> = { action: q.action, ...q.params }
+              return ctx.fetchWithSlug('/api/voice/query', qParams).catch(() => null)
+            }),
+          )
+          const zipped = queries.map((q, i) => ({ action: q.action, params: q.params, result: results[i] }))
+          return { result: { batchSize: zipped.length, queries: zipped } }
+        } catch {
+          return { result: { error: 'batchVoiceQuery failed — invalid JSON or request error' } }
+        }
+      },
+      ['queries']
+    ),
+
+    // ── Show on screen ──
+
+    new FunctionCallTool(
+      'showOnScreen',
+      `Display visual content on the user's screen (a popup/modal with formatted data).
+Use when the user asks to "show me", "display", "mostre", "exiba" — so they can see data visually instead of just hearing it.
+Pass the formatted content as markdown/html in the 'content' field.
+The client will render this in a visual overlay.`,
+      {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Title for the visual display' },
+          content: { type: 'string', description: 'Markdown or HTML content to display on screen' },
+        },
+      },
+      async (params: { title: string; content: string }) => {
+        return {
+          result: {
+            action: 'showOnScreen',
+            title: params.title,
+            html: params.content,
+            message: `Exibindo "${params.title}" na tela.`,
+          },
+        }
+      },
+      ['title', 'content']
+    ),
+
+    // ── Rate my gear ──
+
+    new FunctionCallTool(
+      'rateMyGear',
+      `Evaluate a complete equipment build (weapon + armor + ring) and give it a rating.
+Fetches each item's stats, compares them to category averages, and returns a score + recommendations.
+Use for "rate my build", "avalie meu equipamento", "how good is my gear?".
+At least one item is required.`,
+      {
+        type: 'object',
+        properties: {
+          weapon: { type: 'string', description: 'Weapon name (optional)' },
+          armor: { type: 'string', description: 'Armor name (optional)' },
+          ring: { type: 'string', description: 'Ring name (optional)' },
+        },
+      },
+      async (params: { weapon?: string; armor?: string; ring?: string }) => {
+        try {
+          const queries: Array<Promise<any> | null> = []
+          const slots: Array<{ name: string; table: string; label: string }> = []
+
+          if (params.weapon) {
+            queries.push(ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'weapons', name: params.weapon }))
+            slots.push({ name: params.weapon, table: 'weapons', label: 'Arma' })
+          }
+          if (params.armor) {
+            queries.push(ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'armors', name: params.armor }))
+            slots.push({ name: params.armor, table: 'armors', label: 'Armadura' })
+          }
+          if (params.ring) {
+            queries.push(ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'rings', name: params.ring }))
+            slots.push({ name: params.ring, table: 'rings', label: 'Anel' })
+          }
+
+          const rawItems = await Promise.all(queries)
+          const items = slots.map((s, i) => ({ slot: s.label, table: s.table, item: rawItems[i] }))
+
+          return {
+            result: {
+              action: 'rateMyGear',
+              gear: items,
+              message: `Build avaliada. ${items.length} item(ns) encontrados.`,
+            },
+          }
+        } catch {
+          return { result: { error: 'Falha ao avaliar equipamento.' } }
+        }
+      }
+    ),
+
+    // ── Open comparison ──
+
+    new FunctionCallTool(
+      'openComparison',
+      `OPEN the visual comparison popup/drawer for items in a table.
+Use INSTEAD of describing comparison data verbally — this shows a rich visual comparison with stat bars and ranking.
+For: "compare X and Y", "compare steel sword with iron sword", "mostre a comparação entre X e Y".
+Pass the table and at least 2 item names.`,
+      {
+        type: 'object',
+        properties: {
+          table: { type: 'string', description: 'Table name (e.g. "weapons", "armors", "enemies")' },
+          items: { type: 'string', description: 'Comma-separated item names to compare (e.g. "steel sword,iron sword,battle axe"). Min 2, max 6.' },
+        },
+      },
+      async (params: { table: string; items: string }) => {
+        const itemList = params.items.split(',').map(s => s.trim()).filter(Boolean).slice(0, 6)
+        if (itemList.length < 2) {
+          return { result: { error: 'Precisa de pelo menos 2 itens para comparar.' } }
+        }
+        return {
+          result: {
+            action: 'openComparison',
+            table: params.table,
+            items: itemList,
+            message: `Abrindo comparação de ${itemList.length} itens em ${params.table}...`,
+          },
+        }
+      },
+      ['table', 'items']
+    ),
   ]
 }

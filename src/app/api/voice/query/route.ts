@@ -27,16 +27,19 @@ export async function GET(request: NextRequest) {
 
     const { executeTextChatTool } = await import('@/lib/text-chat-tools')
 
+    const arrayKeys = new Set(['stats', 'statColumns', 'names', 'tables', 'columns', 'queries', 'matchColumns', 'itemNames'])
+    const numberKeys = new Set(['limit', 'offset', 'days', 'percentRange', 'min', 'max', 'precision'])
+
     const args: Record<string, unknown> = {}
     for (const [key, value] of searchParams.entries()) {
       if (key === 'slug' || key === 'action') continue
-      if (key === 'stats' || key === 'statColumns') {
+      if (arrayKeys.has(key)) {
         args[key] = value.split(',').filter(Boolean)
       } else if (key === 'filters') {
         try { args[key] = JSON.parse(value) } catch { args[key] = value }
       } else if (key === 'descending') {
         args[key] = value === 'true'
-      } else if (key === 'limit' || key === 'offset' || key === 'days' || key === 'percentRange' || key === 'min' || key === 'max') {
+      } else if (numberKeys.has(key)) {
         args[key] = Number(value)
       } else {
         args[key] = value

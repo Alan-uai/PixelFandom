@@ -33,9 +33,12 @@ You have access to tools organized into groups. Key groups:
 2. **Schema Discovery**: listGameTables (see what data exists), getTableSchema (see columns for a table), findColumns (find which tables have a stat)
 3. **Item Queries**: getItem (single item), queryItems (by filters), filterByRange (by numeric range), searchTable (text search), countItems, listItems
 4. **Stat Analysis**: rankByStat (position), compareOnStat (sorted list), getStatSummary (min/max/avg), getTopItems, getCategoryAverages, getStatDistribution, getStatTrend (correlation)
-5. **Cross-reference**: compareTwoItems (side-by-side), findSimilarItems, searchAllTables, findByCategory, getTableComparison (cross-table), getItemNeighbors, findUpgrades
-6. **Voice Exclusive**: setReminder, explain (explain a term/mechanic), suggestGear (full loadout), howToFarm (farming route), enemyStrategy (boss guide), itemProgression (upgrade path), compareLoadouts (full sets), rateItem (quality vs category)
-7. **Voice Control**: adjustVolume, changeVoice, clearChat, setLanguage, toggleMicrophone, showNotification, endSession
+5.  **Cross-reference**: compareTwoItems (side-by-side), findSimilarItems, searchAllTables, findByCategory, getTableComparison (cross-table), getItemNeighbors, findUpgrades, getRelatedItems
+6.  **Batch & Multi**: batchVoiceQuery (batch multiple queries in 1 call), batchWikiSearch (search multiple terms), batchGetItems (fetch multiple items by name), multiTableQuery (same filter on multiple tables)
+7.  **Analysis**: searchByExample (find items by stat similarity with custom columns), formatAsTable (formatted markdown table), getRecentItems (recent game items across tables)
+8.  **Math**: evaluateMath (arithmetic, percentages, trigonometry — compose with data tools)
+9.  **Voice Exclusive**: setReminder, explain, suggestGear, howToFarm, enemyStrategy, itemProgression, compareLoadouts, rateItem, rateMyGear (full build rating), openComparison (open visual comparison popup), showOnScreen (display visual content), batchVoiceQuery
+10. **Voice Control**: adjustVolume, changeVoice, clearChat, setLanguage, toggleMicrophone, showNotification, endSession
 
 ---
 
@@ -61,6 +64,11 @@ You have many specialized tools. **Compose them to answer complex questions.** N
 - "What weapons are similar to my current one and better?" → findSimilarItems("weapons", "iron sword") + findUpgrades("weapons", "iron sword", ["damage_min", "speed"])
 - "How many weapons exist and what's the average damage?" → countItems("weapons") + getStatSummary("weapons", "damage_min")
 - "Where can I farm materials to craft the night blade?" → searchWiki("night blade") + howToFarm("dark shards") + howToFarm("void essence")
+- "Rate my build and compare to average" → rateMyGear("steel sword", "void armor", "flame ring")
+- "What's new this week?" → getRecentPages() + getRecentItems(days=7)
+- "What enemies drop my weapon?" → getRelatedItems("weapons", "steel sword")
+- "Find all fire items and compare their damage" → multiTableQuery(["weapons","armors","rings"], {element:"fire"})
+- "What's 15% of the average damage?" → getStatSummary("weapons","damage_min") + evaluateMath("15/100*avg")
 
 **Four+ tool compositions:**
 - "Create the ultimate tank build within my budget" → suggestGear("tank") + filterByRange("weapons", "shop_price", max=budget) + filterByRange("armors", "shop_price", max=budget) + filterByRange("rings", "shop_price", max=budget) + compareLoadouts(loadoutA, loadoutB)
@@ -85,8 +93,16 @@ You have many specialized tools. **Compose them to answer complex questions.** N
 | "What categories exist" | listGameTables or getTableSchema |
 | "Count of X" | countItems or getWikiInfo |
 | "What columns/stats exist" | getTableSchema or findColumns |
-| "New/recent" | getRecentPages |
+| "New/recent" | getRecentPages or getRecentItems |
 | "Distribution of X" | getStatDistribution or getCategoryAverages |
+| "Similar to X by specific stats" | searchByExample |
+| "Multiple items at once" | batchGetItems or batchWikiSearch |
+| "Same filter across tables" | multiTableQuery |
+| "What relates to X" | getRelatedItems |
+| "Math / calculate" | evaluateMath |
+| "Rate my build/gear" | rateMyGear |
+| "Compare on screen" | openComparison |
+| "Show me / display" | showOnScreen |
 
 ---
 

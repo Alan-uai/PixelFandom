@@ -1,6 +1,7 @@
 import { supabase } from '@/supabase';
 import { searchAll, type SearchAllResult } from '@/lib/search';
 import { getGameSchema, getTableSchema, type ColumnInfo } from '@/lib/game-schema';
+import { evaluateMath, type MathResult } from '@/lib/math-tools';
 
 export interface ToolContext {
   slug: string;
@@ -547,6 +548,169 @@ const getRecentPagesDef: ToolDefinition = {
   },
 };
 
+// ── New tools ──
+
+const evaluateMathDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'evaluateMath',
+    description: 'Evaluate mathematical expressions (arithmetic, trigonometry, logarithms, etc.). Use for any calculation: percentages, averages, formulas, conversions, stat comparisons. Example: "(80-50)/50*100" for percent difference, "15% of 230", "sqrt(144)", "sin(45 deg)".',
+    parameters: {
+      type: 'object',
+      properties: {
+        expression: { type: 'string', description: 'The math expression to evaluate (e.g. "(80-50)/50*100", "sqrt(144)", "15/100*230", "sin(45 deg)")' },
+        precision: { type: 'number', description: 'Decimal places for result (default 4)' },
+      },
+      required: ['expression'],
+    },
+  },
+};
+
+const batchWikiSearchDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'batchWikiSearch',
+    description: 'Search for MULTIPLE wiki item terms in ONE call. Runs parallel searches for each term and returns combined results. Use when the user mentions several items at once (e.g., "compare steel sword, iron sword, and battle axe") or asks about multiple unrelated things in one question.',
+    parameters: {
+      type: 'object',
+      properties: {
+        queries: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of search terms to look up in parallel (e.g. ["steel sword", "iron sword", "battle axe"]). Max 10 terms.',
+        },
+      },
+      required: ['queries'],
+    },
+  },
+};
+
+const searchByExampleDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'searchByExample',
+    description: 'Find items with similar stat profiles to a given item. Unlike findSimilarItems, this lets you control which columns matter and their weights. Use for precise searches like "find weapons with similar damage AND speed to my sword" or "which armors match this one in defense and weight?".',
+    parameters: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'The table name (e.g. "weapons", "armors")' },
+        itemName: { type: 'string', description: 'The reference item name' },
+        matchColumns: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Specific columns to compare. If omitted, uses ALL numeric columns.',
+        },
+        limit: { type: 'number', description: 'Maximum similar items to return (default 5, max 20)' },
+      },
+      required: ['table', 'itemName'],
+    },
+  },
+};
+
+const formatAsTableDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'formatAsTable',
+    description: 'Fetch data from a table and format it as a clean markdown table. Specify which items and columns to include. Use when you want a neatly formatted table of items and their stats for the user to read.',
+    parameters: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'The table name (e.g. "weapons", "armors")' },
+        columns: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Which columns to include in the table (e.g. ["name", "damage_min", "speed", "shop_price"]). If omitted, includes name + all numeric columns.',
+        },
+        itemNames: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Specific items to include (by name). If omitted, shows all items in table up to limit.',
+        },
+        sortBy: { type: 'string', description: 'Optional column to sort by' },
+        sortDir: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction (default "asc")' },
+        limit: { type: 'number', description: 'Max items (default 20, max 50). Only used if itemNames is empty.' },
+      },
+      required: ['table'],
+    },
+  },
+};
+
+const getRecentItemsDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'getRecentItems',
+    description: 'Get recently added game items across ALL game tables. Shows what items were added recently to weapons, armors, enemies, etc. Use for "what is new", "quais itens foram adicionados", "what changed in the game data lately?".',
+    parameters: {
+      type: 'object',
+      properties: {
+        days: { type: 'number', description: 'How many days back to look (default 7). Set to 0 for all time.' },
+        limit: { type: 'number', description: 'Max items per table (default 5, max 20)' },
+      },
+    },
+  },
+};
+
+const getRelatedItemsDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'getRelatedItems',
+    description: 'Discover items in other tables that are connected to a given item. Uses column naming conventions to find relationships (e.g., a "weapon_id" column in enemies table means that enemy is related to the weapon). Use for questions like "what enemies drop this weapon?" or "which recipes use this item?".',
+    parameters: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'The item\'s table (e.g. "weapons", "armors")' },
+        itemName: { type: 'string', description: 'The item name to find relations for' },
+      },
+      required: ['table', 'itemName'],
+    },
+  },
+};
+
+const multiTableQueryDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'multiTableQuery',
+    description: 'Query the same filter across MULTIPLE tables in one call. Returns results grouped by table. Use for cross-category questions like "find me all items with fire element" (checks weapons + armors + rings) or "what items cost less than 100 gold across all shops?".',
+    parameters: {
+      type: 'object',
+      properties: {
+        tables: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of table names to query (e.g. ["weapons", "armors", "rings"]). Max 5 tables.',
+        },
+        filters: {
+          type: 'object',
+          description: 'Key-value pairs of column filters (e.g. {"element": "fire"} or {"rarity": "legendary"})',
+          additionalProperties: { type: 'string' },
+        },
+        limit: { type: 'number', description: 'Max items per table (default 10, max 30)' },
+      },
+      required: ['tables', 'filters'],
+    },
+  },
+};
+
+const batchGetItemsDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'batchGetItems',
+    description: 'Get MULTIPLE items from a table by name or slug in ONE call. Much faster than calling getItem repeatedly. Use when the user asks about several specific items (e.g., "tell me about steel sword, iron sword, and void blade").',
+    parameters: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'The table name (e.g. "weapons", "armors")' },
+        names: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of item names or slugs to fetch (e.g. ["steel-sword", "iron-sword", "void-blade"]). Max 10 items.',
+        },
+      },
+      required: ['table', 'names'],
+    },
+  },
+};
+
 export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   searchWikiDef,
   getWikiInfoDef,
@@ -579,6 +743,14 @@ export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   searchWikiPagesDef,
   listPagesByTagDef,
   getRecentPagesDef,
+  evaluateMathDef,
+  batchWikiSearchDef,
+  searchByExampleDef,
+  formatAsTableDef,
+  getRecentItemsDef,
+  getRelatedItemsDef,
+  multiTableQueryDef,
+  batchGetItemsDef,
 ];
 
 // ── Helper: get tenant by slug or id ──
@@ -1375,6 +1547,297 @@ async function handleGetRecentPages(args: { limit?: number; days?: number }, ctx
   return { pages: data || [] };
 }
 
+// ── New tool handlers ──
+
+async function handleEvaluateMath(args: { expression: string; precision?: number }): Promise<MathResult> {
+  return evaluateMath(args.expression, args.precision);
+}
+
+async function handleBatchWikiSearch(args: { queries: string[] }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const terms = (args.queries || []).slice(0, 10);
+  const results = await Promise.all(
+    terms.map(q => handleSearchWiki({ query: q }, ctx).catch(() => null)),
+  );
+  const combined: Record<string, unknown[]> = { wiki: [], collection: [], game_items: [] };
+  for (const r of results) {
+    if (r) {
+      const data = r as SearchAllResult;
+      if (data.wiki) combined.wiki.push(...data.wiki);
+      if (data.collection) combined.collection.push(...data.collection);
+      if (data.game_items) combined.game_items.push(...data.game_items);
+    }
+  }
+  return { queries: terms, totalWiki: combined.wiki.length, totalItems: combined.game_items.length, ...combined };
+}
+
+async function handleSearchByExample(args: { table: string; itemName: string; matchColumns?: string[]; limit?: number }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
+  if (!tenant) return { error: 'Tenant not found', similar: [] };
+
+  const limit = Math.min(args.limit ?? 5, 20);
+
+  const { data: target } = await supabase
+    .from(args.table)
+    .select('*')
+    .eq('tenant_id', tenant.id)
+    .ilike('name', `%${args.itemName}%`)
+    .limit(1);
+
+  if (!target || target.length === 0) return { error: `Item "${args.itemName}" not found`, similar: [] };
+
+  const item = target[0];
+  const cols = args.matchColumns ?? Object.entries(item)
+    .filter(([k, v]) => typeof v === 'number' && !['id'].includes(k))
+    .map(([k]) => k);
+
+  if (cols.length === 0) return { error: 'No numeric columns to compare', similar: [] };
+
+  const { data: allItems } = await supabase
+    .from(args.table)
+    .select('*')
+    .eq('tenant_id', tenant.id);
+
+  if (!allItems) return { similar: [] };
+
+  const ranges: Record<string, { min: number; max: number }> = {};
+  for (const col of cols) {
+    const vals = allItems.map(i => Number(i[col])).filter(v => !isNaN(v));
+    if (vals.length > 0) {
+      ranges[col] = { min: Math.min(...vals), max: Math.max(...vals) };
+    }
+  }
+
+  if (Object.keys(ranges).length === 0) return { similar: [] };
+
+  const scored = allItems
+    .filter((i: any) => i.id !== item.id)
+    .map((i: any) => {
+      let totalSim = 0;
+      let count = 0;
+      for (const col of cols) {
+        const range = ranges[col];
+        if (!range || range.max === range.min) continue;
+        const a = Number(item[col] ?? range.min);
+        const b = Number(i[col] ?? range.min);
+        const aNorm = (a - range.min) / (range.max - range.min);
+        const bNorm = (b - range.min) / (range.max - range.min);
+        totalSim += 1 - Math.abs(aNorm - bNorm);
+        count++;
+      }
+      return { item: i, similarity: count > 0 ? +(totalSim / count * 100).toFixed(1) : 0 };
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit);
+
+  return {
+    table: args.table,
+    referenceItem: item.name || item.title,
+    matchColumns: cols,
+    similar: scored.map(s => ({ ...s.item, _similarity_pct: s.similarity })),
+  };
+}
+
+async function handleFormatAsTable(args: { table: string; columns?: string[]; itemNames?: string[]; sortBy?: string; sortDir?: string; limit?: number }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
+  if (!tenant) return { error: 'Tenant not found', table: '' };
+
+  const limit = args.itemNames?.length ? args.itemNames.length : Math.min(args.limit ?? 20, 50);
+  let query = supabase
+    .from(args.table)
+    .select('*')
+    .eq('tenant_id', tenant.id);
+
+  if (args.itemNames && args.itemNames.length > 0) {
+    const names = args.itemNames.slice(0, 50);
+    query = query.in('name', names);
+  }
+
+  if (args.sortBy) {
+    query = query.order(args.sortBy, { ascending: args.sortDir !== 'desc' });
+  } else {
+    query = query.order('name', { ascending: true });
+  }
+
+  const { data, error } = await query.limit(limit);
+  if (error) return { error: error.message, table: args.table, markdown: '' };
+  if (!data || data.length === 0) return { table: args.table, markdown: '*Nenhum item encontrado.*' };
+
+  const allKeys = Object.keys(data[0]);
+  const cols = args.columns?.length
+    ? args.columns.filter(c => allKeys.includes(c))
+    : ['name', ...allKeys.filter(k => typeof data[0][k] === 'number' && !['id', 'tenant_id'].includes(k))].slice(0, 10);
+
+  const header = `| ${cols.map(c => c).join(' | ')} |`;
+  const separator = `| ${cols.map(() => '---').join(' | ')} |`;
+  const rows = data.map((item: any) =>
+    `| ${cols.map(c => {
+      const v = item[c];
+      if (v === null || v === undefined) return '-';
+      if (typeof v === 'number') return String(v);
+      return String(v).slice(0, 40);
+    }).join(' | ')} |`,
+  );
+
+  return {
+    table: args.table,
+    columns: cols,
+    rowCount: data.length,
+    markdown: [header, separator, ...rows].join('\n'),
+  };
+}
+
+async function handleGetRecentItems(args: { days?: number; limit?: number }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
+  if (!tenant) return { error: 'Tenant not found', tables: [] };
+
+  const days = args.days ?? 7;
+  const limit = Math.min(args.limit ?? 5, 20);
+  const cutoff = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : '1970-01-01';
+
+  const schema = await getGameSchema();
+  const tableResults = await Promise.all(
+    schema.tables.map(async (t) => {
+      const { data, count } = await supabase
+        .from(t.table_name)
+        .select('name, slug, created_at, updated_at', { count: 'exact', head: false })
+        .eq('tenant_id', tenant.id)
+        .gte('created_at', cutoff)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      return { table: t.table_name, count: count || 0, items: data || [] };
+    }),
+  );
+
+  return {
+    days,
+    totalNewItems: tableResults.reduce((s, r) => s + r.count, 0),
+    tables: tableResults.filter(r => r.count > 0),
+  };
+}
+
+async function handleGetRelatedItems(args: { table: string; itemName: string }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
+  if (!tenant) return { error: 'Tenant not found', relations: [] };
+
+  const { data: item } = await supabase
+    .from(args.table)
+    .select('name, slug, id')
+    .eq('tenant_id', tenant.id)
+    .ilike('name', `%${args.itemName}%`)
+    .limit(1);
+
+  if (!item || item.length === 0) return { error: `Item "${args.itemName}" not found in ${args.table}`, relations: [] };
+
+  const target = item[0];
+
+  const singularMap: Record<string, string> = {
+    weapons: 'weapon', armors: 'armor', rings: 'ring', enemies: 'enemy',
+    bosses: 'boss', potions: 'potion', upgrades: 'upgrade', worlds: 'world',
+    resources: 'resource', crafting_recipes: 'recipe',
+  };
+
+  const expectedFks = [`${singularMap[args.table] || args.table.slice(0, -1)}_id`, `${singularMap[args.table] || args.table.slice(0, -1)}_name`];
+
+  const schema = await getGameSchema();
+  const relations: Array<{ table: string; column: string; items: unknown[] }> = [];
+
+  for (const t of schema.tables) {
+    if (t.table_name === args.table) continue;
+    const fkCols = t.columns.filter(c =>
+      expectedFks.includes(c.column_name) || c.column_name.endsWith('_id') || c.column_name.endsWith('_name'),
+    ).slice(0, 3);
+
+    for (const col of fkCols) {
+      const { data } = await supabase
+        .from(t.table_name)
+        .select('name, slug, id')
+        .eq('tenant_id', tenant.id)
+        .eq(col.column_name, target.name)
+        .limit(10);
+
+      if (data && data.length > 0) {
+        relations.push({ table: t.table_name, column: col.column_name, items: data });
+      }
+    }
+
+    const { data: nameMatch } = await supabase
+      .from(t.table_name)
+      .select('name, slug, id')
+      .eq('tenant_id', tenant.id)
+      .ilike('name', `%${target.name}%`)
+      .limit(5);
+
+    if (nameMatch && nameMatch.length > 0) {
+      const alreadyCounted = relations.filter(r => r.table === t.table_name).reduce((s, r) => s + r.items.length, 0);
+      if (alreadyCounted < nameMatch.length) {
+        relations.push({
+          table: t.table_name,
+          column: 'name (text match)',
+          items: nameMatch.slice(0, alreadyCounted > 0 ? 0 : 5),
+        });
+      }
+    }
+  }
+
+  return {
+    itemName: target.name,
+    table: args.table,
+    relationCount: relations.length,
+    relations: relations.filter(r => r.items.length > 0),
+  };
+}
+
+async function handleMultiTableQuery(args: { tables: string[]; filters: Record<string, string>; limit?: number }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
+  if (!tenant) return { error: 'Tenant not found', results: {} };
+
+  const tables = (args.tables || []).slice(0, 5);
+  const limit = Math.min(args.limit ?? 10, 30);
+
+  const results = await Promise.all(
+    tables.map(async (table) => {
+      let query = supabase.from(table).select('*').eq('tenant_id', tenant.id);
+      for (const [col, val] of Object.entries(args.filters)) {
+        const numeric = !isNaN(Number(val));
+        if (numeric) {
+          query = query.eq(col, Number(val));
+        } else {
+          query = query.ilike(col, `%${val}%`);
+        }
+      }
+      const { data, count } = await query.limit(limit);
+      return { table, count: (data || []).length, items: data || [] };
+    }),
+  );
+
+  return {
+    filters: args.filters,
+    totalResults: results.reduce((s, r) => s + r.count, 0),
+    tables: results,
+  };
+}
+
+async function handleBatchGetItems(args: { table: string; names: string[] }, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const names = (args.names || []).slice(0, 10);
+  const results = await Promise.all(
+    names.map(async (name) => {
+      try {
+        const r = await handleGetItem({ table: args.table, name }, ctx);
+        return { name, result: r };
+      } catch {
+        return { name, result: { error: `Failed to fetch "${name}"` } };
+      }
+    }),
+  );
+
+  return {
+    table: args.table,
+    requested: names,
+    found: results.filter(r => !(r.result as any).error),
+    failed: results.filter(r => !!(r.result as any).error),
+  };
+}
+
 // ── Map dispatcher ──
 
 const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<unknown>>([
@@ -1409,6 +1872,14 @@ const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<un
   ['searchWikiPages', handleSearchWikiPages],
   ['listPagesByTag', handleListPagesByTag],
   ['getRecentPages', handleGetRecentPages],
+  ['evaluateMath', handleEvaluateMath],
+  ['batchWikiSearch', handleBatchWikiSearch],
+  ['searchByExample', handleSearchByExample],
+  ['formatAsTable', handleFormatAsTable],
+  ['getRecentItems', handleGetRecentItems],
+  ['getRelatedItems', handleGetRelatedItems],
+  ['multiTableQuery', handleMultiTableQuery],
+  ['batchGetItems', handleBatchGetItems],
 ]);
 
 export async function executeTextChatTool(
