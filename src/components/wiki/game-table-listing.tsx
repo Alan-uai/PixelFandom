@@ -16,10 +16,9 @@ const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
   'content', 'details', 'items_dropped', 'notable_loot',
 ]);
-const CATEGORY_PRIORITY = [
-  'type', 'world', 'element', 'weapon_type', 'enemy_type', 'boss_type',
-  'difficulty', 'rarity', 'tier', 'obtain_method', 'category',
-];
+function isTypeLike(col: string): boolean {
+  return col === 'type' || col === 'category' || col.endsWith('_type');
+}
 
 function summaryFields(item: Record<string, any>): { icon: React.ReactNode; label: string; value: string }[] {
   const out: { icon: React.ReactNode; label: string; value: string }[] = [];
@@ -111,7 +110,7 @@ function ItemCard({
             <div className="mt-2">
               <ChipCarousel>
                 {fields.map((f, i) => (
-                  <span key={i} className="shrink-0 max-w-[200px] overflow-x-auto scrollbar-hide inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                  <span key={i} className="shrink-0 max-w-[200px] truncate inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
                     <span className="whitespace-nowrap">{f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span></span>
                   </span>
                 ))}
@@ -163,14 +162,27 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
       }
     }
 
+    const entries = Object.entries(valueCounts);
     let categoryColumn: string | null = null;
-    for (const col of CATEGORY_PRIORITY) {
-      if (valueCounts[col]) { categoryColumn = col; break; }
+
+    // 1. Prefer type-like columns with ideal cardinality (3-6 values)
+    const typeLikes = entries.filter(([col]) => isTypeLike(col));
+    for (const [col, vals] of typeLikes) {
+      if (vals.length >= 3 && vals.length <= 6) { categoryColumn = col; break; }
     }
+    // 2. Any type-like column
     if (!categoryColumn) {
-      for (const [col, vals] of Object.entries(valueCounts)) {
+      for (const [col] of typeLikes) { categoryColumn = col; break; }
+    }
+    // 3. Any column with ideal cardinality
+    if (!categoryColumn) {
+      for (const [col, vals] of entries) {
         if (vals.length >= 3 && vals.length <= 6) { categoryColumn = col; break; }
       }
+    }
+    // 4. First available column
+    if (!categoryColumn && entries.length > 0) {
+      categoryColumn = entries[0][0];
     }
 
     const filterColumns = Object.entries(valueCounts)
@@ -283,7 +295,7 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
                     <button
                       key={v}
                       onClick={() => toggleFilter(fc.column, v)}
-                      className={`shrink-0 max-w-[200px] overflow-x-auto scrollbar-hide inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
+                      className={`shrink-0 max-w-[200px] truncate inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
                         active
                           ? 'bg-primary/10 border-primary/30 text-primary'
                           : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'

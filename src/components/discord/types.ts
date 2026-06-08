@@ -440,6 +440,21 @@ export interface DiscordConfig {
   status?: 'online' | 'idle' | 'dnd' | 'invisible';
   custom_commands?: CustomCommand[];
   enabled?: boolean;
+
+  text_chat_channel_id?: string;
+  curation_channel_id?: string;
+
+  support_role_id?: string;
+  member_role_id?: string;
+  editor_role_id?: string;
+  admin_role_id?: string;
+
+  auto_post_codes_enabled?: boolean;
+  auto_post_codes_channel_id?: string;
+  auto_post_articles_enabled?: boolean;
+  auto_post_articles_channel_id?: string;
+  auto_post_updates_enabled?: boolean;
+  auto_post_updates_channel_id?: string;
 }
 
 export function generateId(): string {

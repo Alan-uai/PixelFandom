@@ -75,7 +75,7 @@ function ColoredText({ text }: { text: string }) {
 
 function Tag({ children, className = '', icon, title }: { children: React.ReactNode; className?: string; icon?: React.ReactNode; title?: string }) {
   return (
-    <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium max-w-[220px] overflow-x-auto scrollbar-hide shrink-0 ${className}`}>
+    <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium max-w-[220px] truncate shrink-0 ${className}`}>
       {icon}{children}
     </span>
   );
@@ -244,7 +244,7 @@ const SPECIAL_TEXT_FIELDS = new Set([
 ]);
 
 function hasValue(v: unknown): boolean {
-  return v != null && v !== '' && v !== 'none';
+  return v != null && v !== '' && v !== 0 && v !== 'none';
 }
 
 function renderSpecials(

@@ -256,3 +256,35 @@ async function fetchData() {
   if (data) { cache.current = data; setItems(data); }
 }
 ```
+
+## Discord Bot — escopo restrito
+
+O bot do Discord é **exclusivamente focado em integração com a wiki**. Não possui
+funcionalidades genéricas de moderação, minigames, leveling social, economia,
+música, ou qualquer feature que já exista em bots como Dyno, MEE6, Carl-bot, etc.
+
+### O que o bot faz
+- **Comandos personalizados** — triggers + ações configuráveis pelo usuário
+- **Chat de texto do jogo** — integração com o sistema de chat da wiki
+- **Curadoria de respostas** — canal para revisão de respostas com reação negativa
+- **Sincronização de cargos** — cargos da wiki (membro, editor, admin, suporte)
+- **Auto-post de conteúdo** — publicação automática de códigos, artigos e update logs no Discord
+
+### O que o bot NÃO faz (e não deve fazer)
+- Moderação (ban/kick/timeout automático, anti-spam, anti-link, filtro de palavras)
+- Minigames, economia, fichas, ranking social
+- Música, áudio, canais de voz
+- Leveling por atividade no Discord
+- Boas-vindas, despedidas, boosts (já existem bots especializados)
+- Tickets, modmail, sistema de denúncias
+- Reaction roles, verificação manual
+- Canais temporários de voz
+
+### Configurações (salvas em `tenants.discord_config` JSONB)
+- **Canais:** `text_chat_channel_id`, `curation_channel_id`
+- **Cargos:** `support_role_id`, `member_role_id`, `editor_role_id`, `admin_role_id`
+- **Auto-post:** 3 toggles + channel select (códigos, artigos, updates)
+
+### Regra
+Qualquer nova configuração do bot deve ser avaliada: *Isso é específico do nosso
+sistema wiki ou é algo que um bot genérico já faz?* Se for genérico, não implementar.

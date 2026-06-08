@@ -32,7 +32,6 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
   const { homePath } = useWikiPath(tenantSlug);
 
   const entries: TableEntry[] = (catalog ?? [])
-    .filter((entry) => entry.count > 0)
     .map((entry) => ({
       table_name: entry.table_name,
       label: entry.display_label,
@@ -59,6 +58,8 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
                 <div key={i} className="h-7 rounded-md bg-muted" />
               ))}
             </div>
+          ) : entries.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma tabela encontrada.</p>
           ) : (
             entries.map((entry) => {
               const Icon = entry.icon;

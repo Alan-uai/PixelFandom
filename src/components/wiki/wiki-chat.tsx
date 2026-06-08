@@ -262,7 +262,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
 
   const renderHistory = () => (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-1 p-1">
+      <div className="flex-1 overflow-y-auto scrollbar-none space-y-1 p-1">
         {loadingHistory ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -309,7 +309,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
             <p className="text-sm">Pergunte algo sobre esta wiki.</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+          <div className="flex-1 overflow-y-auto scrollbar-none p-3 space-y-3 min-h-0">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && <Bot className="h-6 w-6 shrink-0 mt-1 text-primary" />}
@@ -408,7 +408,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto space-y-4 px-2 min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 px-2 min-h-0">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                   {msg.role === 'assistant' && (

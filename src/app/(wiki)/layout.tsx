@@ -292,7 +292,7 @@ function WikiLayoutContent({
                 />
               )}
               <div
-                className={`fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transition-transform duration-300 ease-in-out ${
+                className={`fixed left-0 top-[5.25rem] z-50 h-[calc(100vh-5.25rem)] transition-transform duration-300 ease-in-out ${
                   sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
               >
@@ -309,7 +309,7 @@ function WikiLayoutContent({
           </main>
         </div>
 
-        {footerLayout && !isGameTablePage && (
+        {footerLayout && !isGameTablePage && !isChatPage && (
           <footer className="border-t bg-background/80 px-4 py-6">
             <div className="max-w-5xl mx-auto">
               <PageRenderer layout={footerLayout} tenant={tenant} basePath={basePath} />

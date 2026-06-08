@@ -75,14 +75,14 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
 
   if (collapsed) {
     return (
-      <aside className="w-12 shrink-0 border-r bg-muted/30 h-[calc(100vh-3.5rem)] sticky top-14" />
+      <aside className="w-12 shrink-0 border-r bg-sidebar h-[calc(100vh-3.5rem)] sticky top-14" />
     );
   }
 
   const isHome = pathname === `/w/${tenantSlug}` || pathname === '/';
 
   return (
-    <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 transition-all duration-200">
+    <aside className="w-64 shrink-0 border-r bg-sidebar flex flex-col h-full transition-all duration-200">
       {/* Close button */}
       {onClose && (
         <div className="flex items-center justify-end p-2 border-b">
@@ -118,7 +118,7 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
       </div>
 
       {/* Articles section */}
-      <div className="flex-1 overflow-y-auto px-2 py-1">
+      <div className="flex-1 overflow-y-auto scrollbar-none px-2 py-1">
         <button
           onClick={() => setArticleCollapsed(!articleCollapsed)}
           className="flex items-center gap-1 w-full px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground"
