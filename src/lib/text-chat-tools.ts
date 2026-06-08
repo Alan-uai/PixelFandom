@@ -1066,14 +1066,15 @@ async function handleRankByStat(args: { table: string; stat: string; itemName: s
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', rank: null };
 
-  const { data: allItems } = await supabase
+  const { data: raw } = await supabase
     .from(args.table)
     .select('name, id, ' + args.stat)
     .eq('tenant_id', tenant.id)
     .not(args.stat, 'is', null)
     .order(args.stat, { ascending: false });
 
-  if (!allItems || allItems.length === 0) return { error: 'No items found with this stat', rank: null };
+  const allItems = (raw || []) as any[];
+  if (allItems.length === 0) return { error: 'No items found with this stat', rank: null };
 
   const target = allItems.findIndex((item: any) =>
     String(item.name).toLowerCase().includes(args.itemName.toLowerCase()),
@@ -1192,21 +1193,22 @@ async function handleGetStatDistribution(args: { table: string; column: string }
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', distribution: {} };
 
-  const { data } = await supabase
+  const { data: raw } = await supabase
     .from(args.table)
     .select(args.column)
     .eq('tenant_id', tenant.id)
     .not(args.column, 'is', null);
 
-  if (!data || data.length === 0) return { table: args.table, column: args.column, distribution: {} };
+  const rows = (raw || []) as any[];
+  if (rows.length === 0) return { table: args.table, column: args.column, distribution: {} };
 
   const counts: Record<string, number> = {};
-  for (const item of data) {
+  for (const item of rows) {
     const val = String(item[args.column] ?? 'null');
     counts[val] = (counts[val] || 0) + 1;
   }
 
-  return { table: args.table, column: args.column, total: data.length, distribution: counts };
+  return { table: args.table, column: args.column, total: rows.length, distribution: counts };
 }
 
 async function handleCompareTwoItems(args: { tableA: string; nameA: string; tableB: string; nameB: string }, ctx: ToolContext): Promise<Record<string, unknown>> {
@@ -1347,25 +1349,27 @@ async function handleGetItemNeighbors(args: { table: string; itemName: string; s
   const limit = args.limit ?? 3;
   const range = (args.percentRange ?? 20) / 100;
 
-  const { data: target } = await supabase
+  const { data: rawTarget } = await supabase
     .from(args.table)
     .select(`name, ${args.stat}`)
     .eq('tenant_id', tenant.id)
     .ilike('name', `%${args.itemName}%`)
     .limit(1);
 
-  if (!target || target.length === 0) return { error: `Item "${args.itemName}" not found` };
+  const target = (rawTarget || []) as any[];
+  if (target.length === 0) return { error: `Item "${args.itemName}" not found` };
 
   const targetVal = Number(target[0][args.stat]);
   if (isNaN(targetVal)) return { error: `Stat "${args.stat}" is not numeric for this item` };
 
-  const { data: all } = await supabase
+  const { data: rawAll } = await supabase
     .from(args.table)
     .select(`name, ${args.stat}`)
     .eq('tenant_id', tenant.id)
     .not(args.stat, 'is', null);
 
-  if (!all) return { neighbors: [] };
+  const all = (rawAll || []) as any[];
+  if (all.length === 0) return { neighbors: [] };
 
   const lower = targetVal * (1 - range);
   const upper = targetVal * (1 + range);
@@ -1430,8 +1434,8 @@ async function handleFindUpgrades(args: { table: string; itemName: string; stats
       return { ...other, _improvements: diffs };
     })
     .sort((a: any, b: any) => {
-      const aTotal = Object.values(a._improvements).reduce((s: any, v: any) => s + v, 0);
-      const bTotal = Object.values(b._improvements).reduce((s: any, v: any) => s + v, 0);
+      const aTotal = (Object.values(a._improvements) as number[]).reduce((s: number, v: number) => s + v, 0);
+      const bTotal = (Object.values(b._improvements) as number[]).reduce((s: number, v: number) => s + v, 0);
       return bTotal - aTotal;
     })
     .slice(0, limit);

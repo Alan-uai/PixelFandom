@@ -454,9 +454,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const table = sourceTable || type;
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
-  const rarity = data.rarity as string | undefined;
-  const tier = data.tier as string | undefined;
-  const element = data.element as string | undefined;
+  const rarity = data.rarity != null ? String(data.rarity) : undefined;
+  const tier = data.tier != null ? String(data.tier) : undefined;
+  const element = data.element != null ? String(data.element) : undefined;
   const imageUrl = (data.image_url || data.image) as string | undefined;
   const [fullImg, setFullImg] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);

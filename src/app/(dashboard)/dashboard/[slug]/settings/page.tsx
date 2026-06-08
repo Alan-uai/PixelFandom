@@ -11,7 +11,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download } from 'lucide-react';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers } from 'lucide-react';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 
 export default function WikiSettingsPage() {
@@ -24,6 +24,7 @@ export default function WikiSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +45,6 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
-  const [comparisonDisplayMode, setComparisonDisplayMode] = useState<'modal' | 'page'>('modal');
 
   useEffect(() => {
     (async () => {
@@ -85,7 +85,6 @@ export default function WikiSettingsPage() {
           setHeaderStyle(theme.header_style || 'compact');
           setArticlesPerRow(theme.articles_per_row || 3);
           const widgets = (theme.widgets as Record<string, any>) || {};
-          setComparisonDisplayMode(widgets.comparison?.display_mode || 'modal');
           initialRef.current = {
             name: data.name,
             description: data.description || '',
@@ -113,6 +112,14 @@ export default function WikiSettingsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+  }, [description]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -135,11 +142,7 @@ export default function WikiSettingsPage() {
             sidebar_width: sidebarWidth,
             header_style: headerStyle,
             articles_per_row: articlesPerRow,
-            widgets: {
-              comparison: {
-                display_mode: comparisonDisplayMode,
-              },
-            },
+            widgets: {},
           },
         })
         .eq('slug', slug);
@@ -214,18 +217,18 @@ export default function WikiSettingsPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <FloatingLabelInput
-            label="Identificador (slug)"
-            info="O slug não pode ser alterado"
-            value={slug}
-            disabled
-          />
           <FloatingLabelTextarea
             label="Descrição"
             info="Uma breve descrição da sua wiki"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
+            ref={descriptionRef}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              const el = e.target;
+              el.style.height = 'auto';
+              el.style.height = el.scrollHeight + 'px';
+            }}
+            className="min-h-[80px]"
           />
         </CardContent>
       </Card>
@@ -387,23 +390,6 @@ export default function WikiSettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Comparação de Itens</Label>
-            <div className="flex gap-2">
-              {([{ v: 'modal', l: 'Modal' }, { v: 'page', l: 'Página dedicada' }] as const).map((opt) => (
-                <button
-                  key={opt.v}
-                  type="button"
-                  onClick={() => setComparisonDisplayMode(opt.v)}
-                  className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                    comparisonDisplayMode === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                  }`}
-                >
-                  {opt.l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="borderRadius">Arredondamento (border-radius)</Label>
             <select
               id="borderRadius"
@@ -476,7 +462,7 @@ export default function WikiSettingsPage() {
             <FileText className="h-5 w-5" />
             Páginas
           </CardTitle>
-          <CardDescription>Edite visualmente o footer e a página 404 da sua wiki.</CardDescription>
+          <CardDescription>Edite visualmente as páginas da sua wiki.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
@@ -505,6 +491,30 @@ export default function WikiSettingsPage() {
               <div>
                 <p className="text-sm font-medium">Página 404</p>
                 <p className="text-xs text-muted-foreground">Página de erro personalizada</p>
+              </div>
+            </a>
+            <a
+              href={`/dashboard/${slug}/page-builder?type=landing`}
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <LayoutDashboard className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Landing Page</p>
+                <p className="text-xs text-muted-foreground">Página inicial da wiki</p>
+              </div>
+            </a>
+            <a
+              href={`/dashboard/${slug}/page-builder?type=landing`}
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Ilhas Flutuantes</p>
+                <p className="text-xs text-muted-foreground">Cronômetros, listas, carrosséis e mais</p>
               </div>
             </a>
           </div>
