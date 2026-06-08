@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
+import { SelectCard } from '@/components/ui/select-card';
+import type { SelectCardOption } from '@/components/ui/select-card';
 
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
@@ -367,21 +369,17 @@ export default function WikiAIConfigPage() {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Provedor</Label>
-            <div className="flex gap-2">
-              {(['openrouter', 'gemini', 'hybrid'] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setProvider(p)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                    provider === p ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                  }`}
-                >
-                  {p === 'openrouter' ? <Globe className="h-3.5 w-3.5" /> : p === 'gemini' ? <Cpu className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
-                  {p === 'openrouter' ? 'OpenRouter' : p === 'gemini' ? 'Gemini Nativo' : 'Híbrido'}
-                </button>
-              ))}
-            </div>
+            <SelectCard
+              options={[
+                { value: 'openrouter', label: 'OpenRouter', icon: <Globe />, description: 'Fallback entre modelos' },
+                { value: 'gemini', label: 'Gemini Nativo', icon: <Cpu />, description: 'API direta do Google' },
+                { value: 'hybrid', label: 'Híbrido', icon: <Layers />, description: 'Tenta um, fallback no outro' },
+              ]}
+              value={provider}
+              onChange={(v) => setProvider(v as 'openrouter' | 'gemini' | 'hybrid')}
+              layout="compact"
+              className="flex-nowrap"
+            />
             <p className="text-xs text-muted-foreground">
               {provider === 'openrouter' && 'Usa OpenRouter com fallback entre modelos.'}
               {provider === 'gemini' && 'Usa diretamente a API Gemini do Google.'}
@@ -392,21 +390,15 @@ export default function WikiAIConfigPage() {
           {provider === 'hybrid' && (
             <div className="space-y-2">
               <Label>Provedor Primário (Híbrido)</Label>
-              <div className="flex gap-2">
-                {(['openrouter', 'gemini'] as const).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPrimaryProvider(p)}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      primaryProvider === p ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    {p === 'openrouter' ? <Globe className="h-3.5 w-3.5" /> : <Cpu className="h-3.5 w-3.5" />}
-                    {p === 'openrouter' ? 'OpenRouter' : 'Gemini'}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={[
+                  { value: 'openrouter', label: 'OpenRouter', icon: <Globe /> },
+                  { value: 'gemini', label: 'Gemini', icon: <Cpu /> },
+                ]}
+                value={primaryProvider}
+                onChange={(v) => setPrimaryProvider(v as 'openrouter' | 'gemini')}
+                layout="compact"
+              />
               <p className="text-xs text-muted-foreground">
                 {primaryProvider === 'openrouter'
                   ? 'Tenta OpenRouter primeiro; se falhar, usa Gemini.'
@@ -442,27 +434,16 @@ export default function WikiAIConfigPage() {
 
               <div className="space-y-2">
                 <Label>Modelo</Label>
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setModelSource('free')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      modelSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Gratuito (padrão)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModelSource('custom')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      modelSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Key className="h-3.5 w-3.5" />
-                    Custom (minha chave)
-                  </button>
+                <div className="mb-2">
+                  <SelectCard
+                    options={[
+                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
+                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                    ]}
+                    value={modelSource}
+                    onChange={(v) => setModelSource(v as 'free' | 'custom')}
+                    layout="compact"
+                  />
                 </div>
 
                 {modelSource === 'free' ? (
@@ -505,27 +486,16 @@ export default function WikiAIConfigPage() {
                   Modelos extras para tentar caso o principal falhe.
                 </p>
 
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setFallbackSource('free')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      fallbackSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Gratuito (padrão)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFallbackSource('custom')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      fallbackSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Key className="h-3.5 w-3.5" />
-                    Custom (minha chave)
-                  </button>
+                <div className="mb-2">
+                  <SelectCard
+                    options={[
+                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
+                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                    ]}
+                    value={fallbackSource}
+                    onChange={(v) => setFallbackSource(v as 'free' | 'custom')}
+                    layout="compact"
+                  />
                 </div>
 
                 {fallbackSource === 'free' ? (
@@ -600,27 +570,16 @@ export default function WikiAIConfigPage() {
 
               <div className="space-y-2">
                 <Label>Modelo</Label>
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setGeminiModelSource('free')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      geminiModelSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Gratuito (padrão)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGeminiModelSource('custom')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      geminiModelSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Key className="h-3.5 w-3.5" />
-                    Custom (minha chave)
-                  </button>
+                <div className="mb-2">
+                  <SelectCard
+                    options={[
+                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
+                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                    ]}
+                    value={geminiModelSource}
+                    onChange={(v) => setGeminiModelSource(v as 'free' | 'custom')}
+                    layout="compact"
+                  />
                 </div>
 
                 {geminiModelSource === 'free' ? (
@@ -659,27 +618,16 @@ export default function WikiAIConfigPage() {
                   Modelos extras para tentar caso o principal falhe.
                 </p>
 
-                <div className="flex gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setGeminiFallbackSource('free')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      geminiFallbackSource === 'free' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Gratuito (padrão)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGeminiFallbackSource('custom')}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      geminiFallbackSource === 'custom' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    <Key className="h-3.5 w-3.5" />
-                    Custom (minha chave)
-                  </button>
+                <div className="mb-2">
+                  <SelectCard
+                    options={[
+                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
+                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                    ]}
+                    value={geminiFallbackSource}
+                    onChange={(v) => setGeminiFallbackSource(v as 'free' | 'custom')}
+                    layout="compact"
+                  />
                 </div>
 
                 {geminiFallbackSource === 'free' ? (
@@ -755,24 +703,19 @@ export default function WikiAIConfigPage() {
 
       <CollapsibleSection id="personality" title="Personalidade" description="Escolha o estilo de resposta do assistente IA.">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {AI_PERSONALITIES.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPersonalityId(p.id)}
-                className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all ${
-                  personalityId === p.id
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border hover:bg-accent hover:border-muted-foreground/30'
-                }`}
-              >
-                <span className="text-2xl">{p.emoji}</span>
-                <span className="text-xs font-medium leading-tight">{p.name}</span>
-                <span className="text-[10px] text-muted-foreground leading-tight line-clamp-2">{p.description}</span>
-              </button>
-            ))}
-          </div>
+          <SelectCard
+            options={AI_PERSONALITIES.map((p) => ({
+              value: p.id,
+              label: p.name,
+              description: p.description,
+              emoji: p.emoji,
+            }))}
+            value={personalityId}
+            onChange={(v) => setPersonalityId(v as string)}
+            layout="grid"
+            columns={4}
+            size="md"
+          />
           <div className="rounded-lg bg-muted/50 border p-3">
             <p className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Prompt da personalidade:</span>{' '}

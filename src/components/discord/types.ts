@@ -433,6 +433,17 @@ export interface CustomCommand {
   actions: BotAction[];
 }
 
+export interface IngestConfig {
+  id: string;
+  source_channel_id: string;
+  source_channel_name: string;
+  target_table: string;
+  target_label: string;
+  trigger_type: 'all' | 'command';
+  command_prefix: string;
+  enabled: boolean;
+}
+
 export interface DiscordConfig {
   bot_name?: string;
   bot_avatar?: string | null;
@@ -464,6 +475,8 @@ export interface DiscordConfig {
   auto_post_updates_enabled?: boolean;
   auto_post_updates_channel_id?: string;
   auto_post_updates_channel_name?: string;
+
+  auto_ingest?: IngestConfig[];
 }
 
 export function generateId(): string {

@@ -5,23 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableCatalog } from '@/hooks/use-data-access';
-import {
-  ChevronDown, ChevronRight, Database,
-  Sword, Shield, CircleDot, Skull, Crown,
-  FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
-} from 'lucide-react';
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  Sword, Shield, CircleDot, Skull, Crown,
-  FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
-};
-
-const DEFAULT_ICON = Database;
+import { ChevronDown, ChevronRight, Database } from 'lucide-react';
+import { TableIconDisplay } from '@/lib/table-icons';
 
 type TableEntry = {
   table_name: string;
   label: string;
-  icon: React.ElementType;
+  icon: string | null;
   count: number;
 };
 
@@ -35,7 +25,7 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
     .map((entry) => ({
       table_name: entry.table_name,
       label: entry.display_label,
-      icon: ICON_MAP[entry.table_name] ?? DEFAULT_ICON,
+      icon: entry.icon ?? null,
       count: entry.count,
     }));
 
@@ -62,7 +52,6 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
             <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma tabela encontrada.</p>
           ) : (
             entries.map((entry) => {
-              const Icon = entry.icon;
               const href = `${homePath}${entry.table_name}`;
               const isActive = pathname === href;
               return (
@@ -75,7 +64,7 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <TableIconDisplay icon={entry.icon} className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate flex-1">{entry.label}</span>
                   <span className="text-[10px] text-muted-foreground/60">{entry.count}</span>
                 </Link>

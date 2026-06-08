@@ -11,7 +11,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
+import { SelectCard } from '@/components/ui/select-card';
+import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 
@@ -362,25 +363,19 @@ export default function WikiSettingsPage() {
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label>Formato de Exibição</Label>
-                <div className="flex gap-2">
-                  {[
-                    { v: 'grid', l: 'Grid' },
-                    { v: 'list', l: 'Lista' },
-                    { v: 'carousel', l: 'Carrossel' },
-                    { v: 'carousel_infinite', l: 'Carrossel Infinito' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setGameTableDisplayFormat(opt.v)}
-                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                        gameTableDisplayFormat === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
-                      }`}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
+                <SelectCard
+                  options={[
+                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
+                    { value: 'list', label: 'Lista', icon: <List /> },
+                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
+                    { value: 'carousel_infinite', label: 'Carrossel Infinito', icon: <Layers /> },
+                  ]}
+                  value={gameTableDisplayFormat}
+                  onChange={(v) => setGameTableDisplayFormat(v as string)}
+                  layout="grid"
+                  columns={4}
+                  size="sm"
+                />
               </div>
 
               <div className="space-y-2">

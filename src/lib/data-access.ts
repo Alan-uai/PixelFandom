@@ -7,6 +7,7 @@ export interface CatalogEntry {
   count: number;
   display_format?: string;
   columns_count?: number;
+  icon?: string;
 }
 
 export interface TableItem {
@@ -198,7 +199,7 @@ export async function getTableCatalog(
   const supabase = await getSupabase();
     const { data: rows, error } = await supabase
       .from('tenant_game_tables')
-      .select('table_name, display_label, parent_table, display_format, columns_count')
+      .select('table_name, display_label, parent_table, display_format, columns_count, icon')
       .eq('tenant_id', tenantId)
       .order('created_at');
 
@@ -214,6 +215,7 @@ export async function getTableCatalog(
     count: 0,
     display_format: r.display_format ?? undefined,
     columns_count: r.columns_count ?? undefined,
+    icon: r.icon ?? undefined,
   }));
 
   if (includeCounts && entries.length > 0) {

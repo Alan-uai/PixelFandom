@@ -222,6 +222,25 @@ Usuários (incluindo admin/owner de wiki) **só podem montar páginas usando blo
 - Dark mode forced: `<html className="dark">` — no theme toggle
 - CSS vars define colors (`--primary: 198 100% 65%` = cyan-blue `#4BC5FF`)
 
+## Engineering principles — Reuso antes de criar
+
+Antes de criar qualquer componente, hook ou função, verificar se já existe
+equivalente no codebase. Consultar `src/lib/`, `src/hooks/`, `src/components/`.
+- `useTableCatalog` já existe e deve ser usado para listar tabelas.
+- `ChannelSelect`, `RoleSelect` já existem e devem ser reutilizados.
+- Se algo similar já existe, reutilizar; se não existir, aí sim criar.
+
+## Engineering principles — Código dinâmico (zero hardcoded)
+
+Nenhuma feature pode conter listas hardcoded de tabelas, colunas ou tipos de
+conteúdo. Toda descoberta de dados deve ser via `information_schema`,
+`tenant_game_tables` (catálogo), ou introspecção dinâmica:
+- Sem enums de tipos de conteúdo em TypeScript
+- Sem switch/case em nomes de tabela
+- Sem arrays fixos de strings no frontend
+- Todas as queries de catálogo usam `useTableCatalog` ou `getTableCatalog`
+- Se o dado não está no catálogo, buscar via information_schema ou RPC
+
 ## Engineering principles — Local-first
 
 ### Regra geral

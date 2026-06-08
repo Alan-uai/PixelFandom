@@ -19,12 +19,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Plus, Edit, Trash2, FileText,
-  BookOpen, Crosshair, Shield, Circle, Droplets,
-  ArrowUp, Bug, Star, Hash, FlaskConical, Package, Settings,
+  BookOpen,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import { translateGameTerm } from '@/lib/translate';
 import { invalidateDataCache } from '@/lib/data-access';
+import { TableIconDisplay } from '@/lib/table-icons';
+import { TableIconPicker } from '@/components/ui/table-icon-picker';
 
 interface Article {
   id: string;
@@ -38,22 +39,8 @@ interface TenantTable {
   table_name: string;
   display_label: string;
   parent_table: string | null;
+  icon?: string | null;
 }
-
-const PREDEFINED_ICONS: Record<string, React.ElementType> = {
-  articles: BookOpen,
-  weapons: Crosshair,
-  armors: Shield,
-  rings: Circle,
-  potions: Droplets,
-  upgrades: ArrowUp,
-  enemies: Bug,
-  bosses: Star,
-  codes: Hash,
-  crafting_recipes: FlaskConical,
-  resources: Package,
-  game_config: Settings,
-};
 
 export default function EditorArticlesPage() {
   const params = useParams();
@@ -71,10 +58,12 @@ export default function EditorArticlesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createLabel, setCreateLabel] = useState('');
+  const [createIcon, setCreateIcon] = useState('Database');
   const [creating, setCreating] = useState(false);
 
   const [renameTable, setRenameTable] = useState<string | null>(null);
   const [renameLabel, setRenameLabel] = useState('');
+  const [renameIcon, setRenameIcon] = useState('Database');
   const [renaming, setRenaming] = useState(false);
 
   const [deleteTable, setDeleteTable] = useState<string | null>(null);
@@ -85,11 +74,11 @@ export default function EditorArticlesPage() {
   const catalogCache = useRef<TenantTable[] | null>(null);
 
   const allTabs = [
-    { key: 'articles', label: 'Artigos', Icon: BookOpen },
+    { key: 'articles', label: 'Artigos', iconNode: <BookOpen className="h-3.5 w-3.5 shrink-0" /> },
     ...catalog.map((t) => ({
       key: t.table_name,
       label: t.display_label,
-      Icon: PREDEFINED_ICONS[t.table_name] || BookOpen,
+      iconNode: <TableIconDisplay icon={t.icon || t.table_name} className="h-3.5 w-3.5 shrink-0" />,
     })),
   ];
 
@@ -140,7 +129,7 @@ export default function EditorArticlesPage() {
       } else {
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table')
+          .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenant.id)
           .order('created_at');
 
@@ -172,6 +161,7 @@ export default function EditorArticlesPage() {
   const openCreateDialog = () => {
     setCreateName('');
     setCreateLabel('');
+    setCreateIcon('Database');
     setShowCreateDialog(true);
   };
 
@@ -192,6 +182,7 @@ export default function EditorArticlesPage() {
       p_table: slug,
       p_tenant_id: tenantId,
       p_label: label,
+      p_icon: createIcon,
     });
 
     if (error) {
@@ -203,7 +194,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table')
+          .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -224,9 +215,10 @@ export default function EditorArticlesPage() {
     setCreating(false);
   };
 
-  const openRenameDialog = (tableName: string, currentLabel: string) => {
+  const openRenameDialog = (tableName: string, currentLabel: string, currentIcon?: string) => {
     setRenameTable(tableName);
     setRenameLabel(currentLabel);
+    setRenameIcon(currentIcon || 'Database');
   };
 
   const handleRename = async () => {
@@ -241,6 +233,7 @@ export default function EditorArticlesPage() {
       p_new_name: renameTable,
       p_tenant_id: tenantId,
       p_new_label: renameLabel.trim(),
+      p_new_icon: renameIcon,
     });
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
@@ -251,7 +244,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table')
+          .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -259,7 +252,7 @@ export default function EditorArticlesPage() {
           setCatalog(cat);
         }
         setRenameTable(null);
-        toast({ title: 'Nome atualizado!' });
+        toast({ title: 'Tabela atualizada!' });
       } else {
         toast({ variant: 'destructive', title: 'Erro', description: result.error });
       }
@@ -288,7 +281,7 @@ export default function EditorArticlesPage() {
         catalogCache.current = null;
         const { data: cat } = await supabase
           .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table')
+          .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
         if (cat) {
@@ -318,9 +311,9 @@ export default function EditorArticlesPage() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="overflow-x-auto pb-2 -mx-6 px-6">
           <TabsList className="w-max min-w-full inline-flex">
-            {allTabs.map(({ key, label, Icon }) => (
+            {allTabs.map(({ key, label, iconNode }) => (
               <TabsTrigger key={key} value={key} className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {iconNode}
                 {label}
               </TabsTrigger>
             ))}
@@ -449,7 +442,7 @@ export default function EditorArticlesPage() {
                 table={key}
                 displayLabel={label}
                 parentTable={tableInfo?.parent_table ?? null}
-                onRename={() => openRenameDialog(key, label)}
+                onRename={() => openRenameDialog(key, label, tableInfo?.icon || undefined)}
                 onDelete={() => openDeleteDialog(key, label)}
               />
             </TabsContent>
@@ -484,6 +477,10 @@ export default function EditorArticlesPage() {
                 placeholder="Igual ao nome digitado"
               />
             </div>
+            <div className="space-y-1">
+              <Label>Ícone</Label>
+              <TableIconPicker value={createIcon} onChange={setCreateIcon} slug={slug} />
+            </div>
           </div>
 
           <DialogFooter>
@@ -498,23 +495,29 @@ export default function EditorArticlesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Rename Dialog */}
+      {/* Edit Table Dialog (rename + icon) */}
       <Dialog open={!!renameTable} onOpenChange={(o) => !o && setRenameTable(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Renomear Tabela</DialogTitle>
+            <DialogTitle>Editar Tabela</DialogTitle>
             <DialogDescription>
-              Altere o nome de exibição da tabela.
+              Altere o nome de exibição e o ícone da tabela.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-1">
-            <Label>Novo nome de exibição</Label>
-            <Input
-              value={renameLabel}
-              onChange={(e) => setRenameLabel(e.target.value)}
-              placeholder="Nome de exibição"
-            />
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nome de exibição</Label>
+              <Input
+                value={renameLabel}
+                onChange={(e) => setRenameLabel(e.target.value)}
+                placeholder="Nome de exibição"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Ícone</Label>
+              <TableIconPicker value={renameIcon} onChange={setRenameIcon} slug={slug} />
+            </div>
           </div>
 
           <DialogFooter>

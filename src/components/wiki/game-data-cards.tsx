@@ -5,18 +5,11 @@ import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableCatalog } from '@/hooks/use-data-access';
 import type { CatalogEntry } from '@/lib/data-access';
+import { TableIconDisplay } from '@/lib/table-icons';
 import {
-  Database, Sword, Shield, CircleDot, Skull, Crown,
-  FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
+  Database,
   Search, X, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  Sword, Shield, CircleDot, Skull, Crown,
-  FlaskConical, ArrowUp, Globe, Code, BookOpen, Package, Wrench,
-};
-
-const DEFAULT_ICON = Database;
 
 const TABLE_CATEGORY: Record<string, string> = {
   weapons: 'Armas',
@@ -48,14 +41,13 @@ type Props = {
 };
 
 function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
-  const Icon = ICON_MAP[entry.table_name] ?? DEFAULT_ICON;
   return (
     <Link
       href={href}
       className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:border-primary/50 hover:bg-accent/50 transition-all group"
     >
       <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-        <Icon className="h-5 w-5" />
+        <TableIconDisplay icon={entry.icon} className="h-5 w-5" />
       </div>
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{entry.display_label}</p>

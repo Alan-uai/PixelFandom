@@ -11,12 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield } from 'lucide-react';
+import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { ChannelSelect } from '@/components/discord/channel-select';
 import { RoleSelect } from '@/components/discord/role-select';
-import { createDefaultCommand, migrateOldCommand, type DiscordConfig as DiscordConfigType, type CustomCommand } from '@/components/discord/types';
+import { createDefaultCommand, migrateOldCommand, generateId, type DiscordConfig as DiscordConfigType, type CustomCommand, type IngestConfig } from '@/components/discord/types';
+import { IngestEntry } from '@/components/discord/ingest-entry';
 
 export default function WikiDiscordPage() {
   const params = useParams();
@@ -49,6 +50,7 @@ export default function WikiDiscordPage() {
     autoPostArticlesChannelId: '', autoPostArticlesChannelName: '',
     autoPostUpdatesEnabled: false,
     autoPostUpdatesChannelId: '', autoPostUpdatesChannelName: '',
+    autoIngest: [] as IngestConfig[],
   });
 
   const [enabled, setEnabled] = useState(false);
@@ -79,6 +81,8 @@ export default function WikiDiscordPage() {
   const [autoPostUpdatesEnabled, setAutoPostUpdatesEnabled] = useState(false);
   const [autoPostUpdatesChannelId, setAutoPostUpdatesChannelId] = useState('');
   const [autoPostUpdatesChannelName, setAutoPostUpdatesChannelName] = useState('');
+
+  const [autoIngest, setAutoIngest] = useState<IngestConfig[]>([]);
 
   const migrateCommands = (raw: any): CustomCommand[] => {
     if (!raw || !Array.isArray(raw) || raw.length === 0) return [];
@@ -116,6 +120,7 @@ export default function WikiDiscordPage() {
     setAutoPostUpdatesEnabled(config.auto_post_updates_enabled ?? false);
     setAutoPostUpdatesChannelId(config.auto_post_updates_channel_id ?? '');
     setAutoPostUpdatesChannelName(config.auto_post_updates_channel_name ?? '');
+    setAutoIngest(config.auto_ingest ?? []);
 
     initialRef.current = {
       enabled: config.enabled ?? false,
@@ -145,6 +150,7 @@ export default function WikiDiscordPage() {
       autoPostUpdatesEnabled: config.auto_post_updates_enabled ?? false,
       autoPostUpdatesChannelId: config.auto_post_updates_channel_id ?? '',
       autoPostUpdatesChannelName: config.auto_post_updates_channel_name ?? '',
+      autoIngest: config.auto_ingest ?? [],
     };
   };
 
@@ -228,6 +234,7 @@ export default function WikiDiscordPage() {
         auto_post_updates_enabled: autoPostUpdatesEnabled || undefined,
         auto_post_updates_channel_id: autoPostUpdatesChannelId || undefined,
         auto_post_updates_channel_name: autoPostUpdatesChannelName || undefined,
+        auto_ingest: autoIngest.length > 0 ? autoIngest : undefined,
       };
 
       const { error } = await supabase
@@ -250,6 +257,7 @@ export default function WikiDiscordPage() {
           autoPostCodesEnabled, autoPostCodesChannelId, autoPostCodesChannelName,
           autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
           autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
+          autoIngest: JSON.parse(JSON.stringify(autoIngest)),
         };
         setSavedFeedback(true);
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -302,7 +310,8 @@ export default function WikiDiscordPage() {
     autoPostArticlesChannelName !== initialRef.current.autoPostArticlesChannelName ||
     autoPostUpdatesEnabled !== initialRef.current.autoPostUpdatesEnabled ||
     autoPostUpdatesChannelId !== initialRef.current.autoPostUpdatesChannelId ||
-    autoPostUpdatesChannelName !== initialRef.current.autoPostUpdatesChannelName;
+    autoPostUpdatesChannelName !== initialRef.current.autoPostUpdatesChannelName ||
+    JSON.stringify(autoIngest) !== JSON.stringify(initialRef.current.autoIngest);
 
   return (
     <GuildDataProvider>
@@ -321,6 +330,10 @@ export default function WikiDiscordPage() {
             <TabsTrigger value="configuracoes" className="flex-1 gap-2">
               <Settings2 className="h-4 w-4" />
               Configurações
+            </TabsTrigger>
+            <TabsTrigger value="automacao" className="flex-1 gap-2">
+              <Webhook className="h-4 w-4" />
+              Automação
             </TabsTrigger>
           </TabsList>
 
@@ -548,7 +561,9 @@ export default function WikiDiscordPage() {
                 />
               </div>
             </CollapsibleSection>
+          </TabsContent>
 
+          <TabsContent value="automacao" className="space-y-6">
             <CollapsibleSection
               id="auto-post"
               title="Auto-Post"
@@ -632,6 +647,41 @@ export default function WikiDiscordPage() {
                     />
                   )}
                 </div>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              id="auto-ingest"
+              title="Auto-Ingest"
+              description="Configure canais do Discord para ingerir dados automaticamente nas tabelas da wiki."
+            >
+              <div className="space-y-4">
+                {autoIngest.map((entry, i) => (
+                  <IngestEntry
+                    key={entry.id}
+                    slug={slug}
+                    entry={entry}
+                    onChange={(updated) => setAutoIngest((prev) => prev.map((e, j) => j === i ? updated : e))}
+                    onRemove={() => setAutoIngest((prev) => prev.filter((_, j) => j !== i))}
+                  />
+                ))}
+                <Button
+                  variant="outline"
+                  onClick={() => setAutoIngest((prev) => [...prev, {
+                    id: generateId(),
+                    source_channel_id: '',
+                    source_channel_name: '',
+                    target_table: '',
+                    target_label: '',
+                    trigger_type: 'command',
+                    command_prefix: '!ingest',
+                    enabled: true,
+                  }])}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Auto-Ingest
+                </Button>
               </div>
             </CollapsibleSection>
           </TabsContent>

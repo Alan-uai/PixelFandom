@@ -6,12 +6,11 @@ import { useUser } from '@/supabase';
 import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context';
 import { AI_PERSONALITIES } from '@/lib/ai-personalities';
 import { personas } from '@/lib/personas';
-import { emojiStyles } from '@/lib/emoji-styles';
-import { responseStyles } from '@/lib/response-styles';
 import { officialLanguages } from '@/lib/official-languages';
 import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { SelectCard } from '@/components/ui/select-card';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -173,29 +172,19 @@ export default function GlobalSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {AI_PERSONALITIES.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => updateChat('personality_id', p.id)}
-                    className={`relative flex items-start gap-3 rounded-lg border p-3 text-left transition-all ${
-                      preferences.chat_settings.personality_id === p.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/30 hover:bg-muted/50'
-                    }`}
-                  >
-                    <span className="text-xl">{p.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
-                    </div>
-                    {preferences.chat_settings.personality_id === p.id && (
-                      <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    )}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={AI_PERSONALITIES.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  description: p.description,
+                  emoji: p.emoji,
+                }))}
+                value={preferences.chat_settings.personality_id}
+                onChange={(v) => updateChat('personality_id', v as string)}
+                layout="grid"
+                columns={2}
+                size="md"
+              />
             </CardContent>
           </Card>
 
@@ -205,22 +194,15 @@ export default function GlobalSettingsPage() {
               <CardDescription>Define o tom geral das respostas.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(personas).map(([key, val]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => updateChat('persona', key)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                      preferences.chat_settings.persona === key
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={Object.entries(personas).map(([key]) => ({
+                  value: key,
+                  label: key.charAt(0).toUpperCase() + key.slice(1),
+                }))}
+                value={preferences.chat_settings.persona}
+                onChange={(v) => updateChat('persona', v as string)}
+                layout="compact"
+              />
             </CardContent>
           </Card>
 
@@ -230,22 +212,16 @@ export default function GlobalSettingsPage() {
               <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(emojiStyles).map(([key, val]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => updateChat('emoji_style', key)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                      preferences.chat_settings.emoji_style === key
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    {key === 'moderate' ? 'Moderado' : key === 'none' ? 'Sem emojis' : 'Vários'}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={[
+                  { value: 'moderate', label: 'Moderado' },
+                  { value: 'none', label: 'Sem emojis' },
+                  { value: 'lots', label: 'Vários' },
+                ]}
+                value={preferences.chat_settings.emoji_style}
+                onChange={(v) => updateChat('emoji_style', v as string)}
+                layout="compact"
+              />
             </CardContent>
           </Card>
 
@@ -255,22 +231,16 @@ export default function GlobalSettingsPage() {
               <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(responseStyles).map(([key, val]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => updateChat('response_style', key)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                      preferences.chat_settings.response_style === key
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    {key === 'detailed' ? 'Detalhado' : key === 'short' ? 'Curto' : 'Tópicos'}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={[
+                  { value: 'detailed', label: 'Detalhado' },
+                  { value: 'short', label: 'Curto' },
+                  { value: 'topicos', label: 'Tópicos' },
+                ]}
+                value={preferences.chat_settings.response_style}
+                onChange={(v) => updateChat('response_style', v as string)}
+                layout="compact"
+              />
             </CardContent>
           </Card>
 
@@ -280,22 +250,15 @@ export default function GlobalSettingsPage() {
               <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(officialLanguages).map(([key, val]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => updateChat('language', key)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                      preferences.chat_settings.language === key
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    {val.instruction}
-                  </button>
-                ))}
-              </div>
+              <SelectCard
+                options={Object.entries(officialLanguages).map(([key, val]) => ({
+                  value: key,
+                  label: val.instruction,
+                }))}
+                value={preferences.chat_settings.language}
+                onChange={(v) => updateChat('language', v as string)}
+                layout="compact"
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -475,77 +438,47 @@ export default function GlobalSettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Densidade</Label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'comfortable' as const, label: 'Confortável' },
-                    { value: 'compact' as const, label: 'Compacto' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updatePreference('density', opt.value)}
-                      className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                        preferences.density === opt.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+                <SelectCard
+                  options={[
+                    { value: 'comfortable', label: 'Confortável' },
+                    { value: 'compact', label: 'Compacto' },
+                  ]}
+                  value={preferences.density}
+                  onChange={(v) => updatePreference('density', v as 'comfortable' | 'compact')}
+                  layout="compact"
+                />
               </div>
 
               <Separator />
 
               <div className="space-y-2">
                 <Label>Tamanho da Fonte</Label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'small' as const, label: 'Pequeno' },
-                    { value: 'medium' as const, label: 'Médio' },
-                    { value: 'large' as const, label: 'Grande' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updatePreference('font_size', opt.value)}
-                      className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                        preferences.font_size === opt.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+                <SelectCard
+                  options={[
+                    { value: 'small', label: 'Pequeno' },
+                    { value: 'medium', label: 'Médio' },
+                    { value: 'large', label: 'Grande' },
+                  ]}
+                  value={preferences.font_size}
+                  onChange={(v) => updatePreference('font_size', v as 'small' | 'medium' | 'large')}
+                  layout="compact"
+                />
               </div>
 
               <Separator />
 
               <div className="space-y-2">
                 <Label>Idioma da Interface</Label>
-                <div className="flex gap-2">
-                  {[
+                <SelectCard
+                  options={[
                     { value: 'pt_br', label: 'Português (BR)' },
                     { value: 'en', label: 'English' },
                     { value: 'es', label: 'Español' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updateChat('language', opt.value)}
-                      className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                        preferences.chat_settings.language === opt.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+                  ]}
+                  value={preferences.chat_settings.language}
+                  onChange={(v) => updateChat('language', v as string)}
+                  layout="compact"
+                />
               </div>
             </CardContent>
           </Card>
