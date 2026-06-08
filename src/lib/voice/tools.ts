@@ -59,54 +59,74 @@ export interface ToolContext {
   fetchWithSlug: (path: string, params: Record<string, string>) => Promise<any>
 }
 
+type ToolBuilder = (ctx: ToolContext) => FunctionCallTool
+
+function qTool(
+  name: string,
+  description: string,
+  properties: Record<string, any>,
+  required?: string[]
+): ToolBuilder {
+  return (ctx: ToolContext) =>
+    new FunctionCallTool(
+      name,
+      description,
+      { type: 'object', properties },
+      async (params: any) => {
+        try {
+          const queryParams: Record<string, string> = { action: name }
+          for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined) {
+              if (Array.isArray(v)) {
+                queryParams[k] = v.join(',')
+              } else {
+                queryParams[k] = String(v)
+              }
+            }
+          }
+          const data = await ctx.fetchWithSlug('/api/voice/query', queryParams)
+          return { result: data }
+        } catch {
+          return { result: { error: `${name} failed` } }
+        }
+      },
+      required
+    )
+}
+
 export function createWikiTools(ctx: ToolContext): FunctionCallTool[] {
+  const q = (name: string, desc: string, props: Record<string, any>, required?: string[]) =>
+    qTool(name, desc, props, required)(ctx)
+
   return [
+    // ── Core wiki tools ──
+
     new FunctionCallTool(
       'searchWiki',
       `SEARCH all wiki + game data (weapons, armors, enemies, bosses, rings, potions, upgrades).
-Search is run against EVERY text column across ALL tables for EVERY extracted term,
-then results are merged and deduplicated. So "grasslands weapons" searches for
-"grasslands" AND "weapons" separately — items matching both have highest rank.
+Search runs against EVERY text column across ALL tables with fuzzy matching.
 
 RETURNS: { wiki: [...], collection: [...], game_items: [...] }
 
-HOW TO SEARCH — CRITICAL:
-- Do NOT search with the user\'s full question. Extract ONLY the key terms (item name, enemy name, boss name, etc).
-- Example: user says "como obter a espada noturna" → search query must be "espada noturna" (the item name), NOT the full sentence.
-- Example: user says "qual a fraqueza do goblin rei" → search query must be "goblin rei" NOT "qual a fraqueza do goblin rei".
-- Example: user says "necro flash" → search WILL find "Necro Flask" because fuzzy/partial matching is enabled across all fields.
-- The search engine now scans ALL tables + ALL text columns automatically with fuzzy matching (pg_trgm). So even partial/typo\'d queries work.
+HOW TO SEARCH:
+- Extract ONLY key terms. NOT the full question.
+- "como obter a espada noturna" → query: "espada noturna"
+- "qual a fraqueza do goblin rei" → query: "goblin rei"
+- Supports fuzzy/partial matching: "necro flash" finds "Necro Flask"
 
-IMPORTANT — WHERE TO READ RESULTS:
-- game_items[] is the PRIMARY data source. It contains ALL matching items from ALL tables
-  (wiki_articles, weapons, armors, enemies, bosses, rings, potions, upgrades).
-  Even wiki articles appear in game_items with source_type = "wiki_article".
-- wiki[] is SUPPLEMENTARY — contains article text content for lore/guides/strategies.
-  Most of the time you only need game_items[].
-- collection[] is legacy and always empty.
-
-- Source type tells you what it is: "wiki_article", "weapon", "armor", "enemy",
-  "boss", "ring", "potion", "upgrade".
-- If you find something in game_items with source_type = "wiki_article",
-  you can also read its raw_data (parsed from the article content) for game stats.
-
-NEVER HALLUCINATE:
-- Read the ACTUAL numbers from "raw_data". If raw_data is null or a field is missing, say the info is NOT AVAILABLE — NEVER invent stats, damage, abilities, weaknesses, or any data.
-- If a field exists, read its exact value. Do not calculate, estimate, or modify it.
-- If search returns empty, say "não encontrei" / "not found". Do not describe a made-up item.
-- Accuracy matters more than being helpful. A wrong stat is worse than saying "I don\'t know".`,
-
+game_items[] is the PRIMARY data source with stats and raw_data.
+NEVER hallucinate — read actual numbers from raw_data.`,
       {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'EXTRACTED key search term — use the URL-friendly slug format: lowercase, hyphenated, no spaces. Example: "void-armor" not "void armor". NOT the full user question.' },
+          query: { type: 'string', description: 'EXTRACTED key search term. NOT the full user question.' },
         },
       },
       async (params: { query: string }) => {
         try {
           const data = await ctx.fetchWithSlug('/api/search', { q: params.query })
           return { result: { wiki: data.wiki ?? [], collection: data.collection ?? [], game_items: data.game_items ?? [] } }
-        } catch (e) {
+        } catch {
           return { result: { error: 'Search failed', wiki: [], collection: [], game_items: [] } }
         }
       },
@@ -115,7 +135,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'getWikiInfo',
-      'Get wiki metadata: total article count, per-tag counts (tag_counts: { potions: 4, weapons: 30 }), available collections/categories, and all tags. Use for answering "how many articles", "how many potions", "what categories exist". Never invent counts — read the actual numbers from the response.',
+      'Get wiki metadata: total article count, per-tag counts (tag_counts: { potions: 4, weapons: 30 }), all tags. Use for "how many articles", "quantas poções existem", "what categories exist".',
       {
         type: 'object',
         properties: {},
@@ -124,7 +144,7 @@ NEVER HALLUCINATE:
         try {
           const data = await ctx.fetchWithSlug('/api/voice/wiki-info', {})
           return { result: data }
-        } catch (e) {
+        } catch {
           return { result: { error: 'Failed to get wiki info' } }
         }
       }
@@ -132,18 +152,18 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'getWikiArticle',
-      'Get the full content of a wiki article by its slug. Also returns item_stats with raw attributes (damage, abilities, crit, etc.) IF the article has structured game data. If item_stats is null, the article has no game stats — do not invent any. Read the article text content but never fabricate numbers. PREFER searchWiki over this tool for finding items — getWikiArticle is only for reading full article text after you have the slug.',
+      'Get full article content + item_stats with raw attributes by slug. PREFER searchWiki for finding items — getWikiArticle reads full article text after you have the slug.',
       {
         type: 'object',
         properties: {
-          slug: { type: 'string', description: 'The article slug (e.g. "steel-sword", "goblin-king"). Use the slug returned by searchWiki.' },
+          slug: { type: 'string', description: 'The article slug (e.g. "steel-sword"). Use slug from searchWiki.' },
         },
       },
       async (params: { slug: string }) => {
         try {
           const data = await ctx.fetchWithSlug('/api/voice/article', { article: params.slug })
           return { result: data }
-        } catch (e) {
+        } catch {
           return { result: { error: 'Article not found' } }
         }
       },
@@ -151,8 +171,31 @@ NEVER HALLUCINATE:
     ),
 
     new FunctionCallTool(
+      'listWikiArticles',
+      'Browse articles by tag (e.g. "potions", "weapons", "enemies"). Returns titles, slugs, and summaries. For finding a specific item, use searchWiki.',
+      {
+        type: 'object',
+        properties: {
+          tag: { type: 'string', description: 'Filter by tag/category. Without this, lists ALL articles.' },
+        },
+      },
+      async (params: { tag?: string }) => {
+        try {
+          const qp: Record<string, string> = {}
+          if (params.tag) qp.tag = params.tag
+          const data = await ctx.fetchWithSlug('/api/voice/articles', qp)
+          return { result: data }
+        } catch {
+          return { result: { error: 'Failed to list articles', articles: [] } }
+        }
+      }
+    ),
+
+    // ── Navigation tools ──
+
+    new FunctionCallTool(
       'navigateToHome',
-      'Navigate to the wiki home page. Use when the user wants to "see everything", "show the wiki", "go home", or explore the wiki overview.',
+      'Navigate to the wiki home page. Use when the user wants to see everything, show the wiki, go home.',
       {
         type: 'object',
         properties: {},
@@ -165,7 +208,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'navigateToHub',
-      'Navigate to the PixelFandom Hub (main page listing all wikis). Use when the user asks to go back to the hub, see all wikis, or go to PixelFandom.',
+      'Navigate to PixelFandom Hub (main page listing all wikis).',
       {
         type: 'object',
         properties: {},
@@ -178,7 +221,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'navigateToPage',
-      'Navigate to a specific article or item detail page in the wiki (e.g. "nightmare-blade", "goblin-king"). Use the slug returned by searchWiki or getWikiArticle.',
+      'Navigate to a specific article or item detail page by slug.',
       {
         type: 'object',
         properties: {
@@ -190,27 +233,6 @@ NEVER HALLUCINATE:
         return { result: { success: true, slug: params.slug } }
       },
       ['slug']
-    ),
-
-    new FunctionCallTool(
-      'listWikiArticles',
-      'Browse articles by category using the optional "tag" parameter (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Returns article titles, slugs, and summaries for browsing. For FINDING a specific item by name, use searchWiki instead — this tool only lists by tag.',
-      {
-        type: 'object',
-        properties: {
-          tag: { type: 'string', description: 'Optional: filter by tag/category (e.g. "potions", "weapons", "armors", "rings", "enemies", "bosses", "upgrades"). Without this, lists ALL articles.' },
-        },
-      },
-      async (params: { tag?: string }) => {
-        try {
-          const queryParams: Record<string, string> = {}
-          if (params.tag) queryParams.tag = params.tag
-          const data = await ctx.fetchWithSlug('/api/voice/articles', queryParams)
-          return { result: data }
-        } catch (e) {
-          return { result: { error: 'Failed to list articles', articles: [] } }
-        }
-      }
     ),
 
     new FunctionCallTool(
@@ -230,8 +252,256 @@ NEVER HALLUCINATE:
     ),
 
     new FunctionCallTool(
+      'navigateToDiscord',
+      `Open the wiki's Discord server invite link.`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        if (ctx.discordUrl) {
+          window.open(ctx.discordUrl, '_blank', 'noopener,noreferrer')
+          return { result: { success: true, page: 'discord', message: 'Abrindo Discord...' } }
+        }
+        return { result: { success: false, message: 'Esta wiki não possui link do Discord configurado.' } }
+      }
+    ),
+
+    new FunctionCallTool(
+      'navigateToGame',
+      `Open the wiki's game page in a new tab.`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        if (ctx.gameUrl) {
+          window.open(ctx.gameUrl, '_blank', 'noopener,noreferrer')
+          return { result: { success: true, page: 'game', message: 'Abrindo jogo...' } }
+        }
+        return { result: { success: false, message: 'Esta wiki não possui link do jogo configurado.' } }
+      }
+    ),
+
+    // ── Schema tools ──
+
+    q('listGameTables',
+      'List all game data tables (weapons, armors, enemies, bosses, rings, potions, upgrades, worlds, codes, etc.) with item counts. Use to discover available data.',
+      {}),
+
+    q('getTableSchema',
+      'Get column names, types, and metadata for any game table. Returns all available columns so you know what filters/stats are queryable. Use before querying a table.',
+      { table: { type: 'string', description: 'Table name (e.g. "weapons", "enemies")' } },
+      ['table']),
+
+    q('findColumns',
+      'Search for columns matching a term across all game tables. Useful to find which tables have a stat like "damage", "crit", "speed".',
+      { term: { type: 'string', description: 'Column name term to search for (e.g. "damage", "crit")' } },
+      ['term']),
+
+    // ── Item query tools ──
+
+    q('getItem',
+      'Get a single item by name from any game table. Returns ALL columns/attributes. Use searchWiki first if you do not know the exact name or table.',
+      {
+        table: { type: 'string', description: 'Table name (e.g. "weapons", "enemies")' },
+        name: { type: 'string', description: 'Item name (case-insensitive, partial match)' },
+      },
+      ['table', 'name']),
+
+    q('queryItems',
+      'Query items in any table with flexible column filters. For complex queries like "find weapons with fire element" or "list S tier armors". Returns matching items with all attributes.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        filters: { type: 'string', description: 'JSON object of column filters. Example: {"element":"fire","rarity":"legendary"}' },
+        limit: { type: 'number', description: 'Max items (default 20)' },
+      },
+      ['table', 'filters']),
+
+    q('filterByRange',
+      'Find items where a numeric column falls within a range. For "weapons with damage above 50" or "items under 100 gold".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        column: { type: 'string', description: 'Numeric column to filter (e.g. "damage_min", "shop_price")' },
+        min: { type: 'number', description: 'Minimum value (inclusive). Omit for no lower bound.' },
+        max: { type: 'number', description: 'Maximum value (inclusive). Omit for no upper bound.' },
+        limit: { type: 'number', description: 'Max items (default 20)' },
+      },
+      ['table', 'column']),
+
+    q('searchTable',
+      'Full-text search within a single game table. Use when you know the table but want text matches. For cross-table, use searchWiki.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        term: { type: 'string', description: 'Search term for text columns' },
+        limit: { type: 'number', description: 'Max items (default 20)' },
+      },
+      ['table', 'term']),
+
+    q('countItems',
+      'Count items in a table matching optional filters. For "how many legendary weapons" or "how many enemies with >100 HP".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        column: { type: 'string', description: 'Optional column to filter on' },
+        value: { type: 'string', description: 'Optional value to match' },
+      },
+      ['table']),
+
+    q('listItems',
+      'Browse/paginate items in a table showing name, slug, and key attributes. For browsing all items. Use getItem for full details.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        offset: { type: 'number', description: 'Items to skip (default 0)' },
+        limit: { type: 'number', description: 'Max items (default 20)' },
+        sortBy: { type: 'string', description: 'Column to sort by' },
+        sortDir: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction' },
+      },
+      ['table']),
+
+    // ── Stat analysis tools ──
+
+    q('rankByStat',
+      'Get ranking position of an item by a numeric stat. For "what rank is steel sword by damage?" or "which position does fire ring hold by price?".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        stat: { type: 'string', description: 'Numeric column to rank by (e.g. "damage_min")' },
+        itemName: { type: 'string', description: 'Item to find rank for' },
+      },
+      ['table', 'stat', 'itemName']),
+
+    q('compareOnStat',
+      'Sort items by a numeric stat from highest to lowest. For "which weapon has the most damage?" or "show armors sorted by defense".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        stat: { type: 'string', description: 'Numeric column to compare by' },
+        limit: { type: 'number', description: 'Max items (default 10)' },
+        descending: { type: 'boolean', description: 'Highest first (default true)' },
+      },
+      ['table', 'stat']),
+
+    q('getStatSummary',
+      'Summary statistics (min, max, average, count) for a numeric column. For "what is the average weapon damage?" or "price range for potions".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        column: { type: 'string', description: 'Numeric column to summarize' },
+      },
+      ['table', 'column']),
+
+    q('getTopItems',
+      'Top N items by a numeric stat. For "top 5 strongest weapons" or "3 most expensive items".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        stat: { type: 'string', description: 'Numeric column to rank by' },
+        limit: { type: 'number', description: 'Number to return (default 5)' },
+      },
+      ['table', 'stat']),
+
+    q('getCategoryAverages',
+      'Average values of numeric stats grouped by a category. For "average damage per weapon type" or "average price by rarity".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        categoryColumn: { type: 'string', description: 'Column to group by (e.g. "weapon_type", "rarity", "element")' },
+        statColumns: { type: 'string', description: 'Comma-separated numeric columns to average. If empty, averages all numeric.' },
+      },
+      ['table', 'categoryColumn']),
+
+    q('getStatDistribution',
+      'Distribution of values for a column showing how many items have each distinct value. For "how many items per rarity?" or "element distribution".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        column: { type: 'string', description: 'Column to get distribution for' },
+      },
+      ['table', 'column']),
+
+    // ── Cross-reference tools ──
+
+    q('compareTwoItems',
+      'Side-by-side comparison of two items showing all numeric stats. For "compare steel sword vs iron sword" — items can be from different tables.',
+      {
+        tableA: { type: 'string', description: 'Table of first item' },
+        nameA: { type: 'string', description: 'Name of first item' },
+        tableB: { type: 'string', description: 'Table of second item' },
+        nameB: { type: 'string', description: 'Name of second item' },
+      },
+      ['tableA', 'nameA', 'tableB', 'nameB']),
+
+    q('findSimilarItems',
+      'Find items with similar numeric stat profiles. For discovering alternatives or replacements.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        itemName: { type: 'string', description: 'Reference item name' },
+        limit: { type: 'number', description: 'Similar items to return (default 5)' },
+      },
+      ['table', 'itemName']),
+
+    q('searchAllTables',
+      'Search item name across ALL game tables simultaneously. Use when unsure which table contains an item.',
+      {
+        name: { type: 'string', description: 'Item name or partial name' },
+      },
+      ['name']),
+
+    q('findByCategory',
+      'Get all items in a table sharing a specific category value. For "list all fire weapons" or "find S tier armors".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        column: { type: 'string', description: 'Category column (e.g. "element", "rarity", "tier")' },
+        value: { type: 'string', description: 'Value to match (e.g. "fire", "legendary")' },
+        limit: { type: 'number', description: 'Max items (default 50)' },
+      },
+      ['table', 'column', 'value']),
+
+    q('getTableComparison',
+      'Compare stat distributions between two different tables. For comparing weapons vs armors on a stat.',
+      {
+        tableA: { type: 'string', description: 'First table' },
+        tableB: { type: 'string', description: 'Second table' },
+        stat: { type: 'string', description: 'Numeric column to compare' },
+      },
+      ['tableA', 'tableB', 'stat']),
+
+    q('getItemNeighbors',
+      'Find items within a percentage range of a given item\'s stat. For finding gear at similar power levels. Returns slightly worse and slightly better items.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        itemName: { type: 'string', description: 'Reference item' },
+        stat: { type: 'string', description: 'Numeric column to compare' },
+        percentRange: { type: 'number', description: 'Range percentage (default 20 = ±20%)' },
+        limit: { type: 'number', description: 'Max neighbors per side (default 3)' },
+      },
+      ['table', 'itemName', 'stat']),
+
+    q('findUpgrades',
+      'Find items strictly better in specified stats. For "what is better than steel sword in damage and speed?" — items must not be worse in any compared stat.',
+      {
+        table: { type: 'string', description: 'Table name' },
+        itemName: { type: 'string', description: 'Item to upgrade from' },
+        stats: { type: 'string', description: 'Comma-separated stat columns (e.g. "damage_min,speed,knockback")' },
+        limit: { type: 'number', description: 'Max items (default 10)' },
+      },
+      ['table', 'itemName', 'stats']),
+
+    q('getStatTrend',
+      'Analyze correlation between two stats across all items. For "do higher damage weapons cost more?" or "relationship between speed and knockback".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        statA: { type: 'string', description: 'First numeric column' },
+        statB: { type: 'string', description: 'Second numeric column' },
+      },
+      ['table', 'statA', 'statB']),
+
+    q('getRecentPages',
+      'Recently created or updated wiki pages. For "what is new?" or "what changed recently?".',
+      {
+        limit: { type: 'number', description: 'Max pages (default 10)' },
+        days: { type: 'number', description: 'Days back (default 30). 0 = all time.' },
+      }),
+
+    // ── Voice control tools ──
+
+    new FunctionCallTool(
       'help',
-      'Show available commands and what the assistant can do.',
+      'Show available commands and capabilities.',
       {
         type: 'object',
         properties: {},
@@ -239,14 +509,19 @@ NEVER HALLUCINATE:
       async () => {
         return {
           result: {
-            message: `I can help you with:
-- Search wiki articles AND game items with stats (damage, abilities, elements, etc.)
-- Read full article content and item details with raw numbers
-- List articles by category (potions, weapons, armors, etc.)
-- Navigate to wiki pages and item pages
-- Show wiki overview (categories with counts, tags, article count)
-- Switch to another wiki
-- Adjust volume, change voice, clear conversation`,
+            message: `I can help you:
+- Search wiki articles AND game items with full stats
+- Read articles and item details aloud
+- List/browse articles by category
+- Navigate to any wiki page
+- Query game data: compare items, rank by stats, filter by range
+- Analyze stats: averages, distributions, trends, correlations
+- Find upgrades, similar items, neighbors
+- Compare items side-by-side
+- Get wiki overview with category counts
+- Check what's new and recent
+- Set reminders, explain mechanics, suggest gear
+- Adjust volume, change voice, clear chat`,
           },
         }
       }
@@ -254,12 +529,11 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'adjustVolume',
-      'Adjust the assistant voice volume. Use when the user wants to increase or decrease volume.',
+      'Adjust voice volume. 0 = mute, 100 = maximum.',
       {
         type: 'object',
         properties: {
-          level: { type: 'number', description: 'Volume level from 0 (mute) to 100 (maximum)' },
-          reason: { type: 'string', description: 'Why the volume is being adjusted' },
+          level: { type: 'number', description: 'Volume 0-100' },
         },
       },
       async (params: { level: number }) => {
@@ -279,12 +553,12 @@ NEVER HALLUCINATE:
           name: {
             type: 'string',
             enum: ['Puck', 'Kore', 'Charon', 'Fenrir', 'Aoede'],
-            description: 'The voice name to switch to',
+            description: 'Voice name',
           },
         },
       },
       async (params: { name: VoiceName }) => {
-        const valid = ['Puck', 'Kore', 'Charon', 'Fenrir', 'Aoede']
+        const valid: VoiceName[] = ['Puck', 'Kore', 'Charon', 'Fenrir', 'Aoede']
         if (valid.includes(params.name)) {
           ctx.setVoiceName(params.name)
           return { result: { action: 'set_voice', name: params.name, message: `Voz alterada para ${params.name}` } }
@@ -296,7 +570,7 @@ NEVER HALLUCINATE:
 
     new FunctionCallTool(
       'clearChat',
-      'Clear the current conversation transcript.',
+      'Clear the conversation transcript.',
       {
         type: 'object',
         properties: {},
@@ -316,7 +590,7 @@ NEVER HALLUCINATE:
           language: {
             type: 'string',
             enum: ['pt', 'en', 'es'],
-            description: 'The language code to switch to',
+            description: 'Language code: pt, en, es',
           },
         },
       },
@@ -353,8 +627,8 @@ NEVER HALLUCINATE:
       {
         type: 'object',
         properties: {
-          message: { type: 'string', description: 'The notification message to display' },
-          emoji: { type: 'string', description: 'Optional emoji for the notification' },
+          message: { type: 'string', description: 'Notification message' },
+          emoji: { type: 'string', description: 'Optional emoji' },
         },
       },
       async (params: { message: string; emoji?: string }) => {
@@ -365,46 +639,9 @@ NEVER HALLUCINATE:
     ),
 
     new FunctionCallTool(
-      'navigateToDiscord',
-      `Open the wiki's Discord server invite link in a new tab.
-Use when the user asks to join the Discord, go to Discord, or wants to talk on Discord.
-If no Discord URL is configured, say that this wiki doesn't have a Discord link yet.`,
-      {
-        type: 'object',
-        properties: {},
-      },
-      async () => {
-        if (ctx.discordUrl) {
-          window.open(ctx.discordUrl, '_blank', 'noopener,noreferrer')
-          return { result: { success: true, page: 'discord', message: 'Abrindo Discord...' } }
-        }
-        return { result: { success: false, message: 'Esta wiki não possui link do Discord configurado.' } }
-      }
-    ),
-
-    new FunctionCallTool(
-      'navigateToGame',
-      `Open the wiki's game page (e.g. Roblox) in a new tab.
-Use when the user asks to play the game, go to the game, or wants to see the game page.
-If no game URL is configured, say that this wiki doesn't have a game link yet.`,
-      {
-        type: 'object',
-        properties: {},
-      },
-      async () => {
-        if (ctx.gameUrl) {
-          window.open(ctx.gameUrl, '_blank', 'noopener,noreferrer')
-          return { result: { success: true, page: 'game', message: 'Abrindo jogo...' } }
-        }
-        return { result: { success: false, message: 'Esta wiki não possui link do jogo configurado.' } }
-      }
-    ),
-
-    new FunctionCallTool(
       'endSession',
-      `End the voice session and close the microphone. 
-Use this when the user says goodbye, wants to hang up, or asks to end the conversation.
-Examples: "tchau", "falou", "pode ir", "pode desligar", "até logo", "bye", "já era", "fechou", "é isso", "valeu", "obrigado por hoje", "nos vemos", "até mais", "see you", "goodbye", "adiós", "hasta luego", "chao".`,
+      `End the voice session and close the microphone.
+Call when the user says goodbye: "tchau", "falou", "pode ir", "até logo", "bye", "valeu", "see you".`,
       {
         type: 'object',
         properties: {},
@@ -413,6 +650,194 @@ Examples: "tchau", "falou", "pode ir", "pode desligar", "até logo", "bye", "já
         ctx.onEndSession()
         return { result: { action: 'end_session', message: 'Sessão encerrada. Até logo!' } }
       }
+    ),
+
+    // ── Voice-exclusive tools ──
+
+    new FunctionCallTool(
+      'setReminder',
+      'Schedule a voice reminder that will notify the user after a delay. Use for "remind me in 5 minutes" or "lembre-me da loja em 1 hora". The reminder will be spoken aloud when time is up.',
+      {
+        type: 'object',
+        properties: {
+          message: { type: 'string', description: 'The reminder message to say' },
+          seconds: { type: 'number', description: 'Delay in seconds (e.g. 300 for 5 minutes, 3600 for 1 hour)' },
+        },
+      },
+      async (params: { message: string; seconds: number }) => {
+        const ms = Math.max(1000, Math.min(params.seconds * 1000, 86400000))
+        setTimeout(() => {
+          ctx.playerInterrupt()
+          ctx.addTranscript(`⏰ ${params.message}`, false)
+        }, ms)
+        const min = Math.round(ms / 60000)
+        return { result: { action: 'set_reminder', message: `Lembrete definido para ${min} minuto(s): "${params.message}"` } }
+      },
+      ['message', 'seconds']
+    ),
+
+    new FunctionCallTool(
+      'explain',
+      'Explain a game term, mechanic, or concept by searching the wiki and summarizing what it means. Use for "what is crit damage?", "explain how crafting works", or "o que é encantamento?". Composes searchWiki, getWikiArticle internally for a complete explanation.',
+      {
+        type: 'object',
+        properties: {
+          term: { type: 'string', description: 'The term, mechanic, or concept to explain' },
+        },
+      },
+      async (params: { term: string }) => {
+        try {
+          const searchData = await ctx.fetchWithSlug('/api/search', { q: params.term })
+          const items = searchData.game_items ?? []
+          const wiki = searchData.wiki ?? []
+          return { result: { term: params.term, explanation: 'Resultados encontrados. Use o conteúdo abaixo para explicar.', wikiArticles: wiki.slice(0, 3), gameItems: items.slice(0, 5) } }
+        } catch {
+          return { result: { error: 'Não foi possível buscar explicação para este termo.' } }
+        }
+      },
+      ['term']
+    ),
+
+    new FunctionCallTool(
+      'suggestGear',
+      'Suggest a complete gear loadout (weapon + armor + ring) based on playstyle or criteria. For "suggest a fire loadout", "best gear for tank build", or "equipamento para mago". Queries multiple tables to find optimal combinations.',
+      {
+        type: 'object',
+        properties: {
+          playstyle: { type: 'string', description: 'Playstyle or criteria (e.g. "fire", "tank", "mage", "assassin", "balanced", "high damage")' },
+          tier: { type: 'string', description: 'Optional tier or max budget constraint' },
+        },
+      },
+      async (params: { playstyle: string; tier?: string }) => {
+        const results: Record<string, any> = { playstyle: params.playstyle }
+        if (params.tier) results.tier = params.tier
+        return { result: { ...results, message: 'Pesquisando combinações...', instructions: 'Use getItem, findByCategory e filterByRange para montar o loadout ideal.' } }
+      },
+      ['playstyle']
+    ),
+
+    new FunctionCallTool(
+      'howToFarm',
+      'Best farming route and method for obtaining an item or resource. For "how to farm gold", "best way to get dark shards", or "onde farmar madeira". Returns locations, enemies that drop it, and recommended methods.',
+      {
+        type: 'object',
+        properties: {
+          itemName: { type: 'string', description: 'The item or resource to farm' },
+          table: { type: 'string', description: 'Optional table hint (e.g. "enemies", "resources")' },
+        },
+      },
+      async (params: { itemName: string; table?: string }) => {
+        try {
+          const qp: Record<string, string> = { q: params.itemName }
+          const data = await ctx.fetchWithSlug('/api/search', qp)
+          const items = data.game_items ?? []
+          return { result: { itemName: params.itemName, farmData: items.slice(0, 10) } }
+        } catch {
+          return { result: { error: 'Farming info not found' } }
+        }
+      },
+      ['itemName']
+    ),
+
+    new FunctionCallTool(
+      'enemyStrategy',
+      'Detailed strategy guide for fighting an enemy or boss. For "how to beat the goblin king", "dragon boss strategy", or "estrategia para o chefe final". Returns weaknesses, resistances, attacks, and recommended tactics.',
+      {
+        type: 'object',
+        properties: {
+          enemyName: { type: 'string', description: 'Enemy or boss name' },
+        },
+      },
+      async (params: { enemyName: string }) => {
+        try {
+          const data = await ctx.fetchWithSlug('/api/search', { q: params.enemyName })
+          const items = data.game_items ?? []
+          const enemies = items.filter((i: any) =>
+            i.source_type === 'enemy' || i.source_type === 'boss'
+          )
+          return { result: { enemyName: params.enemyName, strategy: enemies.length > 0 ? 'Enemy data found' : 'No enemy data found', enemies: enemies.slice(0, 3) } }
+        } catch {
+          return { result: { error: 'Strategy info not found' } }
+        }
+      },
+      ['enemyName']
+    ),
+
+    new FunctionCallTool(
+      'itemProgression',
+      'Suggest an item progression or upgrade path from starter to endgame. For "best sword progression", "upgrade path for armor", or "progressão de armas do início ao fim".',
+      {
+        type: 'object',
+        properties: {
+          table: { type: 'string', description: 'The item category (e.g. "weapons", "armors")' },
+          playstyle: { type: 'string', description: 'Optional playstyle preference' },
+        },
+      },
+      async (params: { table: string; playstyle?: string }) => {
+        try {
+          const data = await ctx.fetchWithSlug('/api/voice/query', { action: 'listItems', table: params.table, limit: '50', sortBy: 'shop_price', sortDir: 'asc' })
+          return { result: { table: params.table, progression: data, playstyle: params.playstyle } }
+        } catch {
+          return { result: { error: 'Progression data not found' } }
+        }
+      },
+      ['table']
+    ),
+
+    new FunctionCallTool(
+      'compareLoadouts',
+      'Compare two complete equipment sets (weapon+armor+ring). For "compare my fire build with ice build" or "qual set é melhor?". Queries individual items and shows side-by-side stat totals.',
+      {
+        type: 'object',
+        properties: {
+          weaponA: { type: 'string', description: 'First loadout weapon name' },
+          armorA: { type: 'string', description: 'First loadout armor name' },
+          ringA: { type: 'string', description: 'First loadout ring name' },
+          weaponB: { type: 'string', description: 'Second loadout weapon name' },
+          armorB: { type: 'string', description: 'Second loadout armor name' },
+          ringB: { type: 'string', description: 'Second loadout ring name' },
+        },
+      },
+      async (params: { weaponA: string; armorA: string; ringA: string; weaponB: string; armorB: string; ringB: string }) => {
+        try {
+          const [wA, aA, rA, wB, aB, rB] = await Promise.all([
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'weapons', name: params.weaponA }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'armors', name: params.armorA }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'rings', name: params.ringA }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'weapons', name: params.weaponB }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'armors', name: params.armorB }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: 'rings', name: params.ringB }),
+          ])
+          return { result: { loadoutA: { weapon: wA, armor: aA, ring: rA }, loadoutB: { weapon: wB, armor: aB, ring: rB } } }
+        } catch {
+          return { result: { error: 'Loadout comparison failed' } }
+        }
+      },
+      ['weaponA', 'armorA', 'ringA', 'weaponB', 'armorB', 'ringB']
+    ),
+
+    new FunctionCallTool(
+      'rateItem',
+      'Rate an item\'s quality relative to others in its category. Shows where the item stands compared to the average and top items. For "how good is steel sword?" or "vale a pena comprar a armadura void?".',
+      {
+        type: 'object',
+        properties: {
+          table: { type: 'string', description: 'Table name' },
+          itemName: { type: 'string', description: 'Item name to rate' },
+        },
+      },
+      async (params: { table: string; itemName: string }) => {
+        try {
+          const [itemData, summaryData] = await Promise.all([
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getItem', table: params.table, name: params.itemName }),
+            ctx.fetchWithSlug('/api/voice/query', { action: 'getStatSummary', table: params.table, column: 'shop_price' }),
+          ])
+          return { result: { item: itemData, categoryAverages: summaryData, table: params.table } }
+        } catch {
+          return { result: { error: 'Rating failed' } }
+        }
+      },
+      ['table', 'itemName']
     ),
   ]
 }

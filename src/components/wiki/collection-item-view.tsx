@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Flame, Snowflake, Skull, Ghost, Globe, Droplets, Gem,
   ScrollText, Lightbulb, MessageCircle, Eye, Crosshair,
-  Coins, Pickaxe, Sparkles, Loader2, ArrowLeft, X, Database,
+  Coins, Pickaxe, Sparkles,
 } from 'lucide-react';
-import { supabase } from '@/supabase';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { ChipCarousel } from '@/components/ui/chip-carousel';
+import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
 
 type Props = {
@@ -178,7 +178,7 @@ function isArrStr(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((i) => typeof i === 'string');
 }
 
-const SKIP = new Set(['name', 'title', 'description', 'summary', 'id', 'image', 'image_url', 'rarity', 'tier', 'element', 'updated_at', 'created_at', 'world_name', 'item_name']);
+const SKIP = new Set(['name', 'title', 'description', 'summary', 'id', 'image', 'image_url', 'rarity', 'tier', 'element', 'updated_at', 'created_at', 'world_name', 'item_name', 'embedding']);
 
 const EXTRA_FIELDS = new Set([
   'obtain_method', 'chapter', 'chapters', 'starting_banner', 'drop_wave_requirement',
@@ -231,6 +231,7 @@ const DYNAMIC_SKIP = new Set([
   'image', 'image_url', 'icon', 'icon_url',
   'world_name',
   '_source_table',
+  'embedding',
 ]);
 
 function inferSchema(data: Record<string, any>): ColumnInfo[] {
@@ -253,6 +254,7 @@ function renderDynamicSections(
   tenantSlug: string | undefined,
   table: string,
   comparisonMode_: 'modal' | 'page',
+  onStatClick?: (statKey: string) => void,
 ) {
   const rendered = new Set<string>();
   const sections: React.ReactNode[] = [];
@@ -276,6 +278,8 @@ function renderDynamicSections(
               onClick={tenantId ? () => {
                 if (comparisonMode_ === 'page') {
                   window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
+                } else if (onStatClick) {
+                  onStatClick(c.column_name);
                 }
               } : undefined}
             />
@@ -292,19 +296,21 @@ function renderDynamicSections(
   if (boolCols.length > 0) {
     boolCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
-      <div key="dyn-bools" className="flex flex-wrap gap-2 mb-6">
-        {boolCols.map((c) => (
-          <Tag key={c.column_name}
-            className={data[c.column_name]
-              ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
-              : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
-            }
-          >
-            {data[c.column_name]
-              ? `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Sim`
-              : `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Não`}
-          </Tag>
-        ))}
+      <div key="dyn-bools" className="mb-6">
+        <ChipCarousel>
+          {boolCols.map((c) => (
+            <Tag key={c.column_name}
+              className={data[c.column_name]
+                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0'
+                : 'border-muted-foreground/30 text-muted-foreground bg-muted/10 shrink-0'
+              }
+            >
+              {data[c.column_name]
+                ? `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Sim`
+                : `${c.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}: Não`}
+            </Tag>
+          ))}
+        </ChipCarousel>
       </div>,
     );
   }
@@ -321,12 +327,14 @@ function renderDynamicSections(
   if (textCols.length > 0) {
     textCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
-      <div key="dyn-tags" className="flex flex-wrap gap-2 mb-6">
-        {textCols.map((c) => (
-          <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-            {String(data[c.column_name])}
-          </Tag>
-        ))}
+      <div key="dyn-tags" className="mb-6">
+        <ChipCarousel>
+          {textCols.map((c) => (
+            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10 shrink-0">
+              {String(data[c.column_name])}
+            </Tag>
+          ))}
+        </ChipCarousel>
       </div>,
     );
   }
@@ -365,13 +373,13 @@ function renderDynamicSections(
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</h3>
-        <div className="flex flex-wrap gap-2">
+        <ChipCarousel>
           {data[c.column_name].map((item: unknown, i: number) => (
-            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
+            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">
               {typeof item === 'object' ? JSON.stringify(item) : String(item)}
             </Tag>
           ))}
-        </div>
+        </ChipCarousel>
       </div>,
     );
   }
@@ -468,177 +476,28 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   );
 
   // ── Comparison state ──
-  type CompareInfo = { key: string; label: string; format: 'number' | 'range' | 'percent' | 'text' };
-  const [compareStat, setCompareStat] = useState<CompareInfo | null>(null);
-  const [compareItems, setCompareItems] = useState<Record<string, any>[]>([]);
-  const [loadingCompare, setLoadingCompare] = useState(false);
-  const [compareFilter, setCompareFilter] = useState<string | null>(null);
-  const itemsCache = useRef<Record<string, any>[] | null>(null);
+  const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 
-  const subCategoryKey = (() => {
-    if (data.weapon_type) return 'weapon_type';
-    if (data.enemy_type) return 'enemy_type';
-    if (data.boss_type) return 'boss_type';
-    if (data.category) return 'category';
-    return null;
-  })();
-
-  const fetchCompare = useCallback(async () => {
-    if (!tenantId || !table) return;
-    if (itemsCache.current) {
-      setCompareItems(itemsCache.current);
-      return;
-    }
-    setLoadingCompare(true);
-    const { data: items } = await supabase
-      .from(table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('updated_at', { ascending: false });
-    if (items) {
-      itemsCache.current = items as Record<string, any>[];
-      setCompareItems(items as Record<string, any>[]);
-    }
-    setLoadingCompare(false);
-  }, [tenantId, table]);
-
-  useEffect(() => {
-    if (compareStat) fetchCompare();
-  }, [compareStat, fetchCompare]);
-
-  const handleStatClick = (info: CompareInfo) => {
+  const handleStatClick = (statKey: string) => {
     if (comparisonMode === 'page' && tenantId) {
-      window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${info.key}`;
+      window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${statKey}`;
     } else {
-      setCompareStat(info);
+      setShowCompare({ stat: statKey });
     }
   };
 
-  const filteredCompareItems = compareFilter
-    ? compareItems.filter((item) => String(item[subCategoryKey || '']) === compareFilter)
-    : compareItems;
-
-  const subCategoryValues = subCategoryKey
-    ? [...new Set(compareItems.map((item) => String(item[subCategoryKey] || '')).filter(Boolean))]
-    : [];
-
-  function getCompareValue(item: Record<string, any>, stat: CompareInfo): string {
-    if (stat.format === 'range') {
-      const min = item[`${stat.key}_min`] ?? item[stat.key];
-      const max = item[`${stat.key}_max`];
-      return max !== undefined ? `${min}-${max}` : String(min ?? '—');
-    }
-    if (stat.format === 'percent') {
-      const val = item[stat.key];
-      return val !== undefined ? `${val}%` : '—';
-    }
-    return String(item[stat.key] ?? '—');
-  }
-
-  function getCompareSortValue(item: Record<string, any>, stat: CompareInfo): number {
-    const v = parseFloat(item[stat.key]);
-    return isNaN(v) ? -Infinity : v;
-  }
-
-  function statIsSameItem(item: Record<string, any>): boolean {
-    return item.name === data.name || item.id === data.id;
-  }
-
-  // ── Compare sidebar ──
-  function compareSidebar() {
-    if (!compareStat) return null;
-    const sorted = [...filteredCompareItems].sort((a, b) => getCompareSortValue(b, compareStat) - getCompareSortValue(a, compareStat));
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-12 pb-8 px-4 overflow-auto" onClick={() => setCompareStat(null)}>
-        <div className="w-full max-w-2xl bg-card rounded-xl border shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
-            <h2 className="text-lg font-bold">Comparação: {compareStat.label}</h2>
-            <div className="flex items-center gap-2">
-              {comparisonMode === 'modal' && tenantId && (
-                <Link
-                  href={`/w/${tenantSlug || ''}/compare/${table}?stat=${compareStat.key}`}
-                  className="text-xs text-primary hover:text-primary/80 font-medium"
-                >
-                  Ver página dedicada
-                </Link>
-              )}
-              <button onClick={() => setCompareStat(null)} className="p-1 rounded-md hover:bg-muted transition-colors">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Filter */}
-          {subCategoryValues.length > 1 && (
-            <div className="flex flex-wrap gap-1.5 px-5 py-2.5 border-b shrink-0">
-              <button
-                onClick={() => setCompareFilter(null)}
-                className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors ${!compareFilter ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-              >
-                Todos
-              </button>
-              {subCategoryValues.map((val) => (
-                <button
-                  key={val}
-                  onClick={() => setCompareFilter(val)}
-                  className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors ${compareFilter === val ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Table */}
-          <div className="flex-1 overflow-auto">
-            {loadingCompare ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-card">
-                  <tr className="border-b text-xs text-muted-foreground">
-                    <th className="text-left px-5 py-2.5 font-medium">Item</th>
-                    <th className="text-right px-5 py-2.5 font-medium w-28">{compareStat.label}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((item) => {
-                    const isCurrent = statIsSameItem(item);
-                    const val = getCompareValue(item, compareStat);
-                    return (
-                      <tr key={item.id} className={`border-b last:border-0 transition-colors ${isCurrent ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
-                        <td className="px-5 py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            {item.icon_url ? (
-                              <img src={item.icon_url} alt="" className="h-6 w-6 rounded object-contain shrink-0" />
-                            ) : null}
-                            <span className={`font-medium ${isCurrent ? 'text-primary' : ''}`}>
-                              {item.name || item.title || item.item_name || item.code || '—'}
-                            </span>
-                            {isCurrent && <span className="text-[10px] text-primary font-medium bg-primary/10 rounded-full px-2 py-0.5">Atual</span>}
-                          </div>
-                        </td>
-                        <td className={`px-5 py-2.5 text-right font-semibold tabular-nums ${isCurrent ? 'text-primary' : ''}`}>{val}</td>
-                      </tr>
-                    );
-                  })}
-                  {sorted.length === 0 && (
-                    <tr><td colSpan={2} className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum item encontrado.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-3xl mx-auto">
-      {compareSidebar()}
+      {showCompare && tenantId && (
+        <ComparePopup
+          table={table}
+          tenantId={tenantId}
+          tenantSlug={tenantSlug}
+          currentItemId={data.id as string}
+          initialStat={showCompare.stat}
+          onClose={() => setShowCompare(null)}
+        />
+      )}
 
       {/* Header with banner background */}
       <div className={`rounded-xl mb-6 relative overflow-hidden`}
@@ -658,60 +517,64 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             <h1 className="text-2xl font-bold text-white leading-tight">{name}</h1>
             {description && <p className="text-sm text-white/80 mt-1.5 leading-relaxed">{description}</p>}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {rarity && (
-              <Tag className={`${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
-                {rarity}
-              </Tag>
-            )}
-            {tier && (
-              <Tag className={`${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
-                {TIER_LABEL[tier.toLowerCase()] || tier}
-              </Tag>
-            )}
-            {element && element !== 'none' && (
-              <Tag className={`${elementClass(element)} bg-background/80 backdrop-blur-sm`} icon={elIcon(element)}>
-                {element}
-              </Tag>
-            )}
+          <div className="max-w-[200px]">
+            <ChipCarousel>
+              {rarity && (
+                <Tag className={`${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase shrink-0`} icon={<Star className="h-3 w-3" />}>
+                  {rarity}
+                </Tag>
+              )}
+              {tier && (
+                <Tag className={`${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold shrink-0`}>
+                  {TIER_LABEL[tier.toLowerCase()] || tier}
+                </Tag>
+              )}
+              {element && element !== 'none' && (
+                <Tag className={`${elementClass(element)} bg-background/80 backdrop-blur-sm shrink-0`} icon={elIcon(element)}>
+                  {element}
+                </Tag>
+              )}
+            </ChipCarousel>
           </div>
         </div>
       </div>
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {data.weapon_type && <Tag icon={<Sword className="h-3 w-3" />} className="border-blue-500/30 text-blue-400 bg-blue-500/10">{String(data.weapon_type)}</Tag>}
-        {data.attack_speed && <Tag icon={<Zap className="h-3 w-3" />} className={`border-current/30 ${data.attack_speed === 'fast' ? 'text-emerald-400' : data.attack_speed === 'slow' ? 'text-red-400' : 'text-yellow-400'} bg-current/10`}>{String(data.attack_speed)}</Tag>}
-        {data.enemy_type && <Tag className="border-red-500/30 text-red-400 bg-red-500/10">{String(data.enemy_type)}</Tag>}
-        {data.difficulty && <Tag className={String(data.difficulty).toLowerCase().includes('hard') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'}>{String(data.difficulty)}</Tag>}
-        {data.boss_type && <Tag className="border-purple-500/30 text-purple-400 bg-purple-500/10">{String(data.boss_type)}</Tag>}
-        {data.category && <Tag className="border-cyan-500/30 text-cyan-400 bg-cyan-500/10">{String(data.category)}</Tag>}
-        {data.health_level && <Tag className={`border-current/30 ${String(data.health_level).toLowerCase() === 'high' ? 'text-red-400' : String(data.health_level).toLowerCase() === 'medium' ? 'text-yellow-400' : 'text-emerald-400'} bg-current/10`}>HP: {String(data.health_level)}</Tag>}
-        {data.is_must_pick === true && <Tag icon={<Star className="h-3 w-3" />} className="border-yellow-500/30 text-yellow-400 bg-yellow-500/10">Must Pick</Tag>}
-        {(data.is_worth_crafting === true || data.is_worth_crafting === 'YES') && <Tag icon={<Sparkles className="h-3 w-3" />} className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Vale a pena craftar</Tag>}
-        {data.is_active === true && <Tag className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Ativo</Tag>}
-        {data.is_expired === true && <Tag className="border-red-500/30 text-red-400 bg-red-500/10">Expirado</Tag>}
+      <div className="mb-6">
+        <ChipCarousel>
+          {data.weapon_type && <Tag icon={<Sword className="h-3 w-3" />} className="border-blue-500/30 text-blue-400 bg-blue-500/10 shrink-0">{String(data.weapon_type)}</Tag>}
+          {data.attack_speed && <Tag icon={<Zap className="h-3 w-3" />} className={`shrink-0 border-current/30 ${data.attack_speed === 'fast' ? 'text-emerald-400' : data.attack_speed === 'slow' ? 'text-red-400' : 'text-yellow-400'} bg-current/10`}>{String(data.attack_speed)}</Tag>}
+          {data.enemy_type && <Tag className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">{String(data.enemy_type)}</Tag>}
+          {data.difficulty && <Tag className={`shrink-0 ${String(data.difficulty).toLowerCase().includes('hard') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'}`}>{String(data.difficulty)}</Tag>}
+          {data.boss_type && <Tag className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">{String(data.boss_type)}</Tag>}
+          {data.category && <Tag className="border-cyan-500/30 text-cyan-400 bg-cyan-500/10 shrink-0">{String(data.category)}</Tag>}
+          {data.health_level && <Tag className={`shrink-0 border-current/30 ${String(data.health_level).toLowerCase() === 'high' ? 'text-red-400' : String(data.health_level).toLowerCase() === 'medium' ? 'text-yellow-400' : 'text-emerald-400'} bg-current/10`}>HP: {String(data.health_level)}</Tag>}
+          {data.is_must_pick === true && <Tag icon={<Star className="h-3 w-3" />} className="border-yellow-500/30 text-yellow-400 bg-yellow-500/10 shrink-0">Must Pick</Tag>}
+          {(data.is_worth_crafting === true || data.is_worth_crafting === 'YES') && <Tag icon={<Sparkles className="h-3 w-3" />} className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0">Vale a pena craftar</Tag>}
+          {data.is_active === true && <Tag className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shrink-0">Ativo</Tag>}
+          {data.is_expired === true && <Tag className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">Expirado</Tag>}
+        </ChipCarousel>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
         {data.damage_min !== undefined && (
-          <StatCard label="Dano" icon={<Sword className="h-4 w-4" />} value={data.damage_max !== undefined ? `${data.damage_min}-${data.damage_max}` : String(data.damage_min)} onClick={() => handleStatClick({ key: 'damage_min', label: 'Dano', format: 'range' })} />
+          <StatCard label="Dano" icon={<Sword className="h-4 w-4" />} value={data.damage_max !== undefined ? `${data.damage_min}-${data.damage_max}` : String(data.damage_min)} onClick={() => handleStatClick('damage_min')} />
         )}
         {(data.crit_chance_min !== undefined || data.crit_chance_max !== undefined) && (
-          <StatCard label="Crit" icon={<Crosshair className="h-4 w-4" />} color="text-yellow-400" value={data.crit_chance_max !== undefined ? `${data.crit_chance_min}-${data.crit_chance_max}%` : `${data.crit_chance_min ?? data.crit_chance_max}%`} onClick={() => handleStatClick({ key: 'crit_chance_min', label: 'Crit', format: 'percent' })} />
+          <StatCard label="Crit" icon={<Crosshair className="h-4 w-4" />} color="text-yellow-400" value={data.crit_chance_max !== undefined ? `${data.crit_chance_min}-${data.crit_chance_max}%` : `${data.crit_chance_min ?? data.crit_chance_max}%`} onClick={() => handleStatClick('crit_chance_min')} />
         )}
-        {data.knockback !== undefined && <StatCard label="Knockback" icon={<Zap className="h-4 w-4" />} value={String(data.knockback)} onClick={() => handleStatClick({ key: 'knockback', label: 'Knockback', format: 'number' })} />}
-        {data.health_bonus !== undefined && <StatCard label="HP" icon={<Shield className="h-4 w-4" />} color="text-emerald-400" value={`+${data.health_bonus}`} onClick={() => handleStatClick({ key: 'health_bonus', label: 'HP', format: 'number' })} />}
-        {data.speed_bonus !== undefined && <StatCard label="Speed" icon={<Zap className="h-4 w-4" />} color="text-cyan-400" value={`+${data.speed_bonus}`} onClick={() => handleStatClick({ key: 'speed_bonus', label: 'Speed', format: 'number' })} />}
-        {data.energy_bonus !== undefined && <StatCard label="Energy" icon={<Zap className="h-4 w-4" />} color="text-purple-400" value={`+${data.energy_bonus}`} onClick={() => handleStatClick({ key: 'energy_bonus', label: 'Energy', format: 'number' })} />}
-        {data.shop_price !== undefined && <StatCard label="Preço" icon={<Coins className="h-4 w-4" />} value={`${data.shop_price}`} onClick={() => handleStatClick({ key: 'shop_price', label: 'Preço', format: 'number' })} />}
-        {(data.craft_cost !== undefined || data.gold_cost !== undefined) && <StatCard label="Custo Craft" icon={<Pickaxe className="h-4 w-4" />} value={`${data.craft_cost ?? data.gold_cost} ouro`} onClick={() => handleStatClick({ key: 'craft_cost', label: 'Custo Craft', format: 'number' })} />}
-        {data.max_uses_per_run !== undefined && <StatCard label="Usos/run" value={String(data.max_uses_per_run)} onClick={() => handleStatClick({ key: 'max_uses_per_run', label: 'Usos/run', format: 'number' })} />}
-        {data.unlock_level !== undefined && <StatCard label="Nível mín" value={String(data.unlock_level)} onClick={() => handleStatClick({ key: 'unlock_level', label: 'Nível mín', format: 'number' })} />}
-        {data.max_ranks !== undefined && <StatCard label="Ranks máx" value={String(data.max_ranks)} onClick={() => handleStatClick({ key: 'max_ranks', label: 'Ranks máx', format: 'number' })} />}
-        {data.priority_order !== undefined && <StatCard label="Prioridade" value={`#${data.priority_order}`} onClick={() => handleStatClick({ key: 'priority_order', label: 'Prioridade', format: 'number' })} />}
-        {data.drop_rate_percentage !== undefined && <StatCard label="Drop Rate" color="text-yellow-400" value={String(data.drop_rate_percentage)} onClick={() => handleStatClick({ key: 'drop_rate_percentage', label: 'Drop Rate', format: 'percent' })} />}
+        {data.knockback !== undefined && <StatCard label="Knockback" icon={<Zap className="h-4 w-4" />} value={String(data.knockback)} onClick={() => handleStatClick('knockback')} />}
+        {data.health_bonus !== undefined && <StatCard label="HP" icon={<Shield className="h-4 w-4" />} color="text-emerald-400" value={`+${data.health_bonus}`} onClick={() => handleStatClick('health_bonus')} />}
+        {data.speed_bonus !== undefined && <StatCard label="Speed" icon={<Zap className="h-4 w-4" />} color="text-cyan-400" value={`+${data.speed_bonus}`} onClick={() => handleStatClick('speed_bonus')} />}
+        {data.energy_bonus !== undefined && <StatCard label="Energy" icon={<Zap className="h-4 w-4" />} color="text-purple-400" value={`+${data.energy_bonus}`} onClick={() => handleStatClick('energy_bonus')} />}
+        {data.shop_price !== undefined && <StatCard label="Preço" icon={<Coins className="h-4 w-4" />} value={`${data.shop_price}`} onClick={() => handleStatClick('shop_price')} />}
+        {(data.craft_cost !== undefined || data.gold_cost !== undefined) && <StatCard label="Custo Craft" icon={<Pickaxe className="h-4 w-4" />} value={`${data.craft_cost ?? data.gold_cost} ouro`} onClick={() => handleStatClick('craft_cost')} />}
+        {data.max_uses_per_run !== undefined && <StatCard label="Usos/run" value={String(data.max_uses_per_run)} onClick={() => handleStatClick('max_uses_per_run')} />}
+        {data.unlock_level !== undefined && <StatCard label="Nível mín" value={String(data.unlock_level)} onClick={() => handleStatClick('unlock_level')} />}
+        {data.max_ranks !== undefined && <StatCard label="Ranks máx" value={String(data.max_ranks)} onClick={() => handleStatClick('max_ranks')} />}
+        {data.priority_order !== undefined && <StatCard label="Prioridade" value={`#${data.priority_order}`} onClick={() => handleStatClick('priority_order')} />}
+        {data.drop_rate_percentage !== undefined && <StatCard label="Drop Rate" color="text-yellow-400" value={String(data.drop_rate_percentage)} onClick={() => handleStatClick('drop_rate_percentage')} />}
       </div>
 
       {/* Code Block */}
@@ -764,12 +627,12 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {type === 'rings' && isArrStr(data.key_buffs) && (
         <div className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Bônus Principais</h3>
-          <div className="flex flex-wrap gap-2">
+          <ChipCarousel>
             {data.key_buffs.map((b: string) => {
               const c = effectColor(b) || 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
-              return <Tag key={b} className={`${c} border-current/30 bg-current/10`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
+              return <Tag key={b} className={`${c} border-current/30 bg-current/10 shrink-0`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
             })}
-          </div>
+          </ChipCarousel>
         </div>
       )}
 
@@ -783,7 +646,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {type === 'rings' && isArrStr(data.possible_stats) && (
         <div className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stats Possíveis</h3>
-          <div className="flex flex-wrap gap-2">{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10">{s}</Tag>)}</div>
+          <ChipCarousel>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10 shrink-0">{s}</Tag>)}</ChipCarousel>
         </div>
       )}
 
@@ -814,7 +677,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         return (
           <div className="mb-6">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fraquezas</h3>
-            <div className="flex flex-wrap gap-2">{els.map((el: string) => <Tag key={el} className={elementClass(el)} icon={elIcon(el)}>{el}</Tag>)}</div>
+            <ChipCarousel>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)} shrink-0`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
           </div>
         );
       })()}
@@ -838,7 +701,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         return (
           <div className="mb-6">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ataques</h3>
-            <div className="flex flex-wrap gap-2">{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10">{a}</Tag>)}</div>
+            <ChipCarousel>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10 shrink-0">{a}</Tag>)}</ChipCarousel>
           </div>
         );
       })()}
@@ -850,7 +713,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         return (
           <div className="mb-6">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens Dropados</h3>
-            <div className="flex flex-wrap gap-2">{drops.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10">{item}</Tag>)}</div>
+            <ChipCarousel>{drops.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10 shrink-0">{item}</Tag>)}</ChipCarousel>
           </div>
         );
       })()}
@@ -904,7 +767,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         return (
           <div className="mb-6">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Materiais</h3>
-            <div className="flex flex-wrap gap-2">{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">{mat}</Tag>)}</div>
+            <ChipCarousel>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10 shrink-0">{mat}</Tag>)}</ChipCarousel>
           </div>
         );
       })()}
@@ -994,7 +857,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       )}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

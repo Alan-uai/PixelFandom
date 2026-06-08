@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableItems } from '@/hooks/use-data-access';
+import { ChipCarousel } from '@/components/ui/chip-carousel';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -107,12 +108,14 @@ function ItemCard({
             <p className="text-xs text-muted-foreground leading-relaxed mt-3">{desc}</p>
           )}
           {fields.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {fields.map((f, i) => (
-                <span key={i} className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
-                  {f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span>
-                </span>
-              ))}
+            <div className="mt-2">
+              <ChipCarousel>
+                {fields.map((f, i) => (
+                  <span key={i} className="shrink-0 inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                    {f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span>
+                  </span>
+                ))}
+              </ChipCarousel>
             </div>
           )}
           {(() => {
@@ -273,14 +276,14 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
               <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1.5 capitalize min-w-[5rem]">
                 {fc.label}:
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <ChipCarousel className="flex-1">
                 {fc.values.map((v) => {
                   const active = activeFilters[fc.column]?.has(v);
                   return (
                     <button
                       key={v}
                       onClick={() => toggleFilter(fc.column, v)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
+                      className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
                         active
                           ? 'bg-primary/10 border-primary/30 text-primary'
                           : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
@@ -291,7 +294,7 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
                     </button>
                   );
                 })}
-              </div>
+              </ChipCarousel>
             </div>
           ))}
           {hasActiveFilters && (
