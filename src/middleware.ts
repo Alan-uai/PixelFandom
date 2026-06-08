@@ -53,7 +53,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // Rewrite short-form URLs (e.g. /marks → /w/{slug}/marks) if we have an active tenant
-    if (!pathname.startsWith('/dashboard') && !isApiRoute && pathname !== '/') {
+    const nonWikiPaths = ['/dashboard', '/api/', '/profile', '/settings', '/leaderboard', '/notifications', '/about'];
+    const isNonWikiPath = nonWikiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
+    if (!isNonWikiPath && pathname !== '/') {
       const tenantSlug = request.cookies.get('x-tenant-slug')?.value;
       if (tenantSlug) {
         const url = request.nextUrl.clone();

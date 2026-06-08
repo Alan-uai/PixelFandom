@@ -1,15 +1,23 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
-  FileText, Database, ArrowLeft, ChevronDown, ChevronRight,
+  FileText, Database, ArrowLeft, ChevronDown,
   Sword, Shield, Zap, Gem, Crosshair, Pickaxe, Sparkles, Star, Skull,
-  Search, X,
+  Search, X, Eye,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableItems } from '@/hooks/use-data-access';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
+import { IconRenderer } from '@/components/ui/icon-renderer';
+import CollectionItemView from '@/components/wiki/collection-item-view';
+import {
+  RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
+  elementClass, elIcon, COLL_ICON,
+} from '@/lib/game-ui';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -51,28 +59,27 @@ function formatCategoryValue(col: string, val: unknown): string {
   return String(val);
 }
 
-function summaryFields(item: Record<string, any>): { icon: React.ReactNode; label: string; value: string }[] {
-  const out: { icon: React.ReactNode; label: string; value: string }[] = [];
-  if (item.rarity) out.push({ icon: <Star className="h-3 w-3" />, label: 'Raridade', value: item.rarity });
-  if (item.tier) out.push({ icon: <Sparkles className="h-3 w-3" />, label: 'Tier', value: item.tier });
-  if (item.element && item.element !== 'none') out.push({ icon: <Zap className="h-3 w-3" />, label: 'Elemento', value: item.element });
-  if (item.weapon_type) out.push({ icon: <Sword className="h-3 w-3" />, label: 'Tipo', value: item.weapon_type });
-  if (item.enemy_type) out.push({ icon: <Skull className="h-3 w-3" />, label: 'Tipo', value: item.enemy_type });
-  if (item.boss_type) out.push({ icon: <Skull className="h-3 w-3" />, label: 'Tipo', value: item.boss_type });
-  if (item.difficulty) out.push({ icon: <Crosshair className="h-3 w-3" />, label: 'Dificuldade', value: item.difficulty });
-  if (item.obtain_method) out.push({ icon: <Pickaxe className="h-3 w-3" />, label: 'Obtenção', value: item.obtain_method });
-  if (item.damage_min !== undefined) {
-    const dmg = item.damage_max !== undefined ? `${item.damage_min}–${item.damage_max}` : String(item.damage_min);
-    out.push({ icon: <Sword className="h-3 w-3" />, label: 'Dano', value: dmg });
-  }
-  if (item.health_bonus !== undefined) out.push({ icon: <Shield className="h-3 w-3" />, label: 'HP', value: `+${item.health_bonus}` });
-  if (item.shop_price !== undefined) out.push({ icon: <Zap className="h-3 w-3" />, label: 'Preço', value: String(item.shop_price) });
-  if (item.max_ranks !== undefined) out.push({ icon: <Gem className="h-3 w-3" />, label: 'Ranks', value: String(item.max_ranks) });
-  return out.slice(0, 4);
-}
-
 function toSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
+const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
+
+function getIcon(item: Record<string, any>) {
+  for (const col of iconColumnNames) {
+    const v = item[col];
+    if (v) {
+      if (typeof v === 'string' && v.includes(':')) return <IconRenderer icon={v} size="md" />;
+      if (typeof v === 'string' && v.startsWith('http')) return <img src={v} alt="" className="w-full h-full object-contain" />;
+      if (typeof v === 'string') return <span className="text-lg">{v}</span>;
+    }
+  }
+  for (const col of imageColumnNames) {
+    const v = item[col];
+    if (v && typeof v === 'string') return <img src={v} alt="" className="w-full h-full object-cover" />;
+  }
+  return null;
 }
 
 type Props = {
@@ -81,91 +88,45 @@ type Props = {
   tenantId?: string;
 };
 
-function ItemCard({
-  item, labelCol, tableName, homePath,
-}: {
-  item: any; labelCol: string; tableName: string; homePath: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const label = item[labelCol] || item.name || '';
-  const itemSlug = toSlug(String(label));
-  const image = item.image_url || item.image || item.icon || item.icon_url;
-  const subtitle = item.rarity || item.type || item.weapon_type || item.obtain || item.description || '';
-  const desc = typeof item.description === 'string' ? item.description : '';
-  const fields = summaryFields(item);
-
-  return (
-    <div className="rounded-xl border bg-card overflow-hidden">
-      <div className="flex items-center gap-3 p-4">
-        <Link
-          href={`${homePath}${tableName}/${itemSlug}`}
-          className="flex items-center gap-3 flex-1 min-w-0 group"
-        >
-          {image ? (
-            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
-              <img src={image} alt="" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-              <FileText className="h-5 w-5" />
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-medium group-hover:text-primary transition-colors truncate">
-              {label}
-            </p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {typeof subtitle === 'string' ? subtitle : ''}
-              </p>
-            )}
-          </div>
-        </Link>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="p-1 rounded-md hover:bg-muted transition-colors shrink-0"
-        >
-          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-        </button>
-      </div>
-      {expanded && (
-        <div className="px-4 pb-4 pt-0 border-t border-border/50">
-          {desc && (
-            <p className="text-xs text-muted-foreground leading-relaxed mt-3">{desc}</p>
-          )}
-          {fields.length > 0 && (
-            <div className="mt-2">
-              <ChipCarousel>
-                {fields.map((f, i) => (
-                  <span key={i} className="shrink-0 max-w-[200px] truncate inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
-                    <span className="whitespace-nowrap">{f.icon}{f.label}: <span className="font-medium text-foreground">{f.value}</span></span>
-                  </span>
-                ))}
-              </ChipCarousel>
-            </div>
-          )}
-          {(() => {
-            const extras: string[] = [];
-            if (item.effects) extras.push(typeof item.effects === 'string' ? item.effects : Array.isArray(item.effects) ? item.effects.join(', ') : String(item.effects));
-            if (item.weakness) extras.push(typeof item.weakness === 'string' ? item.weakness : Array.isArray(item.weakness) ? item.weakness.join(', ') : String(item.weakness));
-            if (item.items_dropped) extras.push(typeof item.items_dropped === 'string' ? item.items_dropped : Array.isArray(item.items_dropped) ? item.items_dropped.join(', ') : String(item.items_dropped));
-            if (extras.length === 0) return null;
-            return <p className="text-xs text-muted-foreground mt-1.5 truncate">{extras.join(' · ')}</p>;
-          })()}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function GameTableListing({ tenantSlug, tableName }: Props) {
+export default function GameTableListing({ tenantSlug, tableName, tenantId }: Props) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
   const items: any[] = data?.items ?? [];
   const labelCol = data?.labelCol ?? 'name';
   const { homePath } = useWikiPath(tenantSlug);
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  const urlItem = searchParams?.get('item') || null;
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    setSelectedSlug(urlItem);
+  }, [urlItem]);
+
+  useEffect(() => {
+    if (selectedSlug && cardRefs.current[selectedSlug]) {
+      setTimeout(() => {
+        cardRefs.current[selectedSlug]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [selectedSlug]);
+
+  const selectItem = useCallback((slug: string | null) => {
+    const newSlug = slug === selectedSlug ? null : slug;
+    setSelectedSlug(newSlug);
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    if (newSlug) {
+      params.set('item', newSlug);
+    } else {
+      params.delete('item');
+    }
+    const qs = params.toString();
+    router.replace(`${qs ? '?' + qs : ''}`, { scroll: false });
+  }, [selectedSlug, searchParams, router]);
 
   const columnAnalysis = useMemo(() => {
     if (items.length === 0) return { categoryColumn: null as string | null, filterColumns: [] as { column: string; values: string[]; label: string }[] };
@@ -370,7 +331,16 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {catItems.map((item) => (
-                  <ItemCard key={item.id} item={item} labelCol={labelCol} tableName={tableName} homePath={homePath} />
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    tableName={tableName}
+                    tenantSlug={tenantSlug}
+                    tenantId={tenantId}
+                    selectedSlug={selectedSlug}
+                    onSelect={selectItem}
+                    cardRefs={cardRefs}
+                  />
                 ))}
               </div>
             </div>
@@ -379,10 +349,182 @@ export default function GameTableListing({ tenantSlug, tableName }: Props) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filteredItems.map((item) => (
-            <ItemCard key={item.id} item={item} labelCol={labelCol} tableName={tableName} homePath={homePath} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              tableName={tableName}
+              tenantSlug={tenantSlug}
+              tenantId={tenantId}
+              selectedSlug={selectedSlug}
+              onSelect={selectItem}
+              cardRefs={cardRefs}
+            />
           ))}
         </div>
       )}
     </article>
+  );
+}
+
+function ItemCard({
+  item,
+  tableName,
+  tenantSlug,
+  tenantId,
+  selectedSlug,
+  onSelect,
+  cardRefs,
+}: {
+  item: any;
+  tableName: string;
+  tenantSlug: string;
+  tenantId?: string;
+  selectedSlug: string | null;
+  onSelect: (slug: string | null) => void;
+  cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+}) {
+  const label = item.name || item.title || item.item_name || item.code || '';
+  const itemSlug = toSlug(String(label));
+  const isOpen = selectedSlug === itemSlug;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    }
+  }, [isOpen, item]);
+
+  const icon = getIcon(item);
+  const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
+  const imageUrl = item.image_url || item.image || item.icon_url || item.icon;
+
+  const rarity = item.rarity != null ? String(item.rarity) : undefined;
+  const tier = item.tier != null ? String(item.tier) : undefined;
+  const element = item.element != null ? String(item.element) : undefined;
+  const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
+
+  return (
+    <div
+      ref={(el) => { cardRefs.current[itemSlug] = el; }}
+      className="rounded-xl border bg-card overflow-hidden"
+    >
+      <motion.button
+        onClick={() => onSelect(itemSlug)}
+        className="w-full text-left cursor-pointer"
+        whileTap={{ scale: 0.995 }}
+        style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
+      >
+        <div
+          className="relative overflow-hidden"
+          style={imageUrl ? {
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : undefined}
+        >
+          <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
+          {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
+          <div className="relative p-4 flex items-start gap-3">
+            <div className="h-12 w-12 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
+              {icon || collIcon}
+            </div>
+            <div className="flex-1 min-w-0 self-center">
+              <motion.h3
+                className="font-semibold leading-tight relative"
+                animate={{ x: isOpen ? 4 : 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                <motion.span
+                  className="block text-white"
+                  animate={{ opacity: isOpen ? 0 : 1 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {label}
+                </motion.span>
+                <motion.span
+                  className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
+                  animate={{ opacity: isOpen ? 1 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  aria-hidden
+                >
+                  {label}
+                </motion.span>
+              </motion.h3>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
+              {rarity && (
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`}>
+                  <Star className="h-2.5 w-2.5" />
+                  {rarity}
+                </span>
+              )}
+              {tier && (
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm`}>
+                  {TIER_LABEL[tier.toLowerCase()] || tier}
+                </span>
+              )}
+              {element && element !== 'none' && (
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${elementClass(element)} bg-background/80 backdrop-blur-sm`}>
+                  {elIcon(element)}
+                  {element}
+                </span>
+              )}
+            </div>
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0, scale: isOpen ? 1.2 : 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 12, mass: 0.8 }}
+              style={{ transformStyle: 'preserve-3d' }}
+              className="shrink-0 self-center mt-0.5"
+            >
+              <ChevronDown className="h-4 w-4 text-white/70" />
+            </motion.div>
+          </div>
+        </div>
+      </motion.button>
+
+      <motion.div
+        initial={false}
+        animate={{
+          height: isOpen ? height : 0,
+          opacity: isOpen ? 1 : 0,
+          rotateX: isOpen ? 0 : -15,
+          scaleY: isOpen ? 1 : 0.92,
+          filter: isOpen ? 'blur(0px)' : 'blur(6px)',
+        }}
+        transition={{
+          duration: 0.5,
+          ease: [0.22, 1, 0.36, 1],
+          height: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+          opacity: { duration: 0.3, delay: isOpen ? 0.08 : 0 },
+          rotateX: { duration: 0.45 },
+          scaleY: { duration: 0.4 },
+          filter: { duration: 0.35, delay: isOpen ? 0.05 : 0 },
+        }}
+        style={{
+          transformOrigin: 'top center',
+          perspective: 1200,
+          transformStyle: 'preserve-3d',
+          overflow: 'hidden',
+        }}
+      >
+        <div ref={contentRef}>
+          <div className="px-4 pb-4 pt-3 border-t border-border/50">
+            {tenantId ? (
+              <CollectionItemView
+                data={item}
+                tenantId={tenantId}
+                tenantSlug={tenantSlug}
+                sourceTable={tableName}
+                comparisonMode="modal"
+                hideHeader
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">{item.description || ''}</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }

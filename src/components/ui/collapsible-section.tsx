@@ -42,14 +42,25 @@ export function CollapsibleSection({
       >
         <div className="space-y-1 min-w-0 flex-1">
           <motion.h3
-            className="font-semibold leading-none tracking-tight"
-            animate={{
-              color: open ? 'hsl(var(--primary))' : 'inherit',
-              x: open ? 4 : 0,
-            }}
+            className="font-semibold leading-none tracking-tight relative"
+            animate={{ x: open ? 4 : 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            {title}
+            <motion.span
+              className="block"
+              animate={{ opacity: open ? 0 : 1 }}
+              transition={{ duration: 0.25 }}
+            >
+              {title}
+            </motion.span>
+            <motion.span
+              className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
+              animate={{ opacity: open ? 1 : 0 }}
+              transition={{ duration: 0.25 }}
+              aria-hidden
+            >
+              {title}
+            </motion.span>
           </motion.h3>
           {description && (
             <p className="text-sm text-muted-foreground">{description}</p>

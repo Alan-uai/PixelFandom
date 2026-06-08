@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
-import GameItemView from '@/components/wiki/game-item-view';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
@@ -34,6 +33,7 @@ export default function WikiPage() {
   const articleSlug = path?.join('/') || null;
   const isGrid = view !== 'list';
   const { basePath, homePath, articlePath: wikiArticlePath } = useWikiPath(slug);
+  const router = useRouter();
 
   const { data: wiki, loading } = useWikiData();
 
@@ -71,6 +71,22 @@ export default function WikiPage() {
     articleSlug,
   );
   const { data: catalog } = useTableCatalog(articleSlug ? slug : null, true);
+
+  const gameItemRedirect = useMemo(() => {
+    if (articleSlug && articleSlug.includes('/') && catalog) {
+      const parts = articleSlug.split('/');
+      if (parts.length === 2 && catalog.some((t) => t.table_name === parts[0])) {
+        return { tableName: parts[0], itemSlug: parts[1] };
+      }
+    }
+    return null;
+  }, [articleSlug, catalog]);
+
+  useEffect(() => {
+    if (gameItemRedirect) {
+      router.replace(`${basePath}${gameItemRedirect.tableName}?item=${gameItemRedirect.itemSlug}`);
+    }
+  }, [gameItemRedirect, basePath, router]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -173,20 +189,9 @@ export default function WikiPage() {
     );
   }
 
-  // ── Game item view: path = table/item-slug ──
-  if (articleSlug && articleSlug.includes('/') && catalog) {
-    const parts = articleSlug.split('/');
-    if (parts.length === 2 && catalog.some((t) => t.table_name === parts[0])) {
-      return (
-        <GameItemView
-          tenantSlug={slug}
-          tableName={parts[0]}
-          itemSlug={parts[1]}
-          tenantId={tenant.id}
-          comparisonMode={comparisonMode as 'modal' | 'page'}
-        />
-      );
-    }
+  // ── Game item view: redirected to listing with ?item= ──
+  if (gameItemRedirect) {
+    return null;
   }
 
   // ── Article view ──
