@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, X, House, MessageCircle, PanelLeft, PanelLeftClose, Gamepad2, SunMoon } from 'lucide-react';
+import { Loader2, Search, X, House, MessageCircle, Gamepad2, SunMoon } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
@@ -51,7 +51,7 @@ function WikiLayoutContent({
   const pathname = usePathname();
   const { data, loading } = useWikiData();
   const { preferences, updatePreference } = useUserPreferences();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(preferences.sidebar_collapsed);
+
   const { basePath } = useWikiPath(slug);
 
   const tenant = data?.tenant || null;
@@ -62,8 +62,7 @@ function WikiLayoutContent({
   const isHome = pathname === `/w/${slug}` || pathname === '/';
   const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
   const isVoicePage = pathname === `/w/${slug}/voice` || pathname === '/voice';
-  const isArticle = !isHome && !isChatPage && !isVoicePage;
-  const hasSidebar = isChatPage || isArticle;
+  const hasSidebar = isChatPage;
   const showTitleStrip = !isVoicePage;
 
   const [redirecting, setRedirecting] = useState(false);
@@ -123,10 +122,6 @@ function WikiLayoutContent({
   const isGameTablePage = gameTableNames.length > 0 && pathParts.length >= 1 && gameTableNames.includes(pathParts[0]);
 
   useEffect(() => {
-    setSidebarCollapsed(preferences.sidebar_collapsed);
-  }, [preferences.sidebar_collapsed]);
-
-  useEffect(() => {
     if (typeof window !== 'undefined') {
       const host = window.location.hostname;
       if (host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
@@ -143,19 +138,9 @@ function WikiLayoutContent({
     window.location.href = `https://${tenant.custom_domain}${window.location.search}`;
   }, [tenant?.custom_domain, slug, pathname]);
 
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((v) => {
-      const next = !v;
-      updatePreference('sidebar_collapsed', next);
-      return next;
-    });
-  }, [updatePreference]);
-
   const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
     updatePreference('theme_mode', mode);
   }, [updatePreference]);
-
-
 
   if (loading) {
     return (
@@ -278,20 +263,11 @@ function WikiLayoutContent({
             {isHome ? (
               <HomeTitleStrip />
             ) : hasSidebar ? (
-              <>
-                <button
-                  onClick={toggleSidebar}
-                  className="flex items-center justify-center w-12 h-7 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-r shrink-0"
-                  title={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-                >
-                  {sidebarCollapsed ? <PanelLeft className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
-                </button>
-                <div className="flex-1 flex items-center justify-center pr-12">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
-                    {isChatPage ? 'Assistente IA' : 'Artigos'}
-                  </span>
-                </div>
-              </>
+              <div className="flex-1 flex items-center justify-center h-7">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                  Assistente IA
+                </span>
+              </div>
             ) : null}
           </div>
         )}
@@ -300,11 +276,8 @@ function WikiLayoutContent({
           fontSize: preferences.font_size === 'small' ? '0.875rem' : preferences.font_size === 'large' ? '1.125rem' : '1rem',
         }}>
           {hasSidebar && (
-            <Suspense fallback={<div className={`shrink-0 border-r bg-muted/30 ${sidebarCollapsed ? 'w-12' : 'w-64'}`} />}>
-              <WikiSidebar
-                tenantSlug={slug}
-                collapsed={sidebarCollapsed}
-              />
+            <Suspense fallback={<div className="w-64 shrink-0 border-r bg-muted/30" />}>
+              <WikiSidebar tenantSlug={slug} />
             </Suspense>
           )}
           <main className={`flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full ${preferences.density === 'compact' ? 'space-y-3' : 'space-y-6'}`}>

@@ -79,10 +79,8 @@ export function WikiCard({
               <span className="truncate">{wiki.custom_domain || `/w/${wiki.slug}`}</span>
             </div>
           </div>
-        </Card>
 
-        {/* Floating overlay symbols — outside Card to avoid rounded-lg clipping */}
-        <div className="absolute inset-0 pointer-events-none" style={{ top: '1px', bottom: '1px' }}>
+          {/* Floating overlay symbols */}
           <CardSymbols
             targetType="tenant"
             targetId={wiki.id}
@@ -93,7 +91,7 @@ export function WikiCard({
             votePosition={votePosition}
             followPosition={followPosition}
           />
-        </div>
+        </Card>
       </Link>
     </div>
   );

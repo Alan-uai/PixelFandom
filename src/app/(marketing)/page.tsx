@@ -219,18 +219,20 @@ export default function Home() {
               </CardContent>
             </Card>
           ) : (
-            <div
-              id="wiki-carousel"
-              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {wikis.map((wiki) => (
-                <WikiCard
-                  key={wiki.id}
-                  wiki={wiki}
-                  voteData={voteData[wiki.id]}
-                />
-              ))}
+            <div className="-mt-3">
+              <div
+                id="wiki-carousel"
+                className="flex gap-4 overflow-x-auto pt-3 pb-4 scroll-smooth snap-x snap-mandatory"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {wikis.map((wiki) => (
+                  <WikiCard
+                    key={wiki.id}
+                    wiki={wiki}
+                    voteData={voteData[wiki.id]}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
