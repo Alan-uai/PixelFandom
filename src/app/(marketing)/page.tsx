@@ -111,7 +111,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <ScrollRevealWrapper>
+      <ScrollRevealWrapper exitOnly>
         <HeroSection />
       </ScrollRevealWrapper>
 

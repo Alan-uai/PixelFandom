@@ -28,9 +28,16 @@ interface OrbitalNavItemProps {
   onClick?: () => void;
   isButton?: boolean;
   compact: boolean;
+  waveGlow?: boolean;
 }
 
-function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact }: OrbitalNavItemProps) {
+const WAVE_PATTERNS = [
+  'polygon(0% 30%, 15% 22%, 30% 38%, 45% 20%, 60% 35%, 75% 18%, 90% 28%, 100% 22%, 100% 72%, 90% 78%, 75% 68%, 60% 82%, 45% 72%, 30% 85%, 15% 68%, 0% 78%)',
+  'polygon(0% 35%, 20% 25%, 40% 40%, 60% 22%, 80% 38%, 100% 28%, 100% 75%, 80% 65%, 60% 78%, 40% 62%, 20% 80%, 0% 68%)',
+  'polygon(0% 25%, 18% 32%, 35% 20%, 55% 35%, 70% 22%, 85% 32%, 100% 25%, 100% 65%, 85% 75%, 70% 60%, 55% 78%, 35% 65%, 18% 72%, 0% 68%)',
+];
+
+function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -52,10 +59,25 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
   if (compact) {
     const orbitContent = (
       <div
-        className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.06] backdrop-blur-sm cursor-pointer transition-colors duration-200 hover:bg-white/[0.08] hover:border-white/[0.15]"
+        className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.06] backdrop-blur-sm cursor-pointer transition-all duration-300"
+        style={
+          waveGlow
+            ? {
+                backgroundColor: 'rgba(255,255,255,0.12)',
+                borderColor: glowColor,
+                boxShadow: `0 0 20px ${glowColor.replace('hsl', 'hsla').replace(')', ',0.5)')}, 0 0 40px ${glowColor.replace('hsl', 'hsla').replace(')', ',0.25)')}`,
+                transform: 'scale(1.2)',
+              }
+            : {}
+        }
         onClick={clickHandler}
       >
-        {icon}
+        <motion.div
+          animate={waveGlow ? { scale: 1.15, filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'] } : { scale: 1, filter: 'brightness(1)' }}
+          transition={{ duration: 0.4 }}
+        >
+          {icon}
+        </motion.div>
       </div>
     );
 
@@ -99,6 +121,16 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
               className="absolute inset-0 rounded-full blur-md z-0"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 0.5, scale: 1.8 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              style={{ backgroundColor: glowColor }}
+              transition={{ duration: 0.3 }}
+            />
+          )}
+          {waveGlow && compact && (
+            <motion.div
+              className="absolute inset-0 rounded-full blur-xl z-0"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 0.6, scale: 2.5 }}
               exit={{ opacity: 0, scale: 0.5 }}
               style={{ backgroundColor: glowColor }}
               transition={{ duration: 0.3 }}
@@ -165,6 +197,9 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const autoReturnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
+  const [glowLeft, setGlowLeft] = useState(false);
+  const [glowRight, setGlowRight] = useState(false);
+
   const handleLogout = useCallback(async () => {
     playClickSound();
     await signOut();
@@ -198,7 +233,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [user, handleLogout, onLogin]);
 
   const items = navItems();
-  const { phase, setIconRef, expand, collapse } = useOrbitalAnimation(items.length);
+  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length);
 
   const expandedPositions = useRef(getExpandedPositions(items));
   expandedPositions.current = getExpandedPositions(items);
@@ -275,56 +310,106 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     triggerWave(item.side === 'left' ? 'left' : 'right');
   }, [isMobile, mobileExpanded, clearAutoReturn, doCollapse, triggerWave]);
 
+  const handleAvatarMouseEnter = useCallback(() => {
+    if (isMobile) return;
+    setHoverSpeedMultiplier(3.5);
+    setHoverRadiusMultiplier(0.65);
+  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
+
+  const handleAvatarMouseLeave = useCallback(() => {
+    if (isMobile) return;
+    setHoverSpeedMultiplier(1.0);
+    setHoverRadiusMultiplier(1.0);
+  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
+
+  const handleAvatarTouchStart = useCallback(() => {
+    if (!isMobile) return;
+    setHoverSpeedMultiplier(3.5);
+    setHoverRadiusMultiplier(0.65);
+  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
+
+  const handleAvatarTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+    setHoverSpeedMultiplier(1.0);
+    setHoverRadiusMultiplier(1.0);
+  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
+
+  useEffect(() => {
+    if (isExpanded) return;
+    const interval = setInterval(() => {
+      const cycle = 2500;
+      const now = Date.now() % cycle / cycle;
+      const stagger = [0, 0.32, 0.64];
+
+      const isInZone = (delays: number[], start: number, end: number) =>
+        delays.some(d => {
+          const p = (now - d + 1) % 1;
+          return p >= start && p <= end;
+        });
+
+      setGlowLeft(isInZone(stagger, 0.08, 0.38));
+      setGlowRight(isInZone(stagger, 0.08, 0.38));
+    }, 80);
+    return () => clearInterval(interval);
+  }, [isExpanded]);
+
   return (
     <section className="relative w-full py-8 overflow-visible">
       <div className="max-w-4xl mx-auto px-4">
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
-          {/* ── Energy Wave Background ── */}
+          {/* ── Gravitational Waves ── */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
-            <motion.div
-              className="absolute w-32 h-32 rounded-full"
-              style={{
-                background: 'radial-gradient(circle, hsl(270 80% 60% / 0.15) 0%, hsl(350 90% 60% / 0.08) 40%, transparent 70%)',
-                filter: 'blur(20px)',
-              }}
-              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            />
+            {[0, 0.8, 1.6].map((delay, idx) => (
+              <div key={`waves-${idx}`} className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="absolute"
+                  style={{ right: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
+                >
+                  <motion.div
+                    className="relative"
+                    style={{
+                      width: 0,
+                      height: 100,
+                      background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.35) 30%, hsl(270 80% 60% / 0.2) 60%, hsl(350 90% 60% / 0.1) 100%)',
+                      filter: 'blur(10px)',
+                      clipPath: WAVE_PATTERNS[idx],
+                      transformOrigin: 'right center',
+                      transform: 'translateY(-50%)',
+                    }}
+                    initial={{ width: 0, opacity: 0.4 }}
+                    animate={{ width: [0, 450, 450], opacity: [0.4, 0.25, 0] }}
+                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                </div>
 
-            <motion.div
-              className="absolute h-1 right-1/2"
-              style={{
-                width: 'calc(50% - 50px)',
-                background: 'linear-gradient(90deg, transparent, hsl(270 80% 60% / 0.3), hsl(350 90% 60% / 0.15))',
-                filter: 'blur(8px)',
-              }}
-              animate={{
-                opacity: clickWave === 'left' ? [0, 0.8, 0.4] : [0.3, 0.5, 0.3],
-                scaleX: clickWave === 'left' ? [1, 1.3, 1] : 1,
-              }}
-              transition={{ duration: clickWave === 'left' ? 0.6 : 3, repeat: clickWave === 'left' ? 0 : Infinity }}
-            />
+                <div
+                  className="absolute"
+                  style={{ left: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
+                >
+                  <motion.div
+                    className="relative"
+                    style={{
+                      width: 0,
+                      height: 100,
+                      background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.35) 30%, hsl(270 80% 60% / 0.2) 60%, hsl(350 90% 60% / 0.1) 100%)',
+                      filter: 'blur(10px)',
+                      clipPath: WAVE_PATTERNS[idx],
+                      transformOrigin: 'left center',
+                      transform: 'translateY(-50%)',
+                    }}
+                    initial={{ width: 0, opacity: 0.4 }}
+                    animate={{ width: [0, 450, 450], opacity: [0.4, 0.25, 0] }}
+                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            ))}
 
-            <motion.div
-              className="absolute h-1 left-1/2"
-              style={{
-                width: 'calc(50% - 50px)',
-                background: 'linear-gradient(270deg, transparent, hsl(270 80% 60% / 0.3), hsl(350 90% 60% / 0.15))',
-                filter: 'blur(8px)',
-              }}
-              animate={{
-                opacity: clickWave === 'right' ? [0, 0.8, 0.4] : [0.3, 0.5, 0.3],
-                scaleX: clickWave === 'right' ? [1, 1.3, 1] : 1,
-              }}
-              transition={{ duration: clickWave === 'right' ? 0.6 : 3, repeat: clickWave === 'right' ? 0 : Infinity }}
-            />
-
-            <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent blur-[2px]" />
+            <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
           </div>
 
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
-            {/* Orbital / Expanded Nav Icons */}
             <div
               className="relative flex items-center justify-center"
               style={{ width: 400, height: 400 }}
@@ -336,6 +421,27 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 }
               }}
             >
+              {/* Trail dots */}
+              {!isExpanded && items.map((item, i) => (
+                Array.from({ length: 8 }).map((_, t) => (
+                  <div
+                    key={`trail-${i}-${t}`}
+                    ref={setTrailRef(i, t)}
+                    className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
+                    style={{
+                      backgroundColor: item.glowColor,
+                      width: 5,
+                      height: 5,
+                      marginLeft: -2.5,
+                      marginTop: -2.5,
+                      opacity: 0,
+                      zIndex: 0,
+                    }}
+                  />
+                ))
+              ))}
+
+              {/* Orbital Icons */}
               {items.map((item, i) => (
                 <div
                   key={i}
@@ -356,6 +462,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     onClick={item.onClick}
                     isButton={item.isButton}
                     compact={!isExpanded}
+                    waveGlow={!isExpanded && ((item.side === 'left' && glowLeft) || (item.side === 'right' && glowRight))}
                   />
                 </div>
               ))}
@@ -369,20 +476,12 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
               <div
                 className="relative"
                 onClick={handleAvatarClick}
+                onMouseEnter={handleAvatarMouseEnter}
+                onMouseLeave={handleAvatarMouseLeave}
+                onTouchStart={handleAvatarTouchStart}
+                onTouchEnd={handleAvatarTouchEnd}
                 style={{ cursor: isMobile ? 'pointer' : 'default' }}
               >
-                {/* Ring glow */}
-                <motion.div
-                  className="absolute -inset-3 rounded-full border border-purple-500/20"
-                  animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <motion.div
-                  className="absolute -inset-5 rounded-full border border-pink-500/10"
-                  animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.4, 0.15] }}
-                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                />
-
                 {/* Avatar */}
                 <motion.div
                   className="relative z-10"

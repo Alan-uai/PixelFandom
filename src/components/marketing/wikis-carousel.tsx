@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
-import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
+import { Loader2, AlertCircle, BookOpen } from 'lucide-react';
+import { playHoverSound } from '@/lib/feedback-sounds';
 import { WikiCard } from '@/components/wiki/wiki-card';
 import type { Tenant } from '@/supabase/client';
 
@@ -60,14 +60,6 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
     };
   }, [handleScroll, updateScrollState]);
 
-  const scrollBy = (dir: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amt = dir === 'left' ? -CARD_W : CARD_W;
-    el.scrollBy({ left: amt, behavior: 'smooth' });
-    playClickSound();
-  };
-
   const getCardStyle = (index: number) => {
     if (!containerWidth) return { opacity: 1, scale: 1, zIndex: 1 };
     const cardCenter = index * CARD_W + CARD_W / 2;
@@ -84,7 +76,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
   };
 
   return (
-    <section id="wikis-carousel" className="relative w-full py-24 overflow-hidden">
+    <section id="wikis-carousel" className="relative w-full pt-0 pb-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-12">
             <div>
@@ -97,30 +89,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
                 </p>
               )}
             </div>
-            {filtered.length > 0 && (
-              <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => scrollBy('left')}
-                  onMouseEnter={playHoverSound}
-                  className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
-                  aria-label="Anterior"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => scrollBy('right')}
-                  onMouseEnter={playHoverSound}
-                  className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
-                  aria-label="Próximo"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </motion.button>
-              </div>
-            )}
+
           </div>
         {loading ? (
           <div className="flex justify-center py-24">
@@ -149,30 +118,8 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
         ) : (
           <div className="relative">
             {/* Gradient fade edges */}
-            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
-
-            {/* Navigation arrows */}
-            {scrollLeft > 0 && (
-              <button
-                onClick={() => scrollBy('left')}
-                onMouseEnter={playHoverSound}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
-            {!atEnd && (
-              <button
-                onClick={() => scrollBy('right')}
-                onMouseEnter={playHoverSound}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
+            <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-black/70 via-black/30 to-transparent z-10 pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black/70 via-black/30 to-transparent z-10 pointer-events-none" />
 
             {/* Scrollable track */}
             <div

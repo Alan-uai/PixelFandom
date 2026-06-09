@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useUser, supabase } from '@/supabase';
 import { useTenantRole } from '@/hooks/use-tenant-role';
@@ -18,7 +18,8 @@ import {
   Download,
   FileText,
 } from 'lucide-react';
-import { LayoutGroup, motion } from 'framer-motion';
+import { SliderTabs, SliderTabsList, SliderTabsTrigger } from '@/components/ui/slider-tabs';
+import PageContentReveal from '@/components/ui/page-content-reveal';
 
 export default function DashboardLayout({
   children,
@@ -26,6 +27,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isLoading } = useUser();
 
   const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
@@ -80,6 +82,19 @@ export default function DashboardLayout({
       ]
     : [];
 
+  let activeValue = '';
+  if (isWikiPage && navItems.length > 0) {
+    const found = navItems.find(item => {
+      const href = `/dashboard/${wikiSlug}/${item.href}`;
+      return pathname === href || pathname.startsWith(`${href}/`);
+    });
+    if (found) {
+      activeValue = `/dashboard/${wikiSlug}/${found.href}`;
+    } else {
+      activeValue = `/dashboard/${wikiSlug}/${navItems[0].href}`;
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
@@ -95,37 +110,26 @@ export default function DashboardLayout({
         <div className="mx-2 h-5 w-px bg-border" />
 
         <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-          {isWikiPage ? (
-            <LayoutGroup>
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const href = `/dashboard/${wikiSlug}/${item.href}`;
-                const isActive = pathname === href;
-                return (
-                  <div key={item.href}>
-                    {isActive ? (
-                      <motion.span
-                        layoutId="active-dot"
-                        className="rounded-md p-2 text-muted-foreground text-xs select-none block"
-                        title={item.label}
-                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      >
-                        ·
-                      </motion.span>
-                    ) : (
-                      <Link
-                        href={href}
-                        className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors inline-block"
-                        title={item.label}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </LayoutGroup>
-          ) : null}
+          {isWikiPage && navItems.length > 0 && (
+            <SliderTabs defaultValue={activeValue} value={activeValue} onValueChange={(v) => router.push(v)}>
+              <SliderTabsList className="border-0 bg-transparent backdrop-blur-none p-0 gap-0.5">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const href = `/dashboard/${wikiSlug}/${item.href}`;
+                  return (
+                    <SliderTabsTrigger
+                      key={item.href}
+                      value={href}
+                      icon={Icon}
+                      className="px-2.5 py-1.5 text-xs gap-1.5 rounded-md"
+                    >
+                      {item.label}
+                    </SliderTabsTrigger>
+                  );
+                })}
+              </SliderTabsList>
+            </SliderTabs>
+          )}
 
           {isWikiPage && (
             <>
@@ -146,13 +150,17 @@ export default function DashboardLayout({
       </header>
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        {isWikiPage ? (
-          children
-        ) : (
-          <div className="p-6 max-w-6xl mx-auto">
-            {children}
-          </div>
-        )}
+        <PageContentReveal key={pathname} skeleton>
+          <PageContentReveal.Card className="bg-transparent border-0 shadow-none p-0">
+            {isWikiPage ? (
+              children
+            ) : (
+              <div className="p-6 max-w-6xl mx-auto">
+                {children}
+              </div>
+            )}
+          </PageContentReveal.Card>
+        </PageContentReveal>
       </main>
     </div>
   );

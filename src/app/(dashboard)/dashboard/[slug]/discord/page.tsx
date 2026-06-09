@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
@@ -321,23 +321,21 @@ export default function WikiDiscordPage() {
           <DiscordLoginGate />
         </section>
 
-        <Tabs defaultValue="geral">
-          <TabsList className="w-full">
-            <TabsTrigger value="geral" className="flex-1 gap-2">
-              <Bot className="h-4 w-4" />
+        <SliderTabs defaultValue="geral">
+          <SliderTabsList className="w-full">
+            <SliderTabsTrigger value="geral" icon={Bot}>
               Geral
-            </TabsTrigger>
-            <TabsTrigger value="configuracoes" className="flex-1 gap-2">
-              <Settings2 className="h-4 w-4" />
+            </SliderTabsTrigger>
+            <SliderTabsTrigger value="configuracoes" icon={Settings2}>
               Configurações
-            </TabsTrigger>
-            <TabsTrigger value="automacao" className="flex-1 gap-2">
-              <Webhook className="h-4 w-4" />
+            </SliderTabsTrigger>
+            <SliderTabsTrigger value="automacao" icon={Webhook}>
               Automação
-            </TabsTrigger>
-          </TabsList>
+            </SliderTabsTrigger>
+          </SliderTabsList>
 
-          <TabsContent value="geral" className="space-y-6">
+          <SliderTabsContentGroup>
+            <SliderTabsContent value="geral" className="space-y-6">
             <CollapsibleSection id="status" title="Status do Bot" description="Ligue ou desligue o bot do Discord.">
               <div className="flex items-center justify-between">
                 <div>
@@ -499,9 +497,9 @@ export default function WikiDiscordPage() {
                 </div>
               ) : null}
             </CollapsibleSection>
-          </TabsContent>
+          </SliderTabsContent>
 
-          <TabsContent value="configuracoes" className="space-y-6">
+          <SliderTabsContent value="configuracoes" className="space-y-6">
             <CollapsibleSection
               id="channels"
               title="Canais"
@@ -561,9 +559,9 @@ export default function WikiDiscordPage() {
                 />
               </div>
             </CollapsibleSection>
-          </TabsContent>
+          </SliderTabsContent>
 
-          <TabsContent value="automacao" className="space-y-6">
+          <SliderTabsContent value="automacao" className="space-y-6">
             <CollapsibleSection
               id="auto-post"
               title="Auto-Post"
@@ -684,8 +682,9 @@ export default function WikiDiscordPage() {
                 </Button>
               </div>
             </CollapsibleSection>
-          </TabsContent>
-        </Tabs>
+          </SliderTabsContent>
+        </SliderTabsContentGroup>
+        </SliderTabs>
 
         {savedFeedback ? (
           <div className="flex items-center gap-2 text-sm text-green-500 font-medium">

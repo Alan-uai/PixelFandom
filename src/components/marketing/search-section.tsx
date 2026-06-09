@@ -27,7 +27,7 @@ export default function SearchSection({
   onCategoryChange,
 }: SearchSectionProps) {
   return (
-    <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-0">
       <div className="max-w-2xl mx-auto text-center relative">
         <div className="absolute -inset-4 rounded-2xl bg-primary/[0.02] border border-primary/5 backdrop-blur-3xl" />
         <div className="relative">

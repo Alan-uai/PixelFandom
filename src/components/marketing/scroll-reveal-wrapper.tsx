@@ -10,6 +10,7 @@ interface ScrollRevealWrapperProps {
   children: ReactNode;
   className?: string;
   slideDirection?: SlideDirection;
+  exitOnly?: boolean;
 }
 
 const dirs: SlideDirection[] = ['down-left', 'down-right', 'down'];
@@ -25,6 +26,7 @@ export default function ScrollRevealWrapper({
   children,
   className = '',
   slideDirection: propDirection,
+  exitOnly = false,
 }: ScrollRevealWrapperProps) {
   const [currentDirection] = useState<SlideDirection>(() =>
     propDirection ?? randomDir(),
@@ -42,15 +44,35 @@ export default function ScrollRevealWrapper({
     mass: 1.2,
   });
 
-  const scale = useTransform(progressSpring, [0, 0.3, 0.7, 1], [0.88, 1, 1, 0.88]);
-  const opacity = useTransform(progressSpring, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-  const blurAmount = useTransform(progressSpring, [0, 0.2, 0.8, 1], [10, 0, 0, 10]);
-  const yOffset = useTransform(progressSpring, [0, 0.5, 1], [180, 0, -180]);
-  const xOffset = useTransform(progressSpring, [0, 0.5, 1], xRange[currentDirection]);
+  const scale = useTransform(
+    progressSpring,
+    exitOnly ? [0.5, 0.7, 0.85, 1] : [0, 0.3, 0.7, 1],
+    exitOnly ? [1, 1, 0.94, 0.88] : [0.88, 1, 1, 0.88],
+  );
+  const opacity = useTransform(
+    progressSpring,
+    exitOnly ? [0.5, 0.65, 0.8, 1] : [0, 0.2, 0.8, 1],
+    exitOnly ? [1, 1, 0.4, 0] : [0, 1, 1, 0],
+  );
+  const blurAmount = useTransform(
+    progressSpring,
+    exitOnly ? [0.5, 0.65, 0.8, 1] : [0, 0.2, 0.8, 1],
+    exitOnly ? [0, 0, 6, 10] : [10, 0, 0, 10],
+  );
+  const yOffset = useTransform(
+    progressSpring,
+    exitOnly ? [0.5, 0.75, 1] : [0, 0.5, 1],
+    exitOnly ? [0, 0, -180] : [180, 0, -180],
+  );
+  const xOffset = useTransform(
+    progressSpring,
+    exitOnly ? [0.5, 0.75, 1] : [0, 0.5, 1],
+    exitOnly ? [0, 0, xRange[currentDirection][2]] : xRange[currentDirection],
+  );
   const blurFilter = useTransform(blurAmount, (v) => `blur(${v}px)`);
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative snap-start ${className}`}>
       <ScrollProgressProvider value={progressSpring}>
         <motion.div
           style={{

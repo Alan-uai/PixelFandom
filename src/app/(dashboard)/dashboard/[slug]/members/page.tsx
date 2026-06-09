@@ -7,7 +7,7 @@ import { useUser } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserMinus, Shield, ShieldCheck, UserPlus, Copy, Download, Clock, X } from 'lucide-react';
 import type { TenantMember } from '@/supabase/client';
@@ -195,20 +195,19 @@ export default function WikiMembersPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <Tabs defaultValue="members">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="members">
-            <Shield className="h-4 w-4 mr-2" />
+      <SliderTabs defaultValue="members">
+        <SliderTabsList>
+          <SliderTabsTrigger value="members" icon={Shield}>
             Membros ({members.length})
-          </TabsTrigger>
-          <TabsTrigger value="invites">
-            <UserPlus className="h-4 w-4 mr-2" />
+          </SliderTabsTrigger>
+          <SliderTabsTrigger value="invites" icon={UserPlus}>
             Convites ({invites.length})
-          </TabsTrigger>
-        </TabsList>
+          </SliderTabsTrigger>
+        </SliderTabsList>
 
-        <TabsContent value="members">
-          <Card>
+        <SliderTabsContentGroup>
+          <SliderTabsContent value="members">
+            <Card>
             <CardHeader>
               <CardTitle>Membros</CardTitle>
               <CardDescription>Usuários com acesso a esta wiki.</CardDescription>
@@ -250,9 +249,9 @@ export default function WikiMembersPage() {
               })}
             </CardContent>
           </Card>
-        </TabsContent>
+          </SliderTabsContent>
 
-        <TabsContent value="invites">
+          <SliderTabsContent value="invites">
           <Card>
             <CardHeader>
               <CardTitle>Convidar Membro</CardTitle>
@@ -338,8 +337,9 @@ export default function WikiMembersPage() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
+          </SliderTabsContent>
+        </SliderTabsContentGroup>
+      </SliderTabs>
     </div>
   );
 }
