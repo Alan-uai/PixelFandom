@@ -9,6 +9,7 @@ import { useUser, useSupabase } from '@/supabase';
 import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
 import { useOrbitalAnimation } from '@/hooks/use-orbital-animation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface NavItemDef {
   href?: string;
@@ -18,6 +19,7 @@ interface NavItemDef {
   glowColor: string;
   onClick?: () => void;
   isButton?: boolean;
+  isBadge?: boolean;
 }
 
 interface OrbitalNavItemProps {
@@ -31,11 +33,18 @@ interface OrbitalNavItemProps {
   waveGlow?: boolean;
 }
 
-const WAVE_PATTERNS = [
-  'polygon(0% 30%, 15% 22%, 30% 38%, 45% 20%, 60% 35%, 75% 18%, 90% 28%, 100% 22%, 100% 72%, 90% 78%, 75% 68%, 60% 82%, 45% 72%, 30% 85%, 15% 68%, 0% 78%)',
-  'polygon(0% 35%, 20% 25%, 40% 40%, 60% 22%, 80% 38%, 100% 28%, 100% 75%, 80% 65%, 60% 78%, 40% 62%, 20% 80%, 0% 68%)',
-  'polygon(0% 25%, 18% 32%, 35% 20%, 55% 35%, 70% 22%, 85% 32%, 100% 25%, 100% 65%, 85% 75%, 70% 60%, 55% 78%, 35% 65%, 18% 72%, 0% 68%)',
+const ARCS_CONFIG = [
+  { vOffset: -24, ellipseH: 38, ellipseY: 47 },
+  { vOffset: -14, ellipseH: 44, ellipseY: 53 },
+  { vOffset: -5, ellipseH: 36, ellipseY: 45 },
+  { vOffset: 5, ellipseH: 46, ellipseY: 55 },
+  { vOffset: 14, ellipseH: 39, ellipseY: 48 },
+  { vOffset: 24, ellipseH: 42, ellipseY: 52 },
 ];
+
+const WAVE_GROUP_DELAYS = [0, 2, 4];
+const WAVE_DURATION = 2;
+const WAVE_REPEAT_DELAY = 4;
 
 function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
@@ -59,7 +68,7 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
   if (compact) {
     const orbitContent = (
       <div
-        className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.06] backdrop-blur-sm cursor-pointer transition-all duration-300"
+        className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] cursor-pointer transition-all duration-300"
         style={
           waveGlow
             ? {
@@ -192,6 +201,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const { signOut } = useSupabase();
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { unreadCount } = useNotifications();
   const [clickWave, setClickWave] = useState<'left' | 'right' | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const autoReturnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,6 +229,16 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
     if (user) {
       items.push(
+        { href: '/notifications', icon: (
+          <div className="relative">
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[7px] font-bold text-white flex items-center justify-center px-[3px] leading-none shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+        ), label: 'Notificações', side: 'right', glowColor: 'hsl(198,100%,65%)', isBadge: true },
         { href: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', side: 'right', glowColor: 'hsl(198,100%,65%)' },
         { icon: <LogOut className="h-4 w-4" />, label: 'Sair', side: 'right', glowColor: 'hsl(350,90%,60%)', onClick: handleLogout },
       );
@@ -230,10 +250,14 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     }
 
     return items;
-  }, [user, handleLogout, onLogin]);
+  }, [user, handleLogout, onLogin, unreadCount]);
 
   const items = navItems();
-  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length);
+  const badgeIndices = items.reduce<number[]>((acc, item, i) => {
+    if (item.isBadge) acc.push(i);
+    return acc;
+  }, []);
+  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { centerIndices: badgeIndices });
 
   const expandedPositions = useRef(getExpandedPositions(items));
   expandedPositions.current = getExpandedPositions(items);
@@ -359,51 +383,68 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
           {/* ── Gravitational Waves ── */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
-            {[0, 0.8, 1.6].map((delay, idx) => (
-              <div key={`waves-${idx}`} className="absolute inset-0 flex items-center justify-center">
-                <div
-                  className="absolute"
-                  style={{ right: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
-                >
-                  <motion.div
-                    className="relative"
-                    style={{
-                      width: 0,
-                      height: 100,
-                      background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.35) 30%, hsl(270 80% 60% / 0.2) 60%, hsl(350 90% 60% / 0.1) 100%)',
-                      filter: 'blur(10px)',
-                      clipPath: WAVE_PATTERNS[idx],
-                      transformOrigin: 'right center',
-                      transform: 'translateY(-50%)',
-                    }}
-                    initial={{ width: 0, opacity: 0.4 }}
-                    animate={{ width: [0, 450, 450], opacity: [0.4, 0.25, 0] }}
-                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
-                  />
-                </div>
+            {WAVE_GROUP_DELAYS.map((groupDelay) =>
+              ARCS_CONFIG.map((arc, aIdx) => {
+                const totalDelay = groupDelay + aIdx * 0.15;
+                return (
+                  <div key={`wave-${groupDelay}-${aIdx}`} className="absolute inset-0 flex items-center justify-center">
+                    {/* Left arc `(` */}
+                    <div
+                      className="absolute"
+                      style={{ right: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
+                    >
+                      <motion.div
+                        style={{
+                          width: 0,
+                          height: 4,
+                          background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
+                          filter: 'blur(10px)',
+                          clipPath: `ellipse(100% ${arc.ellipseH}% at 0% ${arc.ellipseY}%)`,
+                          transformOrigin: 'right center',
+                          transform: 'translateY(-50%)',
+                        }}
+                        animate={{ width: [0, 350, 350, 350], opacity: [0.6, 0.6, 0.2, 0] }}
+                        transition={{
+                          duration: WAVE_DURATION,
+                          times: [0, 0.25, 0.55, 1],
+                          delay: totalDelay,
+                          repeatDelay: WAVE_REPEAT_DELAY,
+                          repeat: Infinity,
+                          ease: 'easeOut',
+                        }}
+                      />
+                    </div>
 
-                <div
-                  className="absolute"
-                  style={{ left: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
-                >
-                  <motion.div
-                    className="relative"
-                    style={{
-                      width: 0,
-                      height: 100,
-                      background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.35) 30%, hsl(270 80% 60% / 0.2) 60%, hsl(350 90% 60% / 0.1) 100%)',
-                      filter: 'blur(10px)',
-                      clipPath: WAVE_PATTERNS[idx],
-                      transformOrigin: 'left center',
-                      transform: 'translateY(-50%)',
-                    }}
-                    initial={{ width: 0, opacity: 0.4 }}
-                    animate={{ width: [0, 450, 450], opacity: [0.4, 0.25, 0] }}
-                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            ))}
+                    {/* Right arc `)` */}
+                    <div
+                      className="absolute"
+                      style={{ left: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
+                    >
+                      <motion.div
+                        style={{
+                          width: 0,
+                          height: 4,
+                          background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
+                          filter: 'blur(10px)',
+                          clipPath: `ellipse(100% ${arc.ellipseH}% at 100% ${arc.ellipseY}%)`,
+                          transformOrigin: 'left center',
+                          transform: 'translateY(-50%)',
+                        }}
+                        animate={{ width: [0, 350, 350, 350], opacity: [0.6, 0.6, 0.2, 0] }}
+                        transition={{
+                          duration: WAVE_DURATION,
+                          times: [0, 0.25, 0.55, 1],
+                          delay: totalDelay,
+                          repeatDelay: WAVE_REPEAT_DELAY,
+                          repeat: Infinity,
+                          ease: 'easeOut',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              }),
+            )}
 
             <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
           </div>
@@ -421,24 +462,22 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 }
               }}
             >
-              {/* Trail dots */}
+              {/* Single solid trail per icon */}
               {!isExpanded && items.map((item, i) => (
-                Array.from({ length: 8 }).map((_, t) => (
-                  <div
-                    key={`trail-${i}-${t}`}
-                    ref={setTrailRef(i, t)}
-                    className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
-                    style={{
-                      backgroundColor: item.glowColor,
-                      width: 5,
-                      height: 5,
-                      marginLeft: -2.5,
-                      marginTop: -2.5,
-                      opacity: 0,
-                      zIndex: 0,
-                    }}
-                  />
-                ))
+                <div
+                  key={`trail-${i}`}
+                  ref={setTrailRef(i)}
+                  className="absolute left-1/2 top-1/2 pointer-events-none"
+                  style={{
+                    height: 3,
+                    background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
+                    borderRadius: 2,
+                    transformOrigin: 'right center',
+                    opacity: 0,
+                    marginTop: -1.5,
+                    willChange: 'transform, width, opacity',
+                  }}
+                />
               ))}
 
               {/* Orbital Icons */}
@@ -507,26 +546,6 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                       transition={{ duration: 0.3 }}
                     />
                   </div>
-                </motion.div>
-
-                {/* Notifications */}
-                <motion.div
-                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20"
-                  style={{ transform: 'translateZ(30px)' }}
-                  whileHover={{ scale: 1.15 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                  onClick={() => { playClickSound(); triggerWave('left'); }}
-                >
-                  <Link href="/notifications" className="block">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 p-[2px] shadow-[0_0_20px_rgba(34,211,238,0.3)] group relative">
-                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
-                        <Bell className="h-4 w-4 text-blue-400" />
-                      </div>
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center shadow-[0_0_6px_rgba(239,68,68,0.6)]">
-                        3
-                      </span>
-                    </div>
-                  </Link>
                 </motion.div>
               </div>
             </div>

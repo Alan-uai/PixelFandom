@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -207,7 +208,7 @@ export default function WikiMembersPage() {
 
         <SliderTabsContentGroup>
           <SliderTabsContent value="members">
-            <Card>
+            <WeldingCard>
             <CardHeader>
               <CardTitle>Membros</CardTitle>
               <CardDescription>Usuários com acesso a esta wiki.</CardDescription>
@@ -248,11 +249,11 @@ export default function WikiMembersPage() {
                 );
               })}
             </CardContent>
-          </Card>
+          </WeldingCard>
           </SliderTabsContent>
 
           <SliderTabsContent value="invites">
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle>Convidar Membro</CardTitle>
               <CardDescription>Envie um convite para acessar esta wiki.</CardDescription>
@@ -297,10 +298,10 @@ export default function WikiMembersPage() {
                 {sendingInvite ? 'Enviando...' : 'Criar Convite'}
               </Button>
             </CardContent>
-          </Card>
+          </WeldingCard>
 
           {invites.length > 0 && (
-            <Card>
+            <WeldingCard>
               <CardHeader>
                 <CardTitle>Convites Pendentes ({invites.length})</CardTitle>
               </CardHeader>
@@ -335,7 +336,7 @@ export default function WikiMembersPage() {
                   </div>
                 ))}
               </CardContent>
-            </Card>
+            </WeldingCard>
           )}
           </SliderTabsContent>
         </SliderTabsContentGroup>

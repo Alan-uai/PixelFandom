@@ -19,7 +19,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger } from '@/components/ui/slider-tabs';
-import PageContentReveal from '@/components/ui/page-content-reveal';
+import { UnsavedChangesProvider } from '@/components/unsaved-changes';
 
 export default function DashboardLayout({
   children,
@@ -96,6 +96,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <UnsavedChangesProvider>
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
         <Link
@@ -121,10 +122,9 @@ export default function DashboardLayout({
                       key={item.href}
                       value={href}
                       icon={Icon}
-                      className="px-2.5 py-1.5 text-xs gap-1.5 rounded-md"
-                    >
-                      {item.label}
-                    </SliderTabsTrigger>
+                      title={item.label}
+                      className="p-2 rounded-md"
+                    />
                   );
                 })}
               </SliderTabsList>
@@ -150,19 +150,16 @@ export default function DashboardLayout({
       </header>
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <PageContentReveal key={pathname} skeleton>
-          <PageContentReveal.Card className="bg-transparent border-0 shadow-none p-0">
-            {isWikiPage ? (
-              children
-            ) : (
-              <div className="p-6 max-w-6xl mx-auto">
-                {children}
-              </div>
-            )}
-          </PageContentReveal.Card>
-        </PageContentReveal>
+        {isWikiPage ? (
+          children
+        ) : (
+          <div className="p-6 max-w-6xl mx-auto">
+            {children}
+          </div>
+        )}
       </main>
     </div>
+    </UnsavedChangesProvider>
   );
 }
 

@@ -12,9 +12,10 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { SelectCard } from '@/components/ui/select-card';
-import { Loader2, Save, Check, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
+import { Loader2, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 export default function WikiSettingsPage() {
   const params = useParams();
@@ -23,9 +24,6 @@ export default function WikiSettingsPage() {
   const { toast } = useToast();
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
   const [name, setName] = useState('');
@@ -118,12 +116,6 @@ export default function WikiSettingsPage() {
   }, [slug]);
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
     const el = descriptionRef.current;
     if (el) {
       el.style.height = 'auto';
@@ -132,7 +124,6 @@ export default function WikiSettingsPage() {
   }, [description]);
 
   const handleSave = async () => {
-    setSaving(true);
     try {
       const { error } = await supabase
         .from('tenants')
@@ -166,18 +157,13 @@ export default function WikiSettingsPage() {
 
       if (error) {
         toast({ variant: 'destructive', title: 'Erro', description: error.message });
-      } else {
-        const savedTheme = { primary_color: primaryColor };
-        initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor };
-        setSavedFeedback(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+        throw error;
       }
+
+      initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor };
     } catch (err) {
-      console.error('Save error:', err);
-      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
-    } finally {
-      setSaving(false);
+      if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar.' });
+      throw err;
     }
   };
 
@@ -203,6 +189,8 @@ export default function WikiSettingsPage() {
     faviconUrl !== initialRef.current.faviconUrl ||
     ogImage !== initialRef.current.ogImage ||
     primaryColor !== initialRef.current.primaryColor;
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor } });
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },
@@ -539,17 +527,6 @@ export default function WikiSettingsPage() {
         <DeleteWikiSection slug={slug} tenantName={name} />
       </CollapsibleSection>
 
-      {savedFeedback ? (
-        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-          <Check className="h-4 w-4" />
-          Configurações salvas!
-        </div>
-      ) : isDirty ? (
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar
-        </Button>
-      ) : null}
     </div>
   );
 }

@@ -6,7 +6,8 @@ import { useUser, supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -69,7 +70,7 @@ export default function NewWikiPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <Card>
+      <WeldingCard>
         <CardHeader>
           <CardTitle>Criar Nova Wiki</CardTitle>
           <CardDescription>
@@ -107,7 +108,7 @@ export default function NewWikiPage() {
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </WeldingCard>
     </div>
   );
 }

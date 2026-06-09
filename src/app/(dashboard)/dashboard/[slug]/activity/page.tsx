@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, History, FileText, Users, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { useUser } from '@/supabase';
 
@@ -94,12 +95,12 @@ export default function ActivityPage() {
       </div>
 
       {items.length === 0 ? (
-        <Card>
+        <WeldingCard>
           <CardContent className="text-center py-12">
             <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
             <p className="text-muted-foreground">Nenhuma atividade registrada ainda.</p>
           </CardContent>
-        </Card>
+        </WeldingCard>
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([date, dayItems]) => (

@@ -9,15 +9,17 @@ import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SelectCard } from '@/components/ui/select-card';
 import type { SelectCardOption } from '@/components/ui/select-card';
 
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
+import { Loader2, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 interface FreeModel {
   id: string;
@@ -48,9 +50,6 @@ export default function WikiAIConfigPage() {
   const { toast } = useToast();
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const initialRef = useRef({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
@@ -213,12 +212,6 @@ export default function WikiAIConfigPage() {
     })();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
   function isFreeModel(modelId: string) {
     return freeModels.some((m) => m.id === modelId);
   }
@@ -232,77 +225,65 @@ export default function WikiAIConfigPage() {
   const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
 
   const handleSave = async () => {
-    if (!tenant) return;
-    setSaving(true);
-
     const effectiveApiKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
     const effectiveGeminiApiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
 
-    try {
-      const res = await fetch(`/api/tenants/${tenant.id}/ai-config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ai_enabled: enabled,
-          ai_config: {
-            provider,
-            primary_provider: primaryProvider,
-            model: resolvedModel,
-            custom_api_key: effectiveApiKey,
-            fallback_chain: fallbackChain,
-            gemini_model: resolvedGeminiModel,
-            gemini_custom_api_key: effectiveGeminiApiKey,
-            gemini_fallback_chain: geminiFallbackChain,
-            wake_word_text: wakeWordText,
-            chat_name: chatName,
-            bot_logo: botLogo,
-            personality_id: personalityId,
-            system_prompt: getPersonality(personalityId).systemPrompt,
-            suggested_questions: suggestedQuestions,
-            bot_banner: botBanner,
-            wake_word: true,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: 'Save failed' }));
-        toast({ variant: 'destructive', title: 'Erro', description: errData.error });
-      } else {
-        const { ai_config: savedConfig } = await res.json();
-        initialRef.current = {
-          enabled,
+    const res = await fetch(`/api/tenants/${tenant!.id}/ai-config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ai_enabled: enabled,
+        ai_config: {
           provider,
-          primaryProvider,
-          model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
-          modelSource,
-          customModel,
-          customApiKey: effectiveApiKey,
-          fallbackChain,
-          fallbackSource,
-          geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
-          geminiModelSource,
-          geminiCustomModel,
-          geminiCustomApiKey: effectiveGeminiApiKey,
-          geminiFallbackChain,
-          geminiFallbackSource,
-          wakeWordText,
-            chatName,
-            botLogo,
-            personalityId,
-            suggestedQuestions,
-          botBanner,
-        };
-        setSavedFeedback(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
-    } finally {
-      setSaving(false);
+          primary_provider: primaryProvider,
+          model: resolvedModel,
+          custom_api_key: effectiveApiKey,
+          fallback_chain: fallbackChain,
+          gemini_model: resolvedGeminiModel,
+          gemini_custom_api_key: effectiveGeminiApiKey,
+          gemini_fallback_chain: geminiFallbackChain,
+          wake_word_text: wakeWordText,
+          chat_name: chatName,
+          bot_logo: botLogo,
+          personality_id: personalityId,
+          system_prompt: getPersonality(personalityId).systemPrompt,
+          suggested_questions: suggestedQuestions,
+          bot_banner: botBanner,
+          wake_word: true,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: 'Save failed' }));
+      toast({ variant: 'destructive', title: 'Erro', description: errData.error });
+      throw new Error(errData.error);
     }
+
+    const { ai_config: savedConfig } = await res.json();
+    initialRef.current = {
+      enabled,
+      provider,
+      primaryProvider,
+      model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
+      modelSource,
+      customModel,
+      customApiKey: effectiveApiKey,
+      fallbackChain,
+      fallbackSource,
+      geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
+      geminiModelSource,
+      geminiCustomModel,
+      geminiCustomApiKey: effectiveGeminiApiKey,
+      geminiFallbackChain,
+      geminiFallbackSource,
+      wakeWordText,
+        chatName,
+        botLogo,
+        personalityId,
+        suggestedQuestions,
+      botBanner,
+    };
   };
 
   if (loading) {
@@ -338,6 +319,8 @@ export default function WikiAIConfigPage() {
     personalityId !== initialRef.current.personalityId ||
     JSON.stringify(suggestedQuestions) !== JSON.stringify(initialRef.current.suggestedQuestions) ||
     botBanner !== initialRef.current.botBanner;
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   const sections = [
     { id: 'activation', label: 'Ativação', icon: Power },
@@ -691,18 +674,6 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      {savedFeedback ? (
-        <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-          <Check className="h-4 w-4" />
-          Configurações salvas!
-        </div>
-      ) : isDirty ? (
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar Configuração
-        </Button>
-      ) : null}
-
       <CollapsibleSection id="personality" title="Personalidade" description="Escolha o estilo de resposta do assistente IA.">
         <div className="space-y-4">
           <SelectCard
@@ -735,7 +706,7 @@ Quais são as melhores armas?"
               className="text-xs min-h-[80px]"
             />
           </div>
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Bot className="h-4 w-4" />
@@ -754,8 +725,8 @@ Quais são as melhores armas?"
               />
               <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
             </CardContent>
-          </Card>
-          <Card>
+          </WeldingCard>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <MessageSquare className="h-4 w-4" />
@@ -774,7 +745,7 @@ Quais são as melhores armas?"
               />
               <p className="text-xs text-muted-foreground mt-2">Imagem de fundo do cabeçalho do chat.</p>
             </CardContent>
-          </Card>
+          </WeldingCard>
         </div>
       </CollapsibleSection>
 

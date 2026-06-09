@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, Eye, MessageSquare, TrendingUp, BarChart3, Calendar } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -82,7 +83,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <WeldingCard>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs">Visualizações</CardDescription>
           </CardHeader>
@@ -92,8 +93,8 @@ export default function AnalyticsPage() {
               <span className="text-2xl font-bold">{data?.pageViews.total ?? 0}</span>
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </WeldingCard>
+        <WeldingCard>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs">Chats</CardDescription>
           </CardHeader>
@@ -103,8 +104,8 @@ export default function AnalyticsPage() {
               <span className="text-2xl font-bold">{data?.chatUsage.total ?? 0}</span>
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </WeldingCard>
+        <WeldingCard>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs">Média Diária</CardDescription>
           </CardHeader>
@@ -118,8 +119,8 @@ export default function AnalyticsPage() {
               </span>
             </div>
           </CardContent>
-        </Card>
-        <Card>
+        </WeldingCard>
+        <WeldingCard>
           <CardHeader className="pb-2">
             <CardDescription className="text-xs">Período</CardDescription>
           </CardHeader>
@@ -129,11 +130,11 @@ export default function AnalyticsPage() {
               <span className="text-sm font-medium">{period}</span>
             </div>
           </CardContent>
-        </Card>
+        </WeldingCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <WeldingCard>
           <CardHeader>
             <CardTitle className="text-sm">Visualizações por Dia</CardTitle>
           </CardHeader>
@@ -164,9 +165,9 @@ export default function AnalyticsPage() {
               )}
             </div>
           </CardContent>
-        </Card>
+        </WeldingCard>
 
-        <Card>
+        <WeldingCard>
           <CardHeader>
             <CardTitle className="text-sm">Chats por Dia</CardTitle>
           </CardHeader>
@@ -191,10 +192,10 @@ export default function AnalyticsPage() {
               )}
             </div>
           </CardContent>
-        </Card>
+        </WeldingCard>
       </div>
 
-      <Card>
+      <WeldingCard>
         <CardHeader>
           <CardTitle className="text-sm">Páginas Mais Visitadas</CardTitle>
         </CardHeader>
@@ -221,7 +222,7 @@ export default function AnalyticsPage() {
             </p>
           )}
         </CardContent>
-      </Card>
+      </WeldingCard>
     </div>
   );
 }

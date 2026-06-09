@@ -1,25 +1,102 @@
 'use client';
 
-import { createContext, useEffect, useRef, type ReactNode, type MutableRefObject } from 'react';
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { UnsavedChangesBar } from './unsaved-changes-bar';
+import { UnsavedChangesDialog } from './unsaved-changes-dialog';
 
-interface NavigationGuard {
-  isDirty: boolean;
-  confirmNavigation: (url: string) => void;
+interface Registration {
+  onSave: () => Promise<void>;
+  onDiscard: () => void;
 }
 
-export const UnsavedChangesContext = createContext<MutableRefObject<NavigationGuard>>(
-  null as unknown as MutableRefObject<NavigationGuard>
+interface UnsavedChangesContextValue {
+  register: (reg: Registration) => void;
+  unregister: () => void;
+  setIsDirty: (dirty: boolean) => void;
+}
+
+export const UnsavedChangesCtx = createContext<UnsavedChangesContextValue>(
+  null as unknown as UnsavedChangesContextValue
 );
 
+/** @deprecated Use `UnsavedChangesCtx` instead. Kept for backward compat with use-unsaved-changes. */
+export const UnsavedChangesContext = UnsavedChangesCtx;
+
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
-  const guardRef = useRef<NavigationGuard>({ isDirty: false, confirmNavigation: () => {} });
+  const regRef = useRef<Registration>({ onSave: async () => {}, onDiscard: () => {} });
+  const pendingUrl = useRef<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirtyState] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const isDirtyRef = useRef(false);
+
+  const register = useCallback((reg: Registration) => {
+    regRef.current = reg;
+  }, []);
+
+  const unregister = useCallback(() => {
+    regRef.current = { onSave: async () => {}, onDiscard: () => {} };
+  }, []);
+
+  const setIsDirty = useCallback((dirty: boolean) => {
+    isDirtyRef.current = dirty;
+    setIsDirtyState(dirty);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      await regRef.current.onSave();
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const handleDiscard = useCallback(() => {
+    regRef.current.onDiscard();
+    setIsDirtyState(false);
+    isDirtyRef.current = false;
+  }, []);
+
+  const confirmNavigation = useCallback((url: string) => {
+    pendingUrl.current = url;
+    setShowExitDialog(true);
+  }, []);
+
+  const cancelExit = useCallback(() => {
+    pendingUrl.current = null;
+    setShowExitDialog(false);
+  }, []);
+
+  const continueNavigation = useCallback(() => {
+    const url = pendingUrl.current;
+    pendingUrl.current = null;
+    setShowExitDialog(false);
+    regRef.current.onDiscard();
+    setIsDirtyState(false);
+    isDirtyRef.current = false;
+    if (url) window.location.href = url;
+  }, []);
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      if (!isDirtyRef.current) return;
+
       const target = e.target as HTMLElement;
       const link = target.closest<HTMLAnchorElement>('a');
       if (!link) return;
-      if (!guardRef.current.isDirty) return;
 
       const href = link.getAttribute('href');
       if (!href) return;
@@ -36,16 +113,18 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
 
       e.preventDefault();
       e.stopPropagation();
-      guardRef.current.confirmNavigation(href);
+      confirmNavigation(href);
     };
 
     document.addEventListener('click', handleClick, true);
     return () => document.removeEventListener('click', handleClick, true);
-  }, []);
+  }, [confirmNavigation]);
 
   return (
-    <UnsavedChangesContext.Provider value={guardRef}>
+    <UnsavedChangesCtx.Provider value={{ register, unregister, setIsDirty }}>
       {children}
-    </UnsavedChangesContext.Provider>
+      <UnsavedChangesBar show={isDirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} />
+      <UnsavedChangesDialog open={showExitDialog} onContinue={continueNavigation} onCancel={cancelExit} />
+    </UnsavedChangesCtx.Provider>
   );
 }

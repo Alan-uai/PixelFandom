@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2,
@@ -186,7 +187,7 @@ export default function WikiDomainsPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
 
       <section id="default-url">
-      <Card>
+      <WeldingCard>
         <CardHeader>
           <CardTitle>URL Padrão</CardTitle>
           <CardDescription>Sua wiki já está disponível neste endereço.</CardDescription>
@@ -202,11 +203,11 @@ export default function WikiDomainsPage() {
             <ExternalLink className="h-3 w-3" />
           </a>
         </CardContent>
-      </Card>
+      </WeldingCard>
       </section>
 
       <section id="custom-domain">
-      <Card>
+      <WeldingCard>
         <CardHeader>
           <CardTitle>Domínio Personalizado</CardTitle>
           <CardDescription>
@@ -334,7 +335,7 @@ export default function WikiDomainsPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </WeldingCard>
       </section>
     </div>
   );

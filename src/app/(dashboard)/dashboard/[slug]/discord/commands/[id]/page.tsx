@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Save, Plus, Trash2, Code2 } from 'lucide-react';
 import { GuildDataProvider, useGuildData } from '@/components/discord/guild-data-context';
@@ -164,16 +165,16 @@ function CommandBuilderInner() {
       </div>
 
       {showVars && (
-        <Card>
+        <WeldingCard>
           <CardContent className="pt-4">
             <VariablePicker mode="copy" onClose={() => setShowVars(false)} />
           </CardContent>
-        </Card>
+        </WeldingCard>
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="text-sm">Configuração do Comando</CardTitle>
             </CardHeader>
@@ -257,9 +258,9 @@ function CommandBuilderInner() {
                 />
               </div>
             </CardContent>
-          </Card>
+          </WeldingCard>
 
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="text-sm">Permissões</CardTitle>
             </CardHeader>
@@ -312,9 +313,9 @@ function CommandBuilderInner() {
                 <p className="text-[10px] text-muted-foreground mt-1">Vazio = todos os canais.</p>
               </div>
             </CardContent>
-          </Card>
+          </WeldingCard>
 
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="text-sm">Ações ({command.actions.length})</CardTitle>
             </CardHeader>
@@ -351,10 +352,10 @@ function CommandBuilderInner() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </WeldingCard>
 
           {firstSendMessageAction && (
-            <Card>
+            <WeldingCard>
               <CardHeader>
                 <CardTitle className="text-sm">Embeds da Ação &quot;{firstSendMessageAction.type === 'send_message' ? 'Enviar Mensagem' : 'Editar Mensagem'}&quot;</CardTitle>
               </CardHeader>
@@ -371,12 +372,12 @@ function CommandBuilderInner() {
                   }}
                 />
               </CardContent>
-            </Card>
+            </WeldingCard>
           )}
         </div>
 
         <div className="space-y-4">
-          <Card className="xl:sticky xl:top-4">
+          <WeldingCard className="xl:sticky xl:top-4">
             <CardHeader>
               <CardTitle className="text-sm">Preview do Embed</CardTitle>
             </CardHeader>
@@ -385,16 +386,16 @@ function CommandBuilderInner() {
                 <EmbedPreview embed={previewEmbed} />
               </div>
             </CardContent>
-          </Card>
+          </WeldingCard>
 
-          <Card>
+          <WeldingCard>
             <CardHeader>
               <CardTitle className="text-sm">Conexão Discord</CardTitle>
             </CardHeader>
             <CardContent>
               <DiscordLoginGate />
             </CardContent>
-          </Card>
+          </WeldingCard>
         </div>
       </div>
     </div>

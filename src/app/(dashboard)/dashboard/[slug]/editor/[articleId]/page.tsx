@@ -7,7 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useTenantRole } from '@/hooks/use-tenant-role';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -15,13 +16,14 @@ import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Sparkles, FileText, Wand2, Loader2, ChevronRight, Save, Check, ShieldAlert, Text, History } from 'lucide-react';
+import { Sparkles, FileText, Wand2, Loader2, ChevronRight, ShieldAlert, Text, History } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
 import { improveArticle } from '@/ai/flows/improve-article-flow';
 import { searchAll } from '@/lib/search';
 import { invalidateDataCache } from '@/lib/data-access';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
@@ -49,9 +51,6 @@ function EditPageContent() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -65,12 +64,6 @@ function EditPageContent() {
   const [aiSidebarTab, setAiSidebarTab] = useState<'generate' | 'improve'>('generate');
   const [guideTopic, setGuideTopic] = useState('');
   const [guideTone, setGuideTone] = useState<'guia' | 'tutorial' | 'analise'>('guia');
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
 
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
@@ -379,101 +372,93 @@ function EditPageContent() {
   };
 
   const onSubmit = async (values: ArticleFormData) => {
-    setIsSaving(true);
-
-    try {
-      const now = new Date().toISOString();
-      let parsedTables = article?.tables;
-      if (values.tables) {
-        try {
-          parsedTables = JSON.parse(values.tables);
-        } catch (e) {
-          toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON das tabelas é inválida.' });
-          setIsSaving(false);
-          return;
-        }
+    const now = new Date().toISOString();
+    let parsedTables = article?.tables;
+    if (values.tables) {
+      try {
+        parsedTables = JSON.parse(values.tables);
+      } catch (e) {
+        toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON das tabelas é inválida.' });
+        throw e;
       }
+    }
 
-      const slug = values.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
+    const slug = values.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
 
-      const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-      const dataToSave = {
-        id: articleId,
+    const dataToSave = {
+      id: articleId,
+      title: values.title,
+      slug,
+      summary: values.summary,
+      content: values.content,
+      tags: values.tags.split(',').map(tag => tag.trim()),
+      image_url: values.imageUrl || null,
+      banner_image: values.bannerImage || null,
+      og_image: values.ogImage || null,
+      tables: parsedTables,
+      tenant_id: tenantId,
+      created_at: isNewArticle ? now : article?.created_at,
+      updated_at: now,
+      ...(isNewArticle && user?.id ? { created_by: user.id } : {}),
+    };
+
+    const { error: upsertError } = await supabase
+      .from('wiki_articles')
+      .upsert(dataToSave, { onConflict: 'id' });
+
+    if (upsertError) throw upsertError;
+
+    invalidateDataCache(slug);
+
+    if (changeSummary.trim() && !isNewArticle) {
+      try {
+        supabase.rpc('update_last_version_summary', {
+          p_article_id: articleId,
+          p_summary: changeSummary.trim(),
+        }).then();
+      } catch {}
+    }
+
+    if (isNewArticle) {
+      toast({ title: 'Sucesso!', description: 'O artigo foi criado.' });
+      router.push('/admin-chat');
+    } else {
+      const valuesToReset = {
         title: values.title,
-        slug,
         summary: values.summary,
         content: values.content,
-        tags: values.tags.split(',').map(tag => tag.trim()),
-        image_url: values.imageUrl || null,
-        banner_image: values.bannerImage || null,
-        og_image: values.ogImage || null,
-        tables: parsedTables,
-        tenant_id: tenantId,
-        created_at: isNewArticle ? now : article?.created_at,
-        updated_at: now,
-        ...(isNewArticle && user?.id ? { created_by: user.id } : {}),
+        tags: values.tags,
+        imageUrl: values.imageUrl || undefined,
+        bannerImage: values.bannerImage || undefined,
+        ogImage: values.ogImage || undefined,
+        tables: values.tables || '',
       };
-
-      const { error: upsertError } = await supabase
-        .from('wiki_articles')
-        .upsert(dataToSave, { onConflict: 'id' });
-
-      if (upsertError) throw upsertError;
-
-      invalidateDataCache(slug);
-
-      if (changeSummary.trim() && !isNewArticle) {
-        try {
-          supabase.rpc('update_last_version_summary', {
-            p_article_id: articleId,
-            p_summary: changeSummary.trim(),
-          }).then();
-        } catch {}
-      }
-
-      if (isNewArticle) {
-        toast({ title: 'Sucesso!', description: 'O artigo foi criado.' });
-        router.push('/admin-chat');
-      } else {
-        const valuesToReset = {
-          title: values.title,
-          summary: values.summary,
-          content: values.content,
-          tags: values.tags,
-          imageUrl: values.imageUrl || undefined,
-          bannerImage: values.bannerImage || undefined,
-          ogImage: values.ogImage || undefined,
-          tables: values.tables || '',
-        };
-        form.reset(valuesToReset);
-        setSavedFeedback(true);
-        setChangeSummary('');
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
-        supabase
-          .from('article_versions')
-          .select('*')
-          .eq('article_id', articleId)
-          .order('version_number', { ascending: false })
-          .limit(50)
-          .then(({ data }) => {
-            if (data) setVersions(data);
-          });
-      }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
-      const errDetails = (error as any)?.details || (error as any)?.hint || '';
-      console.error('Erro ao salvar:', error);
-      console.error('Detalhes do erro:', { message: errMsg, details: errDetails });
-      toast({ variant: 'destructive', title: 'Erro ao Salvar', description: errMsg });
-    } finally {
-      setIsSaving(false);
+      form.reset(valuesToReset);
+      setChangeSummary('');
+      supabase
+        .from('article_versions')
+        .select('*')
+        .eq('article_id', articleId)
+        .order('version_number', { ascending: false })
+        .limit(50)
+        .then(({ data }) => {
+          if (data) setVersions(data);
+        });
     }
   };
+
+  const { isDirty } = form.formState;
+
+  useRegisterUnsavedChanges({
+    isDirty,
+    onSave: () => form.handleSubmit(onSubmit)(),
+    onDiscard: () => form.reset(),
+  });
 
   const isLoading = isAdminLoading || tenantLoading || (isArticleLoading && !isNewArticle);
 
@@ -497,7 +482,7 @@ function EditPageContent() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Card>
+      <WeldingCard>
         <CardHeader>
           <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
           <CardDescription>Faça as alterações abaixo e clique em salvar.</CardDescription>
@@ -791,17 +776,6 @@ function EditPageContent() {
                     </SheetContent>
                   </Sheet>
 
-                {savedFeedback ? (
-                  <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-                    <Check className="h-4 w-4" />
-                    Salvo!
-                  </div>
-                ) : form.formState.isDirty ? (
-                  <Button type="submit" disabled={isSaving || isExtracting || isFormatting}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Salvar Alterações
-                  </Button>
-                ) : null}
               </div>
 
               {showVersions && versions.length > 0 && (
@@ -822,7 +796,7 @@ function EditPageContent() {
             </form>
           </Form>
         </CardContent>
-      </Card>
+      </WeldingCard>
     </div>
   );
 }

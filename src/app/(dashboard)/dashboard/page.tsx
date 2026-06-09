@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Plus, Settings, ExternalLink, Loader2, BookOpen, Users, Globe, FileText } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
@@ -89,7 +90,7 @@ export default function DashboardPage() {
         {tenants.map((tenant) => {
           const s = stats[tenant.id];
           return (
-            <Card
+            <WeldingCard
               key={tenant.id}
               className="relative overflow-hidden"
               style={tenant.cover_image ? {
@@ -165,7 +166,7 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
               </div>
-            </Card>
+            </WeldingCard>
           );
         })}
       </div>

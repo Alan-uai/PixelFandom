@@ -199,7 +199,8 @@ interface SliderTabsTriggerProps {
   icon?: React.ElementType;
   disabled?: boolean;
   className?: string;
-  children: React.ReactNode;
+  title?: string;
+  children?: React.ReactNode;
 }
 
 export function SliderTabsTrigger({
@@ -207,6 +208,7 @@ export function SliderTabsTrigger({
   icon: Icon,
   disabled,
   className,
+  title,
   children,
 }: SliderTabsTriggerProps) {
   const { activeValue, setActiveValue, registerValue } = useSliderTabs();
@@ -220,6 +222,7 @@ export function SliderTabsTrigger({
       aria-selected={isActive}
       data-slider-value={value}
       disabled={disabled}
+      title={title}
       onClick={() => setActiveValue(value)}
       className={cn(
         'relative inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium',
@@ -250,8 +253,8 @@ export function SliderTabsContent({ value, className, children }: SliderTabsCont
 
   const slideTransition = {
     type: 'spring' as const,
-    stiffness: 350,
-    damping: 30,
+    stiffness: 450,
+    damping: 45,
     mass: 0.9,
   };
 
@@ -264,34 +267,19 @@ export function SliderTabsContent({ value, className, children }: SliderTabsCont
           custom={direction}
           variants={{
             enter: (dir: Direction2D) => ({
-              x: dir.x * 80,
-              y: dir.y * 60,
+              x: dir.x * 120,
+              y: dir.y * 80,
               opacity: 0,
-              scale: 0.92,
-              rotateY: dir.x * -12,
-              rotateX: dir.y * 8,
-              filter: 'blur(4px)',
-              z: -60,
             }),
             center: {
               x: 0,
               y: 0,
               opacity: 1,
-              scale: 1,
-              rotateY: 0,
-              rotateX: 0,
-              filter: 'blur(0px)',
-              z: 0,
             },
             exit: (dir: Direction2D) => ({
-              x: dir.x * -80,
-              y: dir.y * -60,
+              x: dir.x * -120,
+              y: dir.y * -80,
               opacity: 0,
-              scale: 0.92,
-              rotateY: dir.x * 12,
-              rotateX: dir.y * -8,
-              filter: 'blur(4px)',
-              z: -60,
             }),
           }}
           initial="enter"
@@ -299,7 +287,6 @@ export function SliderTabsContent({ value, className, children }: SliderTabsCont
           exit="exit"
           transition={slideTransition}
           className={cn('w-full min-w-0', className)}
-          style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
         >
           {children}
         </motion.div>
@@ -319,7 +306,7 @@ export function SliderTabsContentGroup({ className, children }: SliderTabsConten
   return (
     <div
       className={cn(
-        'relative mt-4 perspective-1000 preserve-3d',
+        'relative mt-4',
         className,
       )}
     >

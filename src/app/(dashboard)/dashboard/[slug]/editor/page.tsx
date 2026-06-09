@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -367,7 +368,7 @@ export default function EditorArticlesPage() {
               ) : (
                 <div className="space-y-3">
                   {articles.map((article) => (
-                    <Card key={article.id}>
+                    <WeldingCard key={article.id}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -425,7 +426,7 @@ export default function EditorArticlesPage() {
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
+                    </WeldingCard>
                   ))}
                 </div>
               )}

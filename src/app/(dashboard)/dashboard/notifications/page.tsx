@@ -1,7 +1,8 @@
 'use client';
 
 import { useNotifications, type Notification } from '@/hooks/use-notifications';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCheck, Loader2, Bell, Trash2 } from 'lucide-react';
@@ -57,13 +58,13 @@ export default function NotificationsPage() {
       </div>
 
       {notifications.length === 0 ? (
-        <Card>
+        <WeldingCard>
           <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Bell className="h-12 w-12 mb-4" />
             <p className="text-lg font-medium">Nenhuma notificação</p>
             <p className="text-sm">Você receberá notificações sobre atividades da sua wiki.</p>
           </CardContent>
-        </Card>
+        </WeldingCard>
       ) : (
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="space-y-2 pr-4">

@@ -82,7 +82,7 @@
     @apply border-border;
   }
   html {
-    scroll-snap-type: y proximity;
+    scroll-snap-type: y mandatory;
   }
   body {
     @apply bg-background text-foreground;
@@ -90,6 +90,9 @@
 }
 
 @layer utilities {
+  .snap-always {
+    scroll-snap-stop: always;
+  }
   /* ── Animation Duration ── */
   .animate-duration-fast { animation-duration: 200ms; }
   .animate-duration-normal { animation-duration: 500ms; }

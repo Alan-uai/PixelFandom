@@ -7,17 +7,19 @@ import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Check, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { ChannelSelect } from '@/components/discord/channel-select';
 import { RoleSelect } from '@/components/discord/role-select';
 import { createDefaultCommand, migrateOldCommand, generateId, type DiscordConfig as DiscordConfigType, type CustomCommand, type IngestConfig } from '@/components/discord/types';
 import { IngestEntry } from '@/components/discord/ingest-entry';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 export default function WikiDiscordPage() {
   const params = useParams();
@@ -28,9 +30,6 @@ export default function WikiDiscordPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [dbGuilds, setDbGuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const initialRef = useRef({
     enabled: false,
     botName: '',
@@ -191,84 +190,66 @@ export default function WikiDiscordPage() {
     })();
   }, [slug]);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
   const toggleCommand = (index: number) => {
     setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, enabled: !cmd.enabled } : cmd));
   };
 
   const handleSave = async () => {
-    if (!tenant) return;
-    setSaving(true);
+    const discordConfig: DiscordConfigType = {
+      enabled,
+      bot_name: botName,
+      bot_avatar: botAvatar,
+      prefix,
+      status,
+      custom_commands: commands,
+      text_chat_channel_id: textChatChannelId || undefined,
+      text_chat_channel_name: textChatChannelName || undefined,
+      curation_channel_id: curationChannelId || undefined,
+      curation_channel_name: curationChannelName || undefined,
+      support_role_id: supportRoleId || undefined,
+      support_role_name: supportRoleName || undefined,
+      member_role_id: memberRoleId || undefined,
+      member_role_name: memberRoleName || undefined,
+      editor_role_id: editorRoleId || undefined,
+      editor_role_name: editorRoleName || undefined,
+      admin_role_id: adminRoleId || undefined,
+      admin_role_name: adminRoleName || undefined,
+      auto_post_codes_enabled: autoPostCodesEnabled || undefined,
+      auto_post_codes_channel_id: autoPostCodesChannelId || undefined,
+      auto_post_codes_channel_name: autoPostCodesChannelName || undefined,
+      auto_post_articles_enabled: autoPostArticlesEnabled || undefined,
+      auto_post_articles_channel_id: autoPostArticlesChannelId || undefined,
+      auto_post_articles_channel_name: autoPostArticlesChannelName || undefined,
+      auto_post_updates_enabled: autoPostUpdatesEnabled || undefined,
+      auto_post_updates_channel_id: autoPostUpdatesChannelId || undefined,
+      auto_post_updates_channel_name: autoPostUpdatesChannelName || undefined,
+      auto_ingest: autoIngest.length > 0 ? autoIngest : undefined,
+    };
 
-    try {
-      const discordConfig: DiscordConfigType = {
-        enabled,
-        bot_name: botName,
-        bot_avatar: botAvatar,
-        prefix,
-        status,
-        custom_commands: commands,
-        text_chat_channel_id: textChatChannelId || undefined,
-        text_chat_channel_name: textChatChannelName || undefined,
-        curation_channel_id: curationChannelId || undefined,
-        curation_channel_name: curationChannelName || undefined,
-        support_role_id: supportRoleId || undefined,
-        support_role_name: supportRoleName || undefined,
-        member_role_id: memberRoleId || undefined,
-        member_role_name: memberRoleName || undefined,
-        editor_role_id: editorRoleId || undefined,
-        editor_role_name: editorRoleName || undefined,
-        admin_role_id: adminRoleId || undefined,
-        admin_role_name: adminRoleName || undefined,
-        auto_post_codes_enabled: autoPostCodesEnabled || undefined,
-        auto_post_codes_channel_id: autoPostCodesChannelId || undefined,
-        auto_post_codes_channel_name: autoPostCodesChannelName || undefined,
-        auto_post_articles_enabled: autoPostArticlesEnabled || undefined,
-        auto_post_articles_channel_id: autoPostArticlesChannelId || undefined,
-        auto_post_articles_channel_name: autoPostArticlesChannelName || undefined,
-        auto_post_updates_enabled: autoPostUpdatesEnabled || undefined,
-        auto_post_updates_channel_id: autoPostUpdatesChannelId || undefined,
-        auto_post_updates_channel_name: autoPostUpdatesChannelName || undefined,
-        auto_ingest: autoIngest.length > 0 ? autoIngest : undefined,
-      };
+    const { error } = await supabase
+      .from('tenants')
+      .update({ discord_config: discordConfig as any })
+      .eq('id', tenant!.id);
 
-      const { error } = await supabase
-        .from('tenants')
-        .update({ discord_config: discordConfig as any })
-        .eq('id', tenant.id);
-
-      if (error) {
-        toast({ variant: 'destructive', title: 'Erro', description: error.message });
-      } else {
-        initialRef.current = {
-          enabled, botName, botAvatar, prefix, status,
-          commands: JSON.parse(JSON.stringify(commands)),
-          textChatChannelId, textChatChannelName,
-          curationChannelId, curationChannelName,
-          supportRoleId, supportRoleName,
-          memberRoleId, memberRoleName,
-          editorRoleId, editorRoleName,
-          adminRoleId, adminRoleName,
-          autoPostCodesEnabled, autoPostCodesChannelId, autoPostCodesChannelName,
-          autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
-          autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
-          autoIngest: JSON.parse(JSON.stringify(autoIngest)),
-        };
-        setSavedFeedback(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-      toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar. Verifique sua conexão e tente novamente.' });
-    } finally {
-      setSaving(false);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      throw error;
     }
+
+    initialRef.current = {
+      enabled, botName, botAvatar, prefix, status,
+      commands: JSON.parse(JSON.stringify(commands)),
+      textChatChannelId, textChatChannelName,
+      curationChannelId, curationChannelName,
+      supportRoleId, supportRoleName,
+      memberRoleId, memberRoleName,
+      editorRoleId, editorRoleName,
+      adminRoleId, adminRoleName,
+      autoPostCodesEnabled, autoPostCodesChannelId, autoPostCodesChannelName,
+      autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
+      autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
+      autoIngest: JSON.parse(JSON.stringify(autoIngest)),
+    };
   };
 
   if (loading) {
@@ -312,6 +293,8 @@ export default function WikiDiscordPage() {
     autoPostUpdatesChannelId !== initialRef.current.autoPostUpdatesChannelId ||
     autoPostUpdatesChannelName !== initialRef.current.autoPostUpdatesChannelName ||
     JSON.stringify(autoIngest) !== JSON.stringify(initialRef.current.autoIngest);
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   return (
     <GuildDataProvider>
@@ -361,7 +344,7 @@ export default function WikiDiscordPage() {
                   onChange={(e) => setBotName(e.target.value)}
                 />
 
-                <Card>
+                <WeldingCard>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Bot className="h-4 w-4" />
@@ -380,7 +363,7 @@ export default function WikiDiscordPage() {
                     />
                     <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
                   </CardContent>
-                </Card>
+                </WeldingCard>
 
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
@@ -686,21 +669,6 @@ export default function WikiDiscordPage() {
         </SliderTabsContentGroup>
         </SliderTabs>
 
-        {savedFeedback ? (
-          <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-            <Check className="h-4 w-4" />
-            Configurações salvas!
-          </div>
-        ) : isDirty ? (
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Salvar Configuração
-          </Button>
-        ) : null}
       </div>
     </GuildDataProvider>
   );

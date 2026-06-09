@@ -113,13 +113,10 @@ export default function Home() {
     <div className="flex flex-col">
       <ScrollRevealWrapper exitOnly>
         <HeroSection />
-      </ScrollRevealWrapper>
-
-      <ScrollRevealWrapper>
         <NavStrip onLogin={openAuth} />
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper>
+      <ScrollRevealWrapper id="section-carousel">
         <SearchSection
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -144,9 +141,6 @@ export default function Home() {
           membersCount={membersCount}
           articlesCount={articlesCount}
         />
-      </ScrollRevealWrapper>
-
-      <ScrollRevealWrapper>
         <Footer />
       </ScrollRevealWrapper>
     </div>

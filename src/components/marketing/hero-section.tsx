@@ -207,7 +207,7 @@ export default function HeroSection() {
             onMouseEnter={playHoverSound}
             onClick={() => {
               playClickSound();
-              document.getElementById('wikis-carousel')?.scrollIntoView({ behavior: 'smooth' });
+              document.getElementById('section-carousel')?.scrollIntoView({ behavior: 'smooth' });
             }}
           >
             <Button size="lg" variant="outline">Explorar</Button>

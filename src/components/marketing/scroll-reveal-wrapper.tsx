@@ -11,6 +11,7 @@ interface ScrollRevealWrapperProps {
   className?: string;
   slideDirection?: SlideDirection;
   exitOnly?: boolean;
+  id?: string;
 }
 
 const dirs: SlideDirection[] = ['down-left', 'down-right', 'down'];
@@ -27,6 +28,7 @@ export default function ScrollRevealWrapper({
   className = '',
   slideDirection: propDirection,
   exitOnly = false,
+  id,
 }: ScrollRevealWrapperProps) {
   const [currentDirection] = useState<SlideDirection>(() =>
     propDirection ?? randomDir(),
@@ -72,7 +74,7 @@ export default function ScrollRevealWrapper({
   const blurFilter = useTransform(blurAmount, (v) => `blur(${v}px)`);
 
   return (
-    <div ref={ref} className={`relative snap-start ${className}`}>
+    <div ref={ref} id={id} className={`relative snap-start snap-always ${className}`}>
       <ScrollProgressProvider value={progressSpring}>
         <motion.div
           style={{
