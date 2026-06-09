@@ -12,10 +12,10 @@ import { ParagraphPanel, RichTextPanel, DividerPanel, SpacerPanel, ListPanel } f
 import { ImagePanel, ImageGalleryPanel, VideoEmbedPanel, CoverPanel, MediaTextPanel } from './media-panels';
 
 // ── Dynamic ──
-import { ArticleGridPanel, ArticleCarouselPanel, NewsFeedPanel, FeaturedListPanel, CategoryListPanel, LatestArticlesPanel } from './dynamic-panels';
+import { ArticleGridPanel, ArticleCarouselPanel, NewsFeedPanel, FeaturedListPanel, CategoryListPanel, LatestArticlesPanel, ArticleFeedPanel } from './dynamic-panels';
 
 // ── Data ──
-import { RankingTablePanel, StatisticsPanel, ProgressBarPanel, TimelinePanel, FaqPanel } from './data-panels';
+import { RankingTablePanel, StatisticsPanel, ProgressBarPanel, TimelinePanel, FaqPanel, GameDataCardsPanel } from './data-panels';
 
 // ── Interactive ──
 import { DiscordEmbedPanel, SocialLinksPanel, SearchPanel, TabsPanel } from './interactive-panels';
@@ -56,6 +56,7 @@ export const configPanels: Record<string, PanelComponent | undefined> = {
   'featured-list': FeaturedListPanel,
   'category-list': CategoryListPanel,
   'latest-articles': LatestArticlesPanel,
+  'article-feed': ArticleFeedPanel,
 
   // ── Data ──
   'ranking-table': RankingTablePanel,
@@ -64,6 +65,7 @@ export const configPanels: Record<string, PanelComponent | undefined> = {
   'progress-bar': ProgressBarPanel,
   timeline: TimelinePanel,
   faq: FaqPanel,
+  'game-data-cards': GameDataCardsPanel,
 
   // ── Interactive ──
   'discord-embed': DiscordEmbedPanel,

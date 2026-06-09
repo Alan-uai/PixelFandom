@@ -88,4 +88,5 @@ export const COLL_ICON: Record<string, React.ReactNode> = {
   codes: <ScrollText className="h-5 w-5" />,
   'crafting-recipes': <Pickaxe className="h-5 w-5" />,
   worlds: <Globe className="h-5 w-5" />,
+  update_logs: <ScrollText className="h-5 w-5" />,
 };

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { inferPrimaryColumns } from '@/lib/game-schema';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -51,21 +52,7 @@ const tableLabels: Record<string, string> = {
   build_presets: 'Presets',
 };
 
-const primaryColumns: Record<string, string[]> = {
-  weapons: ['name', 'rarity', 'weapon_type', 'tier', 'element', 'damage_min', 'damage_max'],
-  armors: ['name', 'rarity', 'tier', 'health_bonus', 'speed_bonus', 'energy_bonus'],
-  rings: ['name', 'tier', 'rarity', 'description'],
-  potions: ['name', 'effects', 'shop_price'],
-  upgrades: ['name', 'category', 'tier', 'description'],
-  enemies: ['name', 'enemy_type', 'difficulty', 'world_name'],
-  bosses: ['name', 'boss_type', 'difficulty', 'world_name'],
-  codes: ['code', 'reward_type', 'is_active'],
-  crafting_recipes: ['item_name', 'item_type', 'rarity', 'gold_cost'],
-  resources: ['resource_name', 'resource_type', 'source_world'],
-  game_config: ['config_key', 'config_value'],
-  worlds: ['world_name', 'world_number', 'status'],
-  build_presets: [],
-};
+
 
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
@@ -157,7 +144,10 @@ export default function DataTableContent({
   );
 
   const label = tableLabels[table] || table;
-  const primary = primaryColumns[table] || [];
+  const primary = useMemo(() => {
+    if (!tableColumns) return [];
+    return inferPrimaryColumns(tableColumns);
+  }, [tableColumns]);
 
   const fetchColumns = useCallback(async () => {
     if (!tenantId) return;

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,7 +8,7 @@ import { GripVertical, Trash2 } from 'lucide-react';
 import type { BlockConfig } from './types';
 import { BlockRenderer } from './block-renderer';
 
-function SortableBlock({
+const SortableBlock = memo(function SortableBlock({
   block,
   isSelected,
   onSelect,
@@ -65,7 +66,7 @@ function SortableBlock({
       </div>
     </div>
   );
-}
+});
 
 export function PagePreview({
   blocks,

@@ -27,7 +27,8 @@ export default function GameSidebarSection({ tenantSlug }: { tenantSlug: string;
       label: entry.display_label,
       icon: entry.icon ?? null,
       count: entry.count,
-    }));
+    }))
+    .filter((entry) => entry.count > 0);
 
   return (
     <div className="border-t">

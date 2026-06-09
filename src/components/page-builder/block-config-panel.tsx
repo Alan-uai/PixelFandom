@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Layers } from 'lucide-react';
 import type { BlockConfig, BlockType, BlockStyle, SpacingOption, TextAlign, AnimationConfig, AnimationType, DurationOption, DelayOption, EasingOption, HoverEffect, TapEffect, ChainMode } from './types';
 import { configPanels } from './config-panels/index';
@@ -211,9 +211,14 @@ function StylePanel({ style, onChange }: StylePanelProps) {
 
 export function BlockConfigPanel({ block, onUpdate, onClose }: BlockConfigPanelProps) {
   const [localConfig, setLocalConfig] = useState({ ...block.config });
+  const prevBlockKey = useRef('');
 
   useEffect(() => {
-    setLocalConfig({ ...block.config });
+    const key = block.id + '::' + JSON.stringify(block.config);
+    if (prevBlockKey.current !== key) {
+      prevBlockKey.current = key;
+      setLocalConfig({ ...block.config });
+    }
   }, [block.id, block.config]);
 
   const update = (key: string, value: unknown) => {

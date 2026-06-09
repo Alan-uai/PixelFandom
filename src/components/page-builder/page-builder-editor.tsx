@@ -88,16 +88,19 @@ export function PageBuilderEditor({
 
   const [history, setHistory] = useState<BlockConfig[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyIndexRef = useRef(historyIndex);
+
+  useEffect(() => { historyIndexRef.current = historyIndex; }, [historyIndex]);
 
   const pushHistory = useCallback((nextBlocks: BlockConfig[]) => {
     setHistory((prev) => {
-      const trimmed = prev.slice(0, historyIndex + 1);
+      const trimmed = prev.slice(0, historyIndexRef.current + 1);
       const updated = [...trimmed, JSON.parse(JSON.stringify(nextBlocks))];
       if (updated.length > MAX_HISTORY) updated.shift();
       return updated;
     });
     setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY - 1));
-  }, [historyIndex]);
+  }, []);
 
   useEffect(() => {
     if (history.length === 0 && blocks.length > 0) {

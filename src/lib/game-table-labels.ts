@@ -11,4 +11,5 @@ export const GAME_TABLE_META: Record<string, { label: string; icon: string }> = 
   crafting_recipes: { label: 'Receitas', icon: 'BookOpen' },
   resources: { label: 'Materiais', icon: 'Package' },
   build_presets: { label: 'Builds/Presets', icon: 'Wrench' },
+  update_logs: { label: 'Registros de Atualizações', icon: 'ScrollText' },
 };

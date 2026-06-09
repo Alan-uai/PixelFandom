@@ -298,9 +298,16 @@ async function getSchema(): Promise<GameSchema> {
 }
 
 function findLabelColumn(columns: ColumnInfo[]): string {
-  if (columns.some((c) => c.column_name === 'name')) return 'name';
-  const nameCol = columns.find((c) => c.column_name.endsWith('_name'));
-  if (nameCol) return nameCol.column_name;
-  if (columns.some((c) => c.column_name === 'code')) return 'code';
-  return 'name';
+  const candidates = ['name', 'title', 'code', 'label', 'item_name', 'display_name', 'full_name', 'username', 'config_key'];
+  for (const col of candidates) {
+    if (columns.some((c) => c.column_name === col)) return col;
+  }
+  const nameEnding = columns.find((c) => c.column_name.endsWith('_name'));
+  if (nameEnding) return nameEnding.column_name;
+  const orderable = columns.find((c) =>
+    !['id', 'tenant_id'].includes(c.column_name) &&
+    ['character varying', 'text', 'varchar', 'integer', 'bigint', 'numeric', 'real'].includes(c.data_type),
+  );
+  if (orderable) return orderable.column_name;
+  return columns[0]?.column_name || 'id';
 }

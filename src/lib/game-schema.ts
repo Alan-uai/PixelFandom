@@ -178,12 +178,52 @@ export async function getTableSchema(tableName: string): Promise<ColumnInfo[]> {
   return table?.columns ?? [];
 }
 
-export function findLabelColumn(columns: ColumnInfo[]): string {
-  if (columns.some((c) => c.column_name === 'name')) return 'name';
-  const nameCol = columns.find((c) => c.column_name.endsWith('_name'));
-  if (nameCol) return nameCol.column_name;
-  if (columns.some((c) => c.column_name === 'code')) return 'code';
-  return 'name';
+export function findLabelColumn(columns: { column_name: string; data_type: string }[]): string {
+  const candidates = ['name', 'title', 'code', 'label', 'item_name', 'display_name', 'full_name', 'username', 'config_key'];
+  for (const col of candidates) {
+    if (columns.some((c) => c.column_name === col)) return col;
+  }
+  const nameEnding = columns.find((c) => c.column_name.endsWith('_name'));
+  if (nameEnding) return nameEnding.column_name;
+  const orderable = columns.find((c) =>
+    !['id', 'tenant_id'].includes(c.column_name) &&
+    ['character varying', 'text', 'varchar', 'integer', 'bigint', 'numeric', 'real'].includes(c.data_type),
+  );
+  if (orderable) return orderable.column_name;
+  return columns[0]?.column_name || 'id';
+}
+
+export function inferPrimaryColumns(columns: { column_name: string; data_type: string }[]): string[] {
+  const systemCols = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug']);
+  const label = findLabelColumn(columns);
+  if (!label) return [];
+  const result = [label];
+
+  const infoCandidates = [
+    'rarity', 'tier', 'type', 'weapon_type', 'enemy_type', 'boss_type', 'reward_type',
+    'item_type', 'resource_type', 'category', 'difficulty', 'element', 'status', 'is_hotfix',
+    'is_active', 'world_name', 'source_world', 'realm', 'region', 'faction', 'class', 'role',
+    'config_value', 'shop_price', 'gold_cost', 'effects', 'world_number', 'world_name',
+  ];
+
+  const skipCols = new Set([label, ...systemCols]);
+  const displayable = columns.filter((c) =>
+    !skipCols.has(c.column_name) &&
+    !['json', 'jsonb'].includes(c.data_type) &&
+    !c.column_name.includes('description') &&
+    !c.column_name.includes('image') &&
+    !c.column_name.includes('icon'),
+  );
+
+  const matchedInfo = infoCandidates.filter((c) => displayable.some((col) => col.column_name === c));
+  result.push(...matchedInfo.slice(0, 2));
+
+  if (result.length <= 1 && displayable.length > 0) {
+    const extra = displayable.filter((c) => !result.includes(c.column_name));
+    if (extra.length > 0) result.push(extra[0].column_name);
+  }
+
+  return result.slice(0, 4);
 }
 
 export function findSlugColumn(columns: ColumnInfo[]): string | null {

@@ -94,3 +94,30 @@ export function FaqPanel({ config, onChange }: PanelProps) {
     </>
   );
 }
+
+export function GameDataCardsPanel({ config, onChange }: PanelProps) {
+  const tabsEnabled = !!config.tabsEnabled;
+  return (
+    <>
+      <TextField label="Título" value={(config.title as string) || ''} onChange={(v) => onChange('title', v)} />
+      <SelectField label="Formato de Exibição" value={(config.displayFormat as string) || 'grid'} options={[
+        { label: 'Grade', value: 'grid' },
+        { label: 'Lista', value: 'list' },
+        { label: 'Carrossel', value: 'carousel' },
+        { label: 'Carrossel Infinito', value: 'carousel_infinite' },
+      ]} onChange={(v) => onChange('displayFormat', v)} />
+      <SelectField label="Colunas" value={String((config.columnsCount as number) || 4)} options={[
+        { label: '2', value: '2' }, { label: '3', value: '3' },
+        { label: '4', value: '4' }, { label: '5', value: '5' },
+      ]} onChange={(v) => onChange('columnsCount', Number(v))} />
+      <CheckboxField label="Ativar abas" checked={tabsEnabled} onChange={(v) => onChange('tabsEnabled', v)} id="gdc-tabs" />
+      {tabsEnabled && (
+        <SelectField label="Formato das Abas" value={(config.tabsSubFormat as string) || 'grid'} options={[
+          { label: 'Grade', value: 'grid' },
+          { label: 'Lista', value: 'list' },
+          { label: 'Carrossel', value: 'carousel' },
+        ]} onChange={(v) => onChange('tabsSubFormat', v)} />
+      )}
+    </>
+  );
+}

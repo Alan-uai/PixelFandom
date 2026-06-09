@@ -143,6 +143,12 @@ function CardItem<T>({
     damping: 20,
   });
 
+  const glowBackground = useTransform(() => {
+    const gx = glowX.get();
+    const gy = glowY.get();
+    return `radial-gradient(circle at ${gx}% ${gy}%, hsl(var(--primary) / 0.12), transparent 70%)`;
+  });
+
   const isGrid = layout === 'grid';
   const isList = layout === 'list';
   const isCompact = layout === 'compact';
@@ -207,13 +213,7 @@ function CardItem<T>({
         {!isSelected && (
           <motion.div
             className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background: useTransform(() => {
-                const gx = glowX.get();
-                const gy = glowY.get();
-                return `radial-gradient(circle at ${gx}% ${gy}%, hsl(var(--primary) / 0.12), transparent 70%)`;
-              }),
-            }}
+            style={{ background: glowBackground }}
           />
         )}
 
