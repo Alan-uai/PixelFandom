@@ -21,7 +21,9 @@ function createParams(): OrbitParams {
 const SPRING_TRANSITION = 'transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.3s';
 const COLLAPSE_TRANSITION = 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.25s';
 
-export function useOrbitalAnimation(count: number) {
+type OrbitMode = 'shared' | 'individual' | 'random';
+
+export function useOrbitalAnimation(count: number, options?: { orbitMode?: OrbitMode }) {
   const paramsRef = useRef<OrbitParams[]>([]);
   const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [phase, setPhase] = useState<'orbiting' | 'expanded'>('orbiting');
@@ -30,7 +32,20 @@ export function useOrbitalAnimation(count: number) {
   phaseRef.current = phase;
 
   if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
-    paramsRef.current = Array.from({ length: count }, createParams);
+    const mode = options?.orbitMode ?? 'random';
+    const actualMode = mode === 'random'
+      ? (Math.random() < 0.5 ? 'shared' : 'individual')
+      : mode;
+
+    if (actualMode === 'shared' && count > 0) {
+      const shared = createParams();
+      paramsRef.current = Array.from({ length: count }, (_, i) => ({
+        ...shared,
+        phaseOffset: Math.random() * Math.PI * 2,
+      }));
+    } else {
+      paramsRef.current = Array.from({ length: count }, createParams);
+    }
     iconRefs.current = Array.from({ length: count }, () => null);
   }
 

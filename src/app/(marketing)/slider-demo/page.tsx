@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   SliderTabs,
   SliderTabsList,
@@ -7,6 +8,7 @@ import {
   SliderTabsContent,
   SliderTabsContentGroup,
 } from '@/components/ui/slider-tabs';
+import PageContentReveal from '@/components/ui/page-content-reveal';
 import {
   Gamepad2,
   Sword,
@@ -23,12 +25,14 @@ import {
   ArrowUpLeft,
   ArrowRight,
   ArrowDown,
+  RotateCcw,
 } from 'lucide-react';
 
 const demoCard =
   'rounded-xl border border-border/50 bg-card p-6 backdrop-blur-sm';
 
 export default function SliderDemoPage() {
+  const [revealKey, setRevealKey] = useState(0);
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-4 py-24">
       {/* ── Header ── */}
@@ -585,6 +589,78 @@ export default function SliderDemoPage() {
             </SliderTabsContent>
           </SliderTabsContentGroup>
         </SliderTabs>
+      </section>
+
+      {/* ── Example 5: PageContentReveal ── */}
+      <section>
+        <h2 className="mb-4 font-display text-xl font-semibold">
+          <span className="text-gradient-cyan">Content</span> Reveal
+        </h2>
+        <p className="mb-6 text-sm text-muted-foreground">
+          Animação de entrada com efeito de solda — glow + faíscas em 4 fases
+        </p>
+
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={() => setRevealKey((k) => k + 1)}
+            className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Replay
+          </button>
+          <span className="text-xs text-muted-foreground">
+            Fases: borda → título → texto → glow dourado
+          </span>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <PageContentReveal key={`a-${revealKey}`} skeleton>
+            <PageContentReveal.Card>
+              <PageContentReveal.Title className="mb-2 font-display text-lg font-semibold">
+                Card com Skeleton
+              </PageContentReveal.Title>
+              <PageContentReveal.Text className="text-sm text-muted-foreground">
+                Este card foi "soldado" na página com glow e faíscas.
+              </PageContentReveal.Text>
+              <PageContentReveal.Text className="mt-2 text-sm text-muted-foreground">
+                A borda acendeu primeiro, depois o título, e por fim o texto.
+              </PageContentReveal.Text>
+            </PageContentReveal.Card>
+          </PageContentReveal>
+
+          <PageContentReveal key={`b-${revealKey}`} skeleton>
+            <PageContentReveal.Card>
+              <PageContentReveal.Title className="mb-2 font-display text-lg font-semibold">
+                Segundo Card
+              </PageContentReveal.Title>
+              <PageContentReveal.Text className="text-sm text-muted-foreground">
+                Ambos os cards animam em paralelo com a mesma sequência.
+              </PageContentReveal.Text>
+              <PageContentReveal.Text className="mt-2 text-sm text-muted-foreground">
+                Use o botão Replay para ver a animação novamente.
+              </PageContentReveal.Text>
+            </PageContentReveal.Card>
+          </PageContentReveal>
+        </div>
+
+        <div className="mt-6">
+          <PageContentReveal key={`c-${revealKey}`} skeleton>
+            <PageContentReveal.Card className="p-6">
+              <PageContentReveal.Title className="mb-3 font-display text-2xl font-bold">
+                Card Grande com Várias Linhas
+              </PageContentReveal.Title>
+              <PageContentReveal.Text className="text-sm text-muted-foreground">
+                Este card demonstra o efeito com conteúdo mais extenso.
+              </PageContentReveal.Text>
+              <PageContentReveal.Text className="mt-3 text-sm text-muted-foreground">
+                A fase de texto (Phase 3) acende cada linha sequencialmente com glow e faíscas.
+              </PageContentReveal.Text>
+              <PageContentReveal.Text className="mt-3 text-sm text-muted-foreground">
+                Ao final, um glow dourado (Phase 4) cobre o card como feedback de conclusão.
+              </PageContentReveal.Text>
+            </PageContentReveal.Card>
+          </PageContentReveal>
+        </div>
       </section>
     </div>
   );

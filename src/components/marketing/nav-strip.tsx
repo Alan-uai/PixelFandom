@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Trophy, LayoutDashboard, LogOut, LogIn, Info } from 'lucide-react';
+import { User, Trophy, Bell, LayoutDashboard, LogOut, LogIn, Info } from 'lucide-react';
 import { useUser, useSupabase } from '@/supabase';
 import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
 import { useOrbitalAnimation } from '@/hooks/use-orbital-animation';
@@ -246,19 +246,25 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [isMobile, mobileExpanded, doCollapse, clearAutoReturn]);
 
   const handleAvatarClick = useCallback(() => {
-    if (!isMobile) return;
+    if (!isMobile) {
+      if (user) router.push('/profile');
+      else onLogin?.();
+      return;
+    }
 
     playClickSound();
     if (mobileExpanded) {
+      clearAutoReturn();
       doCollapse();
       setMobileExpanded(false);
-      clearAutoReturn();
+      if (user) router.push('/profile');
+      else onLogin?.();
     } else {
       doExpand();
       setMobileExpanded(true);
       startAutoReturn();
     }
-  }, [isMobile, mobileExpanded, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
+  }, [isMobile, user, router, onLogin, mobileExpanded, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
@@ -384,59 +390,42 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   whileHover={{ scale: 1.08, rotateZ: [0, -3, 3, 0] }}
                   transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                 >
-                  {user ? (
-                    <Link href="/profile" onClick={() => { playClickSound(); triggerWave('right'); }}>
-                      <div
-                        className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 p-[2.5px] shadow-[0_0_40px_rgba(75,197,255,0.25)] relative group cursor-pointer"
-                        style={{ transform: 'translateZ(20px)' }}
-                      >
-                        <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                          {user.user_metadata?.avatar_url ? (
-                            <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <User className="h-8 w-8 text-primary" />
-                          )}
-                        </div>
-                        <motion.div
-                          className="absolute -inset-1 rounded-full border-2 border-transparent group-hover:border-primary/40"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          whileHover={{ opacity: 1, scale: 1.05 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => { playClickSound(); onLogin?.(); triggerWave('right'); }}
-                      className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 p-[2.5px] shadow-[0_0_40px_rgba(75,197,255,0.25)] relative group cursor-pointer"
-                      style={{ transform: 'translateZ(20px)' }}
-                    >
-                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                  <div
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 p-[2.5px] shadow-[0_0_40px_rgba(75,197,255,0.25)] relative group cursor-pointer"
+                    style={{ transform: 'translateZ(20px)' }}
+                  >
+                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+                      {user?.user_metadata?.avatar_url ? (
+                        <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
                         <User className="h-8 w-8 text-primary" />
-                      </div>
-                      <motion.div
-                        className="absolute -inset-1 rounded-full border-2 border-transparent group-hover:border-primary/40"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileHover={{ opacity: 1, scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </button>
-                  )}
+                      )}
+                    </div>
+                    <motion.div
+                      className="absolute -inset-1 rounded-full border-2 border-transparent group-hover:border-primary/40"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileHover={{ opacity: 1, scale: 1.05 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
                 </motion.div>
 
-                {/* Trophy */}
+                {/* Notifications */}
                 <motion.div
                   className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20"
                   style={{ transform: 'translateZ(30px)' }}
-                  whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                  whileHover={{ scale: 1.15 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                   onClick={() => { playClickSound(); triggerWave('left'); }}
                 >
-                  <Link href="/leaderboard" className="block">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group">
+                  <Link href="/notifications" className="block">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 p-[2px] shadow-[0_0_20px_rgba(34,211,238,0.3)] group relative">
                       <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
-                        <Trophy className="h-4.5 w-4.5 text-yellow-400" style={{ width: 18, height: 18 }} />
+                        <Bell className="h-4 w-4 text-blue-400" />
                       </div>
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                        3
+                      </span>
                     </div>
                   </Link>
                 </motion.div>

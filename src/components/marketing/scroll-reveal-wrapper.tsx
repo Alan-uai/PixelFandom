@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { ScrollProgressProvider } from '@/context/scroll-progress-context';
 
@@ -9,8 +9,11 @@ export type SlideDirection = 'down-left' | 'down-right' | 'down';
 interface ScrollRevealWrapperProps {
   children: ReactNode;
   className?: string;
-  slideDirection: SlideDirection;
+  slideDirection?: SlideDirection;
 }
+
+const dirs: SlideDirection[] = ['down-left', 'down-right', 'down'];
+const randomDir = () => dirs[Math.floor(Math.random() * dirs.length)];
 
 const xRange: Record<SlideDirection, [number, number, number]> = {
   'down-left': [400, 0, -400],
@@ -21,8 +24,11 @@ const xRange: Record<SlideDirection, [number, number, number]> = {
 export default function ScrollRevealWrapper({
   children,
   className = '',
-  slideDirection,
+  slideDirection: propDirection,
 }: ScrollRevealWrapperProps) {
+  const [currentDirection] = useState<SlideDirection>(() =>
+    propDirection ?? randomDir(),
+  );
   const ref = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
@@ -40,7 +46,7 @@ export default function ScrollRevealWrapper({
   const opacity = useTransform(progressSpring, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
   const blurAmount = useTransform(progressSpring, [0, 0.2, 0.8, 1], [10, 0, 0, 10]);
   const yOffset = useTransform(progressSpring, [0, 0.5, 1], [180, 0, -180]);
-  const xOffset = useTransform(progressSpring, [0, 0.5, 1], xRange[slideDirection]);
+  const xOffset = useTransform(progressSpring, [0, 0.5, 1], xRange[currentDirection]);
   const blurFilter = useTransform(blurAmount, (v) => `blur(${v}px)`);
 
   return (

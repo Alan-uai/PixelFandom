@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
 import HeroSection from '@/components/marketing/hero-section';
@@ -10,16 +10,11 @@ import SearchSection from '@/components/marketing/search-section';
 import WikisCarousel from '@/components/marketing/wikis-carousel';
 import Footer from '@/components/marketing/footer';
 import ScrollRevealWrapper from '@/components/marketing/scroll-reveal-wrapper';
-import type { SlideDirection } from '@/components/marketing/scroll-reveal-wrapper';
 import { useAuthDialog } from '@/context/auth-dialog-context';
 
 export default function Home() {
   const { openAuth } = useAuthDialog();
 
-  const slideDirection = useMemo<SlideDirection>(() => {
-    const dirs: SlideDirection[] = ['down-left', 'down-right', 'down'];
-    return dirs[Math.floor(Math.random() * dirs.length)];
-  }, []);
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,15 +111,15 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <ScrollRevealWrapper slideDirection={slideDirection}>
+      <ScrollRevealWrapper>
         <HeroSection />
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper slideDirection={slideDirection}>
+      <ScrollRevealWrapper>
         <NavStrip onLogin={openAuth} />
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper slideDirection={slideDirection}>
+      <ScrollRevealWrapper>
         <SearchSection
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -134,9 +129,6 @@ export default function Home() {
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
         />
-      </ScrollRevealWrapper>
-
-      <ScrollRevealWrapper slideDirection={slideDirection}>
         <WikisCarousel
           wikis={wikis}
           loading={loading}
@@ -146,7 +138,7 @@ export default function Home() {
         />
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper slideDirection={slideDirection}>
+      <ScrollRevealWrapper>
         <StatBar
           wikisCount={wikis.length}
           membersCount={membersCount}
@@ -154,7 +146,7 @@ export default function Home() {
         />
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper slideDirection={slideDirection}>
+      <ScrollRevealWrapper>
         <Footer />
       </ScrollRevealWrapper>
     </div>
