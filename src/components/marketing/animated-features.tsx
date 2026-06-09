@@ -3,11 +3,21 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
-import { Sparkles, Cpu, Users, Globe, Layout, Discord } from 'lucide-react';
+import { Sparkles, Cpu, Users, Globe, Layout } from 'lucide-react';
 import { playHoverSound } from '@/lib/feedback-sounds';
 import type { LucideIcon } from 'lucide-react';
 
-const features: { icon: LucideIcon; title: string; description: string }[] = [
+function DiscordSvg({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18.59 5.81a14.6 14.6 0 00-3.67-1.14c-.16.28-.35.67-.48 1a13.59 13.59 0 00-4.06 0c-.13-.33-.32-.72-.48-1a14.6 14.6 0 00-3.68 1.14C3.12 10.24 2.3 14.48 2.7 18.66c1.57 1.14 3.1 1.84 4.6 2.3.37-.5.7-1.03.99-1.6a9.3 9.3 0 01-1.56-.76c.13-.1.26-.2.38-.3a11.14 11.14 0 009.78 0c.13.1.26.2.38.3-.5.3-1.02.55-1.57.75.28.57.62 1.1.98 1.6 1.5-.46 3.04-1.16 4.6-2.3.48-4.78-.74-8.99-3.1-12.85zM8.68 15.88c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82zm6.64 0c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+type IconComponent = LucideIcon | typeof DiscordSvg;
+
+const features: { icon: IconComponent; title: string; description: string }[] = [
   {
     icon: Sparkles,
     title: 'Editor Poderoso',
@@ -34,7 +44,7 @@ const features: { icon: LucideIcon; title: string; description: string }[] = [
     description: 'Organize conteúdo em coleções e tabelas dinâmicas.',
   },
   {
-    icon: Discord,
+    icon: DiscordSvg,
     title: 'Integração Discord',
     description: 'Conecte sua wiki ao Discord e automatize seu servidor.',
   },
@@ -59,7 +69,7 @@ const cardVariants = {
 };
 
 interface TiltCardProps {
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   description: string;
 }
