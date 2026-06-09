@@ -101,6 +101,7 @@ slugificação, normalização, deduplicação, correção e persistência autom
 `VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)
 `VERCEL_PROJECT_ID` — ID do projeto Vercel
 `GEMINI_API_KEY` — Google Gemini API key (sistema de voz e chat de texto)
+`API_KEY_ENCRYPTION_SECRET` — 64 hex chars (32 bytes) para AES-256-GCM — criptografa API keys de usuários no banco
 
 ## Safety rules
 - **NUNCA** exclua, modifique ou sobrescreva arquivos `.env*`. Eles contêm credenciais de produção.

@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenant_id');
   const unreadOnly = searchParams.get('unread') === 'true';
+  const type = searchParams.get('type');
   const limit = Math.min(Number(searchParams.get('limit')) || 50, 100);
 
   let query = supabase
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
 
   if (tenantId) query = query.eq('tenant_id', tenantId);
   if (unreadOnly) query = query.is('read_at', null);
+  if (type) query = query.eq('type', type);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

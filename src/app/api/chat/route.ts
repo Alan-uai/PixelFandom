@@ -4,6 +4,7 @@ import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
 import { chatStreamGemini } from '@/lib/gemini-chat';
 import { createClient } from '@/supabase/server';
+import { decryptApiKey } from '@/lib/crypto';
 import {
   SECTION_PROMPT,
   TEXT_CHAT_SYSTEM_PROMPT,
@@ -241,10 +242,10 @@ export async function POST(request: NextRequest) {
         userPrompt = (config.system_prompt as string) || '';
         provider = (config.provider as string) || 'openrouter';
         model = (config.model as string) || model;
-        customApiKey = (config.custom_api_key as string) || '';
+        customApiKey = decryptApiKey((config.custom_api_key as string) || '');
         fallbackChain = (config.fallback_chain as string[]) || [];
         geminiModel = (config.gemini_model as string) || geminiModel;
-        geminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
+        geminiCustomApiKey = decryptApiKey((config.gemini_custom_api_key as string) || '');
         geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
         primaryProvider = (config.primary_provider as string) || 'openrouter';
       }

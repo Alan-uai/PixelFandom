@@ -33,12 +33,20 @@ class handler(BaseHTTPRequestHandler):
             )
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            origin = self.headers.get("Origin", "")
+            allowed = "https://pixelfandom.vercel.app"
+            if origin and not origin.startswith(allowed):
+                origin = allowed
+            self.send_header("Access-Control-Allow-Origin", origin or allowed)
             self.end_headers()
             self.wfile.write(body.encode())
         except Exception as e:
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            origin = self.headers.get("Origin", "")
+            allowed = "https://pixelfandom.vercel.app"
+            if origin and not origin.startswith(allowed):
+                origin = allowed
+            self.send_header("Access-Control-Allow-Origin", origin or allowed)
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())

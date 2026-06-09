@@ -28,6 +28,7 @@ const TYPE_ICONS: Record<string, string> = {
   domain_failed: '⚠️',
   import_completed: '📥',
   ai_feedback_reviewed: '🤖',
+  badge_earned: '🏆',
 };
 
 export default function NotificationBell() {

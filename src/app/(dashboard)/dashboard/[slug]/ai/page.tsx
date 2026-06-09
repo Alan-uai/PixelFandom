@@ -105,23 +105,23 @@ export default function WikiAIConfigPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data: tenantData, error: tenantError } = await supabase
           .from('tenants')
-          .select('*')
+          .select('id')
           .eq('slug', slug)
           .single();
 
-        if (error) {
-          console.error('Load error:', error);
-          toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
-          setLoading(false);
-          return;
+        if (tenantError || !tenantData) {
+          throw new Error(tenantError?.message || 'Tenant not found');
         }
+        setTenant(tenantData);
 
-        if (data) {
-          setTenant(data);
-          setEnabled(data.ai_enabled);
-          const config = data.ai_config as Record<string, unknown> || {};
+        const res = await fetch(`/api/tenants/${tenantData.id}/ai-config`);
+        if (!res.ok) throw new Error('Failed to load config');
+        const { ai_enabled, ai_config: config } = await res.json();
+
+        if (config) {
+          setEnabled(ai_enabled);
 
           const savedProvider = (config.provider as string) || 'openrouter';
           setProvider(savedProvider as 'openrouter' | 'gemini' | 'hybrid');
@@ -164,7 +164,7 @@ export default function WikiAIConfigPage() {
           setBotBanner((config.bot_banner as string) || '');
 
           initialRef.current = {
-            enabled: data.ai_enabled,
+            enabled: ai_enabled,
             provider: savedProvider as any,
             primaryProvider: savedPrimaryProvider as any,
             model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
@@ -239,12 +239,12 @@ export default function WikiAIConfigPage() {
     const effectiveGeminiApiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
 
     try {
-      const { error } = await supabase
-        .from('tenants')
-        .update({
+      const res = await fetch(`/api/tenants/${tenant.id}/ai-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ai_enabled: enabled,
           ai_config: {
-            ...(tenant.ai_config as Record<string, unknown> || {}),
             provider,
             primary_provider: primaryProvider,
             model: resolvedModel,
@@ -262,12 +262,14 @@ export default function WikiAIConfigPage() {
             bot_banner: botBanner,
             wake_word: true,
           },
-        })
-        .eq('id', tenant.id);
+        }),
+      });
 
-      if (error) {
-        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Save failed' }));
+        toast({ variant: 'destructive', title: 'Erro', description: errData.error });
       } else {
+        const { ai_config: savedConfig } = await res.json();
         initialRef.current = {
           enabled,
           provider,

@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { allGameData as staticGameData } from '@/lib/game-data-context';
 import { supabase, SupabaseProvider, useUser } from '@/supabase';
 import { UserPreferencesProvider } from '@/context/user-preferences-context';
+import { BadgeCelebration } from '@/components/gamification/badge-celebration';
 
 type ActiveSidePanel = 'codes' | 'locations' | null;
 
@@ -265,7 +266,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <SupabaseProvider>
       <UserPreferencesProvider>
-        <AppStateProvider>{children}</AppStateProvider>
+        <AppStateProvider>
+          {children}
+          <BadgeCelebration />
+        </AppStateProvider>
       </UserPreferencesProvider>
     </SupabaseProvider>
   )
