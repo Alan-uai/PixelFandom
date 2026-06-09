@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WikiCard } from '@/components/wiki/wiki-card';
 import type { Tenant } from '@/supabase/client';
+import { playClickSound, playHoverSound } from '@/lib/feedback-sounds';
 
 interface WikisCarouselProps {
   wikis: Tenant[];
@@ -48,7 +49,8 @@ export default function WikisCarousel({ wikis, loading, error, voteData }: Wikis
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => scroll('left')}
+                onClick={() => { scroll('left'); playClickSound(); }}
+                onMouseEnter={playHoverSound}
                 className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:bg-muted/50 hover:border-primary/30 transition-colors"
                 aria-label="Anterior"
               >
@@ -57,7 +59,8 @@ export default function WikisCarousel({ wikis, loading, error, voteData }: Wikis
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => scroll('right')}
+                onClick={() => { scroll('right'); playClickSound(); }}
+                onMouseEnter={playHoverSound}
                 className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:bg-muted/50 hover:border-primary/30 transition-colors"
                 aria-label="Próximo"
               >
@@ -112,6 +115,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData }: Wikis
                 >
                   <motion.div
                     whileHover={{ y: -4 }}
+                    onMouseEnter={playHoverSound}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     <WikiCard wiki={wiki} voteData={voteData[wiki.id]} />

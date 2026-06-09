@@ -93,9 +93,15 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
     fetch(`/api/discord/authorize?return_to=${encodeURIComponent(returnTo)}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.url) window.location.href = data.url;
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          const msg = data.error || 'Resposta inválida do servidor';
+          setState((prev) => ({ ...prev, error: msg }));
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Discord connect error:', err);
         setState((prev) => ({ ...prev, error: 'Falha ao iniciar conexão com Discord' }));
       });
   }, []);
@@ -135,7 +141,7 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
     const guild = state.guilds.find((g) => g.id === guildId);
     if (!guild) return;
     setState((prev) => ({ ...prev, selectedGuild: guild, loading: true }));
-    document.cookie = `discord_selected_guild=${guildId}; path=/; max-age=86400; SameSite=Lax`;
+    document.cookie = `discord_selected_guild=${guildId}; path=/; max-age=2592000; SameSite=Lax`;
 
     try {
       const [channelsRes, rolesRes] = await Promise.all([

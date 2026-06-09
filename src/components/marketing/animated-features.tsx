@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { BookOpen, Cpu, Users, Globe } from 'lucide-react';
+import { playHoverSound } from '@/lib/feedback-sounds';
 
 const features = [
   {
@@ -65,10 +66,12 @@ const cardVariants = {
 function TiltCard({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const hovered = useRef(false);
 
   function onMouseMove(e: React.MouseEvent) {
     const el = ref.current;
     if (!el) return;
+    if (!hovered.current) { hovered.current = true; playHoverSound(); }
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
@@ -77,6 +80,7 @@ function TiltCard({ children }: { children: ReactNode }) {
 
   function onMouseLeave() {
     setTilt({ x: 0, y: 0 });
+    hovered.current = false;
   }
 
   return (

@@ -1,9 +1,11 @@
 'use client';
 
+import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,6 +28,8 @@ const itemVariants = {
 const letters = 'PixelFandom'.split('');
 
 export default function HeroSection() {
+  const onFirstLetter = useCallback(() => { playRevealSound(); }, []);
+
   return (
     <motion.section
       className="relative flex flex-col items-center justify-center py-28 md:py-36 text-center px-4 overflow-hidden"
@@ -55,6 +59,7 @@ export default function HeroSection() {
               className="inline-block"
               initial={{ opacity: 0, y: 40, rotateX: -90 }}
               animate={{ opacity: 1, y: 0, rotateX: 0 }}
+              onAnimationComplete={i === 0 ? onFirstLetter : undefined}
               transition={{
                 duration: 0.5,
                 delay: 0.8 + i * 0.04,
@@ -85,6 +90,8 @@ export default function HeroSection() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          onMouseEnter={playHoverSound}
+          onClick={playClickSound}
         >
           <Button size="lg" asChild className="relative overflow-hidden group">
             <Link href="/dashboard/new">
@@ -100,6 +107,8 @@ export default function HeroSection() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          onMouseEnter={playHoverSound}
+          onClick={playClickSound}
         >
           <Button size="lg" variant="outline" asChild>
             <Link href="/about">

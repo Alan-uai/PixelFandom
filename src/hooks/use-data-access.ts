@@ -21,7 +21,14 @@ function useDataAccess<T>(
     error: null,
   });
   const cacheRef = useRef<T | null>(null);
+  const depsRef = useRef<string>("");
   const mountedRef = useRef(true);
+
+  const depsKey = JSON.stringify(deps);
+  if (depsKey !== depsRef.current) {
+    depsRef.current = depsKey;
+    cacheRef.current = null;
+  }
 
   const execute = useCallback(() => {
     if (cacheRef.current !== null) {

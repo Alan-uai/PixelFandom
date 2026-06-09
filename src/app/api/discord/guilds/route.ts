@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch guilds' }, { status: res.status });
   }
 
-  const guilds = await res.json();
-  return NextResponse.json(guilds);
+  const guilds = await res.json() as { id: string; name: string; icon: string | null; owner: boolean; permissions: string }[];
+  const adminGuilds = guilds.filter((g) => g.owner || (BigInt(g.permissions) & BigInt(0x8)) === BigInt(0x8));
+  return NextResponse.json(adminGuilds);
 }

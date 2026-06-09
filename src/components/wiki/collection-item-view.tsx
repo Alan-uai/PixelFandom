@@ -688,6 +688,7 @@ type Props = {
   comparisonMode?: 'modal' | 'page';
   schema?: ColumnInfo[];
   hideHeader?: boolean;
+  onCompareStatClick?: (statKey: string) => void;
 };
 
 const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
@@ -709,7 +710,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -736,7 +737,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   );
 
   const handleStatClick = (statKey: string) => {
-    if (comparisonMode === 'page' && tenantId) {
+    if (onCompareStatClick) {
+      onCompareStatClick(statKey);
+    } else if (comparisonMode === 'page' && tenantId) {
       window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${statKey}`;
     } else {
       setShowCompare({ stat: statKey });

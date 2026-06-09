@@ -5,6 +5,7 @@ import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { Search, X, BookOpen, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@/supabase/client';
+import { playClickSound } from '@/lib/feedback-sounds';
 
 interface SearchSectionProps {
   searchQuery: string;
@@ -64,7 +65,7 @@ export default function SearchSection({
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => onSearchChange('')}
+                    onClick={() => { onSearchChange(''); playClickSound(); }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <X className="h-4 w-4" />
@@ -100,6 +101,7 @@ export default function SearchSection({
                 >
                   <Link
                     href={`/w/${wiki.slug}`}
+                    onClick={playClickSound}
                     className="flex items-center gap-3 rounded-lg border border-border/40 p-3 hover:border-primary/30 hover:bg-primary/[0.02] transition-all group"
                   >
                     {wiki.logo_url ? (

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
+import { playHoverSound, playSuccessSound } from '@/lib/feedback-sounds';
 
 export default function CTASection() {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.2 });
@@ -45,7 +46,7 @@ export default function CTASection() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
         >
-          <Button size="lg" asChild className="relative overflow-hidden group">
+          <Button size="lg" asChild className="relative overflow-hidden group" onMouseEnter={playHoverSound} onClick={playSuccessSound}>
             <Link href="/dashboard/new">
               <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/15 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               <span className="relative flex items-center">

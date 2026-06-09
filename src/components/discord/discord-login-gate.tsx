@@ -34,7 +34,10 @@ export function DiscordLoginGate() {
             Conecte sua conta do Discord para gerenciar o bot e acessar canais, cargos e servidores.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
+        <CardContent className="flex flex-col items-center gap-3">
+          {error && (
+            <p className="text-xs text-destructive text-center">{error}</p>
+          )}
           <Button onClick={connect} size="lg" className="gap-2">
             <LogIn className="h-5 w-5" />
             Conectar com Discord

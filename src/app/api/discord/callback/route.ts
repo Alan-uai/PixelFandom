@@ -12,8 +12,7 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-  const envRedirect = process.env.DISCORD_REDIRECT_URI;
-  const redirectUri = envRedirect || `${request.nextUrl.origin}/api/discord/callback`;
+  const redirectUri = `${request.nextUrl.origin}/api/discord/callback`;
 
   if (!clientId || !clientSecret) {
     return NextResponse.json({ error: 'Discord OAuth not configured' }, { status: 500 });

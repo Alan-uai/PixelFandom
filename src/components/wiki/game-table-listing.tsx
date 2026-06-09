@@ -14,6 +14,7 @@ import { useTableItems } from '@/hooks/use-data-access';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import CollectionItemView from '@/components/wiki/collection-item-view';
+import ComparePopup from '@/components/wiki/compare-popup';
 import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
@@ -97,6 +98,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
   const { homePath } = useWikiPath(tenantSlug);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [compareStat, setCompareStat] = useState<string | null>(null);
+  const [compareItemId, setCompareItemId] = useState<string | null>(null);
 
   const urlItem = searchParams?.get('item') || null;
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
@@ -221,6 +224,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
 
   return (
     <article className="max-w-3xl mx-auto">
+      {compareStat && compareItemId && tenantId && (
+        <ComparePopup
+          table={tableName}
+          tenantId={tenantId}
+          tenantSlug={tenantSlug}
+          currentItemId={compareItemId}
+          initialStat={compareStat}
+          onClose={() => { setCompareStat(null); setCompareItemId(null); }}
+        />
+      )}
       <Link
         href={homePath}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
@@ -340,6 +353,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
                     selectedSlug={selectedSlug}
                     onSelect={selectItem}
                     cardRefs={cardRefs}
+                    onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
                   />
                 ))}
               </div>
@@ -358,6 +372,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
               selectedSlug={selectedSlug}
               onSelect={selectItem}
               cardRefs={cardRefs}
+              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           ))}
         </div>
@@ -374,6 +389,7 @@ function ItemCard({
   selectedSlug,
   onSelect,
   cardRefs,
+  onCompareStatClick,
 }: {
   item: any;
   tableName: string;
@@ -382,6 +398,7 @@ function ItemCard({
   selectedSlug: string | null;
   onSelect: (slug: string | null) => void;
   cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  onCompareStatClick?: (statKey: string) => void;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
@@ -452,7 +469,7 @@ function ItemCard({
                 </motion.span>
               </motion.h3>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
               {rarity && (
                 <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`}>
                   <Star className="h-2.5 w-2.5" />
@@ -518,6 +535,7 @@ function ItemCard({
                 sourceTable={tableName}
                 comparisonMode="modal"
                 hideHeader
+                onCompareStatClick={onCompareStatClick}
               />
             ) : (
               <p className="text-sm text-muted-foreground">{item.description || ''}</p>
