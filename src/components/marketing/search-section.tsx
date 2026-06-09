@@ -1,8 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, BookOpen, ArrowRight, Loader2, Hash } from 'lucide-react';
+import { X, BookOpen, ArrowRight, Loader2, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
@@ -18,97 +17,6 @@ interface SearchSectionProps {
   onCategoryChange: (slug: string | null) => void;
 }
 
-function SearchShape({ focused }: { focused: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    let time = 0;
-
-    const draw = () => {
-      time += 0.02;
-      const w = canvas!.width;
-      const h = canvas!.height;
-      ctx!.clearRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-      const R = focused ? 50 : 30;
-      const r = focused ? 18 : 12;
-      const alpha = focused ? 0.12 : 0.05;
-
-      const segments = 20;
-      const tubeSegments = 8;
-
-      for (let i = 0; i < segments; i++) {
-        const theta1 = (i / segments) * Math.PI * 2 + time;
-        const theta2 = ((i + 1) / segments) * Math.PI * 2 + time;
-        for (let j = 0; j < tubeSegments; j++) {
-          const phi1 = (j / tubeSegments) * Math.PI * 2;
-          const phi2 = ((j + 1) / tubeSegments) * Math.PI * 2;
-
-          const pts = [
-            {
-              x: (R + r * Math.cos(phi1)) * Math.cos(theta1),
-              y: (R + r * Math.cos(phi1)) * Math.sin(theta1),
-              z: r * Math.sin(phi1),
-            },
-            {
-              x: (R + r * Math.cos(phi2)) * Math.cos(theta1),
-              y: (R + r * Math.cos(phi2)) * Math.sin(theta1),
-              z: r * Math.sin(phi2),
-            },
-            {
-              x: (R + r * Math.cos(phi2)) * Math.cos(theta2),
-              y: (R + r * Math.cos(phi2)) * Math.sin(theta2),
-              z: r * Math.sin(phi2),
-            },
-            {
-              x: (R + r * Math.cos(phi1)) * Math.cos(theta2),
-              y: (R + r * Math.cos(phi1)) * Math.sin(theta2),
-              z: r * Math.sin(phi1),
-            },
-          ];
-
-          const zAvg = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4;
-          const a = alpha * (0.3 + ((zAvg + R) / (R * 2)) * 0.7);
-
-          ctx!.beginPath();
-          ctx!.moveTo(cx + pts[0].x, cy + pts[0].y * 0.5);
-          ctx!.lineTo(cx + pts[1].x, cy + pts[1].y * 0.5);
-          ctx!.lineTo(cx + pts[2].x, cy + pts[2].y * 0.5);
-          ctx!.lineTo(cx + pts[3].x, cy + pts[3].y * 0.5);
-          ctx!.closePath();
-          ctx!.strokeStyle = `rgba(75, 197, 255, ${a})`;
-          ctx!.lineWidth = 1;
-          ctx!.stroke();
-        }
-      }
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    canvas.width = 200;
-    canvas.height = 120;
-    draw();
-
-    return () => cancelAnimationFrame(animId);
-  }, [focused]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-      style={{ width: 200, height: 120 }}
-    />
-  );
-}
-
 export default function SearchSection({
   searchQuery,
   onSearchChange,
@@ -119,7 +27,6 @@ export default function SearchSection({
   onCategoryChange,
 }: SearchSectionProps) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
-  const [focused, setFocused] = useState(false);
 
   return (
     <motion.section
@@ -155,38 +62,96 @@ export default function SearchSection({
             Busque por nome, slug ou descrição
           </motion.p>
 
-          {/* Search Input */}
+          {/* Search Input — Uiverse animation */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4, delay: 0.25 }}
           >
-            <div className="relative group" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
-              {/* 3D reactive shape */}
-              <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                <SearchShape focused={focused} />
-              </div>
+            <div className="search-uiverse-wrapper flex items-center justify-center relative">
+              <div className="grid"></div>
+              <div id="poda">
+                <div className="glow"></div>
+                <div className="darkBorderBg"></div>
+                <div className="darkBorderBg"></div>
+                <div className="darkBorderBg"></div>
 
-              <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-purple-500/20 opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-500" />
-              <div className="relative flex items-center bg-white/[0.02] border border-primary/20 backdrop-blur-3xl rounded-xl focus-within:animate-border-glow-rotate">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Buscar wikis públicas..."
-                  className="w-full h-14 rounded-xl bg-transparent pl-12 pr-14 text-sm outline-none transition-all"
-                />
-                {searchLoading ? (
-                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-primary" />
-                ) : searchQuery ? (
-                  <button
-                    onClick={() => { onSearchChange(''); playClickSound(); }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                ) : null}
+                <div className="white"></div>
+                <div className="border"></div>
+
+                <div id="main">
+                  <input
+                    placeholder="Buscar wikis públicas..."
+                    type="text"
+                    name="text"
+                    className="input"
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                  />
+                  <div id="input-mask"></div>
+                  <div id="pink-mask"></div>
+                  <div className="filterBorder"></div>
+                  <div id="filter-icon">
+                    {searchLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-[#d6d6e6]" />
+                    ) : searchQuery ? (
+                      <button
+                        onClick={() => { onSearchChange(''); playClickSound(); }}
+                        className="flex items-center justify-center w-full h-full"
+                      >
+                        <X className="h-5 w-5 text-[#d6d6e6]" />
+                      </button>
+                    ) : (
+                      <svg
+                        preserveAspectRatio="none"
+                        height="27"
+                        width="27"
+                        viewBox="4.8 4.56 14.832 15.408"
+                        fill="none"
+                      >
+                        <path
+                          d="M8.16 6.65002H15.83C16.47 6.65002 16.99 7.17002 16.99 7.81002V9.09002C16.99 9.56002 16.7 10.14 16.41 10.43L13.91 12.64C13.56 12.93 13.33 13.51 13.33 13.98V16.48C13.33 16.83 13.1 17.29 12.81 17.47L12 17.98C11.24 18.45 10.2 17.92 10.2 16.99V13.91C10.2 13.5 9.97 12.98 9.73 12.69L7.52 10.36C7.23 10.08 7 9.55002 7 9.20002V7.87002C7 7.17002 7.52 6.65002 8.16 6.65002Z"
+                          stroke="#d6d6e6"
+                          strokeWidth="1"
+                          strokeMiterlimit="10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div id="search-icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      height="24"
+                      fill="none"
+                    >
+                      <circle stroke="url(#search)" r="8" cy="11" cx="11" />
+                      <line
+                        stroke="url(#searchl)"
+                        y2="16.65"
+                        y1="22"
+                        x2="16.65"
+                        x1="22"
+                      />
+                      <defs>
+                        <linearGradient gradientTransform="rotate(50)" id="search">
+                          <stop stopColor="#f8e7f8" offset="0%" />
+                          <stop stopColor="#b6a9b7" offset="50%" />
+                        </linearGradient>
+                        <linearGradient id="searchl">
+                          <stop stopColor="#b6a9b7" offset="0%" />
+                          <stop stopColor="#837484" offset="50%" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

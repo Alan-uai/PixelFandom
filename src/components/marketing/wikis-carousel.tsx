@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
@@ -72,7 +71,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
   };
 
   const getCardStyle = (index: number) => {
-    if (!containerWidth) return { opacity: 1, scale: 1, rotateY: 0, zIndex: 1 };
+    if (!containerWidth) return { opacity: 1, scale: 1, zIndex: 1 };
     const cardCenter = index * CARD_W + CARD_W / 2;
     const containerCenter = containerWidth / 2 + scrollLeft;
     const dist = cardCenter - containerCenter;
@@ -82,162 +81,161 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
     return {
       opacity: 1 - absClamped * 0.35,
       scale: 1 - absClamped * 0.1,
-      rotateY: clamped * 15,
       zIndex: Math.round((1 - absClamped) * 100),
     };
   };
 
   return (
-    <section ref={ref} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={isVisible ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold">
-              Wikis em Destaque
-            </h2>
-            {categoryLabel && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Filtrando: <span className="text-primary font-medium">{categoryLabel}</span>
-              </p>
+    <section id="wikis-carousel" ref={ref} className="relative w-full py-24 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={isVisible ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold">
+                Wikis em Destaque
+              </h2>
+              {categoryLabel && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Filtrando: <span className="text-primary font-medium">{categoryLabel}</span>
+                </p>
+              )}
+            </div>
+            {filtered.length > 0 && (
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => scrollBy('left')}
+                  onMouseEnter={playHoverSound}
+                  className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => scrollBy('right')}
+                  onMouseEnter={playHoverSound}
+                  className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
+                  aria-label="Próximo"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </motion.button>
+              </div>
             )}
           </div>
-          {filtered.length > 0 && (
-            <div className="flex gap-2">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+        </motion.div>
+
+        {loading ? (
+          <div className="flex justify-center py-24">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="h-8 w-8 text-primary" />
+            </motion.div>
+          </div>
+        ) : error ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            className="flex items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-8 text-destructive"
+          >
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <p className="text-sm">Erro ao carregar wikis: {error}</p>
+          </motion.div>
+        ) : wikis.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
+          >
+            <BookOpen className="h-10 w-10" />
+            <p className="text-sm">Nenhuma wiki encontrada</p>
+          </motion.div>
+        ) : filtered.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
+          >
+            <BookOpen className="h-10 w-10" />
+            <p className="text-sm">Nenhuma wiki nesta categoria</p>
+          </motion.div>
+        ) : (
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, y: 20 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            {/* Gradient fade edges */}
+            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
+
+            {/* Navigation arrows */}
+            {scrollLeft > 0 && (
+              <button
                 onClick={() => scrollBy('left')}
                 onMouseEnter={playHoverSound}
-                className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
                 aria-label="Anterior"
               >
                 <ChevronLeft className="h-5 w-5" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              </button>
+            )}
+            {!atEnd && (
+              <button
                 onClick={() => scrollBy('right')}
                 onMouseEnter={playHoverSound}
-                className="h-10 w-10 rounded-full border border-border/50 flex items-center justify-center hover:border-primary/40 hover:shadow-[0_0_12px_rgba(75,197,255,0.15)] transition-all"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
                 aria-label="Próximo"
               >
                 <ChevronRight className="h-5 w-5" />
-              </motion.button>
-            </div>
-          )}
-        </div>
-      </motion.div>
+              </button>
+            )}
 
-      {loading ? (
-        <div className="flex justify-center py-24">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          >
-            <Loader2 className="h-8 w-8 text-primary" />
-          </motion.div>
-        </div>
-      ) : error ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          className="flex items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-8 text-destructive"
-        >
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm">Erro ao carregar wikis: {error}</p>
-        </motion.div>
-      ) : wikis.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
-        >
-          <BookOpen className="h-10 w-10" />
-          <p className="text-sm">Nenhuma wiki encontrada</p>
-        </motion.div>
-      ) : filtered.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
-        >
-          <BookOpen className="h-10 w-10" />
-          <p className="text-sm">Nenhuma wiki nesta categoria</p>
-        </motion.div>
-      ) : (
-        <motion.div
-          className="relative"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          {/* Gradient fade edges */}
-          <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
-
-          {/* Navigation arrows */}
-          {scrollLeft > 0 && (
-            <button
-              onClick={() => scrollBy('left')}
-              onMouseEnter={playHoverSound}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
-              aria-label="Anterior"
+            {/* Scrollable track */}
+            <div
+              ref={scrollRef}
+              className="flex gap-5 overflow-x-auto py-4 scroll-smooth snap-x snap-mandatory scrollbar-none"
+              style={{ overscrollBehaviorX: 'contain' }}
             >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          )}
-          {!atEnd && (
-            <button
-              onClick={() => scrollBy('right')}
-              onMouseEnter={playHoverSound}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full border border-border/40 bg-background/80 backdrop-blur-sm flex items-center justify-center hover:border-primary/50 hover:shadow-[0_0_16px_rgba(75,197,255,0.2)] transition-all"
-              aria-label="Próximo"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          )}
-
-          {/* Scrollable track */}
-          <div
-            ref={scrollRef}
-            className="flex gap-5 overflow-x-auto py-4 px-2 scroll-smooth snap-x snap-mandatory scrollbar-none perspective-[1200px]"
-          >
-            {filtered.map((wiki, i) => {
-              const s = getCardStyle(i);
-              return (
-                <div
-                  key={wiki.id}
-                  className="snap-center shrink-0"
-                  style={{ perspective: '1200px' }}
-                >
-                  <motion.div
-                    style={{
-                      opacity: s.opacity,
-                      scale: s.scale,
-                      rotateY: s.rotateY,
-                      zIndex: s.zIndex,
-                      transformStyle: 'preserve-3d',
-                    }}
-                    whileHover={{
-                      scale: 1.05,
-                      y: -8,
-                      transition: { type: 'spring', stiffness: 300, damping: 18 },
-                    }}
-                    onMouseEnter={playHoverSound}
-                    className="relative rounded-xl transition-shadow duration-300 hover:shadow-[0_0_24px_rgba(75,197,255,0.12)]"
+              {filtered.map((wiki, i) => {
+                const s = getCardStyle(i);
+                return (
+                  <div
+                    key={wiki.id}
+                    className="snap-center shrink-0"
                   >
-                    <WikiCard wiki={wiki} voteData={voteData[wiki.id]} />
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      )}
+                    <motion.div
+                      style={{
+                        opacity: s.opacity,
+                        scale: s.scale,
+                        zIndex: s.zIndex,
+                      }}
+                      whileHover={{
+                        scale: 1.05,
+                        y: -8,
+                        transition: { type: 'spring', stiffness: 300, damping: 18 },
+                      }}
+                      onMouseEnter={playHoverSound}
+                      className="relative rounded-xl transition-shadow duration-300 hover:shadow-[0_0_24px_rgba(75,197,255,0.12)]"
+                    >
+                      <WikiCard wiki={wiki} voteData={voteData[wiki.id]} />
+                    </motion.div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </div>
     </section>
   );
 }

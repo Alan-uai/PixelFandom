@@ -8,12 +8,9 @@ interface SupabaseContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, username: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithDiscord: () => Promise<{ error: Error | null }>;
-  signInWithGitHub: () => Promise<{ error: Error | null }>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
@@ -57,27 +54,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
-  };
-
-  const signUp = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-        },
-      },
-    });
-
-    if (error) return { error };
-
-    return { error: null };
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -102,28 +78,15 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signInWithGitHub = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
-    });
-    return { error };
-  };
-
   return (
     <SupabaseContext.Provider
       value={{
         user,
         session,
         isLoading,
-        signIn,
-        signUp,
         signOut,
         signInWithGoogle,
         signInWithDiscord,
-        signInWithGitHub,
       }}
     >
       {children}

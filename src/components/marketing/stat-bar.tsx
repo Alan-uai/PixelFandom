@@ -43,7 +43,7 @@ function AnimatedCounter({ end, suffix = '', label, delay }: CounterProps) {
         animate={isVisible ? { opacity: 1, y: 0, scale: 1 } : {}}
         transition={{ duration: 0.5, delay, ease: [0.34, 1.56, 0.64, 1] }}
       >
-        {count}{suffix}
+        {count.toLocaleString()}{suffix}
       </motion.div>
       <motion.p
         className="text-sm text-muted-foreground mt-1"
@@ -57,14 +57,20 @@ function AnimatedCounter({ end, suffix = '', label, delay }: CounterProps) {
   );
 }
 
-const stats = [
-  { end: 150, suffix: '+', label: 'Wikis Criadas' },
-  { end: 1200, suffix: '+', label: 'Membros' },
-  { end: 5000, suffix: '+', label: 'Artigos' },
-];
+interface StatBarProps {
+  wikisCount: number;
+  membersCount: number;
+  articlesCount: number;
+}
 
-export default function StatBar() {
+export default function StatBar({ wikisCount, membersCount, articlesCount }: StatBarProps) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+
+  const stats = [
+    { end: wikisCount, suffix: '+', label: 'Wikis Criadas' },
+    { end: membersCount, suffix: '+', label: 'Membros' },
+    { end: articlesCount, suffix: '+', label: 'Artigos' },
+  ];
 
   return (
     <motion.section

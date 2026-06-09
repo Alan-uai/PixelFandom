@@ -4,9 +4,26 @@ import { useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ChevronDown, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronDown, Sparkles, Cpu, Users, Globe, Layout } from 'lucide-react';
 import { playHoverSound, playClickSound, playRevealSound, playSuccessSound } from '@/lib/feedback-sounds';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
+
+function DiscordSvgMini({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18.59 5.81a14.6 14.6 0 00-3.67-1.14c-.16.28-.35.67-.48 1a13.59 13.59 0 00-4.06 0c-.13-.33-.32-.72-.48-1a14.6 14.6 0 00-3.68 1.14C3.12 10.24 2.3 14.48 2.7 18.66c1.57 1.14 3.1 1.84 4.6 2.3.37-.5.7-1.03.99-1.6a9.3 9.3 0 01-1.56-.76c.13-.1.26-.2.38-.3a11.14 11.14 0 009.78 0c.13.1.26.2.38.3-.5.3-1.02.55-1.57.75.28.57.62 1.1.98 1.6 1.5-.46 3.04-1.16 4.6-2.3.48-4.78-.74-8.99-3.1-12.85zM8.68 15.88c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82zm6.64 0c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+const miniFeatures = [
+  { icon: Sparkles, label: 'Editor Poderoso', color: 'hsl(198,100%,65%)' },
+  { icon: Cpu, label: 'Assistente IA', color: 'hsl(270,80%,60%)' },
+  { icon: Users, label: 'Equipe', color: 'hsl(160,80%,55%)' },
+  { icon: Globe, label: 'Domínio Próprio', color: 'hsl(30,80%,55%)' },
+  { icon: Layout, label: 'Coleções', color: 'hsl(350,90%,60%)' },
+  { icon: DiscordSvgMini, label: 'Discord', color: 'hsl(235,86%,65%)' },
+];
 
 const title = 'PixelFandom';
 
@@ -115,12 +132,12 @@ export default function HeroSection() {
         >
           Crie wikis poderosas para seus jogos, comunidades e projetos.
           Com assistente IA integrado, domínio personalizado, temas customizáveis e integração
-          com Discord — tudo que sua comunidade precisa em um só lugar.
+          com Discord. Crie sua wiki em minutos. Sem cartão de crédito.
         </motion.p>
 
         {/* CTA Buttons */}
         <motion.div
-          className="flex gap-4 flex-wrap justify-center"
+          className="flex gap-4 flex-wrap justify-center mb-12"
           variants={fadeUpVariants}
         >
           <motion.div
@@ -145,14 +162,52 @@ export default function HeroSection() {
             whileTap={{ scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             onMouseEnter={playHoverSound}
-            onClick={playClickSound}
+            onClick={() => {
+              playClickSound();
+              document.getElementById('wikis-carousel')?.scrollIntoView({ behavior: 'smooth' });
+            }}
           >
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/about">
-                Explorar
-              </Link>
+            <Button size="lg" variant="outline">
+              Explorar
             </Button>
           </motion.div>
+        </motion.div>
+
+        {/* Mini Feature Cards Row */}
+        <motion.div
+          className="w-full max-w-3xl"
+          variants={fadeUpVariants}
+        >
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+            {miniFeatures.map((feature) => (
+              <motion.div
+                key={feature.label}
+                className="group relative"
+                whileHover={{ scale: 1.08, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onMouseEnter={playHoverSound}
+                style={{ perspective: 400 }}
+              >
+                <motion.div
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 sm:px-4 sm:py-2 backdrop-blur-sm transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.04]"
+                  whileHover={{ rotateX: -5, rotateY: 5 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div className="relative">
+                    <feature.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: feature.color }} />
+                    <motion.div
+                      className="absolute inset-0 blur-sm opacity-0 group-hover:opacity-60 transition-opacity duration-300"
+                      style={{ color: feature.color, backgroundColor: feature.color, borderRadius: '50%', width: '100%', height: '100%' }}
+                    />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300" style={{ transform: 'translateZ(8px)' }}>
+                    {feature.label}
+                  </span>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </motion.div>
 

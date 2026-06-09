@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
 import HeroSection from '@/components/marketing/hero-section';
+import NavStrip from '@/components/marketing/nav-strip';
 import StatBar from '@/components/marketing/stat-bar';
 import SearchSection from '@/components/marketing/search-section';
 import WikisCarousel from '@/components/marketing/wikis-carousel';
-import AnimatedFeatures from '@/components/marketing/animated-features';
-import CTASection from '@/components/marketing/cta-section';
 import Footer from '@/components/marketing/footer';
+import { useAuthDialog } from '@/context/auth-dialog-context';
 
 export default function Home() {
+  const { openAuth } = useAuthDialog();
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,9 @@ export default function Home() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [voteData, setVoteData] = useState<Record<string, { upvotes: number; downvotes: number; score: number; user_vote: string | null }>>({});
-  const cache = useRef<{ wikis?: Tenant[]; voteData?: any }>({});
+  const [membersCount, setMembersCount] = useState(0);
+  const [articlesCount, setArticlesCount] = useState(0);
+  const cache = useRef<{ wikis?: Tenant[]; voteData?: any; membersCount?: number; articlesCount?: number }>({});
 
   useEffect(() => {
     if (cache.current.wikis) {
@@ -43,6 +45,38 @@ export default function Home() {
           fetchVoteData(data.map((w) => w.id));
         }
         setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (cache.current.membersCount !== undefined) {
+      setMembersCount(cache.current.membersCount);
+      return;
+    }
+    supabase
+      .from('tenant_members')
+      .select('user_id', { count: 'exact', head: true })
+      .then(({ count }) => {
+        if (count !== null) {
+          setMembersCount(count);
+          cache.current.membersCount = count;
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (cache.current.articlesCount !== undefined) {
+      setArticlesCount(cache.current.articlesCount);
+      return;
+    }
+    supabase
+      .from('tenant_pages')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => {
+        if (count !== null) {
+          setArticlesCount(count);
+          cache.current.articlesCount = count;
+        }
       });
   }, []);
 
@@ -76,7 +110,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <HeroSection />
-      <StatBar />
+      <NavStrip onLogin={openAuth} />
 
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.01] to-transparent pointer-events-none" />
@@ -99,8 +133,12 @@ export default function Home() {
         activeCategory={activeCategory}
       />
 
-      <AnimatedFeatures />
-      <CTASection />
+      <StatBar
+        wikisCount={wikis.length}
+        membersCount={membersCount}
+        articlesCount={articlesCount}
+      />
+
       <Footer />
     </div>
   );
