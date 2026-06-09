@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -33,18 +33,22 @@ interface OrbitalNavItemProps {
   waveGlow?: boolean;
 }
 
-const ARCS_CONFIG = [
-  { vOffset: -24, ellipseH: 38, ellipseY: 47 },
-  { vOffset: -14, ellipseH: 44, ellipseY: 53 },
-  { vOffset: -5, ellipseH: 36, ellipseY: 45 },
-  { vOffset: 5, ellipseH: 46, ellipseY: 55 },
-  { vOffset: 14, ellipseH: 39, ellipseY: 48 },
-  { vOffset: 24, ellipseH: 42, ellipseY: 52 },
-];
+function generateWaveConfig() {
+  const count = 1 + Math.floor(Math.random() * 6);
+  return Array.from({ length: count }, (_, i) => ({
+    height: 16 + Math.floor(Math.random() * 12),
+    duration: 3 + Math.random() * 4,
+    delay: i * (0.2 + Math.random() * 0.5),
+    vOffset: -28 + Math.floor(Math.random() * 56),
+  }));
+}
 
-const WAVE_GROUP_DELAYS = [0, 2, 4];
-const WAVE_DURATION = 2;
-const WAVE_REPEAT_DELAY = 4;
+interface WaveArc {
+  height: number;
+  duration: number;
+  delay: number;
+  vOffset: number;
+}
 
 function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
@@ -67,27 +71,15 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
 
   if (compact) {
     const orbitContent = (
-      <div
-        className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] cursor-pointer transition-all duration-300"
-        style={
-          waveGlow
-            ? {
-                backgroundColor: 'rgba(255,255,255,0.12)',
-                borderColor: glowColor,
-                boxShadow: `0 0 20px ${glowColor.replace('hsl', 'hsla').replace(')', ',0.5)')}, 0 0 40px ${glowColor.replace('hsl', 'hsla').replace(')', ',0.25)')}`,
-                transform: 'scale(1.2)',
-              }
-            : {}
-        }
+      <motion.div
+        className="cursor-pointer"
+        style={waveGlow ? { filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 16px ${glowColor})` } : {}}
+        animate={waveGlow ? { scale: 1.2, filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'] } : {}}
+        transition={{ duration: 0.4 }}
         onClick={clickHandler}
       >
-        <motion.div
-          animate={waveGlow ? { scale: 1.15, filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'] } : { scale: 1, filter: 'brightness(1)' }}
-          transition={{ duration: 0.4 }}
-        >
-          {icon}
-        </motion.div>
-      </div>
+        {icon}
+      </motion.div>
     );
 
     if (href) {
@@ -182,11 +174,13 @@ function getExpandedPositions(items: NavItemDef[]): { x: number; y: number }[] {
   const rightIndices: number[] = [];
 
   items.forEach((item, i) => {
+    if (item.isBadge) return;
     if (item.side === 'left') leftIndices.push(i);
     else rightIndices.push(i);
   });
 
   return items.map((item, i) => {
+    if (item.isBadge) return { x: 0, y: 12 };
     if (item.side === 'left') {
       const idx = leftIndices.indexOf(i);
       return { x: -(75 + idx * 70), y: 0 };
@@ -207,6 +201,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const autoReturnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
+  const [waveArcs] = useState(() => generateWaveConfig());
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);
 
@@ -257,7 +252,13 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     if (item.isBadge) acc.push(i);
     return acc;
   }, []);
-  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { centerIndices: badgeIndices });
+  const paramOverrides = useMemo(() =>
+    items.map(item =>
+      item.isBadge ? { radius: 30, speed: 0.4, inclination: 0 } : null,
+    ),
+    [items],
+  );
+  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { paramOverrides });
 
   const expandedPositions = useRef(getExpandedPositions(items));
   expandedPositions.current = getExpandedPositions(items);
@@ -336,7 +337,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarMouseEnter = useCallback(() => {
     if (isMobile) return;
-    setHoverSpeedMultiplier(3.5);
+    setHoverSpeedMultiplier(2.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -348,7 +349,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarTouchStart = useCallback(() => {
     if (!isMobile) return;
-    setHoverSpeedMultiplier(3.5);
+    setHoverSpeedMultiplier(2.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -361,18 +362,11 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   useEffect(() => {
     if (isExpanded) return;
     const interval = setInterval(() => {
-      const cycle = 2500;
+      const cycle = 2000;
       const now = Date.now() % cycle / cycle;
-      const stagger = [0, 0.32, 0.64];
-
-      const isInZone = (delays: number[], start: number, end: number) =>
-        delays.some(d => {
-          const p = (now - d + 1) % 1;
-          return p >= start && p <= end;
-        });
-
-      setGlowLeft(isInZone(stagger, 0.08, 0.38));
-      setGlowRight(isInZone(stagger, 0.08, 0.38));
+      const active = now >= 0.05 && now <= 0.35;
+      setGlowLeft(active);
+      setGlowRight(active);
     }, 80);
     return () => clearInterval(interval);
   }, [isExpanded]);
@@ -383,68 +377,69 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
           {/* ── Gravitational Waves ── */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
-            {WAVE_GROUP_DELAYS.map((groupDelay) =>
-              ARCS_CONFIG.map((arc, aIdx) => {
-                const totalDelay = groupDelay + aIdx * 0.15;
-                return (
-                  <div key={`wave-${groupDelay}-${aIdx}`} className="absolute inset-0 flex items-center justify-center">
-                    {/* Left arc `(` */}
-                    <div
-                      className="absolute"
-                      style={{ right: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
-                    >
-                      <motion.div
-                        style={{
-                          width: 0,
-                          height: 4,
-                          background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
-                          filter: 'blur(10px)',
-                          clipPath: `ellipse(100% ${arc.ellipseH}% at 0% ${arc.ellipseY}%)`,
-                          transformOrigin: 'right center',
-                          transform: 'translateY(-50%)',
-                        }}
-                        animate={{ width: [0, 350, 350, 350], opacity: [0.6, 0.6, 0.2, 0] }}
-                        transition={{
-                          duration: WAVE_DURATION,
-                          times: [0, 0.25, 0.55, 1],
-                          delay: totalDelay,
-                          repeatDelay: WAVE_REPEAT_DELAY,
-                          repeat: Infinity,
-                          ease: 'easeOut',
-                        }}
-                      />
-                    </div>
-
-                    {/* Right arc `)` */}
-                    <div
-                      className="absolute"
-                      style={{ left: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
-                    >
-                      <motion.div
-                        style={{
-                          width: 0,
-                          height: 4,
-                          background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
-                          filter: 'blur(10px)',
-                          clipPath: `ellipse(100% ${arc.ellipseH}% at 100% ${arc.ellipseY}%)`,
-                          transformOrigin: 'left center',
-                          transform: 'translateY(-50%)',
-                        }}
-                        animate={{ width: [0, 350, 350, 350], opacity: [0.6, 0.6, 0.2, 0] }}
-                        transition={{
-                          duration: WAVE_DURATION,
-                          times: [0, 0.25, 0.55, 1],
-                          delay: totalDelay,
-                          repeatDelay: WAVE_REPEAT_DELAY,
-                          repeat: Infinity,
-                          ease: 'easeOut',
-                        }}
-                      />
-                    </div>
+            {waveArcs.map((arc, aIdx) => {
+              const rightSideDelay = arc.delay;
+              const leftSideDelay = arc.delay + arc.duration * 0.5;
+              return (
+                <div key={`wave-${aIdx}`} className="absolute inset-0 flex items-center justify-center">
+                  {/* Left arc `(` */}
+                  <div
+                    className="absolute"
+                    style={{ right: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
+                  >
+                    <motion.div
+                      style={{
+                        width: 0,
+                        height: `${arc.height}px`,
+                        background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
+                        filter: 'blur(10px)',
+                        borderTopLeftRadius: '50%',
+                        borderBottomLeftRadius: '50%',
+                        transformOrigin: 'right center',
+                        transform: 'translateY(-50%)',
+                      }}
+                      animate={{ width: [0, 300, 300, 0], opacity: [0.6, 0.6, 0.2, 0] }}
+                      transition={{
+                        duration: arc.duration,
+                        times: [0, 0.25, 0.55, 1],
+                        delay: leftSideDelay,
+                        repeatDelay: 1.5 + Math.random() * 0.5,
+                        repeat: Infinity,
+                        ease: 'easeOut',
+                      }}
+                    />
                   </div>
-                );
-              }),
-            )}
+
+                  {/* Right arc `)` */}
+                  <div
+                    className="absolute"
+                    style={{ left: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
+                  >
+                    <motion.div
+                      style={{
+                        width: 0,
+                        height: `${arc.height}px`,
+                        background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
+                        filter: 'blur(10px)',
+                        borderTopRightRadius: '50%',
+                        borderBottomRightRadius: '50%',
+                        transformOrigin: 'left center',
+                        transform: 'translateY(-50%)',
+                      }}
+                      animate={{ width: [0, 300, 300, 0], opacity: [0.6, 0.6, 0.2, 0] }}
+                      transition={{
+                        duration: arc.duration,
+                        times: [0, 0.25, 0.55, 1],
+                        delay: rightSideDelay,
+                        repeatDelay: 1.5 + Math.random() * 0.5,
+                        repeat: Infinity,
+                        ease: 'easeOut',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
 
             <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
           </div>

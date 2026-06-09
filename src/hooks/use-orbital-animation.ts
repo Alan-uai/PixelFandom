@@ -23,7 +23,13 @@ const COLLAPSE_TRANSITION = 'transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), z-in
 
 type OrbitMode = 'shared' | 'individual' | 'random';
 
-export function useOrbitalAnimation(count: number, options?: { orbitMode?: OrbitMode; centerIndices?: number[] }) {
+interface ParamOverride {
+  radius: number;
+  speed: number;
+  inclination: number;
+}
+
+export function useOrbitalAnimation(count: number, options?: { orbitMode?: OrbitMode; paramOverrides?: (ParamOverride | null)[] }) {
   const paramsRef = useRef<OrbitParams[]>([]);
   const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
   const trailRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -44,21 +50,21 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     const actualMode = mode === 'random'
       ? (Math.random() < 0.5 ? 'shared' : 'individual')
       : mode;
-    const centerSet = new Set(options?.centerIndices ?? []);
+    const overrides = options?.paramOverrides ?? [];
 
     if (actualMode === 'shared' && count > 0) {
       const shared = createParams();
-      paramsRef.current = Array.from({ length: count }, (_, i) =>
-        centerSet.has(i)
-          ? { radius: 0, speed: 0, inclination: 0, phaseOffset: 0 }
-          : { ...shared, phaseOffset: Math.random() * Math.PI * 2 },
-      );
+      paramsRef.current = Array.from({ length: count }, (_, i) => {
+        const ov = overrides[i];
+        if (ov) return { ...ov, phaseOffset: Math.random() * Math.PI * 2 };
+        return { ...shared, phaseOffset: Math.random() * Math.PI * 2 };
+      });
     } else {
-      paramsRef.current = Array.from({ length: count }, (_, i) =>
-        centerSet.has(i)
-          ? { radius: 0, speed: 0, inclination: 0, phaseOffset: 0 }
-          : createParams(),
-      );
+      paramsRef.current = Array.from({ length: count }, (_, i) => {
+        const ov = overrides[i];
+        if (ov) return { ...ov, phaseOffset: Math.random() * Math.PI * 2 };
+        return createParams();
+      });
     }
     iconRefs.current = Array.from({ length: count }, () => null);
     trailRefs.current = Array.from({ length: count }, () => null);
