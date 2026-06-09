@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
-import WikiCard from '@/components/wiki/wiki-card';
+import { WikiCard } from '@/components/wiki/wiki-card';
 import type { Tenant } from '@/supabase/client';
 
 interface WikisCarouselProps {
