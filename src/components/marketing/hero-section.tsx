@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback } from 'react';
-import { motion, useTransform, type MotionValue } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ChevronDown, Sparkles, Cpu, Users, Globe, Layout } from 'lucide-react';
 import { playHoverSound, playClickSound, playRevealSound, playSuccessSound } from '@/lib/feedback-sounds';
 import { useScrollProgress } from '@/context/scroll-progress-context';
+import AnimatedGradientText from '@/components/ui/animated-gradient-text';
+import CreditCardWallet from '@/components/marketing/credit-card-wallet';
 
 function DiscordSvgMini({ className }: { className?: string }) {
   return (
@@ -25,8 +27,6 @@ const miniFeatures = [
   { icon: DiscordSvgMini, label: 'Discord', color: 'hsl(235,86%,65%)' },
 ];
 
-const title = 'PixelFandom';
-
 const fadeUpVariants = {
   hidden: { opacity: 0, y: 40, filter: 'blur(6px)' },
   visible: {
@@ -36,37 +36,6 @@ const fadeUpVariants = {
     transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] },
   },
 };
-
-function LetterAnimator({ letter, index, scrollProgress }: { letter: string; index: number; scrollProgress: MotionValue<number> }) {
-  const staggerOffset = index * 0.04;
-
-  const letterProgress = useTransform(scrollProgress, (p) => {
-    if (p < 0.5) {
-      const entryDuration = 0.5 - staggerOffset;
-      const entryProgress = (p - staggerOffset) / entryDuration;
-      return Math.max(0, Math.min(1, entryProgress));
-    }
-    const exitDuration = 0.5 - staggerOffset;
-    const exitProgress = (1 - p - staggerOffset) / exitDuration;
-    return Math.max(0, Math.min(1, exitProgress));
-  });
-
-  const opacity = useTransform(letterProgress, [0, 0.4, 1], [0, 1, 1]);
-  const y = useTransform(letterProgress, [0, 1], [70, 0]);
-  const rotateX = useTransform(letterProgress, [0, 1], [-95, 0]);
-  const scale = useTransform(letterProgress, [0, 1], [0.45, 1]);
-  const blur = useTransform(letterProgress, [0, 1], [8, 0]);
-  const blurFilter = useTransform(blur, (v) => `blur(${v}px)`);
-
-  return (
-    <motion.span
-      className="inline-block"
-      style={{ opacity, y, rotateX, scale, filter: blurFilter }}
-    >
-      {letter === ' ' ? '\u00A0' : letter}
-    </motion.span>
-  );
-}
 
 export default function HeroSection() {
   const scrollProgress = useScrollProgress();
@@ -95,62 +64,24 @@ export default function HeroSection() {
               <span>wikis inteligentes com IA</span>
             </div>
           </motion.div>
-          <motion.h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight mb-4 relative" variants={fadeUpVariants}>
-            <span className="inline-flex flex-wrap justify-center gap-x-2 md:gap-x-4 text-gradient-cyan font-display">
-              {title.split('').map((letter, i) => (
-                <motion.span
-                  key={i}
-                  className="inline-block"
-                  initial={{ opacity: 0, y: 60, rotateX: -90, scale: 0.5 }}
-                  animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.6 + i * 0.05 }}
-                  onAnimationComplete={i === 0 ? onFirstLetter : undefined}
-                >
-                  {letter === ' ' ? '\u00A0' : letter}
-                </motion.span>
-              ))}
-            </span>
-          </motion.h1>
+          <motion.div variants={fadeUpVariants}>
+            <AnimatedGradientText
+              text="PixelFandom"
+              as="h1"
+              className="text-5xl sm:text-6xl md:text-8xl font-bold mb-4 relative"
+              onFirstLetterAnimated={onFirstLetter}
+            />
+          </motion.div>
           <motion.p className="text-xl md:text-3xl font-semibold text-gradient-primary mb-6" variants={fadeUpVariants}>
             <span className="animate-typing-glow">Sua wiki, do seu jeito.</span>
           </motion.p>
-          <motion.p className="text-base md:text-lg text-gray-400 max-w-2xl mb-10 leading-relaxed" variants={fadeUpVariants}>
-            Crie wikis poderosas para seus jogos, comunidades e projetos.
-            Com assistente IA integrado, domínio personalizado, temas customizáveis e integração
-            com Discord. Crie sua wiki em minutos. Sem cartão de crédito.
-          </motion.p>
-          <motion.div className="flex gap-4 flex-wrap justify-center mb-12" variants={fadeUpVariants}>
-            <motion.div
-              whileHover={{ scale: 1.06, boxShadow: '0 0 30px hsl(198 100% 65% / 0.4)' }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              onMouseEnter={playHoverSound}
-              onClick={() => { playSuccessSound(); playClickSound(); }}
-            >
-              <Button size="lg" asChild className="relative overflow-hidden group">
-                <Link href="/dashboard/new">
-                  <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/15 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                  <span className="relative flex items-center">
-                    Criar Wiki Grátis
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </Link>
-              </Button>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.06, boxShadow: '0 0 30px hsl(198 100% 65% / 0.2)' }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              onMouseEnter={playHoverSound}
-              onClick={() => {
-                playClickSound();
-                document.getElementById('wikis-carousel')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              <Button size="lg" variant="outline">Explorar</Button>
-            </motion.div>
+          <motion.div className="flex flex-col items-center gap-4 mb-8" variants={fadeUpVariants}>
+            <p className="text-base md:text-lg text-gray-400 leading-relaxed">
+              Crie sua wiki em minutos.
+            </p>
+            <CreditCardWallet />
           </motion.div>
-          <motion.div className="w-full max-w-3xl" variants={fadeUpVariants}>
+          <motion.div className="w-full max-w-3xl mb-10" variants={fadeUpVariants}>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
               {miniFeatures.map((feature) => (
                 <motion.div
@@ -182,6 +113,37 @@ export default function HeroSection() {
               ))}
             </div>
           </motion.div>
+          <motion.div className="flex gap-4 flex-wrap justify-center mb-12" variants={fadeUpVariants}>
+            <motion.div
+              whileHover={{ scale: 1.06, boxShadow: '0 0 30px hsl(198 100% 65% / 0.4)' }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              onMouseEnter={playHoverSound}
+              onClick={() => { playSuccessSound(); playClickSound(); }}
+            >
+              <Button size="lg" asChild className="relative overflow-hidden group">
+                <Link href="/dashboard/new">
+                  <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/15 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                  <span className="relative flex items-center">
+                    Criar Wiki Grátis
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </Link>
+              </Button>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.06, boxShadow: '0 0 30px hsl(198 100% 65% / 0.2)' }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              onMouseEnter={playHoverSound}
+              onClick={() => {
+                playClickSound();
+                document.getElementById('wikis-carousel')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              <Button size="lg" variant="outline">Explorar</Button>
+            </motion.div>
+          </motion.div>
         </motion.div>
         <motion.div
           className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500"
@@ -208,29 +170,12 @@ export default function HeroSection() {
           </div>
         </motion.div>
 
-        <motion.h1
-          className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight mb-4 relative"
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-          <span
-            className="inline-flex flex-wrap justify-center gap-x-2 md:gap-x-4 font-display"
-            style={{
-              background: 'linear-gradient(135deg, hsl(198 100% 65%), hsl(270 80% 60%), hsl(350 90% 60%))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            {title.split('').map((letter, i) => (
-              <LetterAnimator
-                key={i}
-                letter={letter}
-                index={i}
-                scrollProgress={scrollProgress}
-              />
-            ))}
-          </span>
-        </motion.h1>
+        <AnimatedGradientText
+          text="PixelFandom"
+          as="h1"
+          className="text-5xl sm:text-6xl md:text-8xl font-bold mb-4 relative"
+          scrollProgress={scrollProgress}
+        />
 
         <motion.h2
           className="text-xl md:text-3xl font-semibold mb-6 animate-title-shimmer animate-text-glow-pulse"
@@ -244,14 +189,51 @@ export default function HeroSection() {
           Sua wiki, do seu jeito.
         </motion.h2>
 
-        <motion.p
-          className="text-base md:text-lg text-gray-400 max-w-2xl mb-10 leading-relaxed"
+        <motion.div
+          className="flex flex-col items-center gap-4 mb-8"
           style={{ opacity: useTransform(scrollProgress, [0, 0.3, 0.8, 1], [0, 1, 1, 0]) }}
         >
-          Crie wikis poderosas para seus jogos, comunidades e projetos.
-          Com assistente IA integrado, domínio personalizado, temas customizáveis e integração
-          com Discord. Crie sua wiki em minutos. Sem cartão de crédito.
-        </motion.p>
+          <p className="text-base md:text-lg text-gray-400 leading-relaxed">
+            Crie sua wiki em minutos.
+          </p>
+          <CreditCardWallet />
+        </motion.div>
+
+        <motion.div
+          className="w-full max-w-3xl mb-10"
+          style={{ opacity: useTransform(scrollProgress, [0, 0.4, 0.7, 1], [0, 1, 1, 0]) }}
+        >
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+            {miniFeatures.map((feature) => (
+              <motion.div
+                key={feature.label}
+                className="group relative"
+                whileHover={{ scale: 1.08, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onMouseEnter={playHoverSound}
+                style={{ perspective: 400 }}
+              >
+                <motion.div
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 sm:px-4 sm:py-2 backdrop-blur-sm transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.04]"
+                  whileHover={{ rotateX: -5, rotateY: 5 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div className="relative">
+                    <feature.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: feature.color }} />
+                    <motion.div
+                      className="absolute inset-0 blur-sm opacity-0 group-hover:opacity-60 transition-opacity duration-300"
+                      style={{ color: feature.color, backgroundColor: feature.color, borderRadius: '50%', width: '100%', height: '100%' }}
+                    />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300" style={{ transform: 'translateZ(8px)' }}>
+                    {feature.label}
+                  </span>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
 
         <motion.div
           className="flex gap-4 flex-wrap justify-center mb-12"
@@ -286,42 +268,6 @@ export default function HeroSection() {
           >
             <Button size="lg" variant="outline">Explorar</Button>
           </motion.div>
-        </motion.div>
-
-        <motion.div
-          className="w-full max-w-3xl"
-          style={{ opacity: useTransform(scrollProgress, [0, 0.4, 0.7, 1], [0, 1, 1, 0]) }}
-        >
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-            {miniFeatures.map((feature) => (
-              <motion.div
-                key={feature.label}
-                className="group relative"
-                whileHover={{ scale: 1.08, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onMouseEnter={playHoverSound}
-                style={{ perspective: 400 }}
-              >
-                <motion.div
-                  className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 sm:px-4 sm:py-2 backdrop-blur-sm transition-all duration-300 hover:border-white/[0.15] hover:bg-white/[0.04]"
-                  whileHover={{ rotateX: -5, rotateY: 5 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <div className="relative">
-                    <feature.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: feature.color }} />
-                    <motion.div
-                      className="absolute inset-0 blur-sm opacity-0 group-hover:opacity-60 transition-opacity duration-300"
-                      style={{ color: feature.color, backgroundColor: feature.color, borderRadius: '50%', width: '100%', height: '100%' }}
-                    />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300" style={{ transform: 'translateZ(8px)' }}>
-                    {feature.label}
-                  </span>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
         </motion.div>
       </div>
 

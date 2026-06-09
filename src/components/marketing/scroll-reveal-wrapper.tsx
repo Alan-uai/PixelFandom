@@ -1,27 +1,29 @@
 'use client';
 
-import { useRef, useMemo, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { ScrollProgressProvider } from '@/context/scroll-progress-context';
+
+export type SlideDirection = 'down-left' | 'down-right' | 'down';
 
 interface ScrollRevealWrapperProps {
   children: ReactNode;
   className?: string;
+  slideDirection: SlideDirection;
 }
+
+const xRange: Record<SlideDirection, [number, number, number]> = {
+  'down-left': [400, 0, -400],
+  'down-right': [-400, 0, 400],
+  down: [0, 0, 0],
+};
 
 export default function ScrollRevealWrapper({
   children,
   className = '',
+  slideDirection,
 }: ScrollRevealWrapperProps) {
   const ref = useRef<HTMLDivElement>(null);
-
-  const randomAngle = useMemo(() => {
-    return (Math.random() * 2 - 1) * 90;
-  }, []);
-
-  const maxTilt = 28;
-  const tiltY = maxTilt * Math.sin((randomAngle * Math.PI) / 180);
-  const tiltX = maxTilt * Math.cos((randomAngle * Math.PI) / 180);
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -38,8 +40,7 @@ export default function ScrollRevealWrapper({
   const opacity = useTransform(progressSpring, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
   const blurAmount = useTransform(progressSpring, [0, 0.2, 0.8, 1], [10, 0, 0, 10]);
   const yOffset = useTransform(progressSpring, [0, 0.5, 1], [180, 0, -180]);
-  const rotateX = useTransform(progressSpring, [0, 0.5, 1], [tiltX, 0, -tiltX]);
-  const rotateY = useTransform(progressSpring, [0, 0.5, 1], [tiltY, 0, -tiltY]);
+  const xOffset = useTransform(progressSpring, [0, 0.5, 1], xRange[slideDirection]);
   const blurFilter = useTransform(blurAmount, (v) => `blur(${v}px)`);
 
   return (
@@ -49,13 +50,9 @@ export default function ScrollRevealWrapper({
           style={{
             scale,
             opacity,
-            rotateX,
-            rotateY,
+            x: xOffset,
             y: yOffset,
             filter: blurFilter,
-            transformStyle: 'preserve-3d',
-            perspective: '1200px',
-            transformOrigin: 'center center',
             willChange: 'transform, opacity, filter',
           }}
         >
