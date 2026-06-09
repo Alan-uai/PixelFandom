@@ -9,6 +9,7 @@ import StatBar from '@/components/marketing/stat-bar';
 import SearchSection from '@/components/marketing/search-section';
 import WikisCarousel from '@/components/marketing/wikis-carousel';
 import Footer from '@/components/marketing/footer';
+import ScrollRevealWrapper from '@/components/marketing/scroll-reveal-wrapper';
 import { useAuthDialog } from '@/context/auth-dialog-context';
 
 export default function Home() {
@@ -108,12 +109,16 @@ export default function Home() {
   }, [searchQuery]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <HeroSection />
-      <NavStrip onLogin={openAuth} />
+    <div className="flex flex-col">
+      <ScrollRevealWrapper>
+        <HeroSection />
+      </ScrollRevealWrapper>
 
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.01] to-transparent pointer-events-none" />
+      <ScrollRevealWrapper>
+        <NavStrip onLogin={openAuth} />
+      </ScrollRevealWrapper>
+
+      <ScrollRevealWrapper>
         <SearchSection
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -123,23 +128,29 @@ export default function Home() {
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
         />
-      </div>
+      </ScrollRevealWrapper>
 
-      <WikisCarousel
-        wikis={wikis}
-        loading={loading}
-        error={error}
-        voteData={voteData}
-        activeCategory={activeCategory}
-      />
+      <ScrollRevealWrapper>
+        <WikisCarousel
+          wikis={wikis}
+          loading={loading}
+          error={error}
+          voteData={voteData}
+          activeCategory={activeCategory}
+        />
+      </ScrollRevealWrapper>
 
-      <StatBar
-        wikisCount={wikis.length}
-        membersCount={membersCount}
-        articlesCount={articlesCount}
-      />
+      <ScrollRevealWrapper>
+        <StatBar
+          wikisCount={wikis.length}
+          membersCount={membersCount}
+          articlesCount={articlesCount}
+        />
+      </ScrollRevealWrapper>
 
-      <Footer />
+      <ScrollRevealWrapper>
+        <Footer />
+      </ScrollRevealWrapper>
     </div>
   );
 }

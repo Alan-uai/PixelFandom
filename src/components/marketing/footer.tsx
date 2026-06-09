@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 
 interface Particle {
   x: number;
@@ -161,36 +160,18 @@ const linkSections = [
 ];
 
 export default function Footer() {
-  const { ref, isVisible } = useScrollReveal({ threshold: 0.05 });
   const currentYear = new Date().getFullYear();
 
   return (
-    <motion.footer
-      ref={ref}
-      className="relative py-16 overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
-      transition={{ duration: 0.6 }}
-    >
+    <footer className="relative py-16 overflow-hidden">
       <ParticleCanvas />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Link href="/" className="text-gradient-cyan font-display text-2xl tracking-tight">
-            PixelFandom
-          </Link>
-        </motion.div>
+        <Link href="/" className="text-gradient-cyan font-display text-2xl tracking-tight">
+          PixelFandom
+        </Link>
 
-        <motion.div
-          className="mt-10 flex flex-wrap justify-center gap-12 sm:gap-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
+        <div className="mt-10 flex flex-wrap justify-center gap-12 sm:gap-16">
           {linkSections.map((section) => (
             <div key={section.title}>
               <h3 className="text-sm font-semibold text-foreground mb-3">
@@ -210,20 +191,15 @@ export default function Footer() {
               </ul>
             </div>
           ))}
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="mt-14 pt-6 w-full border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-        >
+        <div className="mt-14 pt-6 w-full border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>&copy; {currentYear} PixelFandom. Feito para f&atilde;s.</span>
           <Link href="/about" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">
             Sobre
           </Link>
-        </motion.div>
+        </div>
       </div>
-    </motion.footer>
+    </footer>
   );
 }

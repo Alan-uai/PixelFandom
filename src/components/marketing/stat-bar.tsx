@@ -64,8 +64,6 @@ interface StatBarProps {
 }
 
 export default function StatBar({ wikisCount, membersCount, articlesCount }: StatBarProps) {
-  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
-
   const stats = [
     { end: wikisCount, suffix: '+', label: 'Wikis Criadas' },
     { end: membersCount, suffix: '+', label: 'Membros' },
@@ -73,30 +71,19 @@ export default function StatBar({ wikisCount, membersCount, articlesCount }: Sta
   ];
 
   return (
-    <motion.section
-      ref={ref}
-      className="relative max-w-4xl mx-auto px-4 py-16"
-      initial={{ opacity: 0 }}
-      animate={isVisible ? { opacity: 1 } : {}}
-      transition={{ duration: 0.6 }}
-    >
+    <section className="relative max-w-4xl mx-auto px-4 py-16">
       <div className="rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/5 px-8 py-10">
         <div className="grid grid-cols-3 gap-8">
           {stats.map((stat, i) => (
             <AnimatedCounter key={stat.label} {...stat} delay={i * 0.15} />
           ))}
         </div>
-        <motion.div
-          className="mt-6 pt-4 border-t border-white/5 text-center"
-          initial={{ opacity: 0 }}
-          animate={isVisible ? { opacity: 1 } : {}}
-          transition={{ duration: 0.4, delay: 0.8 }}
-        >
+        <div className="mt-6 pt-4 border-t border-white/5 text-center">
           <p className="text-xs text-muted-foreground">
             e crescendo — junte-se a centenas de comunidades
           </p>
-        </motion.div>
+        </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

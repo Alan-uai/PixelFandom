@@ -777,4 +777,57 @@
     top: 15px;
   }
 
+  /* ── Pixel Fandom Infinite Animations ── */
+  @keyframes title-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .animate-title-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 25%,
+      hsla(198, 100%, 75%, 0.5) 45%,
+      hsla(270, 80%, 70%, 0.6) 50%,
+      hsla(198, 100%, 75%, 0.5) 55%,
+      transparent 75%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: title-shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes text-glow-pulse {
+    0%, 100% { text-shadow: 0 0 8px hsla(198, 100%, 65%, 0.15), 0 0 20px hsla(198, 100%, 65%, 0.05); }
+    50% { text-shadow: 0 0 16px hsla(198, 100%, 65%, 0.35), 0 0 40px hsla(198, 100%, 65%, 0.12), 0 0 80px hsla(270, 80%, 60%, 0.06); }
+  }
+
+  .animate-text-glow-pulse {
+    animation: text-glow-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes letter-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .animate-letter-float {
+    animation: letter-float 2.5s ease-in-out infinite;
+  }
+
+  .letter-float-delay-1 { animation-delay: 0s; }
+  .letter-float-delay-2 { animation-delay: 0.2s; }
+  .letter-float-delay-3 { animation-delay: 0.4s; }
+  .letter-float-delay-4 { animation-delay: 0.6s; }
+  .letter-float-delay-5 { animation-delay: 0.8s; }
+  .letter-float-delay-6 { animation-delay: 0.1s; }
+  .letter-float-delay-7 { animation-delay: 0.3s; }
+  .letter-float-delay-8 { animation-delay: 0.5s; }
+  .letter-float-delay-9 { animation-delay: 0.7s; }
+  .letter-float-delay-10 { animation-delay: 0.9s; }
+  .letter-float-delay-11 { animation-delay: 0.15s; }
+
 }

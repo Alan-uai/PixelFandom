@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen } from 'lucide-react';
-import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
 import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
 import { WikiCard } from '@/components/wiki/wiki-card';
 import type { Tenant } from '@/supabase/client';
@@ -19,7 +18,6 @@ interface WikisCarouselProps {
 const CARD_W = 300;
 
 export default function WikisCarousel({ wikis, loading, error, voteData, activeCategory }: WikisCarouselProps) {
-  const { ref, isVisible } = useScrollReveal({ threshold: 0.05 });
   const scrollRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -86,13 +84,8 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
   };
 
   return (
-    <section id="wikis-carousel" ref={ref} className="relative w-full py-24 overflow-hidden">
+    <section id="wikis-carousel" className="relative w-full py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
           <div className="flex items-center justify-between mb-12">
             <div>
               <h2 className="font-display text-3xl sm:text-4xl font-bold">
@@ -129,8 +122,6 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
               </div>
             )}
           </div>
-        </motion.div>
-
         {loading ? (
           <div className="flex justify-center py-24">
             <motion.div
@@ -141,39 +132,22 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
             </motion.div>
           </div>
         ) : error ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            className="flex items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-8 text-destructive"
-          >
+          <div className="flex items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-8 text-destructive">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <p className="text-sm">Erro ao carregar wikis: {error}</p>
-          </motion.div>
+          </div>
         ) : wikis.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
-          >
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground">
             <BookOpen className="h-10 w-10" />
             <p className="text-sm">Nenhuma wiki encontrada</p>
-          </motion.div>
+          </div>
         ) : filtered.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground"
-          >
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/40 px-6 py-16 text-muted-foreground">
             <BookOpen className="h-10 w-10" />
             <p className="text-sm">Nenhuma wiki nesta categoria</p>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+          <div className="relative">
             {/* Gradient fade edges */}
             <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
             <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
@@ -233,7 +207,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </section>

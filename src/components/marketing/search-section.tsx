@@ -3,8 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BookOpen, ArrowRight, Loader2, Hash } from 'lucide-react';
 import Link from 'next/link';
-import { useScrollReveal } from '@/components/marketing/use-scroll-reveal';
-import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
+import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
 import type { Tenant } from '@/supabase/client';
 
 interface SearchSectionProps {
@@ -26,48 +25,20 @@ export default function SearchSection({
   activeCategory,
   onCategoryChange,
 }: SearchSectionProps) {
-  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
-
   return (
-    <motion.section
-      ref={ref}
-      className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24"
-      initial={{ opacity: 0 }}
-      animate={isVisible ? { opacity: 1 } : {}}
-      transition={{ duration: 0.6 }}
-    >
+    <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       <div className="max-w-2xl mx-auto text-center relative">
-        <motion.div
-          className="absolute -inset-4 rounded-2xl bg-primary/[0.02] border border-primary/5 backdrop-blur-3xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={isVisible ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          onAnimationComplete={() => playRevealSound()}
-        />
+        <div className="absolute -inset-4 rounded-2xl bg-primary/[0.02] border border-primary/5 backdrop-blur-3xl" />
         <div className="relative">
-          <motion.h2
-            className="font-display text-3xl sm:text-4xl mb-3"
-            initial={{ opacity: 0, y: 10 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, delay: 0.15 }}
-          >
+          <h2 className="font-display text-3xl sm:text-4xl mb-3">
             Encontre sua wiki
-          </motion.h2>
-          <motion.p
-            className="text-sm text-muted-foreground mb-8"
-            initial={{ opacity: 0, y: 10 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8">
             Busque por nome, slug ou descrição
-          </motion.p>
+          </p>
 
           {/* Search Input — Uiverse animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, delay: 0.25 }}
-          >
+          <div>
             <div className="search-uiverse-wrapper flex items-center justify-center relative">
               <div className="grid"></div>
               <div id="poda">
@@ -154,15 +125,10 @@ export default function SearchSection({
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Chips Filters */}
-          <motion.div
-            className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin"
-            initial={{ opacity: 0, y: 8 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
+          <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
             <button
               onClick={() => { onCategoryChange(null); playClickSound(); }}
               onMouseEnter={playHoverSound}
@@ -192,7 +158,7 @@ export default function SearchSection({
                 {cat.name}
               </button>
             ))}
-          </motion.div>
+          </div>
 
           {/* Search Results */}
           <AnimatePresence mode="wait">
@@ -277,6 +243,6 @@ export default function SearchSection({
           </AnimatePresence>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
