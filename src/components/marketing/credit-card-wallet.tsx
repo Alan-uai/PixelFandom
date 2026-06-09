@@ -198,20 +198,23 @@ function PocketSvg() {
   );
 }
 
-export default function CreditCardWallet({ className }: { className?: string }) {
+export default function CreditCardWallet({ className, size = 280 }: { className?: string; size?: number }) {
   const [walletHovered, setWalletHovered] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
+  const scale = size / 280;
+
   return (
-    <div className={className}>
+    <div className={className} style={{ width: size, height: Math.round(size * 230 / 280) }}>
       <div
         className="relative w-[280px] h-[230px] cursor-pointer perspective-[1000px] flex items-end justify-center select-none"
-        onMouseEnter={() => setWalletHovered(true)}
-        onMouseLeave={() => { setWalletHovered(false); setHoveredCard(null); }}
         style={{
-          transform: walletHovered ? 'translateY(-5px)' : 'translateY(0)',
+          transform: `scale(${scale}) ${walletHovered ? 'translateY(-5px)' : 'translateY(0)'}`,
+          transformOrigin: '0 0',
           transition: 'transform 0.4s ease',
         }}
+        onMouseEnter={() => setWalletHovered(true)}
+        onMouseLeave={() => { setWalletHovered(false); setHoveredCard(null); }}
       >
         <div
           className="absolute bottom-0 w-[280px] h-[200px] bg-[#1e341e] rounded-[22px_22px_60px_60px]"

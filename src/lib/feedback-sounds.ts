@@ -48,6 +48,27 @@ export function playRevealSound() {
   playTone(150, 250, 0.2, 0.08, 'sine');
 }
 
+export function playSplashSound() {
+  getAudioContext().then((ac) => {
+    if (!ac) return;
+    const now = ac.currentTime;
+
+    [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.12);
+      gain.gain.setValueAtTime(0, now + i * 0.12);
+      gain.gain.linearRampToValueAtTime(0.08, now + i * 0.12 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.6);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(now + i * 0.12);
+      osc.stop(now + i * 0.12 + 0.7);
+    });
+  });
+}
+
 export function playSuccessSound() {
   playTone(500, 1000, 0.12, 0.15, 'sine');
 }

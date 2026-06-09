@@ -30,24 +30,20 @@ function ScrollLetter({
   gradient: string;
   stagger: number;
 }) {
-  const staggerOffset = index * stagger;
+  const adjustedStart = Math.min(0.2 + index * stagger * 0.4, 0.5);
+  const adjustedEnd = Math.min(adjustedStart + 0.35, 1);
 
-  const letterProgress = useTransform(scrollProgress, (p) => {
-    const half = 0.5;
-    const effectiveDuration = Math.max(half - staggerOffset, 0.01);
-    if (p < half) {
-      const v = (p - staggerOffset) / effectiveDuration;
-      return Math.max(0, Math.min(1, v));
-    }
-    const v = (1 - p - staggerOffset) / effectiveDuration;
-    return Math.max(0, Math.min(1, v));
+  const exitProgress = useTransform(scrollProgress, (p) => {
+    if (p <= adjustedStart) return 0;
+    if (p >= adjustedEnd) return 1;
+    return (p - adjustedStart) / (adjustedEnd - adjustedStart);
   });
 
-  const opacity = useTransform(letterProgress, [0, 0.4, 1], [0, 1, 1]);
-  const y = useTransform(letterProgress, [0, 1], [70, 0]);
-  const rotateX = useTransform(letterProgress, [0, 1], [-95, 0]);
-  const scale = useTransform(letterProgress, [0, 1], [0.45, 1]);
-  const blur = useTransform(letterProgress, [0, 1], [8, 0]);
+  const opacity = useTransform(exitProgress, [0, 1], [1, 0]);
+  const y = useTransform(exitProgress, [0, 1], [0, -80]);
+  const rotateX = useTransform(exitProgress, [0, 1], [0, 95]);
+  const scale = useTransform(exitProgress, [0, 1], [1, 0.4]);
+  const blur = useTransform(exitProgress, [0, 1], [0, 8]);
   const blurFilter = useTransform(blur, (v) => `blur(${v}px)`);
 
   return (
@@ -125,7 +121,7 @@ export default function AnimatedGradientText({
 
   return (
     <Tag
-      className={`${className} tracking-tight`}
+      className={`${className} tracking-tight animate-text-glow-pulse`}
       style={{ transformStyle: 'preserve-3d', perspective: '1200px' }}
     >
       <span className="inline-flex flex-wrap justify-center gap-x-2 md:gap-x-4" style={{ transformStyle: 'preserve-3d' }}>

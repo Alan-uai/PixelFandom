@@ -241,6 +241,18 @@ conteúdo. Toda descoberta de dados deve ser via `information_schema`,
 - Todas as queries de catálogo usam `useTableCatalog` ou `getTableCatalog`
 - Se o dado não está no catálogo, buscar via information_schema ou RPC
 
+## Engineering principles — Componentes reutilizáveis (customização total)
+
+Todo componente reutilizável deve suportar **qualquer personalização necessária**:
+- **Cor** — aceitar `className` para Tailwind, ou props explícitas de cor
+- **Gradiente** — permitir override de background/gradiente via className ou style
+- **Uso parcial** — poder renderizar apenas partes do componente (ex: só o pocket sem cards)
+- **Uso completo** — funcionar standalone em qualquer contexto
+- **Tamanho** — prop `size` (ou `width`/`height`) para escalar proporcionalmente
+- **Efeitos** — não engessar animações nem estilos; acceptar className para o usuário aplicar hover, shadow, blur, scale, etc externamente
+
+Se o componente não puder ser customizado em um desses eixos, deve ser refatorado até poder.
+
 ## Engineering principles — Local-first
 
 ### Regra geral

@@ -79,7 +79,7 @@ export default function HeroSection() {
             <p className="text-base md:text-lg text-gray-400 leading-relaxed">
               Crie sua wiki em minutos.
             </p>
-            <CreditCardWallet />
+            <CreditCardWallet size={16} />
           </motion.div>
           <motion.div className="w-full max-w-3xl mb-10" variants={fadeUpVariants}>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
@@ -170,12 +170,14 @@ export default function HeroSection() {
           </div>
         </motion.div>
 
-        <AnimatedGradientText
-          text="PixelFandom"
-          as="h1"
-          className="text-5xl sm:text-6xl md:text-8xl font-bold mb-4 relative"
-          scrollProgress={scrollProgress}
-        />
+        <motion.div variants={fadeUpVariants}>
+          <AnimatedGradientText
+            text="PixelFandom"
+            as="h1"
+            className="text-5xl sm:text-6xl md:text-8xl font-bold mb-4 relative"
+            scrollProgress={scrollProgress}
+          />
+        </motion.div>
 
         <motion.h2
           className="text-xl md:text-3xl font-semibold mb-6 animate-title-shimmer animate-text-glow-pulse"
@@ -196,7 +198,7 @@ export default function HeroSection() {
           <p className="text-base md:text-lg text-gray-400 leading-relaxed">
             Crie sua wiki em minutos.
           </p>
-          <CreditCardWallet />
+          <CreditCardWallet size={16} />
         </motion.div>
 
         <motion.div
