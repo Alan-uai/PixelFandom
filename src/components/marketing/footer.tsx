@@ -201,7 +201,7 @@ export default function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="text-sm text-muted-foreground hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300"
                     >
                       {link.label}
                     </Link>
@@ -219,7 +219,7 @@ export default function Footer() {
           transition={{ duration: 0.5, delay: 0.35 }}
         >
           <span>&copy; {currentYear} PixelFandom. Feito para f&atilde;s.</span>
-          <Link href="/about" className="hover:text-primary transition-colors">
+          <Link href="/about" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">
             Sobre
           </Link>
         </motion.div>

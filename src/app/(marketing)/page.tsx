@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
 import HeroSection from '@/components/marketing/hero-section';
+import StatBar from '@/components/marketing/stat-bar';
 import SearchSection from '@/components/marketing/search-section';
 import WikisCarousel from '@/components/marketing/wikis-carousel';
 import AnimatedFeatures from '@/components/marketing/animated-features';
@@ -18,6 +19,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Tenant[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [voteData, setVoteData] = useState<Record<string, { upvotes: number; downvotes: number; score: number; user_vote: string | null }>>({});
   const cache = useRef<{ wikis?: Tenant[]; voteData?: any }>({});
 
@@ -74,6 +76,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <HeroSection />
+      <StatBar />
 
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.01] to-transparent pointer-events-none" />
@@ -82,6 +85,9 @@ export default function Home() {
           onSearchChange={setSearchQuery}
           searchResults={searchResults}
           searchLoading={searchLoading}
+          categories={wikis.map((w) => ({ slug: w.slug, name: w.name }))}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
         />
       </div>
 
@@ -90,6 +96,7 @@ export default function Home() {
         loading={loading}
         error={error}
         voteData={voteData}
+        activeCategory={activeCategory}
       />
 
       <AnimatedFeatures />

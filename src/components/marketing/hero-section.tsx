@@ -100,12 +100,12 @@ export default function HeroSection() {
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* Subtitle with typing glow */}
         <motion.p
           className="text-xl md:text-3xl font-semibold text-gradient-primary mb-6"
           variants={fadeUpVariants}
         >
-          Sua wiki, do seu jeito.
+          <span className="animate-typing-glow">Sua wiki, do seu jeito.</span>
         </motion.p>
 
         {/* Description */}

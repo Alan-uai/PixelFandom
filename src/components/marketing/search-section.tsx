@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, BookOpen, ArrowRight, Loader2, Hash } from 'lucide-react';
 import Link from 'next/link';
@@ -17,6 +18,97 @@ interface SearchSectionProps {
   onCategoryChange: (slug: string | null) => void;
 }
 
+function SearchShape({ focused }: { focused: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let time = 0;
+
+    const draw = () => {
+      time += 0.02;
+      const w = canvas!.width;
+      const h = canvas!.height;
+      ctx!.clearRect(0, 0, w, h);
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = focused ? 50 : 30;
+      const r = focused ? 18 : 12;
+      const alpha = focused ? 0.12 : 0.05;
+
+      const segments = 20;
+      const tubeSegments = 8;
+
+      for (let i = 0; i < segments; i++) {
+        const theta1 = (i / segments) * Math.PI * 2 + time;
+        const theta2 = ((i + 1) / segments) * Math.PI * 2 + time;
+        for (let j = 0; j < tubeSegments; j++) {
+          const phi1 = (j / tubeSegments) * Math.PI * 2;
+          const phi2 = ((j + 1) / tubeSegments) * Math.PI * 2;
+
+          const pts = [
+            {
+              x: (R + r * Math.cos(phi1)) * Math.cos(theta1),
+              y: (R + r * Math.cos(phi1)) * Math.sin(theta1),
+              z: r * Math.sin(phi1),
+            },
+            {
+              x: (R + r * Math.cos(phi2)) * Math.cos(theta1),
+              y: (R + r * Math.cos(phi2)) * Math.sin(theta1),
+              z: r * Math.sin(phi2),
+            },
+            {
+              x: (R + r * Math.cos(phi2)) * Math.cos(theta2),
+              y: (R + r * Math.cos(phi2)) * Math.sin(theta2),
+              z: r * Math.sin(phi2),
+            },
+            {
+              x: (R + r * Math.cos(phi1)) * Math.cos(theta2),
+              y: (R + r * Math.cos(phi1)) * Math.sin(theta2),
+              z: r * Math.sin(phi1),
+            },
+          ];
+
+          const zAvg = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4;
+          const a = alpha * (0.3 + ((zAvg + R) / (R * 2)) * 0.7);
+
+          ctx!.beginPath();
+          ctx!.moveTo(cx + pts[0].x, cy + pts[0].y * 0.5);
+          ctx!.lineTo(cx + pts[1].x, cy + pts[1].y * 0.5);
+          ctx!.lineTo(cx + pts[2].x, cy + pts[2].y * 0.5);
+          ctx!.lineTo(cx + pts[3].x, cy + pts[3].y * 0.5);
+          ctx!.closePath();
+          ctx!.strokeStyle = `rgba(75, 197, 255, ${a})`;
+          ctx!.lineWidth = 1;
+          ctx!.stroke();
+        }
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    canvas.width = 200;
+    canvas.height = 120;
+    draw();
+
+    return () => cancelAnimationFrame(animId);
+  }, [focused]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      style={{ width: 200, height: 120 }}
+    />
+  );
+}
+
 export default function SearchSection({
   searchQuery,
   onSearchChange,
@@ -27,6 +119,7 @@ export default function SearchSection({
   onCategoryChange,
 }: SearchSectionProps) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+  const [focused, setFocused] = useState(false);
 
   return (
     <motion.section
@@ -68,7 +161,12 @@ export default function SearchSection({
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4, delay: 0.25 }}
           >
-            <div className="relative group">
+            <div className="relative group" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
+              {/* 3D reactive shape */}
+              <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                <SearchShape focused={focused} />
+              </div>
+
               <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-purple-500/20 opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-500" />
               <div className="relative flex items-center bg-white/[0.02] border border-primary/20 backdrop-blur-3xl rounded-xl focus-within:animate-border-glow-rotate">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

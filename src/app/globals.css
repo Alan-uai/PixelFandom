@@ -436,12 +436,40 @@
     100% { background-position: 200% 0; }
   }
 
+  @keyframes stat-reveal {
+    0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes particle-explosion {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+
+  @keyframes typing-glow {
+    0%, 100% { text-shadow: 0 0 4px hsl(198 100% 65% / 0.3), 0 0 8px hsl(198 100% 65% / 0.1); }
+    50% { text-shadow: 0 0 8px hsl(198 100% 65% / 0.6), 0 0 16px hsl(198 100% 65% / 0.2), 0 0 24px hsl(198 100% 65% / 0.1); }
+  }
+
+  @keyframes nav-blur-in {
+    0% { opacity: 0; transform: translateY(-12px) scale(0.96); backdrop-filter: blur(0px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); backdrop-filter: blur(24px); }
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
   .animate-border-glow { animation: border-glow 2s ease-in-out infinite; }
   .animate-border-glow-rotate { animation: border-glow-rotate 4s linear infinite; }
   .animate-shape-float { animation: shape-float 6s ease-in-out infinite; }
   .animate-shape-float-2 { animation: shape-float-2 8s ease-in-out infinite; }
   .animate-rainbow-shift { animation: rainbow-shift 6s ease-in-out infinite; }
   .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+  .animate-stat-reveal { animation: stat-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .animate-nav-blur-in { animation: nav-blur-in 0.5s ease-out forwards; }
+  .animate-typing-glow { animation: typing-glow 2s ease-in-out infinite; }
 
   .shimmer {
     background: linear-gradient(90deg, transparent, hsl(198 100% 65% / 0.1), transparent);
