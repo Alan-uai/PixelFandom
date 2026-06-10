@@ -245,6 +245,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const autoReturnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
+  const manuallyExpanded = useRef(false);
   const [waveArcs] = useState(() => generateWaveConfig());
   const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
@@ -351,25 +352,34 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [isMobile, mobileExpanded, doCollapse, clearAutoReturn]);
 
   const handleAvatarClick = useCallback(() => {
-    if (!isMobile) {
-      if (user) router.push('/profile');
-      else onLogin?.();
-      return;
-    }
-
     playClickSound();
-    if (mobileExpanded) {
-      clearAutoReturn();
-      doCollapse();
-      setMobileExpanded(false);
-      if (user) router.push('/profile');
-      else onLogin?.();
+
+    if (isMobile) {
+      if (mobileExpanded) {
+        clearAutoReturn();
+        doCollapse();
+        setMobileExpanded(false);
+        manuallyExpanded.current = false;
+        if (user) router.push('/profile');
+        else onLogin?.();
+      } else {
+        doExpand();
+        setMobileExpanded(true);
+        manuallyExpanded.current = true;
+        startAutoReturn();
+      }
     } else {
-      doExpand();
-      setMobileExpanded(true);
-      startAutoReturn();
+      if (isExpanded) {
+        doCollapse();
+        manuallyExpanded.current = false;
+        if (user) router.push('/profile');
+        else onLogin?.();
+      } else {
+        doExpand();
+        manuallyExpanded.current = true;
+      }
     }
-  }, [isMobile, user, router, onLogin, mobileExpanded, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
+  }, [isMobile, user, router, onLogin, mobileExpanded, isExpanded, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
@@ -503,9 +513,9 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             <div
               className="relative z-20 flex items-center justify-center"
               style={{ width: 400, height: 400 }}
-              onMouseEnter={() => { if (!isMobile) doExpand(); }}
+              onMouseEnter={() => { if (!isMobile && !manuallyExpanded.current) doExpand(); }}
               onMouseLeave={() => {
-                if (!isMobile) {
+                if (!isMobile && !manuallyExpanded.current) {
                   doCollapse();
                   setMobileExpanded(false);
                 }

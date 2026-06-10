@@ -18,9 +18,11 @@ const FILL_STOPS = [
 
 interface SplashSVGTextProps {
   showBorder: boolean
+  visible?: boolean
 }
 
-export default function SplashSVGText({ showBorder }: SplashSVGTextProps) {
+export default function SplashSVGText({ showBorder, visible: forceVisible }: SplashSVGTextProps) {
+  const visible = forceVisible ?? showBorder
   return (
     <svg
       viewBox="0 0 600 100"
@@ -71,7 +73,7 @@ export default function SplashSVGText({ showBorder }: SplashSVGTextProps) {
           <tspan
             key={i}
             style={{
-              opacity: showBorder ? 1 : 0,
+              opacity: visible ? 1 : 0,
               transition: `opacity 0.6s ease ${i * 0.08}s`,
             }}
           >

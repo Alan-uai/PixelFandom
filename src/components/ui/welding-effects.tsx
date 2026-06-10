@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { motion, type HTMLMotionProps } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   PRIMARY,
   GOLD,
@@ -46,7 +46,7 @@ export function WeldFilters() {
   )
 }
 
-// ── StarGlow (4-point cross) ──
+// ── StarGlow (4-point cross with pulse & rotation) ──
 
 interface StarGlowProps {
   x: number
@@ -54,16 +54,21 @@ interface StarGlowProps {
   size?: number
   color?: string
   intensity?: number
+  seed?: number
 }
 
-export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1 }: StarGlowProps) {
+export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed = 0 }: StarGlowProps) {
   const gs = size * intensity
   const glowOpacity = Math.min(1, 0.7 * intensity)
   const armWidth = Math.max(2, gs * 0.07)
   const coreSize = Math.max(4, gs * 0.3)
 
+  const phase1 = seed * 1.7
+  const phase2 = seed * 2.3 + 1.2
+  const phase3 = seed * 0.9 + 0.7
+
   return (
-    <div
+    <motion.div
       className="pointer-events-none absolute z-20"
       style={{
         left: x - gs / 2,
@@ -71,30 +76,50 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1 }: St
         width: gs,
         height: gs,
       }}
+      animate={{ rotate: 360 }}
+      transition={{ duration: 3 + (seed % 2), repeat: Infinity, ease: 'linear' }}
     >
-      <div
+      <motion.div
         className="absolute top-1/2 left-0 -translate-y-1/2"
         style={{
           width: '100%',
           height: armWidth,
           background: `linear-gradient(90deg, transparent 0%, ${color} 25%, ${color} 75%, transparent 100%)`,
           boxShadow: `0 0 ${6 * intensity}px ${color}, 0 0 ${18 * intensity}px ${color}`,
-          opacity: glowOpacity,
           filter: 'url(#star-glow)',
         }}
+        animate={{
+          opacity: [glowOpacity * 0.7, glowOpacity, glowOpacity * 0.85, glowOpacity * 1.1, glowOpacity * 0.7],
+          scaleX: [1, 1.15, 0.9, 1.08, 1],
+        }}
+        transition={{
+          duration: 0.6 + (seed % 5) * 0.08,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: phase1,
+        }}
       />
-      <div
+      <motion.div
         className="absolute left-1/2 top-0 -translate-x-1/2"
         style={{
           width: armWidth,
           height: '100%',
           background: `linear-gradient(180deg, transparent 0%, ${color} 25%, ${color} 75%, transparent 100%)`,
           boxShadow: `0 0 ${6 * intensity}px ${color}, 0 0 ${18 * intensity}px ${color}`,
-          opacity: glowOpacity,
           filter: 'url(#star-glow)',
         }}
+        animate={{
+          opacity: [glowOpacity, glowOpacity * 0.75, glowOpacity * 1.05, glowOpacity * 0.85, glowOpacity],
+          scaleY: [1, 0.9, 1.12, 0.95, 1],
+        }}
+        transition={{
+          duration: 0.7 + (seed % 3) * 0.1,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: phase2,
+        }}
       />
-      <div
+      <motion.div
         className="absolute rounded-full"
         style={{
           left: '50%',
@@ -104,10 +129,19 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1 }: St
           height: coreSize,
           backgroundColor: '#fff',
           boxShadow: `0 0 ${10 * intensity}px ${color}, 0 0 ${25 * intensity}px ${color}`,
-          opacity: Math.min(1, glowOpacity * 1.5),
+        }}
+        animate={{
+          opacity: [Math.min(1, glowOpacity * 1.5), Math.min(1, glowOpacity * 1.2), Math.min(1, glowOpacity * 1.5)],
+          scale: [1, 0.85, 1.1, 0.95, 1],
+        }}
+        transition={{
+          duration: 0.5 + (seed % 4) * 0.06,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: phase3,
         }}
       />
-    </div>
+    </motion.div>
   )
 }
 
@@ -142,7 +176,7 @@ export function SparkStream({ beamX, beamY, beamAngle, active }: SparkStreamProp
     const interval = setInterval(() => {
       idRef.current++
       const spread = beamAngle + (Math.random() - 0.5) * Math.PI * 2
-      const dist = 8 + Math.random() * 22
+      const dist = 12 + Math.random() * 35
       setSparks(prev => [
         ...prev,
         {
@@ -151,7 +185,7 @@ export function SparkStream({ beamX, beamY, beamAngle, active }: SparkStreamProp
           originY: beamY,
           ax: Math.cos(spread) * dist,
           ay: Math.sin(spread) * dist,
-          size: 1 + Math.random() * 2,
+          size: 2 + Math.random() * 3,
         },
       ])
     }, SPARK_STREAM_INTERVAL)
@@ -164,7 +198,7 @@ export function SparkStream({ beamX, beamY, beamAngle, active }: SparkStreamProp
   }, [])
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-15 overflow-hidden rounded-xl">
+    <div className="pointer-events-none absolute inset-0 z-[15] overflow-visible" style={{ perspective: 600 }}>
       {sparks.map(s => (
         <SparkParticle
           key={s.id}
@@ -239,7 +273,7 @@ export function GravitySpark({ beamX, beamY, beamAngle, active, groundY }: Gravi
   }, [])
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-15 overflow-hidden rounded-xl">
+    <div className="pointer-events-none absolute inset-0 z-[15] overflow-visible" style={{ perspective: 600 }}>
       {sparks.map(s => (
         <GravityParticle
           key={s.id}
@@ -271,24 +305,24 @@ interface SparkParticleProps {
 }
 
 function SparkParticle({ originX, originY, ax, ay, size, lifetime, color, onDone }: SparkParticleProps) {
-  const isElongated = size > 1.5
+  const z = useMemo(() => -20 + Math.random() * 40, [])
   return (
     <motion.div
       className="absolute rounded-full"
       style={{
-        width: isElongated ? size * 1.5 : size,
-        height: isElongated ? size * 0.6 : size,
+        width: size * 2,
+        height: size * 2,
         backgroundColor: color,
-        boxShadow: `0 0 ${Math.max(2, size)}px ${color}`,
+        boxShadow: `0 0 ${Math.max(4, size * 2)}px ${color}, 0 0 ${Math.max(8, size * 4)}px ${color}`,
         transformOrigin: 'center',
       }}
-      initial={{ x: originX, y: originY, opacity: 1, scale: 1, rotate: 0 }}
+      initial={{ x: originX, y: originY, opacity: 1, scale: 1, z: 0 }}
       animate={{
         x: originX + ax,
         y: originY + ay,
-        opacity: [1, 0.8, 0],
-        scale: [1, 0.6, 0],
-        rotate: isElongated ? [0, 45] : 0,
+        z: [0, z, z * 0.5],
+        opacity: [1, 0.6, 0],
+        scale: [1.2, 0.8, 0],
       }}
       transition={{ duration: lifetime / 1000, ease: 'easeOut' }}
       onAnimationComplete={onDone}
@@ -309,19 +343,22 @@ interface GravityParticleProps {
   onDone: () => void
 }
 
-function GravityParticle({ originX, originY, vx, vy, size, rotation, groundY, onDone }: GravityParticleProps) {
+function GravityParticle({ originX, originY, vx, vy, size, rotation, onDone, ...rest }: GravityParticleProps) {
+  void rest.groundY
+  const zStart = useMemo(() => Math.random() * 30, [])
+  const colorTemp = useMemo(() => Math.random() > 0.5 ? GOLD : (Math.random() > 0.5 ? '#ff8844' : '#ffcc66'), [])
   return (
     <motion.div
       className="absolute rounded-sm"
       style={{
-        width: size,
-        height: size * 0.4,
-        backgroundColor: GOLD,
-        boxShadow: `0 0 ${Math.max(3, size)}px ${GOLD}, 0 0 ${Math.max(6, size * 2)}px ${PRIMARY}`,
+        width: size * 2,
+        height: size * 0.6,
+        backgroundColor: colorTemp,
+        boxShadow: `0 0 ${Math.max(5, size * 2)}px ${colorTemp}, 0 0 ${Math.max(10, size * 3)}px ${colorTemp}`,
         transformOrigin: 'center',
         rotate: `${rotation}rad`,
       }}
-      initial={{ x: originX, y: originY, opacity: 1, scale: 1 }}
+      initial={{ x: originX, y: originY, opacity: 1, scale: 1, z: 0 }}
       animate={{
         x: originX + vx,
         y: [
@@ -331,9 +368,10 @@ function GravityParticle({ originX, originY, vx, vy, size, rotation, groundY, on
           originY + vy * 0.85 + 60,
           originY + vy + 100,
         ],
+        z: [0, zStart, zStart * 0.3, -zStart * 0.2, 0],
         opacity: [1, 0.8, 0.5, 0.2, 0],
-        scale: [1, 1.1, 0.8, 0.5, 0],
-        rotate: [`${rotation}rad`, `${rotation + Math.PI}rad`],
+        scale: [1.5, 1.3, 0.8, 0.4, 0],
+        rotate: [`${rotation}rad`, `${rotation + Math.PI * 1.5}rad`],
       }}
       transition={{
         duration: GRAVITY_SPARK_LIFETIME / 1000,
@@ -425,7 +463,7 @@ interface TextBeamSweepProps {
   className?: string
 }
 
-export function TextBeamSweep({ text, delay, className }: TextBeamSweepProps) {
+export function TextBeamSweep({ text: _text, delay, className }: TextBeamSweepProps) {
   const [active, setActive] = useState(false)
   const [done, setDone] = useState(false)
 

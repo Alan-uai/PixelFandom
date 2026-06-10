@@ -30,12 +30,13 @@ export default function GravitationalWaveMask({ active, intensity }: Gravitation
   const randRef = useRef(seededRandom(Date.now()))
 
   useEffect(() => {
+    const el = document.querySelector('.splash-text-container') as HTMLElement | null
+    if (!el) return
+
     if (!active) {
-      const el = document.querySelector('.splash-text-container') as HTMLElement | null
-      if (el) {
-        el.style.removeProperty('mask-image')
-        el.style.removeProperty('-webkit-mask-image')
-      }
+      el.style.removeProperty('mask-image')
+      el.style.removeProperty('-webkit-mask-image')
+      wavesRef.current = []
       return
     }
 
@@ -44,21 +45,16 @@ export default function GravitationalWaveMask({ active, intensity }: Gravitation
     startTimeRef.current = 0
     lastSpawnRef.current = 0
 
-    function getTextBounds() {
-      const el = document.querySelector('.splash-text-container') as HTMLElement | null
-      if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2, width: window.innerWidth, height: window.innerHeight }
-      const r = el.getBoundingClientRect()
-      return { x: r.left, y: r.top, width: r.width, height: r.height }
-    }
+    const target = el
 
     function animate(now: number) {
       if (!startTimeRef.current) startTimeRef.current = now
       const elapsed = (now - startTimeRef.current) / 1000
       const progress = Math.min(elapsed / 3.2, 1)
 
-      const bounds = getTextBounds()
-      const epicenterX = bounds.x + progress * bounds.width
-      const epicenterY = bounds.y + bounds.height / 2 + Math.sin(progress * Math.PI * 3) * 50 * intensity
+      const elRect = target.getBoundingClientRect()
+      const epicenterX = progress * elRect.width
+      const epicenterY = elRect.height / 2 + Math.sin(progress * Math.PI * 3) * 50 * intensity
 
       const spawnInterval = Math.max(40, 180 - intensity * 140)
       if (elapsed - lastSpawnRef.current > spawnInterval / 1000) {
@@ -82,19 +78,18 @@ export default function GravitationalWaveMask({ active, intensity }: Gravitation
           continue
         }
         const t = age / waveDuration
-        const radius = 20 + t * 400 * (0.3 + intensity * 0.7)
-        const innerFade = Math.max(6, radius * 0.12)
+        const radius = Math.round(20 + t * 400 * (0.3 + intensity * 0.7))
+        const alpha = ((1 - t) * wave.amplitude * 0.9).toFixed(3)
 
         grads.push(
-          `radial-gradient(circle ${radius}px at ${wave.cx}px ${wave.cy}px, transparent 0%, transparent ${innerFade}px, black ${radius * 0.7}px, black 100%)`,
+          `radial-gradient(circle ${radius}px at ${wave.cx.toFixed(1)}px ${wave.cy.toFixed(1)}px, black 0%, rgba(0,0,0,${alpha}) ${Math.round(radius * 0.5)}px, transparent ${radius}px)`,
         )
       }
 
-      const el = document.querySelector('.splash-text-container') as HTMLElement | null
-      if (el) {
+      if (grads.length > 0) {
         const mask = grads.join(', ')
-        el.style.maskImage = mask
-        el.style.WebkitMaskImage = mask
+        target.style.maskImage = mask
+        target.style.webkitMaskImage = mask
       }
 
       rafRef.current = requestAnimationFrame(animate)
@@ -104,6 +99,8 @@ export default function GravitationalWaveMask({ active, intensity }: Gravitation
 
     return () => {
       cancelAnimationFrame(rafRef.current)
+      target.style.removeProperty('mask-image')
+      target.style.removeProperty('webkitMaskImage')
     }
   }, [active, intensity])
 

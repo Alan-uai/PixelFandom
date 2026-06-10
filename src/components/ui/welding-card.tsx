@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
@@ -8,8 +8,9 @@ import {
   GOLDEN_DURATION,
   PRIMARY,
   GOLD,
-  createBeamPathElement,
+  getBeamPathD,
   getBeamPosition,
+  createBeamPathElement,
 } from '@/lib/welding-utils'
 import {
   WeldFilters,
@@ -35,6 +36,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
   const beamProgress = useMotionValue(0)
   const [beamPos, setBeamPos] = useState({ x: 0, y: 0, angle: 0 })
   const [cardHeight, setCardHeight] = useState(0)
+  const [cardSize, setCardSize] = useState({ w: 0, h: 0 })
 
   const showWelding = phase === 'welding'
   const showGolden = phase === 'golden'
@@ -46,6 +48,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
     const rect = el.getBoundingClientRect()
     const w = rect.width
     const h = rect.height
+    setCardSize({ w, h })
     setCardHeight(h)
 
     pathRef.current = createBeamPathElement(w, h, 12)
@@ -78,7 +81,13 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
     return unsub
   }, [beamProgress])
 
-  const rotation = useTransform(beamProgress, [0, 1], [0, 360])
+  const pathD = useMemo(
+    () => getBeamPathD(cardSize.w, cardSize.h, 12),
+    [cardSize.w, cardSize.h],
+  )
+
+  const dashOffset = useTransform(beamProgress, [0, 1], [1, 0])
+  const beamTrail = useTransform(beamProgress, (v) => `${v} ${1 - v}`)
 
   if (phase === 'idle' || phase === 'done') {
     return <div className={cn('rounded-xl bg-card', className)} style={style}>{children}</div>
@@ -87,30 +96,80 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
   return (
     <div
       ref={containerRef}
-      className={cn('relative overflow-hidden rounded-xl', className)}
-      style={{ padding: '1.5px', ...style }}
+      className={cn('relative rounded-xl', className)}
+      style={style}
     >
       <WeldFilters />
 
       {showWelding && (
         <>
-          <motion.div
+          <svg
             className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background: `conic-gradient(from -90deg, transparent 12%, ${PRIMARY}40 18%, transparent 22%, transparent 100%)`,
-              borderRadius: '0.75rem',
-              rotate: rotation,
-            }}
-          />
-          <motion.div
-            className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background: `conic-gradient(from -90deg, ${PRIMARY} 0%, ${PRIMARY} 2.5%, transparent 5.5%, transparent 100%)`,
-              borderRadius: '0.75rem',
-              rotate: rotation,
-            }}
-          />
-          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} />
+            width={cardSize.w || '100%'}
+            height={cardSize.h || '100%'}
+            viewBox={`0 0 ${cardSize.w || 0} ${cardSize.h || 0}`}
+          >
+            <defs>
+              <filter id="svg-beam-glow">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Track path - faint */}
+            {pathD && (
+              <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.12} strokeLinecap="round" strokeLinejoin="round" />
+            )}
+
+            {/* Welded trail - reveals from 0 to progress */}
+            {pathD && (
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke={PRIMARY}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: beamTrail }}
+                opacity={0.5}
+              />
+            )}
+
+            {/* Beam head glow - wide glow at beam head */}
+            {pathD && (
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke={PRIMARY}
+                strokeWidth={6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: '0.12 1', strokeDashoffset: dashOffset }}
+                opacity={0.6}
+                filter="url(#svg-beam-glow)"
+              />
+            )}
+
+            {/* Beam head core - narrow bright */}
+            {pathD && (
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke="#fff"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: '0.04 1', strokeDashoffset: dashOffset }}
+              />
+            )}
+          </svg>
+          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} seed={0} />
           <SparkStream
             beamX={beamPos.x}
             beamY={beamPos.y}
@@ -139,15 +198,6 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
       {showGolden && (
         <>
           <motion.div
-            className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background: `conic-gradient(from -90deg, ${GOLD} 0%, ${GOLD} 3%, transparent 6%, transparent 100%)`,
-              borderRadius: '0.75rem',
-              rotate: rotation,
-            }}
-          />
-          <StarGlow x={beamPos.x} y={beamPos.y} color={GOLD} intensity={2.5} />
-          <motion.div
             className="pointer-events-none absolute inset-0 z-20 rounded-xl"
             initial={{ boxShadow: `0 0 0px ${GOLD}` }}
             animate={{
@@ -161,10 +211,11 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
             }}
             transition={{ duration: 0.8, ease: 'easeInOut' }}
           />
+          <StarGlow x={cardSize.w / 2} y={cardSize.h / 2} color={GOLD} intensity={2.5} seed={1} />
         </>
       )}
 
-      <div className="relative z-[1] rounded-[11px] bg-card">
+      <div className="relative z-[1] rounded-[11px] bg-card m-[1.5px]">
         {children}
       </div>
     </div>

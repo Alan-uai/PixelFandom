@@ -42,6 +42,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   const radiusMult = useRef(1);
   const targetSpeedMult = useRef(1);
   const targetRadiusMult = useRef(1);
+  const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const prevPositions = useRef<{ x: number; y: number }[]>([]);
 
@@ -78,8 +79,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         return createParams();
       });
     }
-    iconRefs.current = Array.from({ length: count }, () => null);
-    trailRefs.current = Array.from({ length: count }, () => null);
     prevPositions.current = Array.from({ length: count }, () => ({ x: 0, y: 0 }));
   }, [count, options?.orbitMode, options?.paramOverrides]);
 
@@ -150,6 +149,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   const expand = useCallback(
     (targets: { x: number; y: number }[]) => {
+      if (collapseTimeoutRef.current) {
+        clearTimeout(collapseTimeoutRef.current);
+        collapseTimeoutRef.current = null;
+      }
       transitioningRef.current = true;
 
       for (let i = 0; i < count; i++) {
@@ -183,12 +186,13 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
       el.style.zIndex = '11';
     }
 
-    setTimeout(() => {
+    collapseTimeoutRef.current = setTimeout(() => {
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
         if (el) el.style.transition = 'none';
       }
       transitioningRef.current = false;
+      collapseTimeoutRef.current = null;
       setPhase('orbiting');
     }, 1250);
   }, [count]);

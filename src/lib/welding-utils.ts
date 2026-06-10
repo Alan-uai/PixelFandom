@@ -7,6 +7,22 @@ export const GRAVITY_SPARK_LIFETIME = 1200
 export const PRIMARY = 'hsl(var(--primary))'
 export const GOLD = 'hsla(45, 100%, 60%, 0.8)'
 
+export function getBeamPathD(w: number, h: number, r: number): string {
+  const R = Math.min(r, w / 2, h / 2)
+  return [
+    `M 0,${h / 2}`,
+    `L 0,${R}`,
+    `A ${R},${R} 0 0,1 ${R},0`,
+    `L ${w - R},0`,
+    `A ${R},${R} 0 0,1 ${w},${R}`,
+    `L ${w},${h - R}`,
+    `A ${R},${R} 0 0,1 ${w - R},${h}`,
+    `L ${R},${h}`,
+    `A ${R},${R} 0 0,1 0,${h - R}`,
+    `L 0,${h / 2}`,
+  ].join(' ')
+}
+
 export function createBeamPathElement(w: number, h: number, r: number): SVGPathElement {
   const ns = 'http://www.w3.org/2000/svg'
   const path = document.createElementNS(ns, 'path')
