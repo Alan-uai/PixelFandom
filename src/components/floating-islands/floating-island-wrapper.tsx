@@ -37,13 +37,14 @@ function getCronFirstTarget(island: FloatingIslandConfig): string | null {
 
 interface FloatingIslandWrapperProps {
   island: FloatingIslandConfig;
+  position?: 'left' | 'center' | 'right';
   isExpanded: boolean;
   onToggle: () => void;
   onAutoExpand: () => void;
   basePath?: string;
 }
 
-export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
+export function FloatingIslandWrapper({ island, position, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isExpandedRef = useRef(isExpanded);
   useEffect(() => { isExpandedRef.current = isExpanded; }, [isExpanded]);
@@ -87,15 +88,19 @@ export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpa
     }
   };
 
+  const isCenter = position === 'center';
+
   return (
     <div
       className={`border bg-card transition-all ${
         isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md'
-      }`}
+      } ${isCenter ? 'text-center' : ''}`}
     >
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium hover:bg-muted/50 transition-colors"
+        className={`flex w-full items-center gap-2 px-4 py-2 text-xs font-medium hover:bg-muted/50 transition-colors ${
+          isCenter ? 'justify-center' : 'text-left'
+        }`}
       >
         {cronFirst && cronTarget ? (
           <span className="flex-1">
@@ -106,7 +111,7 @@ export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpa
         )}
       </button>
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-border/50">
+        <div className={`px-4 pb-4 pt-2 border-t border-border/50 ${isCenter ? 'flex flex-col items-center' : ''}`}>
           {cronFirst && cronTarget && (
             <p className="text-xs font-medium mb-2 truncate">{island.title || island.type}</p>
           )}

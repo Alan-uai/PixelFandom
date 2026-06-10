@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -47,7 +48,6 @@ export default function WikiAIConfigPage() {
   const slug = params.slug as string;
   const { toast } = useToast();
   const [tenant, setTenant] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
@@ -98,100 +98,99 @@ export default function WikiAIConfigPage() {
   const [loadingModels, setLoadingModels] = useState(true);
   const [geminiFreeModels, setGeminiFreeModels] = useState<FreeModel[]>([]);
   const [loadingGeminiModels, setLoadingGeminiModels] = useState(true);
+  const initializedRef = useRef(false);
+
+  const { data: tenantData } = useCachedData<{ id: string }>(
+    `tenant-id:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+      return data!;
+    }
+  );
+
+  const cacheKey = tenantData?.id ? `ai-config:${tenantData.id}` : null;
+  const { data: aiConfig, loading } = useCachedData<{
+    ai_enabled: boolean; ai_config: Record<string, unknown>;
+  }>(
+    cacheKey,
+    async () => {
+      const r = await fetch(`/api/tenants/${tenantData!.id}/ai-config`);
+      return r.json();
+    }
+  );
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data: tenantData, error: tenantError } = await supabase
-          .from('tenants')
-          .select('id')
-          .eq('slug', slug)
-          .single();
+    if (!tenantData || !aiConfig || initializedRef.current) return;
+    initializedRef.current = true;
+    setTenant(tenantData);
 
-        if (tenantError || !tenantData) {
-          throw new Error(tenantError?.message || 'Tenant not found');
-        }
-        setTenant(tenantData);
+    const config = aiConfig.ai_config;
+    setEnabled(aiConfig.ai_enabled);
 
-        const res = await fetch(`/api/tenants/${tenantData.id}/ai-config`);
-        if (!res.ok) throw new Error('Failed to load config');
-        const { ai_enabled, ai_config: config } = await res.json();
+    if (!config) return;
 
-        if (config) {
-          setEnabled(ai_enabled);
+    const savedProvider = (config.provider as string) || 'openrouter';
+    setProvider(savedProvider as 'openrouter' | 'gemini' | 'hybrid');
 
-          const savedProvider = (config.provider as string) || 'openrouter';
-          setProvider(savedProvider as 'openrouter' | 'gemini' | 'hybrid');
+    const savedPrimaryProvider = (config.primary_provider as string) || 'openrouter';
+    setPrimaryProvider(savedPrimaryProvider as 'openrouter' | 'gemini');
 
-          const savedPrimaryProvider = (config.primary_provider as string) || 'openrouter';
-          setPrimaryProvider(savedPrimaryProvider as 'openrouter' | 'gemini');
+    const savedModel = (config.model as string) || 'openai/gpt-4o-mini';
+    const savedCustomApiKey = (config.custom_api_key as string) || '';
+    const savedFallbackChain = (config.fallback_chain as string[]) || [];
+    const isCustomModel = savedCustomApiKey && !freeModels.some((m) => m.id === savedModel);
 
-          const savedModel = (config.model as string) || 'openai/gpt-4o-mini';
-          const savedCustomApiKey = (config.custom_api_key as string) || '';
-          const savedFallbackChain = (config.fallback_chain as string[]) || [];
-          const savedModelSource = savedCustomApiKey ? 'custom' : 'free';
-          const isCustomModel = savedCustomApiKey && !isFreeModel(savedModel);
-          const savedFallbackSource = savedCustomApiKey ? 'custom' : 'free';
+    setModel(isCustomModel ? 'openai/gpt-4o-mini' : savedModel);
+    setCustomModel(isCustomModel ? savedModel : '');
+    setModelSource(isCustomModel ? 'custom' : 'free');
+    setCustomApiKey(savedCustomApiKey);
+    setFallbackChain(savedFallbackChain);
+    setFallbackSource(savedCustomApiKey ? 'custom' : 'free');
 
-          setModel(isCustomModel ? 'openai/gpt-4o-mini' : savedModel);
-          setCustomModel(isCustomModel ? savedModel : '');
-          setModelSource(isCustomModel ? 'custom' : 'free');
-          setCustomApiKey(savedCustomApiKey);
-          setFallbackChain(savedFallbackChain);
-          setFallbackSource(savedFallbackSource);
+    const savedGeminiModel = (config.gemini_model as string) || 'gemini-2.0-flash';
+    const savedGeminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
+    const savedGeminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
+    const geminiList = geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS;
+    const isCustomGemini = savedGeminiCustomApiKey && !geminiList.some((m) => m.id === savedGeminiModel);
 
-          const savedGeminiModel = (config.gemini_model as string) || 'gemini-2.0-flash';
-          const savedGeminiCustomApiKey = (config.gemini_custom_api_key as string) || '';
-          const savedGeminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
-          const isCustomGemini = savedGeminiCustomApiKey && !isGeminiFreeModel(savedGeminiModel);
-          const savedGeminiFallbackSource = savedGeminiCustomApiKey ? 'custom' : 'free';
+    setGeminiModel(isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel);
+    setGeminiCustomModel(isCustomGemini ? savedGeminiModel : '');
+    setGeminiModelSource(isCustomGemini ? 'custom' : 'free');
+    setGeminiCustomApiKey(savedGeminiCustomApiKey);
+    setGeminiFallbackChain(savedGeminiFallbackChain);
+    setGeminiFallbackSource(savedGeminiCustomApiKey ? 'custom' : 'free');
 
-          setGeminiModel(isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel);
-          setGeminiCustomModel(isCustomGemini ? savedGeminiModel : '');
-          setGeminiModelSource(isCustomGemini ? 'custom' : 'free');
-          setGeminiCustomApiKey(savedGeminiCustomApiKey);
-          setGeminiFallbackChain(savedGeminiFallbackChain);
-          setGeminiFallbackSource(savedGeminiFallbackSource);
+    setWakeWordText((config.wake_word_text as string) || 'Psycho');
+    setChatName((config.chat_name as string) || 'Assistente');
+    setBotLogo((config.bot_logo as string) || '');
+    setPersonalityId((config.personality_id as string) || 'friendly');
+    setSuggestedQuestions((config.suggested_questions as string[]) || []);
+    setBotBanner((config.bot_banner as string) || '');
 
-          setWakeWordText((config.wake_word_text as string) || 'Psycho');
-          setChatName((config.chat_name as string) || 'Assistente');
-          setBotLogo((config.bot_logo as string) || '');
-          setPersonalityId((config.personality_id as string) || 'friendly');
-          setSuggestedQuestions((config.suggested_questions as string[]) || []);
-          setBotBanner((config.bot_banner as string) || '');
-
-          setSavedConfig({
-            enabled: ai_enabled,
-            provider: savedProvider as any,
-            primaryProvider: savedPrimaryProvider as any,
-            model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
-            modelSource: isCustomModel ? 'custom' : 'free',
-            customModel: isCustomModel ? savedModel : '',
-            customApiKey: savedCustomApiKey,
-            fallbackChain: savedFallbackChain,
-            fallbackSource: savedFallbackSource,
-            geminiModel: isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel,
-            geminiCustomModel: isCustomGemini ? savedGeminiModel : '',
-            geminiModelSource: isCustomGemini ? 'custom' : 'free',
-            geminiCustomApiKey: savedGeminiCustomApiKey,
-            geminiFallbackChain: savedGeminiFallbackChain,
-            geminiFallbackSource: savedGeminiFallbackSource,
-            wakeWordText: (config.wake_word_text as string) || 'Psycho',
-            chatName: (config.chat_name as string) || 'Assistente',
-            botLogo: (config.bot_logo as string) || '',
-            personalityId: (config.personality_id as string) || 'friendly',
-            suggestedQuestions: (config.suggested_questions as string[]) || [],
-            botBanner: (config.bot_banner as string) || '',
-          });
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error('Unexpected load error:', err);
-        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
-        setLoading(false);
-      }
-    })();
-  }, [slug]);
+    setSavedConfig({
+      enabled: aiConfig.ai_enabled,
+      provider: savedProvider as any,
+      primaryProvider: savedPrimaryProvider as any,
+      model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
+      modelSource: isCustomModel ? 'custom' : 'free',
+      customModel: isCustomModel ? savedModel : '',
+      customApiKey: savedCustomApiKey,
+      fallbackChain: savedFallbackChain,
+      fallbackSource: savedCustomApiKey ? 'custom' : 'free',
+      geminiModel: isCustomGemini ? 'gemini-2.0-flash' : savedGeminiModel,
+      geminiCustomModel: isCustomGemini ? savedGeminiModel : '',
+      geminiModelSource: isCustomGemini ? 'custom' : 'free',
+      geminiCustomApiKey: savedGeminiCustomApiKey,
+      geminiFallbackChain: savedGeminiFallbackChain,
+      geminiFallbackSource: savedGeminiCustomApiKey ? 'custom' : 'free',
+      wakeWordText: (config.wake_word_text as string) || 'Psycho',
+      chatName: (config.chat_name as string) || 'Assistente',
+      botLogo: (config.bot_logo as string) || '',
+      personalityId: (config.personality_id as string) || 'friendly',
+      suggestedQuestions: (config.suggested_questions as string[]) || [],
+      botBanner: (config.bot_banner as string) || '',
+    });
+  }, [tenantData, aiConfig]);
 
   useEffect(() => {
     (async () => {

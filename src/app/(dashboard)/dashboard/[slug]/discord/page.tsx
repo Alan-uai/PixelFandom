@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
+import { useCachedData } from '@/hooks/use-cached-data';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -29,7 +30,6 @@ export default function WikiDiscordPage() {
 
   const [tenant, setTenant] = useState<any>(null);
   const [dbGuilds, setDbGuilds] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     botName: '',
@@ -51,6 +51,14 @@ export default function WikiDiscordPage() {
     autoPostUpdatesChannelId: '', autoPostUpdatesChannelName: '',
     autoIngest: [] as IngestConfig[],
   });
+
+  const { data: tenantData, loading } = useCachedData<any>(
+    `discord:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+      return data!;
+    }
+  );
 
   const [enabled, setEnabled] = useState(false);
   const [botName, setBotName] = useState('');
@@ -153,42 +161,25 @@ export default function WikiDiscordPage() {
     });
   };
 
+  const guildsKey = tenantData?.id ? `discord-guilds:${tenantData.id}` : null;
+  const { data: guildsData } = useCachedData<any[]>(
+    guildsKey,
+    async () => {
+      const { data } = await supabase.from('discord_guilds').select('*').eq('tenant_id', tenantData!.id);
+      return data || [];
+    }
+  );
+
   useEffect(() => {
-    (async () => {
-      try {
-        const { data: tenantData, error: tenantError } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('slug', slug)
-          .single();
+    if (!tenantData) return;
+    setTenant(tenantData);
+    const config = (tenantData.discord_config as DiscordConfigType) || {};
+    loadConfig(config);
+  }, [tenantData]);
 
-        if (tenantError) {
-          console.error('Load error:', tenantError);
-          toast({ variant: 'destructive', title: 'Erro ao carregar', description: tenantError.message });
-          setLoading(false);
-          return;
-        }
-
-        if (tenantData) {
-          setTenant(tenantData);
-          const config = (tenantData.discord_config as DiscordConfigType) || {};
-          loadConfig(config);
-
-          const { data: guildsData } = await supabase
-            .from('discord_guilds')
-            .select('*')
-            .eq('tenant_id', tenantData.id);
-
-          if (guildsData) setDbGuilds(guildsData);
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error('Unexpected load error:', err);
-        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
-        setLoading(false);
-      }
-    })();
-  }, [slug]);
+  useEffect(() => {
+    if (guildsData) setDbGuilds(guildsData);
+  }, [guildsData]);
 
   const toggleCommand = (index: number) => {
     setCommands((prev) => prev.map((cmd, i) => i === index ? { ...cmd, enabled: !cmd.enabled } : cmd));

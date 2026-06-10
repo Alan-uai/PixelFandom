@@ -45,6 +45,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const prevPositions = useRef<{ x: number; y: number }[]>([]);
+  const expandedRef = useRef(false);
 
   const iconRefCallbacks = useMemo(() =>
     Array.from({ length: count }, (_, i) => (el: HTMLDivElement | null) => {
@@ -79,7 +80,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         return createParams();
       });
     }
-    prevPositions.current = Array.from({ length: count }, () => ({ x: 0, y: 0 }));
   }, [count, options?.orbitMode, options?.paramOverrides]);
 
   useEffect(() => {
@@ -89,7 +89,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     let start = 0;
     let raf = 0;
     let frameCount = 0;
-    const params = paramsRef.current;
 
     for (let i = 0; i < count; i++) {
       const el = iconRefs.current[i];
@@ -101,6 +100,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
       if (!start) start = ts;
       const elapsed = (ts - start) / 1000;
 
+      if (prevPositions.current.length !== count) {
+        prevPositions.current = Array.from({ length: count }, () => ({ x: 0, y: 0 }));
+      }
+
       speedMult.current += (targetSpeedMult.current - speedMult.current) * 0.015;
       radiusMult.current += (targetRadiusMult.current - radiusMult.current) * 0.015;
 
@@ -109,7 +112,8 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
         if (!el) continue;
-        const p = params[i];
+        const p = paramsRef.current[i];
+        if (!p) continue;
         const currentRadius = p.radius * radiusMult.current;
         const currentSpeed = p.speed * speedMult.current;
         const angle = p.phaseOffset + currentSpeed * elapsed;
@@ -127,7 +131,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (frameCount > 1) {
               if (dist > 0.3) {
-                const trailAngle = Math.atan2(-dy, -dx);
+                const trailAngle = Math.atan2(dy, dx);
                 trailEl.style.transform = `rotate(${trailAngle}rad)`;
                 trailEl.style.width = `${Math.min(48, Math.max(16, dist * 4))}px`;
                 trailEl.style.opacity = '0.5';
@@ -154,6 +158,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         collapseTimeoutRef.current = null;
       }
       transitioningRef.current = true;
+      expandedRef.current = true;
 
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
@@ -172,12 +177,13 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   const collapse = useCallback(() => {
     transitioningRef.current = true;
+    expandedRef.current = false;
 
-    const params = paramsRef.current;
     for (let i = 0; i < count; i++) {
       const el = iconRefs.current[i];
       if (!el) continue;
-      const p = params[i];
+      const p = paramsRef.current[i];
+      if (!p) continue;
       const r = p.radius * radiusMult.current;
       const startX = r * Math.cos(p.phaseOffset);
       const startY = r * Math.sin(p.phaseOffset) * Math.cos(p.inclination);
@@ -215,6 +221,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   return {
     phase,
+    expandedRef,
     setIconRef: (i: number) => iconRefCallbacks[i],
     setTrailRef: (i: number) => trailRefCallbacks[i],
     expand,

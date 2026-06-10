@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,37 +44,38 @@ export default function WikiDomainsPage() {
   const [verifying, setVerifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const dataLoadedRef = useRef(false);
+
+  const { data: cachedTenant } = useCachedData<any>(
+    `domains:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+      return data!;
+    }
+  );
 
   useEffect(() => {
-    supabase
-      .from('tenants')
-      .select('*')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setTenant(data);
-          if (data.custom_domain) {
-            // Show persisted status first
-            if (data.domain_verified) {
-              setDomainInfo({
-                verified: true,
-                configured: true,
-                cname: null,
-                cnameResolves: true,
-                pending: false,
-                nameservers: [],
-              });
-            }
-            // Then check live status
-            checkDomain(data.custom_domain);
-          }
-        }
-      });
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [slug]);
+    if (!cachedTenant || dataLoadedRef.current) return;
+    dataLoadedRef.current = true;
+    setTenant(cachedTenant);
+    if (cachedTenant.custom_domain) {
+      if (cachedTenant.domain_verified) {
+        setDomainInfo({
+          verified: true,
+          configured: true,
+          cname: null,
+          cnameResolves: true,
+          pending: false,
+          nameservers: [],
+        });
+      }
+      checkDomain(cachedTenant.custom_domain);
+    }
+  }, [cachedTenant]);
+
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
 
   // Auto-refresh every 30s
   useEffect(() => {

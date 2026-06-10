@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'lucide-react';
 import Link from 'next/link';
+import { useCachedData } from '@/hooks/use-cached-data';
+import { supabase } from '@/supabase';
 
 const PAGE_TYPES = [
   { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
@@ -33,58 +35,32 @@ function PageBuilderPageInner() {
   const slug = params.slug as string;
   const pageType = (searchParams.get('type') as PageType) || 'landing';
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[] } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tenantId, setTenantId] = useState<string | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
-  const layoutCache = useRef<Record<string, { blocks: any[]; floatingIslands: any[] }>>({});
 
-  const fetchLayout = useCallback(async (tenantId: string, type: string) => {
-    const cacheKey = `${tenantId}:${type}`;
-    if (layoutCache.current[cacheKey]) {
-      setLayout(layoutCache.current[cacheKey]);
-      setLoadedPageType(type);
-      setLoading(false);
-      return;
+  const { data: tenant } = useCachedData<{ id: string }>(
+    `tenant:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+      return data!;
     }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
-      const data = await res.json();
-      const result = { blocks: data?.blocks || [], floatingIslands: data?.floatingIslands || [] };
-      layoutCache.current[cacheKey] = result;
-      setLayout(result);
-      setLoadedPageType(type);
-    } catch (err) {
-      console.error('Fetch layout error:', err);
-    } finally {
-      setLoading(false);
+  );
+  const tenantId = tenant?.id ?? null;
+
+  const cacheKey = tenantId ? `page-layout:${tenantId}:${pageType}` : null;
+  const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[] }>(
+    cacheKey,
+    async () => {
+      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
+      const json = await res.json();
+      return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [] };
     }
-  }, []);
+  );
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { supabase } = await import('@/supabase');
-
-        const { data: tenant } = await supabase
-          .from('tenants')
-          .select('id, theme')
-          .eq('slug', slug)
-          .single();
-
-        if (!tenant) {
-          setLoading(false);
-          return;
-        }
-
-        setTenantId(tenant.id);
-        fetchLayout(tenant.id, pageType);
-      } catch (err) {
-        console.error('Failed to load tenant:', err);
-        setLoading(false);
-      }
-    })();
-  }, [slug, pageType, fetchLayout]);
+    if (!layoutData) return;
+    setLayout(layoutData);
+    setLoadedPageType(pageType);
+  }, [layoutData, pageType]);
 
   const handleTypeChange = (type: string) => {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);

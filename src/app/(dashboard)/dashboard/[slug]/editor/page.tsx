@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
+import { useSiteCache } from '@/lib/site-cache';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -51,7 +53,6 @@ export default function EditorArticlesPage() {
 
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('articles');
   const [catalog, setCatalog] = useState<TenantTable[]>([]);
@@ -71,7 +72,43 @@ export default function EditorArticlesPage() {
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletingTable, setDeletingTable] = useState(false);
 
+  const { data: tenantData } = useCachedData<{ id: string }>(
+    `tenant-id:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+      return data!;
+    }
+  );
+  const editorTenantId = tenantData?.id ?? null;
+
+  useEffect(() => {
+    if (editorTenantId) setTenantId(editorTenantId);
+  }, [editorTenantId]);
+
+  const { data: cachedArticles, loading: articlesLoading } = useCachedData<Article[]>(
+    editorTenantId ? `articles:${editorTenantId}` : null,
+    async () => {
+      const { data } = await supabase
+        .from('wiki_articles')
+        .select('id, title, summary, tags, created_at')
+        .eq('tenant_id', editorTenantId!)
+        .order('created_at', { ascending: false });
+      return data || [];
+    }
+  );
   const articlesCache = useRef<Article[] | null>(null);
+
+  const { data: cachedCatalog, loading: catalogLoading } = useCachedData<TenantTable[]>(
+    editorTenantId ? `catalog:${editorTenantId}` : null,
+    async () => {
+      const { data } = await supabase
+        .from('tenant_game_tables')
+        .select('table_name, display_label, parent_table, icon')
+        .eq('tenant_id', editorTenantId!)
+        .order('created_at');
+      return data || [];
+    }
+  );
   const catalogCache = useRef<TenantTable[] | null>(null);
 
   const allTabs = [
@@ -98,51 +135,20 @@ export default function EditorArticlesPage() {
   };
 
   useEffect(() => {
-    (async () => {
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('slug', slug)
-        .single();
-      if (!tenant) {
-        setLoading(false);
-        return;
-      }
-      setTenantId(tenant.id);
+    if (cachedArticles) {
+      articlesCache.current = cachedArticles;
+      setArticles(cachedArticles);
+    }
+  }, [cachedArticles]);
 
-      if (articlesCache.current) {
-        setArticles(articlesCache.current);
-      } else {
-        const { data } = await supabase
-          .from('wiki_articles')
-          .select('id, title, summary, tags, created_at')
-          .eq('tenant_id', tenant.id)
-          .order('created_at', { ascending: false });
+  useEffect(() => {
+    if (cachedCatalog) {
+      catalogCache.current = cachedCatalog;
+      setCatalog(cachedCatalog);
+    }
+  }, [cachedCatalog]);
 
-        if (data) {
-          articlesCache.current = data;
-          setArticles(data);
-        }
-      }
-
-      if (catalogCache.current) {
-        setCatalog(catalogCache.current);
-      } else {
-        const { data: cat } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table, icon')
-          .eq('tenant_id', tenant.id)
-          .order('created_at');
-
-        if (cat && cat.length > 0) {
-          catalogCache.current = cat;
-          setCatalog(cat);
-        }
-      }
-
-      setLoading(false);
-    })();
-  }, [slug]);
+  const loading = !editorTenantId || articlesLoading || catalogLoading;
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este artigo?')) return;
@@ -152,6 +158,7 @@ export default function EditorArticlesPage() {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       invalidateDataCache(slug);
+      useSiteCache.getState().invalidate(`articles:${tenantId}`);
       articlesCache.current = null;
       setArticles((prev) => prev.filter((a) => a.id !== id));
       toast({ title: 'Artigo excluído.' });
@@ -192,16 +199,13 @@ export default function EditorArticlesPage() {
       const result = data as { ok: boolean; error?: string; table: string };
       if (result.ok) {
         invalidateDataCache(slug);
-        catalogCache.current = null;
+        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
         const { data: cat } = await supabase
           .from('tenant_game_tables')
           .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
-        if (cat) {
-          catalogCache.current = cat;
-          setCatalog(cat);
-        }
+        if (cat) setCatalog(cat);
         setShowCreateDialog(false);
         setActiveTab(slug);
         toast({ title: `Tabela "${label}" adicionada!` });
@@ -242,16 +246,13 @@ export default function EditorArticlesPage() {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
         invalidateDataCache(slug);
-        catalogCache.current = null;
+        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
         const { data: cat } = await supabase
           .from('tenant_game_tables')
           .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
-        if (cat) {
-          catalogCache.current = cat;
-          setCatalog(cat);
-        }
+        if (cat) setCatalog(cat);
         setRenameTable(null);
         toast({ title: 'Tabela atualizada!' });
       } else {
@@ -279,16 +280,13 @@ export default function EditorArticlesPage() {
       const result = data as { ok: boolean; error?: string; dropped_table?: boolean; dropped_columns?: string[] };
       if (result.ok) {
         invalidateDataCache(slug);
-        catalogCache.current = null;
+        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
         const { data: cat } = await supabase
           .from('tenant_game_tables')
           .select('table_name, display_label, parent_table, icon')
           .eq('tenant_id', tenantId)
           .order('created_at');
-        if (cat) {
-          catalogCache.current = cat;
-          setCatalog(cat);
-        }
+        if (cat) setCatalog(cat);
         if (activeTab === deleteTable) setActiveTab('articles');
 
         const msgs: string[] = [];

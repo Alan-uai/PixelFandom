@@ -12,8 +12,7 @@ interface FloatingIslandsBarProps {
 
 const CLIP = 28;
 
-function getClipPath(pos: 'left' | 'center' | 'right', alone: boolean): string {
-  if (alone) return 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
+function getClipPath(pos: 'left' | 'center' | 'right'): string {
   switch (pos) {
     case 'left':
       return `polygon(0 0, 100% 0, calc(100% - ${CLIP}px) 100%, 0 100%)`;
@@ -71,16 +70,16 @@ export function FloatingIslandsBar({ islands, basePath = '', className = '' }: F
         <div className="flex items-stretch">
           {positions.map((pos, idx) => {
             const island = sorted[idx] || null;
-            const alone = count === 1;
             return (
               <div
                 key={pos}
                 className="flex-1"
-                style={{ clipPath: getClipPath(pos, alone && pos === 'center') }}
+                style={{ clipPath: getClipPath(pos) }}
               >
                 {island ? (
                   <FloatingIslandWrapper
                     island={island}
+                    position={pos}
                     isExpanded={activeId === island.id}
                     onToggle={() => handleToggle(island.id)}
                     onAutoExpand={() => handleAutoExpand(island.id)}

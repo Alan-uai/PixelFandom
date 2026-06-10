@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useCachedData } from '@/hooks/use-cached-data';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, Eye, MessageSquare, TrendingUp, BarChart3, Calendar } from 'lucide-react';
@@ -22,24 +23,12 @@ type AnalyticsData = {
 export default function AnalyticsPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('7d');
-  const cache = useRef<Record<string, any>>({});
-
-  useEffect(() => {
-    const key = `${slug}:${period}`;
-    if (cache.current[key]) {
-      setData(cache.current[key]);
-      return;
-    }
-    setLoading(true);
-    fetch(`/api/analytics?slug=${slug}&period=${period}`)
-      .then(r => r.json())
-      .then(d => { cache.current[key] = d; setData(d); })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [slug, period]);
+  const cacheKey = `analytics:${slug}:${period}`;
+  const { data, loading } = useCachedData<AnalyticsData>(
+    cacheKey,
+    () => fetch(`/api/analytics?slug=${slug}&period=${period}`).then(r => r.json())
+  );
 
   const periods = [
     { value: '7d', label: '7 dias' },

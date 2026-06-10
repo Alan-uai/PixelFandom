@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -22,10 +23,25 @@ export default function WikiSettingsPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const { toast } = useToast();
-  const [tenant, setTenant] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [tenantState, setTenantState] = useState<any>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  const [savedConfig, setSavedConfig] = useState({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
+  const [savedConfig, setSavedConfig] = useState<{
+    name: string; description: string; logoUrl: string; coverImageUrl: string;
+    discordUrl: string; gameUrl: string; faviconUrl: string; ogImage: string;
+    primaryColor: string; backgroundColor: string; cardColor: string; sidebarColor: string; accentColor: string;
+    fontFamily: string; headingFont: string; borderRadius: string;
+    sidebarWidth: 'narrow' | 'normal' | 'wide'; headerStyle: 'compact' | 'expanded' | 'minimal'; articlesPerRow: number;
+    gameTableDisplayFormat: string; gameTableColumnsCount: number;
+    gameTableTabsEnabled: boolean; gameTableTabsSubFormat: string;
+  }>({
+    name: '', description: '', logoUrl: '', coverImageUrl: '',
+    discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '',
+    primaryColor: '198 100% 65%', backgroundColor: '', cardColor: '', sidebarColor: '', accentColor: '',
+    fontFamily: '', headingFont: '', borderRadius: '',
+    sidebarWidth: 'normal', headerStyle: 'compact', articlesPerRow: 3,
+    gameTableDisplayFormat: 'grid', gameTableColumnsCount: 4,
+    gameTableTabsEnabled: false, gameTableTabsSubFormat: 'list',
+  });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -50,70 +66,69 @@ export default function WikiSettingsPage() {
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
   const [gameTableTabsSubFormat, setGameTableTabsSubFormat] = useState('list');
 
+  const cacheKey = `tenant:${slug}`;
+  const { data: tenant, loading } = useCachedData<any>(
+    cacheKey,
+    async () => {
+      const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+      return data!;
+    }
+  );
+
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('slug', slug)
-          .single();
-
-        if (error) {
-          console.error('Load error:', error);
-          toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
-          setLoading(false);
-          return;
-        }
-
-        if (data) {
-          setTenant(data);
-          setName(data.name);
-          setDescription(data.description || '');
-          setLogoUrl(data.logo_url || '');
-          setCoverImageUrl(data.cover_image || '');
-          setDiscordUrl(data.discord_url || '');
-          setGameUrl(data.game_url || '');
-          setFaviconUrl(data.favicon_url || '');
-          setOgImage(data.og_image || '');
-          const theme = (data.theme as Record<string, any>) || {};
-          setPrimaryColor(theme.primary_color || '198 100% 65%');
-          setBackgroundColor(theme.background_color || '');
-          setCardColor(theme.card_color || '');
-          setSidebarColor(theme.sidebar_color || '');
-          setAccentColor(theme.accent_color || '');
-          setFontFamily(theme.font_family || '');
-          setHeadingFont(theme.heading_font || '');
-          setBorderRadius(theme.border_radius || '');
-          setSidebarWidth(theme.sidebar_width || 'normal');
-          setHeaderStyle(theme.header_style || 'compact');
-          setArticlesPerRow(theme.articles_per_row || 3);
-          const gtDisplay = (theme.game_tables_display as Record<string, any>) || {};
-          setGameTableDisplayFormat(gtDisplay.default_format || 'grid');
-          setGameTableColumnsCount(gtDisplay.default_columns || 4);
-          setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
-          setGameTableTabsSubFormat(gtDisplay.tabs_sub_format || 'list');
-          const widgets = (theme.widgets as Record<string, any>) || {};
-          setSavedConfig({
-            name: data.name,
-            description: data.description || '',
-            logoUrl: data.logo_url || '',
-            coverImageUrl: data.cover_image || '',
-            discordUrl: data.discord_url || '',
-            gameUrl: data.game_url || '',
-            faviconUrl: data.favicon_url || '',
-            ogImage: data.og_image || '',
-            primaryColor: theme.primary_color || '198 100% 65%',
-          });
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error('Unexpected load error:', err);
-        toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível carregar as configurações.' });
-        setLoading(false);
-      }
-    })();
-  }, [slug]);
+    if (!tenant) return;
+    setTenantState(tenant);
+    setName(tenant.name);
+    setDescription(tenant.description || '');
+    setLogoUrl(tenant.logo_url || '');
+    setCoverImageUrl(tenant.cover_image || '');
+    setDiscordUrl(tenant.discord_url || '');
+    setGameUrl(tenant.game_url || '');
+    setFaviconUrl(tenant.favicon_url || '');
+    setOgImage(tenant.og_image || '');
+    const theme = (tenant.theme as Record<string, any>) || {};
+    setPrimaryColor(theme.primary_color || '198 100% 65%');
+    setBackgroundColor(theme.background_color || '');
+    setCardColor(theme.card_color || '');
+    setSidebarColor(theme.sidebar_color || '');
+    setAccentColor(theme.accent_color || '');
+    setFontFamily(theme.font_family || '');
+    setHeadingFont(theme.heading_font || '');
+    setBorderRadius(theme.border_radius || '');
+    setSidebarWidth(theme.sidebar_width || 'normal');
+    setHeaderStyle(theme.header_style || 'compact');
+    setArticlesPerRow(theme.articles_per_row || 3);
+    const gtDisplay = (theme.game_tables_display as Record<string, any>) || {};
+    setGameTableDisplayFormat(gtDisplay.default_format || 'grid');
+    setGameTableColumnsCount(gtDisplay.default_columns || 4);
+    setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
+    setGameTableTabsSubFormat(gtDisplay.tabs_sub_format || 'list');
+    setSavedConfig({
+      name: tenant.name,
+      description: tenant.description || '',
+      logoUrl: tenant.logo_url || '',
+      coverImageUrl: tenant.cover_image || '',
+      discordUrl: tenant.discord_url || '',
+      gameUrl: tenant.game_url || '',
+      faviconUrl: tenant.favicon_url || '',
+      ogImage: tenant.og_image || '',
+      primaryColor: theme.primary_color || '198 100% 65%',
+      backgroundColor: theme.background_color || '',
+      cardColor: theme.card_color || '',
+      sidebarColor: theme.sidebar_color || '',
+      accentColor: theme.accent_color || '',
+      fontFamily: theme.font_family || '',
+      headingFont: theme.heading_font || '',
+      borderRadius: theme.border_radius || '',
+      sidebarWidth: theme.sidebar_width || 'normal',
+      headerStyle: theme.header_style || 'compact',
+      articlesPerRow: theme.articles_per_row || 3,
+      gameTableDisplayFormat: gtDisplay.default_format || 'grid',
+      gameTableColumnsCount: gtDisplay.default_columns || 4,
+      gameTableTabsEnabled: gtDisplay.tabs_enabled || false,
+      gameTableTabsSubFormat: gtDisplay.tabs_sub_format || 'list',
+    });
+  }, [tenant]);
 
   useEffect(() => {
     const el = descriptionRef.current;
@@ -160,7 +175,15 @@ export default function WikiSettingsPage() {
         throw error;
       }
 
-      setSavedConfig({ name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor });
+      setSavedConfig({
+        name, description, logoUrl, coverImageUrl,
+        discordUrl, gameUrl, faviconUrl, ogImage,
+        primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
+        fontFamily, headingFont, borderRadius,
+        sidebarWidth, headerStyle, articlesPerRow,
+        gameTableDisplayFormat, gameTableColumnsCount,
+        gameTableTabsEnabled, gameTableTabsSubFormat,
+      });
     } catch (err) {
       if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar.' });
       throw err;
@@ -176,9 +199,35 @@ export default function WikiSettingsPage() {
     gameUrl !== savedConfig.gameUrl ||
     faviconUrl !== savedConfig.faviconUrl ||
     ogImage !== savedConfig.ogImage ||
-    primaryColor !== savedConfig.primaryColor;
+    primaryColor !== savedConfig.primaryColor ||
+    backgroundColor !== savedConfig.backgroundColor ||
+    cardColor !== savedConfig.cardColor ||
+    sidebarColor !== savedConfig.sidebarColor ||
+    accentColor !== savedConfig.accentColor ||
+    fontFamily !== savedConfig.fontFamily ||
+    headingFont !== savedConfig.headingFont ||
+    borderRadius !== savedConfig.borderRadius ||
+    sidebarWidth !== savedConfig.sidebarWidth ||
+    headerStyle !== savedConfig.headerStyle ||
+    articlesPerRow !== savedConfig.articlesPerRow ||
+    gameTableDisplayFormat !== savedConfig.gameTableDisplayFormat ||
+    gameTableColumnsCount !== savedConfig.gameTableColumnsCount ||
+    gameTableTabsEnabled !== savedConfig.gameTableTabsEnabled ||
+    gameTableTabsSubFormat !== savedConfig.gameTableTabsSubFormat;
 
-  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => setSavedConfig({ name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor }) });
+  useRegisterUnsavedChanges({
+    isDirty,
+    onSave: handleSave,
+    onDiscard: () => setSavedConfig({
+      name, description, logoUrl, coverImageUrl,
+      discordUrl, gameUrl, faviconUrl, ogImage,
+      primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
+      fontFamily, headingFont, borderRadius,
+      sidebarWidth, headerStyle, articlesPerRow,
+      gameTableDisplayFormat, gameTableColumnsCount,
+      gameTableTabsEnabled, gameTableTabsSubFormat,
+    }),
+  });
 
   if (loading) {
     return (
@@ -188,7 +237,7 @@ export default function WikiSettingsPage() {
     );
   }
 
-  if (!tenant) {
+  if (!tenantState) {
     return <p className="text-muted-foreground">Wiki não encontrada.</p>;
   }
 

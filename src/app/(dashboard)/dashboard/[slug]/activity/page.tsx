@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { CardContent, CardTitle } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, History, FileText, Users, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
-import { useUser } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
+import { supabase } from '@/supabase';
 
 type ActivityItem = {
   id: string;
@@ -31,34 +31,22 @@ const TYPE_ICONS: Record<string, typeof FileText> = {
 export default function ActivityPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const { user } = useUser();
-  const [items, setItems] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tenantId, setTenantId] = useState<string | null>(null);
-  const cache = useRef<Record<string, any>>({});
-
-  useEffect(() => {
-    if (!slug) return;
-    import('@/supabase').then(({ supabase }) => {
-      supabase.from('tenants').select('id').eq('slug', slug).single().then(({ data }) => {
-        if (data) setTenantId(data.id);
-      });
-    });
-  }, [slug]);
-
-  useEffect(() => {
-    if (!tenantId) return;
-    if (cache.current[tenantId]) {
-      setItems(cache.current[tenantId]);
-      setLoading(false);
-      return;
+  const { data: tenantData } = useCachedData<{ id: string }>(
+    `tenant-id:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+      return data!;
     }
-    fetch(`/api/activity?tenant_id=${tenantId}&limit=100`)
-      .then(r => r.json())
-      .then(data => { cache.current[tenantId] = data; setItems(data); })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [tenantId]);
+  );
+  const tenantId = tenantData?.id ?? null;
+
+  const { data: items, loading } = useCachedData<ActivityItem[]>(
+    tenantId ? `activity:${tenantId}:100` : null,
+    async () => {
+      const r = await fetch(`/api/activity?tenant_id=${tenantId}&limit=100`);
+      return r.json();
+    }
+  );
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -75,7 +63,8 @@ export default function ActivityPage() {
     return `${days}d atrás`;
   };
 
-  const grouped = items.reduce<Record<string, ActivityItem[]>>((acc, item) => {
+  const itemList = items ?? [];
+  const grouped = itemList.reduce<Record<string, ActivityItem[]>>((acc, item) => {
     const date = new Date(item.created_at).toLocaleDateString('pt-BR');
     if (!acc[date]) acc[date] = [];
     acc[date].push(item);
@@ -94,7 +83,7 @@ export default function ActivityPage() {
         </p>
       </div>
 
-      {items.length === 0 ? (
+      {itemList.length === 0 ? (
         <WeldingCard>
           <CardContent className="text-center py-12">
             <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />

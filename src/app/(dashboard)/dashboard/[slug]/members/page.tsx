@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
+import { useCachedData } from '@/hooks/use-cached-data';
+import { useSiteCache } from '@/lib/site-cache';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -37,8 +39,6 @@ export default function WikiMembersPage() {
   const { toast } = useToast();
   const [members, setMembers] = useState<(TenantMember & { email?: string })[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
-  const [tenantId, setTenantId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
   // Invite form
@@ -46,40 +46,43 @@ export default function WikiMembersPage() {
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [sendingInvite, setSendingInvite] = useState(false);
-  const cache = useRef<Record<string, any>>({});
 
-  useEffect(() => {
-    if (cache.current[slug]) {
-      const cached = cache.current[slug];
-      setTenantId(cached.tenantId);
-      setMembers(cached.members);
-      setInvites(cached.invites);
-      setLoading(false);
-      return;
+  const { data: tenantData } = useCachedData<{ id: string }>(
+    `tenant-id:${slug}`,
+    async () => {
+      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+      return data!;
     }
-    (async () => {
-      const { data: tenant } = await supabase
-        .from('tenants')
-        .select('id')
-        .eq('slug', slug)
-        .single();
+  );
+  const tenantId = tenantData?.id ?? null;
 
-      if (!tenant) { setLoading(false); return; }
-      setTenantId(tenant.id);
-
+  const cacheKey = tenantId ? `members:${tenantId}` : null;
+  const { data: cacheData, loading } = useCachedData<{
+    members: (TenantMember & { email?: string })[];
+    invites: InviteRow[];
+  }>(
+    cacheKey,
+    async () => {
       const [membersRes, invitesRes] = await Promise.all([
-        supabase.from('tenant_members').select('*').eq('tenant_id', tenant.id),
-        fetch(`/api/invitations?tenant_id=${tenant.id}`).then(r => r.ok ? r.json() : []),
+        supabase.from('tenant_members').select('*').eq('tenant_id', tenantId!),
+        fetch(`/api/invitations?tenant_id=${tenantId!}`),
       ]);
+      const invitesData = invitesRes.ok ? await invitesRes.json() : [];
+      return {
+        members: membersRes.data || [],
+        invites: invitesData || [],
+      };
+    }
+  );
 
-      const membersData = membersRes.data || [];
-      const invitesData = invitesRes || [];
-      cache.current[slug] = { tenantId: tenant.id, members: membersData, invites: invitesData };
-      setMembers(membersData);
-      setInvites(invitesData);
-      setLoading(false);
-    })();
-  }, [slug]);
+  const dataRef = useRef(cacheData);
+  useEffect(() => {
+    if (!cacheData) return;
+    if (dataRef.current === cacheData) return;
+    dataRef.current = cacheData;
+    setMembers(cacheData.members);
+    setInvites(cacheData.invites);
+  }, [cacheData]);
 
   const handleRoleChange = async (userId: string, role: string) => {
     if (!tenantId) return;

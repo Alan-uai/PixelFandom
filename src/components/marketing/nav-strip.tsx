@@ -293,7 +293,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     return items;
   }, [user, handleLogout, onLogin, unreadCount]);
 
-  const items = navItems();
+  const items = useMemo(() => navItems(), [navItems]);
   const badgeIndices = items.reduce<number[]>((acc, item, i) => {
     if (item.isBadge) acc.push(i);
     return acc;
@@ -304,7 +304,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     ),
     [items],
   );
-  const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { paramOverrides });
+  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { paramOverrides });
 
   const expandedPositions = useRef(getExpandedPositions(items));
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
@@ -354,32 +354,24 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const handleAvatarClick = useCallback(() => {
     playClickSound();
 
-    if (isMobile) {
-      if (mobileExpanded) {
+    if (expandedRef.current) {
+      doCollapse();
+      manuallyExpanded.current = false;
+      if (isMobile) {
         clearAutoReturn();
-        doCollapse();
         setMobileExpanded(false);
-        manuallyExpanded.current = false;
-        if (user) router.push('/profile');
-        else onLogin?.();
-      } else {
-        doExpand();
+      }
+      if (user) router.push('/profile');
+      else onLogin?.();
+    } else {
+      doExpand();
+      manuallyExpanded.current = true;
+      if (isMobile) {
         setMobileExpanded(true);
-        manuallyExpanded.current = true;
         startAutoReturn();
       }
-    } else {
-      if (isExpanded) {
-        doCollapse();
-        manuallyExpanded.current = false;
-        if (user) router.push('/profile');
-        else onLogin?.();
-      } else {
-        doExpand();
-        manuallyExpanded.current = true;
-      }
     }
-  }, [isMobile, user, router, onLogin, mobileExpanded, isExpanded, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
+  }, [user, router, onLogin, isMobile, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
