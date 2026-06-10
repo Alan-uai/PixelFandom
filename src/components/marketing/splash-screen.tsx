@@ -18,7 +18,7 @@ const DURATIONS: Record<Phase, number> = {
   black: 1000,
   waves: 3500,
   border: 2200,
-  dissolve: 2500,
+  dissolve: 1200,
   outro: 800,
 }
 const TOTAL = PHASES.reduce((a, p) => a + DURATIONS[p], 0)
@@ -69,7 +69,7 @@ function updateDissolveMask(overlay: HTMLDivElement | null, progress: number) {
   const grads: string[] = []
   const t = Math.min(progress, 1)
 
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 6; i++) {
     const cx = 50 + Math.sin(t * 2.3 + i * 1.5) * 28
     const cy = 50 + Math.cos(t * 1.7 + i * 1.1) * 28
     const size = 6 + t * 170
@@ -84,7 +84,7 @@ function updateDissolveMask(overlay: HTMLDivElement | null, progress: number) {
 
   if (!particleCache || particleCache.length === 0) {
     const prand = seededRandom(42)
-    particleCache = Array.from({ length: 80 }, () => ({
+    particleCache = Array.from({ length: 25 }, () => ({
       seed: prand(),
       speed: 0.3 + prand() * 0.7,
       offsetX: prand() * 100,
@@ -113,7 +113,7 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   const [ready, setReady] = useState(false)
   const [shouldShow, setShouldShow] = useState(true)
   const [phase, setPhase] = useState<Phase>('black')
-  const [showBorder, setShowBorder] = useState(false)
+
   const [intensity, setIntensity] = useState(0)
   const [exiting, setExiting] = useState(false)
   const [letterVisible, setLetterVisible] = useState(false)
@@ -171,10 +171,6 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
       if (!letterVisibleRef.current && (newPhase === 'waves' || newPhase === 'border')) {
         letterVisibleRef.current = true
         setLetterVisible(true)
-      }
-
-      if (newPhase === 'border' || newPhase === 'dissolve' || newPhase === 'outro') {
-        setShowBorder(true)
       }
 
       if (newPhase === 'dissolve') {
@@ -266,11 +262,11 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         x: tx, y: ty, scaleX: sx, scaleY: sy,
         opacity: 0,
         transition: {
-          x: { duration: 2.5, ease: 'easeInOut' },
-          y: { duration: 2.5, ease: 'easeInOut' },
-          scaleX: { duration: 2.5, ease: 'easeInOut' },
-          scaleY: { duration: 2.5, ease: 'easeInOut' },
-          opacity: { duration: 0.3, ease: 'easeOut', delay: 2.2 },
+          x: { duration: 1.1, ease: 'easeInOut' },
+          y: { duration: 1.1, ease: 'easeInOut' },
+          scaleX: { duration: 1.1, ease: 'easeInOut' },
+          scaleY: { duration: 1.1, ease: 'easeInOut' },
+          opacity: { duration: 0.2, ease: 'easeOut', delay: 0.9 },
         },
       })
     }
@@ -294,7 +290,6 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
     const borderStart = CUMULATIVE.find((c) => c.phase === 'border')!.start
     elapsedRef.current = borderStart + DURATIONS.border * 0.2
     speedRef.current = 1.5
-    setShowBorder(true)
   }, [])
 
   const handleClick = useCallback(() => {
@@ -336,7 +331,7 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         >
           <div className="splash-text-container">
             <div className="w-full flex justify-center">
-              <SplashSVGText showBorder={showBorder} visible={letterVisible} />
+              <SplashSVGText visible={letterVisible} />
             </div>
           </div>
         </motion.div>

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Trophy, Bell, LayoutDashboard, LogOut, LogIn, Info } from 'lucide-react';
 import { useUser, useSupabase } from '@/supabase';
-import { playHoverSound, playClickSound, playRevealSound } from '@/lib/feedback-sounds';
+import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
 import { useOrbitalAnimation } from '@/hooks/use-orbital-animation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -56,11 +56,11 @@ function generateIrregularRingPath(outerRadius: number, innerRatio: number, wobb
   return d + ' Z';
 }
 
-function generateWaveConfig() {
+function generateRingConfig() {
   const count = 3 + Math.floor(Math.random() * 2);
   return Array.from({ length: count }, (_, i) => ({
     outerRadius: 40 + Math.floor(Math.random() * 80),
-    innerRatio: 0.3 + Math.random() * 0.25,
+    innerRatio: 0.55 + Math.random() * 0.2,
     wobble: 0.03 + Math.random() * 0.04,
     duration: 10 + Math.random() * 8,
     delay: i * (1.5 + Math.random() * 2),
@@ -68,14 +68,11 @@ function generateWaveConfig() {
   }));
 }
 
-interface WaveRing {
-  outerRadius: number;
-  innerRatio: number;
-  wobble: number;
-  duration: number;
-  delay: number;
-  phaseSeed: number;
-}
+const WAVE_PATTERNS = [
+  'polygon(0% 30%, 15% 22%, 30% 38%, 45% 20%, 60% 35%, 75% 18%, 90% 28%, 100% 22%, 100% 72%, 90% 78%, 75% 68%, 60% 82%, 45% 72%, 30% 85%, 15% 68%, 0% 78%)',
+  'polygon(0% 35%, 20% 25%, 40% 40%, 60% 22%, 80% 38%, 100% 28%, 100% 75%, 80% 65%, 60% 78%, 40% 62%, 20% 80%, 0% 68%)',
+  'polygon(0% 25%, 18% 32%, 35% 20%, 55% 35%, 70% 22%, 85% 32%, 100% 25%, 100% 65%, 85% 75%, 70% 60%, 55% 78%, 35% 65%, 18% 72%, 0% 68%)',
+];
 
 const CIRC = 2 * Math.PI * 6;
 
@@ -96,15 +93,25 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
     setTilt({ x: -y * 8, y: x * 8 });
   };
 
-  const clickHandler = () => { playClickSound(); onClick?.(); };
+  const clickHandler = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playClickSound();
+    onClick?.();
+  };
 
   if (compact) {
     const orbitContent = (
       <motion.div
         className="cursor-pointer"
-        style={waveGlow ? { filter: `url(#${gid})` } : {}}
-        animate={waveGlow ? { scale: 1.2 } : {}}
-        transition={{ duration: 0.4 }}
+        style={
+          waveGlow
+            ? {
+                filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 20px ${glowColor})`,
+              }
+            : {}
+        }
+        animate={waveGlow ? { scale: 1.25 } : { scale: 1 }}
+        transition={{ duration: 0.35 }}
         onClick={clickHandler}
       >
         {icon}
@@ -235,7 +242,7 @@ function getExpandedPositions(items: NavItemDef[]): { x: number; y: number }[] {
 }
 
 export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
-  const { user, isLoading } = useUser();
+  const { user } = useUser();
   const { signOut } = useSupabase();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -246,7 +253,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
   const manuallyExpanded = useRef(false);
-  const [waveArcs] = useState(() => generateWaveConfig());
+  const [rings] = useState(() => generateRingConfig());
   const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);
@@ -294,17 +301,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [user, handleLogout, onLogin, unreadCount]);
 
   const items = useMemo(() => navItems(), [navItems]);
-  const badgeIndices = items.reduce<number[]>((acc, item, i) => {
-    if (item.isBadge) acc.push(i);
-    return acc;
-  }, []);
-  const paramOverrides = useMemo(() =>
-    items.map(item =>
-      item.isBadge ? { radius: 30, speed: 0.4, inclination: 0 } : null,
-    ),
-    [items],
-  );
-  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { paramOverrides });
+  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length);
 
   const expandedPositions = useRef(getExpandedPositions(items));
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
@@ -384,7 +381,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarMouseEnter = useCallback(() => {
     if (isMobile) return;
-    setHoverSpeedMultiplier(1.5);
+    setHoverSpeedMultiplier(3.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -396,7 +393,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarTouchStart = useCallback(() => {
     if (!isMobile) return;
-    setHoverSpeedMultiplier(1.5);
+    setHoverSpeedMultiplier(3.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -409,17 +406,24 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   useEffect(() => {
     if (isExpanded) return;
     const interval = setInterval(() => {
-      const cycle = 2000;
+      const cycle = 2500;
       const now = Date.now() % cycle / cycle;
-      const active = now >= 0.05 && now <= 0.35;
-      setGlowLeft(active);
-      setGlowRight(active);
+      const stagger = [0, 0.32, 0.64];
+
+      const isInZone = (delays: number[], start: number, end: number) =>
+        delays.some(d => {
+          const p = (now - d + 1) % 1;
+          return p >= start && p <= end;
+        });
+
+      setGlowLeft(isInZone(stagger, 0.05, 0.42));
+      setGlowRight(isInZone(stagger, 0.05, 0.42));
     }, 80);
     return () => clearInterval(interval);
   }, [isExpanded]);
 
   return (
-    <section className="relative w-full pb-4 overflow-visible">
+    <section className="relative w-full py-8 overflow-visible">
       <div className="max-w-4xl mx-auto px-4">
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
           {/* ── SVG Filter Definition ── */}
@@ -448,21 +452,21 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Gravitational Waves – Irregular Rings ── */}
+          {/* ── Irregular Rings (solid gradient stroke) ── */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
             <svg width="0" height="0" className="absolute">
               <defs>
-                <radialGradient id="ring-grad" cx="50%" cy="50%" r="50%">
+                <linearGradient id="ring-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
-                  <stop offset="25%" stopColor="hsl(198,100%,65%)" stopOpacity="0.8" />
+                  <stop offset="33%" stopColor="hsl(198,100%,65%)" stopOpacity="0.75" />
                   <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.6" />
-                  <stop offset="80%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0" />
-                </radialGradient>
+                  <stop offset="80%" stopColor="hsl(350,90%,60%)" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
+                </linearGradient>
               </defs>
             </svg>
 
-            {waveArcs.map((arc, i) => (
+            {rings.map((arc, i) => (
               <motion.div
                 key={`ring-${i}`}
                 className="absolute"
@@ -475,26 +479,78 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   marginTop: -200,
                 }}
                 animate={{
-                  scale: [0.25, 1.15, 1.8],
-                  opacity: [0.6, 0.5, 0],
+                  scale: [0.35, 1.0, 1.5],
+                  opacity: [0.5, 0.4, 0],
+                  rotate: [0, 15, 30],
                 }}
                 transition={{
                   duration: arc.duration,
-                  times: [0, 0.2, 0.6],
+                  times: [0, 0.25, 0.65],
                   delay: arc.delay,
                   repeat: Infinity,
-                  repeatDelay: 0.8 + Math.random() * 0.6,
+                  repeatDelay: 1.5 + Math.random() * 0.5,
                   ease: 'easeOut',
                 }}
               >
                 <svg width="400" height="400" viewBox="0 0 400 400">
                   <path
                     d={generateIrregularRingPath(arc.outerRadius, arc.innerRatio, arc.wobble, arc.phaseSeed)}
-                    fill="url(#ring-grad)"
-                    fillRule="evenodd"
+                    fill="none"
+                    stroke="url(#ring-stroke-grad)"
+                    strokeWidth="3"
+                    strokeLinejoin="round"
                   />
                 </svg>
               </motion.div>
+            ))}
+          </div>
+
+          {/* ── Gravitational Waves (clip-path patterns) ── */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
+            {[0, 0.8, 1.6].map((delay, idx) => (
+              <div key={`waves-${idx}`} className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="absolute"
+                  style={{ right: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
+                >
+                  <motion.div
+                    className="relative"
+                    style={{
+                      width: 0,
+                      height: 100,
+                      background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.4) 30%, hsl(270 80% 60% / 0.25) 60%, hsl(350 90% 60% / 0.12) 100%)',
+                      filter: 'blur(8px)',
+                      clipPath: WAVE_PATTERNS[idx],
+                      transformOrigin: 'right center',
+                      transform: 'translateY(-50%)',
+                    }}
+                    initial={{ width: 0, opacity: 0.3 }}
+                    animate={{ width: [0, 400, 400], opacity: [0.3, 0.2, 0] }}
+                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                </div>
+
+                <div
+                  className="absolute"
+                  style={{ left: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
+                >
+                  <motion.div
+                    className="relative"
+                    style={{
+                      width: 0,
+                      height: 100,
+                      background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.4) 30%, hsl(270 80% 60% / 0.25) 60%, hsl(350 90% 60% / 0.12) 100%)',
+                      filter: 'blur(8px)',
+                      clipPath: WAVE_PATTERNS[idx],
+                      transformOrigin: 'left center',
+                      transform: 'translateY(-50%)',
+                    }}
+                    initial={{ width: 0, opacity: 0.3 }}
+                    animate={{ width: [0, 400, 400], opacity: [0.3, 0.2, 0] }}
+                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
             ))}
 
             <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
@@ -503,8 +559,8 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
             <div
-              className="relative z-20 flex items-center justify-center"
-              style={{ width: 400, height: 400 }}
+              className="relative flex items-center justify-center"
+              style={{ width: 400, height: 400, perspective: 600, transformStyle: 'preserve-3d' }}
               onMouseEnter={() => { if (!isMobile && !manuallyExpanded.current) doExpand(); }}
               onMouseLeave={() => {
                 if (!isMobile && !manuallyExpanded.current) {
@@ -513,41 +569,39 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 }
               }}
             >
+              {/* Trail dots */}
+              {!isExpanded && items.map((item, i) => (
+                Array.from({ length: 8 }).map((_, t) => (
+                  <div
+                    key={`trail-${i}-${t}`}
+                    ref={setTrailRef(i, t)}
+                    className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
+                    style={{
+                      backgroundColor: item.glowColor,
+                      width: 5,
+                      height: 5,
+                      marginLeft: -2.5,
+                      marginTop: -2.5,
+                      opacity: 0,
+                      zIndex: 0,
+                    }}
+                  />
+                ))
+              ))}
+
               {/* Orbital Icons */}
               {items.map((item, i) => (
                 <div
                   key={i}
                   ref={setIconRef(i)}
-                  className="absolute flex items-center justify-center"
+                  className="absolute left-1/2 top-1/2"
                   style={{
-                    left: '50%',
-                    top: '50%',
-                    width: 36,
-                    height: 36,
                     marginLeft: -18,
                     marginTop: -18,
                     transition: 'none',
                   }}
                   onClick={() => handleIconClick(item)}
                 >
-                  {!isExpanded && (
-                  <div
-                    ref={setTrailRef(i)}
-                    className="absolute pointer-events-none"
-                    style={{
-                      right: '50%',
-                      top: '50%',
-                      marginTop: -1.5,
-                      height: 3,
-                      background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
-                      borderRadius: 2,
-                      transformOrigin: 'right center',
-                      opacity: 0,
-                      width: 0,
-                      willChange: 'transform, width, opacity',
-                    }}
-                  />
-                  )}
                   <OrbitalNavItem
                     href={item.href}
                     icon={item.icon}
@@ -576,7 +630,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 onMouseLeave={handleAvatarMouseLeave}
                 onTouchStart={handleAvatarTouchStart}
                 onTouchEnd={handleAvatarTouchEnd}
-                style={{ cursor: isMobile ? 'pointer' : 'default' }}
+                style={{ cursor: 'pointer' }}
               >
                 {/* Avatar */}
                 <motion.div
@@ -612,3 +666,5 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     </section>
   );
 }
+
+

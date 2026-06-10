@@ -10,19 +10,14 @@ const GRADIENT_COLORS = [
   'hsl(270,80%,60%)',
 ]
 
-const FILL_STOPS = [
-  { offset: 0, color: 'hsl(198,100%,65%)' },
-  { offset: 50, color: 'hsl(270,80%,60%)' },
-  { offset: 100, color: 'hsl(350,90%,60%)' },
-]
+
 
 interface SplashSVGTextProps {
-  showBorder: boolean
   visible?: boolean
 }
 
-export default function SplashSVGText({ showBorder, visible: forceVisible }: SplashSVGTextProps) {
-  const visible = forceVisible ?? showBorder
+export default function SplashSVGText({ visible: forceVisible }: SplashSVGTextProps) {
+  const visible = forceVisible ?? true
   return (
     <svg
       viewBox="0 0 600 100"
@@ -48,22 +43,18 @@ export default function SplashSVGText({ showBorder, visible: forceVisible }: Spl
             <stop key={i} offset={`${(i / GRADIENT_COLORS.length) * 100}%`} stopColor={color} />
           ))}
         </linearGradient>
-        <linearGradient id="splashFillGrad" x1="0" y1="0" x2="1" y2="1">
-          {FILL_STOPS.map((s, i) => (
-            <stop key={i} offset={`${s.offset}%`} stopColor={s.color} />
-          ))}
-        </linearGradient>
+
       </defs>
       <text
         x="50%"
         y="50%"
         textAnchor="middle"
         dominantBaseline="central"
-        paintOrder="stroke fill"
-        stroke={showBorder ? 'url(#splashStrokeGrad)' : 'none'}
-        strokeWidth="4"
+        paintOrder="stroke"
+        stroke="url(#splashStrokeGrad)"
+        strokeWidth="8"
         strokeLinejoin="round"
-        fill="url(#splashFillGrad)"
+        fill="transparent"
         fontFamily="system-ui, -apple-system, sans-serif"
         fontWeight="700"
         fontSize="96"
