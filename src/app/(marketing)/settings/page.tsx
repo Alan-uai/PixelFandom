@@ -7,6 +7,7 @@ import { useUserPreferences, type ChatSettings } from '@/context/user-preference
 import { AI_PERSONALITIES } from '@/lib/ai-personalities';
 import { personas } from '@/lib/personas';
 import { officialLanguages } from '@/lib/official-languages';
+import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles';
 import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -230,17 +231,21 @@ export default function GlobalSettingsPage() {
               <CardTitle>Estilo de Resposta</CardTitle>
               <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <SelectCard
-                options={[
-                  { value: 'detailed', label: 'Detalhado' },
-                  { value: 'short', label: 'Curto' },
-                  { value: 'topicos', label: 'Tópicos' },
-                ]}
-                value={preferences.chat_settings.response_style}
-                onChange={(v) => updateChat('response_style', v as string)}
-                layout="compact"
-              />
+            <CardContent className="space-y-3">
+              {responseStyleGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                  <SelectCard
+                    options={group.keys.map(k => {
+                      const s = responseFormatStyles[k]
+                      return { value: k, label: s.label, description: s.description, emoji: s.icon }
+                    })}
+                    value={preferences.chat_settings.response_style}
+                    onChange={(v) => updateChat('response_style', v as string)}
+                    layout="compact"
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 

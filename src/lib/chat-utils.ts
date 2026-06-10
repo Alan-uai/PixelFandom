@@ -1,3 +1,35 @@
+import { responseFormatStyles, SECTION_META } from './response-styles';
+
+export function buildSectionPrompt(responseStyle?: string): string {
+  const style = responseStyle ? responseFormatStyles[responseStyle] : null;
+  const sections = style?.sections ?? responseFormatStyles.detalhado.sections;
+
+  const sectionExamples = sections.map(s => {
+    const meta = SECTION_META[s] ?? { icon: '📌', label: s.charAt(0).toUpperCase() + s.slice(1) };
+    return `@@@SECTION@@@\n{"sectionType":"${s}","title":"${meta.label}","content":"..."}`;
+  }).join('\n');
+
+  return `
+FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
+Forneça sua resposta em seções separadas. Cada seção DEVE começar com @@@SECTION@@@ na própria linha, seguido de um JSON na linha seguinte.
+
+As seções obrigatórias são: ${sections.join(', ')}
+
+Exemplo:
+${sectionExamples}
+
+REGRAS:
+- sectionType deve ser um dos: ${sections.join(', ')}
+- O "resumo" deve ser a primeira seção, enxuta e direta (se presente)
+- Os campos title e content são string
+- O content pode ter múltiplas linhas e markdown (negrito, itálico, listas, etc)
+- Para referenciar artigos da wiki, use o formato: [[slug-do-artigo|Nome do Artigo]]
+- Para comparar itens, use uma tabela markdown
+- Responda APENAS no formato acima, sem texto fora das seções
+- Use português brasileiro
+`;
+}
+
 export interface ChatMessage {
   role: string;
   content: string | null;
@@ -90,28 +122,8 @@ export function getContextWindow(model: string): number {
   return MODEL_CONTEXT_WINDOWS[model] || 128000;
 }
 
-export const SECTION_PROMPT = `
-FORMATO DE RESPOSTA - SIGA ESTRITAMENTE:
-Forneça sua resposta em seções separadas. Cada seção DEVE começar com @@@SECTION@@@ na própria linha, seguido de um JSON na linha seguinte.
-
-Exemplo:
-@@@SECTION@@@
-{"sectionType":"resumo","title":"Resumo","content":"Resposta direta e objetiva aqui."}
-@@@SECTION@@@
-{"sectionType":"detalhes","title":"Detalhes","content":"Informações detalhadas..."}
-@@@SECTION@@@
-{"sectionType":"dicas","title":"Dicas","content":"Dicas práticas, atalhos, como encontrar ou fazer..."}
-
-REGRAS:
-- sectionType pode ser: "resumo", "detalhes", "dicas", "comparacao", "analise" ou outro que fizer sentido
-- O "resumo" deve ser a primeira seção, enxuta e direta
-- Os campos title e content são string
-- O content pode ter múltiplas linhas e markdown (negrito, itálico, listas, etc)
-- Para referenciar artigos da wiki, use o formato: [[slug-do-artigo|Nome do Artigo]]
-- Para comparar itens, use uma tabela markdown
-- Responda APENAS no formato acima, sem texto fora das seções
-- Use português brasileiro
-`;
+/** @deprecated Use buildSectionPrompt(responseStyle) instead */
+export const SECTION_PROMPT = buildSectionPrompt('detalhado');
 
 export const TEXT_CHAT_SYSTEM_PROMPT = `
 You are an expert wiki assistant integrated with a game database. You have access to 40+ tools for searching, querying, and analyzing game data.
@@ -171,4 +183,4 @@ export async function loadChatHistory(
   return data as ChatMessage[];
 }
 
-export { getSchemaPrompt } from './game-schema';
+

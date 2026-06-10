@@ -11,7 +11,7 @@ type Props = {
 export default function VoiceChat({ tenantSlug, isActive }: Props) {
   return (
     <Link
-      href={`/w/${tenantSlug}/voice`}
+      href={`/w/${tenantSlug}/ai`}
       className={`rounded-md p-2 transition-colors ${
         isActive
           ? 'text-primary bg-primary/10'

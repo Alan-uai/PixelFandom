@@ -61,7 +61,7 @@ function WikiLayoutContent({
   const voiceWidgetConfig = widgetTheme.voice as WidgetVoiceConfig | undefined;
   const isHome = pathname === `/w/${slug}` || pathname === '/';
   const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
-  const isVoicePage = pathname === `/w/${slug}/voice` || pathname === '/voice';
+  const isVoicePage = pathname === `/w/${slug}/ai` || pathname === '/voice';
   const hasSidebar = isChatPage;
   const showTitleStrip = !isVoicePage;
 

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useWikiData } from '@/context/wiki-provider'
 import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context'
+import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles'
 import type { VoiceName } from '@/lib/voice/geminilive'
 import { AI_PERSONALITIES } from '@/lib/ai-personalities'
 import { personas } from '@/lib/personas'
@@ -15,11 +16,11 @@ import { Label } from '@/components/ui/label'
 import { SelectCard } from '@/components/ui/select-card'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Volume2, Save, Mic, Headphones, Ear, Loader2, MessageCircle, Check, Sparkles } from 'lucide-react'
+import { Volume2, Save, Mic, Headphones, Ear, Loader2, MessageCircle, Check, Sparkles, Globe, Radio } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUser, supabase } from '@/supabase'
 
-type Settings = {
+type VoiceSettings = {
   userName: string
   voice: VoiceName
   temperature: number
@@ -36,9 +37,9 @@ type Settings = {
   primaryNavigation: boolean
 }
 
-const STORAGE_KEY = 'pixelfandom:voice-settings'
+const VOICE_STORAGE_KEY = 'pixelfandom:voice-settings'
 
-const defaultSettings: Settings = {
+const defaultVoice: VoiceSettings = {
   userName: '',
   voice: 'Kore' as VoiceName,
   temperature: 0.7,
@@ -55,24 +56,33 @@ const defaultSettings: Settings = {
   primaryNavigation: false,
 }
 
-function detectUserLanguage(): string {
-  if (typeof navigator === 'undefined') return 'pt'
-  const nav = navigator.language || (navigator.languages?.[0]) || 'pt-BR'
-  if (nav.startsWith('pt')) return 'pt'
-  if (nav.startsWith('es')) return 'es'
-  return 'en'
-}
-
-function loadSettings(): Settings {
+function loadVoice(): VoiceSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return { ...defaultSettings, ...JSON.parse(raw) }
+    const raw = localStorage.getItem(VOICE_STORAGE_KEY)
+    if (raw) return { ...defaultVoice, ...JSON.parse(raw) }
   } catch {}
-  return defaultSettings
+  return defaultVoice
 }
 
-function saveSettings(s: Settings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+function saveVoice(s: VoiceSettings) {
+  localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(s))
+}
+
+function LayerBadge({ isWikiSpecific }: { isWikiSpecific: boolean }) {
+  if (isWikiSpecific) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+        <Radio className="h-2.5 w-2.5" />
+        Wiki
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+      <Globe className="h-2.5 w-2.5" />
+      Global
+    </span>
+  )
 }
 
 export default function AISettingsPage() {
@@ -83,11 +93,14 @@ export default function AISettingsPage() {
   const { user } = useUser()
   const { preferences, updatePreference } = useUserPreferences()
   const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {}
+  const tenantId = (data?.tenant?.id as string) || ''
 
-  const [settings, setSettings] = useState<Settings>(() => ({
-    ...loadSettings(),
-    voice: (aiConfig.voice_name as VoiceName) || loadSettings().voice,
-    volume: (aiConfig.voice_volume as number) || loadSettings().volume,
+  const wikiPrefs = preferences.wiki_preferences?.[tenantId] ?? {}
+
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => ({
+    ...loadVoice(),
+    voice: (aiConfig.voice_name as VoiceName) || loadVoice().voice,
+    volume: (aiConfig.voice_volume as number) || loadVoice().volume,
   }))
   const [saving, setSaving] = useState(false)
   const [synced, setSynced] = useState(false)
@@ -101,50 +114,69 @@ export default function AISettingsPage() {
         .eq('user_id', user.id)
         .single()
       if (data?.preferences) {
-        const cloud = data.preferences as Partial<Settings>
-        setSettings((prev) => ({ ...prev, ...cloud }))
+        const cloud = data.preferences as Partial<VoiceSettings>
+        setVoiceSettings((prev) => ({ ...prev, ...cloud }))
       }
       setSynced(true)
     })()
   }, [user, synced])
 
   useEffect(() => {
-    saveSettings(settings)
-  }, [settings])
+    saveVoice(voiceSettings)
+  }, [voiceSettings])
 
-  const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
+  const updateVoice = <K extends keyof VoiceSettings>(key: K, value: VoiceSettings[K]) => {
+    setVoiceSettings((prev) => ({ ...prev, [key]: value }))
   }
 
-  const updateChat = <K extends keyof ChatSettings>(key: K, value: ChatSettings[K]) => {
-    updatePreference('chat_settings', { ...preferences.chat_settings, [key]: value })
+  const updateWikiChat = <K extends keyof ChatSettings>(key: K, value: ChatSettings[K]) => {
+    const current = preferences.wiki_preferences?.[tenantId] ?? {}
+    updatePreference('wiki_preferences', {
+      ...preferences.wiki_preferences,
+      [tenantId]: { ...current, [key]: value },
+    })
   }
 
-  const handleSave = async () => {
+  const effectiveChatSetting = <K extends keyof ChatSettings>(key: K): ChatSettings[K] => {
+    return (wikiPrefs[key] ?? preferences.chat_settings[key]) as ChatSettings[K]
+  }
+
+  const isWikiSpecific = (key: keyof ChatSettings): boolean => {
+    return key in wikiPrefs
+  }
+
+  const responseStyleOptions = useMemo(() => {
+    return responseStyleGroups.flatMap(group =>
+      group.keys.map(k => {
+        const s = responseFormatStyles[k]
+        return { value: k, label: s.label, description: s.description, emoji: s.icon }
+      })
+    )
+  }, [])
+
+  const handleSaveVoice = async () => {
     if (!user) {
-      saveSettings(settings)
+      saveVoice(voiceSettings)
       toast({ title: 'Configurações salvas localmente', description: 'Faça login para sincronizar entre dispositivos.' })
       return
     }
-
     setSaving(true)
     const { error } = await supabase
       .from('user_preferences')
       .upsert(
-        { user_id: user.id, preferences: settings, updated_at: new Date().toISOString() },
+        { user_id: user.id, preferences: voiceSettings, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       )
-
     if (error) {
       toast({ variant: 'destructive', title: 'Erro ao salvar', description: error.message })
     } else {
-      saveSettings(settings)
+      saveVoice(voiceSettings)
       toast({ title: 'Configurações salvas!', description: 'Preferências sincronizadas com a nuvem.' })
     }
     setSaving(false)
   }
 
-  const lang = settings.userLang as 'pt' | 'en' | 'es'
+  const lang = voiceSettings.userLang as 'pt' | 'en' | 'es'
 
   if (loading) {
     return (
@@ -186,8 +218,13 @@ export default function AISettingsPage() {
         <TabsContent value="chat" className="space-y-6 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Personalidade</CardTitle>
-              <CardDescription>Escolha a personalidade do assistente IA.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Personalidade</CardTitle>
+                  <CardDescription>Escolha a personalidade do assistente IA.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('personality_id')} />
+              </div>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -197,8 +234,8 @@ export default function AISettingsPage() {
                   description: p.description,
                   emoji: p.emoji,
                 }))}
-                value={preferences.chat_settings.personality_id}
-                onChange={(v) => updateChat('personality_id', v as string)}
+                value={effectiveChatSetting('personality_id')}
+                onChange={(v) => updateWikiChat('personality_id', v as string)}
                 layout="grid"
                 columns={2}
                 size="md"
@@ -208,8 +245,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Persona</CardTitle>
-              <CardDescription>Define o tom geral das respostas.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Persona</CardTitle>
+                  <CardDescription>Define o tom geral das respostas.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('persona')} />
+              </div>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -217,8 +259,8 @@ export default function AISettingsPage() {
                   value: key,
                   label: key.charAt(0).toUpperCase() + key.slice(1),
                 }))}
-                value={preferences.chat_settings.persona}
-                onChange={(v) => updateChat('persona', v as string)}
+                value={effectiveChatSetting('persona')}
+                onChange={(v) => updateWikiChat('persona', v as string)}
                 layout="compact"
               />
             </CardContent>
@@ -226,8 +268,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Emojis</CardTitle>
-              <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Emojis</CardTitle>
+                  <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('emoji_style')} />
+              </div>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -236,8 +283,8 @@ export default function AISettingsPage() {
                   { value: 'none', label: 'Sem emojis' },
                   { value: 'lots', label: 'Vários' },
                 ]}
-                value={preferences.chat_settings.emoji_style}
-                onChange={(v) => updateChat('emoji_style', v as string)}
+                value={effectiveChatSetting('emoji_style')}
+                onChange={(v) => updateWikiChat('emoji_style', v as string)}
                 layout="compact"
               />
             </CardContent>
@@ -245,27 +292,41 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Estilo de Resposta</CardTitle>
-              <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Estilo de Resposta</CardTitle>
+                  <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('response_style')} />
+              </div>
             </CardHeader>
-            <CardContent>
-              <SelectCard
-                options={[
-                  { value: 'detailed', label: 'Detalhado' },
-                  { value: 'short', label: 'Curto' },
-                  { value: 'topicos', label: 'Tópicos' },
-                ]}
-                value={preferences.chat_settings.response_style}
-                onChange={(v) => updateChat('response_style', v as string)}
-                layout="compact"
-              />
+            <CardContent className="space-y-3">
+              {responseStyleGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                  <SelectCard
+                    options={group.keys.map(k => {
+                      const s = responseFormatStyles[k]
+                      return { value: k, label: s.label, description: s.description, emoji: s.icon }
+                    })}
+                    value={effectiveChatSetting('response_style')}
+                    onChange={(v) => updateWikiChat('response_style', v as string)}
+                    layout="compact"
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Idioma do Chat</CardTitle>
-              <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Idioma do Chat</CardTitle>
+                  <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('language')} />
+              </div>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -273,8 +334,8 @@ export default function AISettingsPage() {
                   value: key,
                   label: val.instruction,
                 }))}
-                value={preferences.chat_settings.language}
-                onChange={(v) => updateChat('language', v as string)}
+                value={effectiveChatSetting('language')}
+                onChange={(v) => updateWikiChat('language', v as string)}
                 layout="compact"
               />
             </CardContent>
@@ -298,15 +359,15 @@ export default function AISettingsPage() {
             <CardContent className="space-y-4">
               <FloatingLabelInput
                 label="Seu Nome"
-                value={settings.userName}
-                onChange={(e) => update('userName', e.target.value)}
+                value={voiceSettings.userName}
+                onChange={(e) => updateVoice('userName', e.target.value)}
               />
               <div className="space-y-2">
-                <Label htmlFor="lang">Idioma</Label>
+                <Label htmlFor="v-lang">Idioma</Label>
                 <select
-                  id="lang"
-                  value={settings.userLang}
-                  onChange={(e) => update('userLang', e.target.value)}
+                  id="v-lang"
+                  value={voiceSettings.userLang}
+                  onChange={(e) => updateVoice('userLang', e.target.value)}
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="pt">Português</option>
@@ -327,8 +388,8 @@ export default function AISettingsPage() {
                 <Label htmlFor="voice">Voz do Assistente</Label>
                 <select
                   id="voice"
-                  value={settings.voice}
-                  onChange={(e) => update('voice', e.target.value as VoiceName)}
+                  value={voiceSettings.voice}
+                  onChange={(e) => updateVoice('voice', e.target.value as VoiceName)}
                   className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="Puck">Puck — Equilibrada</option>
@@ -341,14 +402,14 @@ export default function AISettingsPage() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Volume2 className="h-4 w-4" />
-                  Volume ({settings.volume}%)
+                  Volume ({voiceSettings.volume}%)
                 </Label>
                 <input
                   type="range"
                   min={0}
                   max={100}
-                  value={settings.volume}
-                  onChange={(e) => update('volume', Number(e.target.value))}
+                  value={voiceSettings.volume}
+                  onChange={(e) => updateVoice('volume', Number(e.target.value))}
                   className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                 />
               </div>
@@ -363,9 +424,9 @@ export default function AISettingsPage() {
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => update('temperature', opt.value)}
+                      onClick={() => updateVoice('temperature', opt.value)}
                       className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
-                        settings.temperature === opt.value
+                        voiceSettings.temperature === opt.value
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-background text-muted-foreground hover:text-foreground hover:border-primary/50'
                       }`}
@@ -400,8 +461,8 @@ export default function AISettingsPage() {
                   </div>
                   <input
                     type="checkbox"
-                    checked={settings[key]}
-                    onChange={(e) => update(key, e.target.checked)}
+                    checked={voiceSettings[key]}
+                    onChange={(e) => updateVoice(key, e.target.checked)}
                     className="h-5 w-5 rounded border-gray-300"
                   />
                 </div>
@@ -431,8 +492,8 @@ export default function AISettingsPage() {
                 </div>
                 <input
                   type="checkbox"
-                  checked={settings.wakeWordEnabled}
-                  onChange={(e) => update('wakeWordEnabled', e.target.checked)}
+                  checked={voiceSettings.wakeWordEnabled}
+                  onChange={(e) => updateVoice('wakeWordEnabled', e.target.checked)}
                   className="h-5 w-5 rounded border-gray-300"
                 />
               </div>
@@ -452,20 +513,20 @@ export default function AISettingsPage() {
                 </div>
                 <input
                   type="checkbox"
-                  checked={settings.publicMode}
-                  onChange={(e) => update('publicMode', e.target.checked)}
+                  checked={voiceSettings.publicMode}
+                  onChange={(e) => updateVoice('publicMode', e.target.checked)}
                   className="h-5 w-5 rounded border-gray-300"
                 />
               </div>
-              {settings.publicMode && (
+              {voiceSettings.publicMode && (
                 <div className="space-y-2">
-                  <Label>Sensibilidade ({settings.publicModeSensitivity})</Label>
+                  <Label>Sensibilidade ({voiceSettings.publicModeSensitivity})</Label>
                   <input
                     type="range"
                     min={1}
                     max={10}
-                    value={settings.publicModeSensitivity}
-                    onChange={(e) => update('publicModeSensitivity', Number(e.target.value))}
+                    value={voiceSettings.publicModeSensitivity}
+                    onChange={(e) => updateVoice('publicModeSensitivity', Number(e.target.value))}
                     className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                   />
                 </div>
@@ -488,8 +549,8 @@ export default function AISettingsPage() {
                 </div>
                 <input
                   type="checkbox"
-                  checked={settings.primaryNavigation}
-                  onChange={(e) => update('primaryNavigation', e.target.checked)}
+                  checked={voiceSettings.primaryNavigation}
+                  onChange={(e) => updateVoice('primaryNavigation', e.target.checked)}
                   className="h-5 w-5 rounded border-gray-300"
                 />
               </div>
@@ -497,7 +558,7 @@ export default function AISettingsPage() {
           </Card>
 
           <div className="flex justify-center">
-            <Button onClick={handleSave} disabled={saving} size="lg">
+            <Button onClick={handleSaveVoice} disabled={saving} size="lg">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {saving ? 'Salvando...' : 'Salvar Configurações'}
             </Button>

@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
+import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 interface FreeModel {
@@ -69,6 +70,7 @@ export default function WikiAIConfigPage() {
     chatName: 'Assistente',
     botLogo: '',
     personalityId: 'friendly',
+    responseStyle: 'detalhado',
     suggestedQuestions: [] as string[],
     botBanner: '',
   });
@@ -91,6 +93,7 @@ export default function WikiAIConfigPage() {
   const [chatName, setChatName] = useState('Assistente');
   const [botLogo, setBotLogo] = useState('');
   const [personalityId, setPersonalityId] = useState('friendly');
+  const [responseStyle, setResponseStyle] = useState('detalhado');
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [botBanner, setBotBanner] = useState('');
 
@@ -165,6 +168,7 @@ export default function WikiAIConfigPage() {
     setChatName((config.chat_name as string) || 'Assistente');
     setBotLogo((config.bot_logo as string) || '');
     setPersonalityId((config.personality_id as string) || 'friendly');
+    setResponseStyle((config.response_style as string) || 'detalhado');
     setSuggestedQuestions((config.suggested_questions as string[]) || []);
     setBotBanner((config.bot_banner as string) || '');
 
@@ -188,6 +192,7 @@ export default function WikiAIConfigPage() {
       chatName: (config.chat_name as string) || 'Assistente',
       botLogo: (config.bot_logo as string) || '',
       personalityId: (config.personality_id as string) || 'friendly',
+      responseStyle: (config.response_style as string) || 'detalhado',
       suggestedQuestions: (config.suggested_questions as string[]) || [],
       botBanner: (config.bot_banner as string) || '',
     });
@@ -244,6 +249,7 @@ export default function WikiAIConfigPage() {
           chat_name: chatName,
           bot_logo: botLogo,
           personality_id: personalityId,
+          response_style: responseStyle,
           system_prompt: getPersonality(personalityId).systemPrompt,
           suggested_questions: suggestedQuestions,
           bot_banner: botBanner,
@@ -280,6 +286,7 @@ export default function WikiAIConfigPage() {
         chatName,
         botLogo,
         personalityId,
+        responseStyle,
         suggestedQuestions,
       botBanner,
     });
@@ -307,6 +314,7 @@ export default function WikiAIConfigPage() {
     chatName !== savedConfig.chatName ||
     botLogo !== savedConfig.botLogo ||
     personalityId !== savedConfig.personalityId ||
+    responseStyle !== savedConfig.responseStyle ||
     JSON.stringify(suggestedQuestions) !== JSON.stringify(savedConfig.suggestedQuestions) ||
     botBanner !== savedConfig.botBanner,
   [
@@ -315,7 +323,7 @@ export default function WikiAIConfigPage() {
     customModel, customApiKey, fallbackChain, fallbackSource,
     resolvedGeminiModel, geminiModelSource, geminiCustomModel,
     geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
-    wakeWordText, chatName, botLogo, personalityId,
+    wakeWordText, chatName, botLogo, personalityId, responseStyle,
     suggestedQuestions, botBanner,
   ]);
 
@@ -699,6 +707,24 @@ export default function WikiAIConfigPage() {
             columns={4}
             size="md"
           />
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">Formato de Resposta Padrão da Wiki</Label>
+            <p className="text-xs text-muted-foreground mb-2">Usado quando o usuário não define uma preferência própria.</p>
+            {responseStyleGroups.map(group => (
+              <div key={group.label}>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                <SelectCard
+                  options={group.keys.map(k => {
+                    const s = responseFormatStyles[k]
+                    return { value: k, label: s.label, description: s.description, emoji: s.icon }
+                  })}
+                  value={responseStyle}
+                  onChange={(v) => setResponseStyle(v as string)}
+                  layout="compact"
+                />
+              </div>
+            ))}
+          </div>
           <div className="rounded-lg bg-muted/50 border p-3">
             <p className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Prompt da personalidade:</span>{' '}

@@ -6,11 +6,11 @@ import { chatStreamGemini } from '@/lib/gemini-chat';
 import { createClient } from '@/supabase/server';
 import { decryptApiKey } from '@/lib/crypto';
 import {
-  SECTION_PROMPT,
+  buildSectionPrompt,
   TEXT_CHAT_SYSTEM_PROMPT,
-  getSchemaPrompt,
   loadChatHistory,
 } from '@/lib/chat-utils';
+import { getSchemaPrompt } from '@/lib/game-schema';
 import {
   TEXT_CHAT_TOOLS,
   executeTextChatTool,
@@ -151,8 +151,9 @@ async function callOpenRouter(
   return data;
 }
 
-function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string): string {
-  const parts = [TEXT_CHAT_SYSTEM_PROMPT, schemaPrompt, SECTION_PROMPT];
+function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string, responseStyle?: string): string {
+  const sectionPrompt = buildSectionPrompt(responseStyle);
+  const parts = [TEXT_CHAT_SYSTEM_PROMPT, schemaPrompt, sectionPrompt];
   if (userPrompt) {
     parts.unshift(userPrompt);
   }
@@ -194,6 +195,7 @@ async function buildMessages(
   sessionId?: string,
   userPrompt?: string,
   tenantSlug?: string,
+  responseStyle?: string,
 ): Promise<Record<string, unknown>[]> {
   let history: Record<string, unknown>[] = [];
 
@@ -204,7 +206,7 @@ async function buildMessages(
     ).map((m) => ({ role: m.role, content: m.content }));
   }
 
-  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt);
+  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
 
   return [
     { role: 'system', content: systemPrompt },
@@ -233,6 +235,7 @@ export async function POST(request: NextRequest) {
     let tenantSlug = requestTenant?.slug || '';
     let tenantId: string | null = null;
     let userPrompt = '';
+    let responseStyle = 'detalhado';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
@@ -248,8 +251,34 @@ export async function POST(request: NextRequest) {
         geminiCustomApiKey = decryptApiKey((config.gemini_custom_api_key as string) || '');
         geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
         primaryProvider = (config.primary_provider as string) || 'openrouter';
+        responseStyle = (config.response_style as string) || responseStyle; // Layer 3 (admin default)
       }
     }
+
+    // Cascade: Layer 2 (global user) > Layer 1 (wiki-specific user)
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: prefs } = await supabase
+          .from('user_preferences')
+          .select('preferences')
+          .eq('user_id', user.id)
+          .single();
+        if (prefs?.preferences) {
+          const p = prefs.preferences as Record<string, unknown>;
+          const chatSettings = p.chat_settings as Record<string, string> | undefined;
+          const wikiPrefs = p.wiki_preferences as Record<string, Record<string, string>> | undefined;
+          // Layer 1: wiki-specific user preference (highest priority)
+          if (tenantId && wikiPrefs?.[tenantId]?.response_style) {
+            responseStyle = wikiPrefs[tenantId].response_style;
+          // Layer 2: global user preference
+          } else if (chatSettings?.response_style) {
+            responseStyle = chatSettings.response_style;
+          }
+        }
+      }
+    } catch {}
 
     if (session_id) {
       await saveMessage(session_id, 'user', message);
@@ -284,7 +313,7 @@ export async function POST(request: NextRequest) {
         }),
       ]);
 
-      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt);
+      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
       const ragPrompt = context
         ? `${geminiSystem}
 
@@ -319,7 +348,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
     try {
       let messages = await buildMessages(
-        schemaPrompt, message, session_id, userPrompt, tenantSlug
+        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle
       );
       let finalText: string | null = null;
       const MAX_TOOL_ROUNDS = 3;
@@ -433,7 +462,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
           }),
         ]);
 
-        const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt);
+      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
         const ragPrompt = context
           ? `${geminiSystem}
 

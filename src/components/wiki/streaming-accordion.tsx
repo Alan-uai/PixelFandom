@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { ChevronDown, FileText, ExternalLink } from 'lucide-react';
+import { SECTION_META } from '@/lib/response-styles';
 
 type Section = {
   sectionType: string;
@@ -147,11 +148,7 @@ export default function StreamingAccordion({ streamContent, isStreaming, tenantS
     <div className="space-y-2">
       {sections.map((section, idx) => {
         const isExpanded = expandedIndex === idx;
-        const iconMap: Record<string, string> = {
-          resumo: '📋',
-          detalhes: '📖',
-          dicas: '💡',
-        };
+        const meta = SECTION_META[section.sectionType] ?? { icon: '📌', label: section.sectionType };
 
         return (
           <div
@@ -162,7 +159,7 @@ export default function StreamingAccordion({ streamContent, isStreaming, tenantS
               onClick={() => setExpandedIndex(isExpanded ? -1 : idx)}
               className="flex items-center gap-2 w-full px-4 py-3 text-left text-sm font-medium hover:bg-muted/50 transition-colors"
             >
-              <span className="text-base">{iconMap[section.sectionType] || '📌'}</span>
+              <span className="text-base">{meta.icon}</span>
               <span className="flex-1">{section.title}</span>
               <ChevronDown
                 className={`h-4 w-4 text-muted-foreground transition-transform ${

@@ -95,6 +95,14 @@ slugificação, normalização, deduplicação, correção e persistência autom
 - Tenant-scoped AI config via `tenants.ai_config` JSONB column
 - Roles: `owner > admin > editor > viewer`
 
+## Regra de comunicação: planos detalhados
+
+Quando um plano detalhado já foi apresentado e o usuário pede apenas ajustes
+pontuais (refinamento de uma parte específica, mudança sutil de direção, etc),
+**não reescreva o plano completo**. Apenas detalhe a parte ajustada, confirme
+com o usuário, e siga para implementação. Se o usuário quiser rever o plano
+completo com as correções, ele pedirá explicitamente.
+
 ## Key env vars
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, `FALLBACK_CHAIN` (comma-separated model list)
 `PSYCHO_BACKEND_URL` — Python backend URL for dev API proxy (default `http://localhost:8000`)

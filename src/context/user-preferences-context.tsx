@@ -24,6 +24,7 @@ export interface UserPreferences {
   notification_preferences: Record<string, boolean>;
   voice_settings: Record<string, unknown>;
   chat_settings: ChatSettings;
+  wiki_preferences: Record<string, Partial<ChatSettings>>;
   theme_preset: string;
 }
 
@@ -45,6 +46,7 @@ const DEFAULTS: UserPreferences = {
   notification_preferences: {},
   voice_settings: {},
   chat_settings: { ...CHAT_DEFAULTS },
+  wiki_preferences: {},
   theme_preset: 'ciano',
 };
 
