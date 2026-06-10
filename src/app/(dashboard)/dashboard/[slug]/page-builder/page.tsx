@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'l
 import Link from 'next/link';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { supabase } from '@/supabase';
+import type { SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 
 const PAGE_TYPES = [
   { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
@@ -34,7 +35,7 @@ function PageBuilderPageInner() {
   const router = useRouter();
   const slug = params.slug as string;
   const pageType = (searchParams.get('type') as PageType) || 'landing';
-  const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[] } | null>(null);
+  const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string } | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
 
   const { data: tenant } = useCachedData<{ id: string }>(
@@ -47,12 +48,12 @@ function PageBuilderPageInner() {
   const tenantId = tenant?.id ?? null;
 
   const cacheKey = tenantId ? `page-layout:${tenantId}:${pageType}` : null;
-  const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[] }>(
+  const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
     cacheKey,
     async () => {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
       const json = await res.json();
-      return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [] };
+      return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [], slotFlow: json?.slotFlow, clipStyle: json?.clipStyle };
     }
   );
 
@@ -118,6 +119,8 @@ function PageBuilderPageInner() {
             slug={slug}
             initialLayout={layout ? { blocks: layout.blocks } : undefined}
             initialFloatingIslands={layout?.floatingIslands || undefined}
+            initialSlotFlow={(layout?.slotFlow as SlotFlowId) || undefined}
+            initialClipStyle={(layout?.clipStyle as ClipStyleId) || undefined}
             pageType={pageType}
           />
         )}

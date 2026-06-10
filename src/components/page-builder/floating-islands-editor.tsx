@@ -2,8 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { nanoid } from 'nanoid';
+import { motion } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List, Image as ImageIcon, ListOrdered } from 'lucide-react';
-import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia } from './types';
+import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia, SlotFlowId, ClipStyleId } from './types';
+import { SLOT_FLOWS } from '@/lib/floating-island-flows';
+import { CLIP_STYLES } from '@/lib/floating-island-clips';
 
 const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.ComponentType<{ className?: string }>; defaultConfig: Record<string, unknown> }[] = [
   {
@@ -70,9 +73,13 @@ const MEDIA_TYPES: { value: IslandMedia['type']; label: string }[] = [
 interface FloatingIslandsEditorProps {
   islands: FloatingIslandConfig[];
   onChange: (islands: FloatingIslandConfig[]) => void;
+  slotFlow: SlotFlowId;
+  clipStyle: ClipStyleId;
+  onSlotFlowChange: (id: SlotFlowId) => void;
+  onClipStyleChange: (id: ClipStyleId) => void;
 }
 
-export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEditorProps) {
+export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, onSlotFlowChange, onClipStyleChange }: FloatingIslandsEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const POSITION_PRIORITY: FloatingIslandPosition[] = ['center', 'left', 'right'];
@@ -135,8 +142,90 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
 
   const usedPositions = new Set(islands.map((i) => i.position));
 
+  const flowDef = SLOT_FLOWS.find((f) => f.id === slotFlow) || SLOT_FLOWS[0];
+
+  const previewSlots = flowDef.getSlots(islands.length || 1);
+
   return (
     <div className="space-y-4">
+      {/* Slot Flow + Clip Style selectors */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Fluxo de Slots</label>
+          <select
+            value={slotFlow}
+            onChange={(e) => onSlotFlowChange(e.target.value as SlotFlowId)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+          >
+            {SLOT_FLOWS.map((f) => (
+              <option key={f.id} value={f.id}>{f.label}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-muted-foreground">{flowDef.description}</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Formato Visual</label>
+          <select
+            value={clipStyle}
+            onChange={(e) => onClipStyleChange(e.target.value as ClipStyleId)}
+            className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+          >
+            {CLIP_STYLES.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+          <p className="text-[10px] text-muted-foreground">
+            {CLIP_STYLES.find((c) => c.id === clipStyle)?.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Animated preview */}
+      <div className="rounded-lg border bg-muted/20 p-3">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Pré-visualização</p>
+        <div className="flex items-stretch gap-1 h-12">
+          {(['left', 'center', 'right'] as const).map((pos) => {
+            const filled = previewSlots.includes(pos);
+            return (
+              <motion.div
+                key={pos}
+                layout
+                animate={{
+                  flex: filled ? 1 : 0.3,
+                  opacity: filled ? 1 : 0.3,
+                }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className={`rounded flex items-center justify-center text-[10px] font-medium ${
+                  filled
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'bg-muted text-muted-foreground/40 border border-dashed border-muted-foreground/20'
+                }`}
+              >
+                {filled && (pos === 'left' ? 'L' : pos === 'center' ? 'C' : 'R')}
+              </motion.div>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-2">
+          {[1, 2, 3].map((n) => {
+            const slots = flowDef.getSlots(n);
+            return (
+              <div key={n} className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground">{n}:</span>
+                {(['left', 'center', 'right'] as const).map((p) => (
+                  <span
+                    key={p}
+                    className={`inline-block w-2 h-2 rounded-sm ${
+                      slots.includes(p) ? 'bg-primary' : 'bg-muted-foreground/20'
+                    }`}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Ilhas Flutuantes ({islands.length}/3)
@@ -189,7 +278,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
 
               {isExpanded && (
                 <div className="border-t border-border/50 px-3 py-3 space-y-3">
-                  {/* Title */}
                   <Field label="Título">
                     <input
                       type="text"
@@ -200,7 +288,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     />
                   </Field>
 
-                  {/* Position */}
                   <Field label="Posição">
                     <select
                       value={island.position}
@@ -215,7 +302,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     </select>
                   </Field>
 
-                  {/* Type */}
                   <Field label="Tipo">
                     <select
                       value={island.type}
@@ -228,7 +314,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     </select>
                   </Field>
 
-                  {/* Enabled */}
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -240,7 +325,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     <label htmlFor={`enable-${island.id}`} className="text-xs text-muted-foreground">Ativo</label>
                   </div>
 
-                  {/* Ends at */}
                   <Field label="Expirar em (opcional)">
                     <input
                       type="datetime-local"
@@ -253,7 +337,6 @@ export function FloatingIslandsEditor({ islands, onChange }: FloatingIslandsEdit
                     />
                   </Field>
 
-                  {/* Type-specific config */}
                   <div className="border-t border-border/30 pt-3">
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
                       Configuração
@@ -278,8 +361,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-
-// ── Media editor ──
 
 function MediaEditor({
   media,
@@ -338,8 +419,6 @@ function MediaEditor({
     </div>
   );
 }
-
-// ── Config fields per type ──
 
 function ConfigFields({
   island,
@@ -593,8 +672,6 @@ function ConfigFields({
       return null;
   }
 }
-
-// ── Array editor (generic) ──
 
 function ArrayEditor({
   items,

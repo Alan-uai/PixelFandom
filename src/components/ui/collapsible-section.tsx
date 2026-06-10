@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useLayoutEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useLayoutEffect, type ReactNode } from 'react';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIMARY, GOLD, getBeamPathD, getBeamPosition, createBeamPathElement } from '@/lib/welding-utils';
-import { WeldFilters, StarGlow, SparkStream, GravitySpark } from '@/components/ui/welding-effects';
+import { WeldFilters, StarGlow, SparkStream, GravitySpark, WeldedText } from '@/components/ui/welding-effects';
 
 interface CollapsibleSectionProps {
   id: string;
   title: string;
   description?: string;
   defaultOpen?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }
 
@@ -34,13 +34,39 @@ export function CollapsibleSection({
   const [beamPos, setBeamPos] = useState({ x: 0, y: 0, angle: 0 });
   const [cardSize, setCardSize] = useState({ w: 0, h: 0 });
   const [groundY, setGroundY] = useState(0);
-  const weldSeed = useRef(Math.random() * 100);
+  const [pathVersion, setPathVersion] = useState(0);
+  const weldSeed = useMemo(() => Math.random() * 100, []);
 
   useEffect(() => {
     if (contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     }
   }, [open, children]);
+
+  // Initial measurement + weld (synchronous, avoids race condition)
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+    if (w > 0 && h > 0) {
+      setCardSize({ w, h });
+      setGroundY(h);
+      pathRef.current = createBeamPathElement(w, h, 12);
+    }
+
+    setWeldPhase('welding');
+
+    const controls = animate(beamProgress, 1, {
+      duration: 3.5,
+      ease: 'linear',
+    });
+    const t1 = setTimeout(() => setWeldPhase('complete'), 3500);
+    const t2 = setTimeout(() => setWeldPhase('done'), 4300);
+    return () => { controls.stop(); clearTimeout(t1); clearTimeout(t2); };
+  }, []);
 
   // ResizeObserver to update path when card (de)collapses
   useEffect(() => {
@@ -54,6 +80,7 @@ export function CollapsibleSection({
           setCardSize({ w: Math.round(width), h: Math.round(height) });
           setGroundY(Math.round(height));
           pathRef.current = createBeamPathElement(Math.round(width), Math.round(height), 12);
+          setPathVersion(v => v + 1);
         }
       }
     });
@@ -62,7 +89,7 @@ export function CollapsibleSection({
     return () => observer.disconnect();
   }, []);
 
-  // Re-trigger welding when open/close changes & previous weld is done
+  // Re-trigger welding when open/close changes
   useEffect(() => {
     if (weldPhase === 'idle') return;
     setWeldPhase('welding');
@@ -77,19 +104,6 @@ export function CollapsibleSection({
     return () => { controls.stop(); clearTimeout(t1); clearTimeout(t2); };
   }, [open]);
 
-  // Initial weld
-  useEffect(() => {
-    setWeldPhase('welding');
-
-    const controls = animate(beamProgress, 1, {
-      duration: 3.5,
-      ease: 'linear',
-    });
-    const t1 = setTimeout(() => setWeldPhase('complete'), 3500);
-    const t2 = setTimeout(() => setWeldPhase('done'), 4300);
-    return () => { controls.stop(); clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
   useEffect(() => {
     const path = pathRef.current;
     if (!path) return;
@@ -97,7 +111,7 @@ export function CollapsibleSection({
       setBeamPos(getBeamPosition(path, v));
     });
     return unsub;
-  }, [beamProgress]);
+  }, [beamProgress, pathVersion]);
 
   const showWelding = weldPhase === 'welding';
   const showComplete = weldPhase === 'complete';
@@ -182,7 +196,7 @@ export function CollapsibleSection({
               />
             )}
           </svg>
-          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} seed={weldSeed.current} />
+          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} seed={weldSeed} />
           <SparkStream
             beamX={beamPos.x}
             beamY={beamPos.y}
@@ -229,21 +243,27 @@ export function CollapsibleSection({
               animate={{ x: open ? 4 : 0 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <motion.span
-                className="block"
-                animate={{ opacity: open ? 0 : 1 }}
-                transition={{ duration: 0.25 }}
-              >
-                {title}
-              </motion.span>
-              <motion.span
-                className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
-                animate={{ opacity: open ? 1 : 0 }}
-                transition={{ duration: 0.25 }}
-                aria-hidden
-              >
-                {title}
-              </motion.span>
+              {showWelding ? (
+                <WeldedText text={title} startDelay={200} className="block" />
+              ) : (
+                <>
+                  <motion.span
+                    className="block"
+                    animate={{ opacity: open ? 0 : 1 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {title}
+                  </motion.span>
+                  <motion.span
+                    className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
+                    animate={{ opacity: open ? 1 : 0 }}
+                    transition={{ duration: 0.25 }}
+                    aria-hidden
+                  >
+                    {title}
+                  </motion.span>
+                </>
+              )}
             </motion.h3>
             {description && (
               <p className="text-sm text-muted-foreground">{description}</p>

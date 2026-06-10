@@ -863,7 +863,22 @@ export interface BlockDefinition {
   supportsChildren?: boolean;
 }
 
-// ── Floating Islands (unchanged) ──
+// ── Floating Islands ──
+
+export type SlotFlowId = 'current' | 'leftPriority' | 'rightPriority' | 'centerFirst' | 'centerAlways' | 'sidesFirst' | 'fillRight' | 'centerSpread';
+
+export type ClipStyleId =
+  | 'trapezoid-subtle'
+  | 'trapezoid'
+  | 'trapezoid-sharp'
+  | 'trapezoid-extreme'
+  | 'rectangle'
+  | 'inverted-subtle'
+  | 'inverted'
+  | 'inverted-sharp'
+  | 'pentagon'
+  | 'pentagon-inverted'
+  | 'chevron';
 
 export type FloatingIslandType = 'multi-timer' | 'queue-timer' | 'video-list' | 'category-table' | 'wiki-list' | 'carousel' | 'list';
 export type FloatingIslandPosition = 'left' | 'center' | 'right';
@@ -927,5 +942,7 @@ export interface WidgetLayout {
 }
 
 export interface FloatingIslandLayout {
-  floatingIslands: FloatingIslandConfig[];
+  islands: FloatingIslandConfig[];
+  slotFlow: SlotFlowId;
+  clipStyle: ClipStyleId;
 }

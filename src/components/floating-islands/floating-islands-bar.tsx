@@ -1,29 +1,20 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import type { FloatingIslandConfig } from '@/components/page-builder/types';
+import type { FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
+import { getSlotFlowDef } from '@/lib/floating-island-flows';
+import { getClipPath } from '@/lib/floating-island-clips';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
 interface FloatingIslandsBarProps {
   islands: FloatingIslandConfig[];
+  slotFlow?: SlotFlowId;
+  clipStyle?: ClipStyleId;
   basePath?: string;
   className?: string;
 }
 
-const CLIP = 28;
-
-function getClipPath(pos: 'left' | 'center' | 'right'): string {
-  switch (pos) {
-    case 'left':
-      return `polygon(0 0, 100% 0, calc(100% - ${CLIP}px) 100%, 0 100%)`;
-    case 'center':
-      return `polygon(0 0, 100% 0, calc(100% - ${CLIP}px) 100%, ${CLIP}px 100%)`;
-    case 'right':
-      return `polygon(0 0, 100% 0, 100% 100%, ${CLIP}px 100%)`;
-  }
-}
-
-export function FloatingIslandsBar({ islands, basePath = '', className = '' }: FloatingIslandsBarProps) {
+export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 'trapezoid', basePath = '', className = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -49,20 +40,10 @@ export function FloatingIslandsBar({ islands, basePath = '', className = '' }: F
 
   if (enabled.length === 0) return null;
 
+  const flowDef = getSlotFlowDef(slotFlow);
+
   const sorted = [...enabled];
-  const count = sorted.length;
-
-  const slot = (index: number): 'left' | 'center' | 'right' => {
-    if (count === 1) return 'center';
-    if (count === 2) return index === 0 ? 'left' : 'right';
-    return ['left', 'center', 'right'][index] as 'left' | 'center' | 'right';
-  };
-
-  const positions: Array<'left' | 'center' | 'right'> = count === 1
-    ? ['center']
-    : count === 2
-    ? ['left', 'right']
-    : ['left', 'center', 'right'];
+  const positions = flowDef.getSlots(sorted.length);
 
   return (
     <div className={`bg-muted/20 ${className}`}>
@@ -74,7 +55,7 @@ export function FloatingIslandsBar({ islands, basePath = '', className = '' }: F
               <div
                 key={pos}
                 className="flex-1"
-                style={{ clipPath: getClipPath(pos) }}
+                style={{ clipPath: getClipPath(clipStyle, pos) }}
               >
                 {island ? (
                   <FloatingIslandWrapper

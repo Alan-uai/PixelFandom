@@ -18,7 +18,7 @@ import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
-import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig } from '@/components/page-builder/types';
+import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
 import { getTableCatalog } from '@/lib/data-access';
 
@@ -71,6 +71,8 @@ function WikiLayoutContent({
   const [footerLayout, setFooterLayout] = useState<any>(null);
   const footerCache = useRef<Record<string, any>>({});
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
+  const [slotFlow, setSlotFlow] = useState<SlotFlowId>('current');
+  const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
   const islandsCache = useRef<Record<string, any>>({});
   const [gameTableNames, setGameTableNames] = useState<string[]>([]);
 
@@ -93,15 +95,20 @@ function WikiLayoutContent({
   useEffect(() => {
     if (!tenant?.id) return;
     if (islandsCache.current[tenant.id] !== undefined) {
-      setFloatingIslands(islandsCache.current[tenant.id]);
+      const cached = islandsCache.current[tenant.id];
+      setFloatingIslands(cached.islands || cached);
+      setSlotFlow(cached.slotFlow || 'current');
+      setClipStyle(cached.clipStyle || 'trapezoid');
       return;
     }
     fetch(`/api/tenants/${tenant.id}/page-layout?type=landing`)
       .then((r) => r.json())
       .then((data) => {
         const islands = data?.floatingIslands?.length > 0 ? data.floatingIslands : [];
-        islandsCache.current[tenant.id] = islands;
+        islandsCache.current[tenant.id] = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };
         setFloatingIslands(islands);
+        if (data.slotFlow) setSlotFlow(data.slotFlow);
+        if (data.clipStyle) setClipStyle(data.clipStyle);
       })
       .catch(() => {});
   }, [tenant?.id]);
@@ -255,7 +262,7 @@ function WikiLayoutContent({
 
         {floatingIslands.length > 0 && (
           <div className="sticky top-14 z-40">
-            <FloatingIslandsBar islands={floatingIslands} basePath={basePath} />
+            <FloatingIslandsBar islands={floatingIslands} slotFlow={slotFlow} clipStyle={clipStyle} basePath={basePath} />
           </div>
         )}
 

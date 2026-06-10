@@ -23,7 +23,7 @@ import {
   Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose,
   LayoutList, Undo2, Redo2, Smartphone, BookTemplate, Settings2,
 } from 'lucide-react';
-import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig } from './types';
+import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig, SlotFlowId, ClipStyleId } from './types';
 import { BLOCK_REGISTRY } from '@/lib/block-registry';
 import { TemplateLibrary } from './template-library';
 
@@ -34,6 +34,8 @@ interface PageBuilderEditorProps {
   slug?: string;
   initialLayout?: PageLayout;
   initialFloatingIslands?: FloatingIslandConfig[];
+  initialSlotFlow?: SlotFlowId;
+  initialClipStyle?: ClipStyleId;
   pageType?: string;
 }
 
@@ -69,10 +71,12 @@ function flattenTree(blocks: BlockConfig[]): string[] {
 }
 
 export function PageBuilderEditor({
-  tenantId, slug, initialLayout, initialFloatingIslands, pageType = 'landing',
+  tenantId, slug, initialLayout, initialFloatingIslands, initialSlotFlow, initialClipStyle, pageType = 'landing',
 }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
+  const [slotFlow, setSlotFlow] = useState<SlotFlowId>(initialSlotFlow || 'current');
+  const [clipStyle, setClipStyle] = useState<ClipStyleId>(initialClipStyle || 'trapezoid');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -197,7 +201,7 @@ export function PageBuilderEditor({
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocks, floatingIslands }),
+        body: JSON.stringify({ blocks, floatingIslands, slotFlow, clipStyle }),
       });
       if (res.ok) {
         setSaved(true);
@@ -359,7 +363,14 @@ export function PageBuilderEditor({
         </DndContext>
       ) : activeTab === 'islands' ? (
         <div className="flex-1 overflow-y-auto p-6">
-          <FloatingIslandsEditor islands={floatingIslands} onChange={setFloatingIslands} />
+          <FloatingIslandsEditor
+            islands={floatingIslands}
+            onChange={setFloatingIslands}
+            slotFlow={slotFlow}
+            clipStyle={clipStyle}
+            onSlotFlowChange={setSlotFlow}
+            onClipStyleChange={setClipStyle}
+          />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-6">

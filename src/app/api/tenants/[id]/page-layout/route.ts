@@ -75,9 +75,24 @@ export async function GET(
       });
     }
 
+    const rawIslands = data.floating_islands as any;
+
+    // Backward compat: if old array format, wrap in new object structure
+    if (Array.isArray(rawIslands)) {
+      return NextResponse.json({
+        blocks: (data.layout as any)?.blocks || [],
+        floatingIslands: rawIslands,
+        slotFlow: 'current',
+        clipStyle: 'trapezoid',
+      });
+    }
+
+    const islandData = rawIslands || {};
     return NextResponse.json({
       blocks: (data.layout as any)?.blocks || [],
-      floatingIslands: (data.floating_islands as any[]) || [],
+      floatingIslands: (islandData.islands as any[]) || [],
+      slotFlow: islandData.slotFlow || 'current',
+      clipStyle: islandData.clipStyle || 'trapezoid',
     });
   } catch (error) {
     console.error('Get layout error:', error);
@@ -122,17 +137,21 @@ export async function PUT(
       )
     );
 
-    const floatingIslands = Array.isArray(body.floatingIslands)
-      ? await Promise.all(
-          body.floatingIslands.map(async (fi: any) => ({
-            ...fi,
-            config: fi.config ? (await sanitizeBlock({ config: fi.config })).config : {},
-          }))
-        )
-      : [];
+    const rawIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
+    const sanitizedIslands = await Promise.all(
+      rawIslands.map(async (fi: any) => ({
+        ...fi,
+        config: fi.config ? (await sanitizeBlock({ config: fi.config })).config : {},
+      }))
+    );
+
+    const floatingIslandsPayload = {
+      islands: sanitizedIslands,
+      slotFlow: body.slotFlow || 'current',
+      clipStyle: body.clipStyle || 'trapezoid',
+    };
 
     // Manual upsert: try update first, then insert if no row exists
-    // This avoids relying on ON CONFLICT / unique index inference
     const { data: existing } = await supabase
       .from('tenant_pages')
       .select('id')
@@ -147,7 +166,7 @@ export async function PUT(
         .from('tenant_pages')
         .update({
           layout: { blocks: sanitizedBlocks },
-          floating_islands: floatingIslands,
+          floating_islands: floatingIslandsPayload,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
@@ -159,7 +178,7 @@ export async function PUT(
           tenant_id: id,
           page_type: pageType,
           layout: { blocks: sanitizedBlocks },
-          floating_islands: floatingIslands,
+          floating_islands: floatingIslandsPayload,
           updated_at: new Date().toISOString(),
         });
       dbError = error;
