@@ -2,6 +2,11 @@
 
 const TEXT = 'PixelFandom'
 
+const LETTER_DISTANCES = TEXT.split('').map((_, i) => {
+  const center = (TEXT.length - 1) / 2
+  return Math.abs(i - center) / Math.ceil(TEXT.length / 2)
+})
+
 const GRADIENT_COLORS = [
   'hsl(198,100%,65%)',
   'hsl(270,80%,60%)',
@@ -10,14 +15,11 @@ const GRADIENT_COLORS = [
   'hsl(270,80%,60%)',
 ]
 
-
-
 interface SplashSVGTextProps {
-  visible?: boolean
+  ringProgress?: number
 }
 
-export default function SplashSVGText({ visible: forceVisible }: SplashSVGTextProps) {
-  const visible = forceVisible ?? true
+export default function SplashSVGText({ ringProgress = 1 }: SplashSVGTextProps) {
   return (
     <svg
       viewBox="0 0 600 100"
@@ -43,7 +45,6 @@ export default function SplashSVGText({ visible: forceVisible }: SplashSVGTextPr
             <stop key={i} offset={`${(i / GRADIENT_COLORS.length) * 100}%`} stopColor={color} />
           ))}
         </linearGradient>
-
       </defs>
       <text
         x="50%"
@@ -52,7 +53,7 @@ export default function SplashSVGText({ visible: forceVisible }: SplashSVGTextPr
         dominantBaseline="central"
         paintOrder="stroke"
         stroke="url(#splashStrokeGrad)"
-        strokeWidth="8"
+        strokeWidth="4"
         strokeLinejoin="round"
         fill="transparent"
         fontFamily="system-ui, -apple-system, sans-serif"
@@ -60,17 +61,23 @@ export default function SplashSVGText({ visible: forceVisible }: SplashSVGTextPr
         fontSize="96"
         letterSpacing="-0.025em"
       >
-        {TEXT.split('').map((letter, i) => (
-          <tspan
-            key={i}
-            style={{
-              opacity: visible ? 1 : 0,
-              transition: `opacity 0.6s ease ${i * 0.08}s`,
-            }}
-          >
-            {letter}
-          </tspan>
-        ))}
+        {TEXT.split('').map((letter, i) => {
+          const revealed = ringProgress >= LETTER_DISTANCES[i]
+          return (
+            <tspan
+              key={i}
+              style={{
+                opacity: revealed ? 1 : 0,
+                transform: revealed
+                  ? 'translateY(0px) scale(1)'
+                  : `translateY(${4 + i * 0.4}px) scale(0.4)`,
+                transition: `opacity 0.55s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)`,
+              }}
+            >
+              {letter}
+            </tspan>
+          )
+        })}
       </text>
     </svg>
   )

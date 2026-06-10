@@ -128,15 +128,16 @@ export default function HeroSection() {
           <span className="animate-typing-glow">Sua wiki, do seu jeito.</span>
         </motion.p>
 
-        <motion.div
-          className="flex flex-col items-center gap-4 mb-8"
+        <motion.p
+          className="text-base md:text-lg text-gray-400 leading-relaxed mb-8"
           variants={fadeUpVariants}
         >
-          <p className="text-base md:text-lg text-gray-400 leading-relaxed">
-            Crie sua wiki em minutos.
-          </p>
-          <CreditCardWallet size={16} />
-        </motion.div>
+          Crie sua Wiki em minutos sem usar{' '}
+          <span className="inline-flex items-center align-middle">
+            <CreditCardWallet size={16} />
+          </span>{' '}
+          cartão de crédito
+        </motion.p>
 
         <motion.div
           className="w-full max-w-3xl mb-10"

@@ -31,7 +31,6 @@ interface OrbitalNavItemProps {
   isButton?: boolean;
   compact: boolean;
   waveGlow?: boolean;
-  drawCircle?: boolean;
   glowFilterId: string;
 }
 
@@ -68,15 +67,17 @@ function generateRingConfig() {
   }));
 }
 
-const WAVE_PATTERNS = [
-  'polygon(0% 30%, 15% 22%, 30% 38%, 45% 20%, 60% 35%, 75% 18%, 90% 28%, 100% 22%, 100% 72%, 90% 78%, 75% 68%, 60% 82%, 45% 72%, 30% 85%, 15% 68%, 0% 78%)',
-  'polygon(0% 35%, 20% 25%, 40% 40%, 60% 22%, 80% 38%, 100% 28%, 100% 75%, 80% 65%, 60% 78%, 40% 62%, 20% 80%, 0% 68%)',
-  'polygon(0% 25%, 18% 32%, 35% 20%, 55% 35%, 70% 22%, 85% 32%, 100% 25%, 100% 65%, 85% 75%, 70% 60%, 55% 78%, 35% 65%, 18% 72%, 0% 68%)',
+function generateStarPath(hr: number, vr: number): string {
+  return `M 0,-${vr} C ${hr*0.17},-${vr*0.83} ${hr*0.5},-${vr*0.17} ${hr},0 C ${hr*0.5},${vr*0.17} ${hr*0.17},${vr*0.83} 0,${vr} C -${hr*0.17},${vr*0.83} -${hr*0.5},${vr*0.17} -${hr},0 C -${hr*0.5},-${vr*0.17} -${hr*0.17},-${vr*0.83} 0,-${vr} Z`;
+}
+
+const STAR_INSTANCES = [
+  { hr: 180, vr: 55, delay: 0 },
+  { hr: 140, vr: 42, delay: 1.2 },
+  { hr: 220, vr: 68, delay: 2.4 },
 ];
 
-const CIRC = 2 * Math.PI * 6;
-
-function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, drawCircle, glowFilterId: gid }: OrbitalNavItemProps) {
+function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, glowFilterId: gid }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -153,30 +154,6 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
           >
             {icon}
           </motion.div>
-          <div
-            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-            style={{ bottom: -14, width: 16, height: 16, zIndex: 20 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <defs>
-                <linearGradient id="bell-draw-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(198,100%,65%)" />
-                  <stop offset="50%" stopColor="hsl(270,80%,60%)" />
-                  <stop offset="100%" stopColor="hsl(350,90%,60%)" />
-                </linearGradient>
-              </defs>
-              <motion.circle
-                cx="8" cy="8" r="6"
-                fill="none"
-                stroke="url(#bell-draw-grad)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeDasharray={CIRC}
-                animate={{ strokeDashoffset: drawCircle ? 0 : CIRC }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
-              />
-            </svg>
-          </div>
           {!isButton && hovered && (
             <motion.div
               className="absolute inset-0 rounded-full blur-md z-0"
@@ -231,7 +208,7 @@ function getExpandedPositions(items: NavItemDef[]): { x: number; y: number }[] {
   });
 
   return items.map((item, i) => {
-    if (item.isBadge) return { x: 0, y: 38 };
+    if (item.isBadge) return { x: 0, y: 0 };
     if (item.side === 'left') {
       const idx = leftIndices.indexOf(i);
       return { x: -(75 + idx * 70), y: 0 };
@@ -286,7 +263,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
               </span>
             )}
           </div>
-        ), label: 'Notificações', side: 'right', glowColor: 'hsl(198,100%,65%)', isBadge: true },
+        ), label: 'Notificações', side: 'right', glowColor: 'hsl(35,100%,55%)', isBadge: true },
         { href: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', side: 'right', glowColor: 'hsl(198,100%,65%)' },
         { icon: <LogOut className="h-4 w-4" />, label: 'Sair', side: 'right', glowColor: 'hsl(350,90%,60%)', onClick: handleLogout },
       );
@@ -452,8 +429,12 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Irregular Rings (solid gradient stroke) ── */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
+          {/* ── Irregular Rings (solid gradient stroke) — compact only ── */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
+            animate={{ opacity: isExpanded ? 0 : 1 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+          >
             <svg width="0" height="0" className="absolute">
               <defs>
                 <linearGradient id="ring-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -503,58 +484,44 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 </svg>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          {/* ── Gravitational Waves (clip-path patterns) ── */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
-            {[0, 0.8, 1.6].map((delay, idx) => (
-              <div key={`waves-${idx}`} className="absolute inset-0 flex items-center justify-center">
-                <div
-                  className="absolute"
-                  style={{ right: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
-                >
-                  <motion.div
-                    className="relative"
-                    style={{
-                      width: 0,
-                      height: 100,
-                      background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.4) 30%, hsl(270 80% 60% / 0.25) 60%, hsl(350 90% 60% / 0.12) 100%)',
-                      filter: 'blur(8px)',
-                      clipPath: WAVE_PATTERNS[idx],
-                      transformOrigin: 'right center',
-                      transform: 'translateY(-50%)',
-                    }}
-                    initial={{ width: 0, opacity: 0.3 }}
-                    animate={{ width: [0, 400, 400], opacity: [0.3, 0.2, 0] }}
-                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
-                  />
-                </div>
-
-                <div
-                  className="absolute"
-                  style={{ left: '50%', top: `calc(50% + ${(idx - 1) * 14}px)` }}
-                >
-                  <motion.div
-                    className="relative"
-                    style={{
-                      width: 0,
-                      height: 100,
-                      background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.4) 30%, hsl(270 80% 60% / 0.25) 60%, hsl(350 90% 60% / 0.12) 100%)',
-                      filter: 'blur(8px)',
-                      clipPath: WAVE_PATTERNS[idx],
-                      transformOrigin: 'left center',
-                      transform: 'translateY(-50%)',
-                    }}
-                    initial={{ width: 0, opacity: 0.3 }}
-                    animate={{ width: [0, 400, 400], opacity: [0.3, 0.2, 0] }}
-                    transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            ))}
-
-            <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
-          </div>
+          {/* ── Star Waves (4-pointed) — expanded only ── */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
+            animate={{ opacity: isExpanded ? 1 : 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+          >
+            <svg className="absolute" width="500" height="500" viewBox="-250 -250 500 500" style={{ left: '50%', top: '50%', marginLeft: -250, marginTop: -250 }}>
+              <defs>
+                <linearGradient id="star-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.45" />
+                  <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.15" />
+                </linearGradient>
+              </defs>
+              {STAR_INSTANCES.map((s, idx) => (
+                <motion.path
+                  key={idx}
+                  d={generateStarPath(s.hr, s.vr)}
+                  fill="none"
+                  stroke="url(#star-grad)"
+                  strokeWidth={2.5 - idx * 0.5}
+                  strokeLinecap="round"
+                  style={{ transformOrigin: 'center' }}
+                  initial={{ scale: 0, opacity: 0.5 }}
+                  animate={{ scale: [0, 1, 1.15, 0.85], opacity: [0.5, 0.35, 0.12, 0] }}
+                  transition={{
+                    duration: 6,
+                    delay: s.delay,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    times: [0, 0.12, 0.35, 1],
+                  }}
+                />
+              ))}
+            </svg>
+          </motion.div>
 
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
@@ -599,6 +566,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     marginLeft: -18,
                     marginTop: -18,
                     transition: 'none',
+                    ...(isExpanded && item.isBadge ? { opacity: 0, pointerEvents: 'none' } : {}),
                   }}
                   onClick={() => handleIconClick(item)}
                 >
@@ -611,11 +579,42 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     isButton={item.isButton}
                     compact={!isExpanded}
                     waveGlow={!isExpanded && ((item.side === 'left' && glowLeft) || (item.side === 'right' && glowRight))}
-                    drawCircle={isExpanded && item.isBadge}
                     glowFilterId={glowFilterId}
                   />
                 </div>
               ))}
+
+              {/* Badge abaixo do avatar quando expandido */}
+              <AnimatePresence>
+                {isExpanded && user && (() => {
+                  const badgeItem = items.find(i => i.isBadge);
+                  if (!badgeItem) return null;
+                  return (
+                    <motion.div
+                      key="expanded-badge"
+                      className="absolute left-1/2 z-20 pointer-events-auto"
+                      style={{ bottom: -12, transform: 'translateX(-50%) translateZ(30px)' }}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 12 }}
+                      transition={{ duration: 0.55, ease: 'easeOut' }}
+                    >
+                      <Link href="/notifications" className="block">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group relative">
+                          <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
+                            <Bell className="h-4 w-4 text-yellow-400" />
+                          </div>
+                          {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[7px] font-bold text-white flex items-center justify-center px-[3px] leading-none shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
             </div>
 
             {/* ── Center Avatar ── */}

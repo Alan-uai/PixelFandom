@@ -2,23 +2,25 @@
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
 import { motion, useAnimation } from 'framer-motion'
-import GravitationalWaveMask from './gravitational-wave-mask'
 import SplashSVGText from './splash-svg-text'
+import SplashWaveRings from './splash-wave-rings'
+import SplashGlow from './splash-glow'
 import {
   playSplashSound,
-  playGravitationalWaveSound,
-  playBorderRevealSound,
-  playWavePulse,
+  playBlackHoleSound,
+  playLaserPulseSound,
+  playLightsaberHumSound,
+  playCrystalShatterSound,
 } from '@/lib/feedback-sounds'
 
-type Phase = 'black' | 'waves' | 'border' | 'dissolve' | 'outro'
+type Phase = 'black' | 'rings' | 'glow' | 'particles' | 'outro'
 
-const PHASES: Phase[] = ['black', 'waves', 'border', 'dissolve', 'outro']
+const PHASES: Phase[] = ['black', 'rings', 'glow', 'particles', 'outro']
 const DURATIONS: Record<Phase, number> = {
-  black: 1000,
-  waves: 3500,
-  border: 2200,
-  dissolve: 1200,
+  black: 500,
+  rings: 3500,
+  glow: 2000,
+  particles: 1500,
   outro: 800,
 }
 const TOTAL = PHASES.reduce((a, p) => a + DURATIONS[p], 0)
@@ -46,14 +48,6 @@ interface SplashScreenProps {
   onComplete: () => void
 }
 
-function seededRandom(seed: number): () => number {
-  let s = seed
-  return () => {
-    s = (s * 16807 + 0) % 2147483647
-    return (s - 1) / 2147483646
-  }
-}
-
 interface ParticleSeed {
   seed: number
   speed: number
@@ -63,32 +57,18 @@ interface ParticleSeed {
 
 let particleCache: ParticleSeed[] | null = null
 
-function updateDissolveMask(overlay: HTMLDivElement | null, progress: number) {
+function updateParticleMask(overlay: HTMLDivElement | null, progress: number) {
   if (!overlay) return
 
   const grads: string[] = []
   const t = Math.min(progress, 1)
 
-  for (let i = 0; i < 6; i++) {
-    const cx = 50 + Math.sin(t * 2.3 + i * 1.5) * 28
-    const cy = 50 + Math.cos(t * 1.7 + i * 1.1) * 28
-    const size = 6 + t * 170
-    const rx = size * (0.6 + Math.sin(i * 3.1 + t * 0.5) * 0.4)
-    const ry = size * (0.6 + Math.cos(i * 2.7 + t * 0.8) * 0.4)
-    const th = t * 100
-
-    grads.push(
-      `radial-gradient(ellipse ${rx}% ${ry}% at ${cx}% ${cy}%, transparent 0%, transparent ${th * 0.7}%, rgba(0,0,0,0.1) ${th * 0.85}%, rgba(0,0,0,0.5) ${th}%, black ${Math.min(100, th + 15)}%, black 100%)`,
-    )
-  }
-
   if (!particleCache || particleCache.length === 0) {
-    const prand = seededRandom(42)
     particleCache = Array.from({ length: 25 }, () => ({
-      seed: prand(),
-      speed: 0.3 + prand() * 0.7,
-      offsetX: prand() * 100,
-      offsetY: prand() * 100,
+      seed: Math.random(),
+      speed: 0.3 + Math.random() * 0.7,
+      offsetX: Math.random() * 100,
+      offsetY: Math.random() * 100,
     }))
   }
 
@@ -113,14 +93,14 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   const [ready, setReady] = useState(false)
   const [shouldShow, setShouldShow] = useState(true)
   const [phase, setPhase] = useState<Phase>('black')
-
-  const [intensity, setIntensity] = useState(0)
   const [exiting, setExiting] = useState(false)
-  const [letterVisible, setLetterVisible] = useState(false)
+  const [glowActive, setGlowActive] = useState(false)
+  const [ringCount, setRingCount] = useState(0)
+  const [ringSpeed, setRingSpeed] = useState(1)
+  const [ringsProgress, setRingsProgress] = useState(0)
 
   const heroControls = useAnimation()
   const taglineControls = useAnimation()
-  const letterVisibleRef = useRef(false)
 
   const speedRef = useRef(1)
   const elapsedRef = useRef(0)
@@ -131,8 +111,11 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   const overlayRef = useRef<HTMLDivElement>(null)
   const clickCountRef = useRef(0)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>()
-  const soundPlayedRef = useRef({ waves: false, border: false, dissolve: false })
+  const soundPlayedRef = useRef({ black: false, glow: false, particles: false })
+  const lightsaberStopRef = useRef<(() => void) | null>(null)
   const stableOnComplete = useRef(onComplete)
+  const ringCountRef = useRef(0)
+  const lastPulseIdxRef = useRef(-1)
 
   const finish = useCallback(() => {
     if (completeRef.current) return
@@ -162,20 +145,33 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
       const newPhase = getPhaseAt(elapsed)
       setPhase(newPhase)
 
-      const wavesProgress = getProgressInPhase(elapsed, 'waves')
-      if (newPhase === 'black' || newPhase === 'waves') {
-        const i = newPhase === 'black' ? 0 : Math.min(wavesProgress * 1.5, 1)
-        setIntensity(i)
+      if (newPhase === 'rings') {
+        const p = getProgressInPhase(elapsed, 'rings')
+        setRingsProgress(p)
+        const count = Math.min(6, Math.floor(p * 6) + 1)
+        if (count !== ringCountRef.current) {
+          ringCountRef.current = count
+          setRingCount(count)
+          if (count > (lastPulseIdxRef.current + 1)) {
+            lastPulseIdxRef.current = count
+            playLaserPulseSound()
+          }
+        }
+        const spd = 0.5 + p * 1.5
+        setRingSpeed(spd)
       }
 
-      if (!letterVisibleRef.current && (newPhase === 'waves' || newPhase === 'border')) {
-        letterVisibleRef.current = true
-        setLetterVisible(true)
+      if (newPhase === 'glow' || newPhase === 'particles') {
+        setRingsProgress(1)
       }
 
-      if (newPhase === 'dissolve') {
-        const dissolveProgress = getProgressInPhase(elapsed, 'dissolve')
-        updateDissolveMask(overlayRef.current, dissolveProgress)
+      if (newPhase === 'glow') {
+        setGlowActive(true)
+      }
+
+      if (newPhase === 'particles') {
+        const p = getProgressInPhase(elapsed, 'particles')
+        updateParticleMask(overlayRef.current, p)
       }
 
       rafRef.current = requestAnimationFrame(tick)
@@ -195,8 +191,8 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         }
       }
     } catch {
-          /* localStorage unavailable */
-        }
+      /* localStorage unavailable */
+    }
     setShouldShow(true)
     setReady(true)
   }, [])
@@ -218,35 +214,22 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   }, [])
 
   useEffect(() => {
-    if (phase === 'waves' && !soundPlayedRef.current.waves) {
-      soundPlayedRef.current.waves = true
-      playGravitationalWaveSound()
+    if (phase === 'black' && !soundPlayedRef.current.black) {
+      soundPlayedRef.current.black = true
+      playBlackHoleSound()
     }
-    if ((phase === 'border' || phase === 'dissolve') && !soundPlayedRef.current.border) {
-      soundPlayedRef.current.border = true
-      playBorderRevealSound()
+    if (phase === 'glow' && !soundPlayedRef.current.glow) {
+      soundPlayedRef.current.glow = true
+      lightsaberStopRef.current = playLightsaberHumSound()
     }
-  }, [phase])
-
-  useEffect(() => {
-    if (phase === 'waves') {
-      const interval = setInterval(() => playWavePulse(), 600)
-      return () => clearInterval(interval)
+    if (phase === 'particles' && !soundPlayedRef.current.particles) {
+      soundPlayedRef.current.particles = true
+      playCrystalShatterSound()
     }
   }, [phase])
 
   useEffect(() => {
-    stableOnComplete.current = onComplete
-  }, [onComplete])
-
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (phase !== 'dissolve') return
+    if (phase !== 'glow') return
 
     const h1 = document.querySelector<HTMLElement>('h1')
     const splashText = document.querySelector<HTMLElement>('.splash-text-container')
@@ -262,11 +245,11 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         x: tx, y: ty, scaleX: sx, scaleY: sy,
         opacity: 0,
         transition: {
-          x: { duration: 1.1, ease: 'easeInOut' },
-          y: { duration: 1.1, ease: 'easeInOut' },
-          scaleX: { duration: 1.1, ease: 'easeInOut' },
-          scaleY: { duration: 1.1, ease: 'easeInOut' },
-          opacity: { duration: 0.2, ease: 'easeOut', delay: 0.9 },
+          x: { duration: 1.8, ease: 'easeInOut' },
+          y: { duration: 1.8, ease: 'easeInOut' },
+          scaleX: { duration: 1.8, ease: 'easeInOut' },
+          scaleY: { duration: 1.8, ease: 'easeInOut' },
+          opacity: { duration: 0.3, ease: 'easeOut', delay: 1.5 },
         },
       })
     }
@@ -282,13 +265,24 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
     particleCache = null
   }, [])
 
+  useEffect(() => {
+    stableOnComplete.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+      if (lightsaberStopRef.current) lightsaberStopRef.current()
+    }
+  }, [])
+
   const accelerate = useCallback(() => {
     speedRef.current = 3
   }, [])
 
-  const skipToBorder = useCallback(() => {
-    const borderStart = CUMULATIVE.find((c) => c.phase === 'border')!.start
-    elapsedRef.current = borderStart + DURATIONS.border * 0.2
+  const skipToGlow = useCallback(() => {
+    const glowStart = CUMULATIVE.find((c) => c.phase === 'glow')!.start
+    elapsedRef.current = glowStart + DURATIONS.glow * 0.2
     speedRef.current = 1.5
   }, [])
 
@@ -303,14 +297,12 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
     } else {
       if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
       clickCountRef.current = 0
-      skipToBorder()
+      skipToGlow()
     }
-  }, [accelerate, skipToBorder])
+  }, [accelerate, skipToGlow])
 
   if (!ready) return null
   if (!shouldShow) return null
-
-  const maskActive = phase === 'black' || phase === 'waves'
 
   return (
     <div
@@ -324,6 +316,8 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
       />
 
       <div className="relative flex flex-col items-center" style={{ zIndex: 1 }}>
+        <SplashGlow active={glowActive} />
+
         <motion.div
           className="flex flex-col items-center"
           initial={{ x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1 }}
@@ -331,7 +325,7 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         >
           <div className="splash-text-container">
             <div className="w-full flex justify-center">
-              <SplashSVGText visible={letterVisible} />
+              <SplashSVGText ringProgress={ringsProgress} />
             </div>
           </div>
         </motion.div>
@@ -345,7 +339,9 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         </motion.p>
       </div>
 
-      <GravitationalWaveMask active={maskActive} intensity={intensity} />
+      {(phase === 'rings' || phase === 'glow') && (
+        <SplashWaveRings ringCount={ringCount} speed={ringSpeed} />
+      )}
     </div>
   )
 })

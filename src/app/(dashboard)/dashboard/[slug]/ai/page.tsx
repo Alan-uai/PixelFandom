@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
+import { useSiteCache } from '@/lib/site-cache';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -257,7 +258,8 @@ export default function WikiAIConfigPage() {
       throw new Error(errData.error);
     }
 
-    const { ai_config: _savedConfig } = await res.json();
+    const result = await res.json();
+    const { ai_config: _savedConfig } = result;
     setSavedConfig({
       enabled,
       provider,
@@ -281,6 +283,8 @@ export default function WikiAIConfigPage() {
         suggestedQuestions,
       botBanner,
     });
+
+    useSiteCache.getState().set(`ai-config:${tenant!.id}`, result);
   };
 
   const isDirty = useMemo(() =>

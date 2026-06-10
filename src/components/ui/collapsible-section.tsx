@@ -36,6 +36,7 @@ export function CollapsibleSection({
   const [groundY, setGroundY] = useState(0);
   const [pathVersion, setPathVersion] = useState(0);
   const weldSeed = useMemo(() => Math.random() * 100, []);
+  const [initialWeldDone, setInitialWeldDone] = useState(false);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -64,7 +65,10 @@ export function CollapsibleSection({
       ease: 'linear',
     });
     const t1 = setTimeout(() => setWeldPhase('complete'), 3500);
-    const t2 = setTimeout(() => setWeldPhase('done'), 4300);
+    const t2 = setTimeout(() => {
+      setWeldPhase('done');
+      setInitialWeldDone(true);
+    }, 4300);
     return () => { controls.stop(); clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -124,6 +128,28 @@ export function CollapsibleSection({
   const dashOffset = useTransform(beamProgress, [0, 1], [1, 0]);
   const beamTrail = useTransform(beamProgress, (v) => `${v} ${1 - v}`);
 
+  // Tapered trail layers (thick at start → thin at head)
+  const taperWide = useTransform(beamProgress, (v) => {
+    const r = Math.max(0, v - 0.1)
+    return `${r} ${1 - r}`
+  })
+  const taperMedium = useTransform(beamProgress, (v) => {
+    const r = Math.max(0, v - 0.05)
+    return `${r} ${1 - r}`
+  })
+
+  // Concentrated glow at beam head
+  const headGlow = useTransform(beamProgress, (v) => {
+    const segLen = 0.1
+    const start = Math.max(0, v - segLen)
+    return `${v - start} ${1 - (v - start)}`
+  })
+  const headWhite = useTransform(beamProgress, (v) => {
+    const segLen = 0.04
+    const start = Math.max(0, v - segLen)
+    return `${v - start} ${1 - (v - start)}`
+  })
+
   return (
     <section
       ref={containerRef}
@@ -134,6 +160,12 @@ export function CollapsibleSection({
 
       {showWelding && (
         <>
+          {!initialWeldDone && (
+            <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center text-3xl font-bold tracking-wider">
+              <WeldedText text={title} startDelay={200} />
+            </div>
+          )}
+
           <svg
             className="pointer-events-none absolute inset-0 z-10"
             width={cardSize.w || '100%'}
@@ -142,7 +174,7 @@ export function CollapsibleSection({
           >
             <defs>
               <filter id="svg-collapsible-beam-glow">
-                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feGaussianBlur stdDeviation="5" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
@@ -151,48 +183,81 @@ export function CollapsibleSection({
             </defs>
 
             {pathD && (
-              <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.12} strokeLinecap="round" strokeLinejoin="round" />
+              <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.1} strokeLinecap="round" strokeLinejoin="round" />
             )}
 
+            {/* Taper layer 1: wide thick trail (bottom) */}
             {pathD && (
               <motion.path
                 d={pathD}
                 fill="none"
                 stroke={PRIMARY}
-                strokeWidth={2}
+                strokeWidth={8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: taperWide }}
+                opacity={0.12}
+              />
+            )}
+
+            {/* Taper layer 2: medium trail */}
+            {pathD && (
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke={PRIMARY}
+                strokeWidth={5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{ strokeDasharray: taperMedium }}
+                opacity={0.25}
+              />
+            )}
+
+            {/* Taper layer 3: thin trail */}
+            {pathD && (
+              <motion.path
+                d={pathD}
+                fill="none"
+                stroke={PRIMARY}
+                strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
                 style={{ strokeDasharray: beamTrail }}
-                opacity={0.5}
+                opacity={0.45}
               />
             )}
 
+            {/* Head glow (thick, blurred) */}
             {pathD && (
               <motion.path
                 d={pathD}
                 fill="none"
                 stroke={PRIMARY}
-                strokeWidth={6}
+                strokeWidth={8}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: '0.12 1', strokeDashoffset: dashOffset }}
-                opacity={0.6}
+                style={{ strokeDasharray: headGlow, strokeDashoffset: dashOffset }}
+                opacity={0.65}
                 filter="url(#svg-collapsible-beam-glow)"
               />
             )}
 
+            {/* White core (top) */}
             {pathD && (
               <motion.path
                 d={pathD}
                 fill="none"
                 stroke="#fff"
-                strokeWidth={2}
+                strokeWidth={3}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: '0.04 1', strokeDashoffset: dashOffset }}
+                style={{ strokeDasharray: headWhite, strokeDashoffset: dashOffset }}
               />
             )}
           </svg>

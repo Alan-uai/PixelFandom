@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { useCachedData } from '@/hooks/use-cached-data';
+import { useSiteCache } from '@/lib/site-cache';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -240,6 +241,11 @@ export default function WikiDiscordPage() {
       autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
       autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
       autoIngest: JSON.parse(JSON.stringify(autoIngest)),
+    });
+
+    useSiteCache.getState().set(`discord:${slug}`, {
+      ...tenantData,
+      discord_config: discordConfig,
     });
   };
 

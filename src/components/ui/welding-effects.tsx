@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { cn } from '@/lib/utils'
 import {
   PRIMARY,
   GOLD,
@@ -46,7 +47,7 @@ export function WeldFilters() {
   )
 }
 
-// ── StarGlow (4-point cross with pulse & rotation) ──
+// ── StarGlow (4-point cross with morphing core & pulse rings) ──
 
 interface StarGlowProps {
   x: number
@@ -67,6 +68,10 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed
   const phase2 = seed * 2.3 + 1.2
   const phase3 = seed * 0.9 + 0.7
 
+  const blob1 = 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)'
+  const blob2 = 'polygon(48% 3%,65% 30%,95% 40%,72% 55%,75% 88%,50% 75%,25% 88%,28% 55%,5% 40%,35% 30%)'
+  const blob3 = 'polygon(55% 2%,58% 38%,100% 32%,65% 60%,82% 95%,50% 67%,18% 95%,35% 60%,0% 32%,42% 38%)'
+
   return (
     <motion.div
       className="pointer-events-none absolute z-20"
@@ -79,6 +84,47 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed
       animate={{ rotate: 360 }}
       transition={{ duration: 3 + (seed % 2), repeat: Infinity, ease: 'linear' }}
     >
+      {/* Inner pulse ring */}
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          left: '50%',
+          top: '50%',
+          translate: '-50% -50%',
+          width: coreSize * 1.8,
+          height: coreSize * 1.8,
+          border: `1.5px solid ${color}`,
+        }}
+        animate={{ opacity: [0, 0.8, 0], scale: [0.8, 1.4, 0.8] }}
+        transition={{
+          duration: 1.2 + (seed % 3) * 0.1,
+          repeat: Infinity,
+          ease: 'easeOut',
+          delay: phase3,
+        }}
+      />
+
+      {/* Outer pulse ring */}
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          left: '50%',
+          top: '50%',
+          translate: '-50% -50%',
+          width: coreSize * 2.5,
+          height: coreSize * 2.5,
+          border: `1px solid ${color}`,
+        }}
+        animate={{ opacity: [0, 0.4, 0], scale: [0.6, 1.8, 0.6] }}
+        transition={{
+          duration: 2 + (seed % 4) * 0.15,
+          repeat: Infinity,
+          ease: 'easeOut',
+          delay: phase3 + 0.3,
+        }}
+      />
+
+      {/* Horizontal arm */}
       <motion.div
         className="absolute top-1/2 left-0 -translate-y-1/2"
         style={{
@@ -99,6 +145,8 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed
           delay: phase1,
         }}
       />
+
+      {/* Vertical arm */}
       <motion.div
         className="absolute left-1/2 top-0 -translate-x-1/2"
         style={{
@@ -119,8 +167,10 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed
           delay: phase2,
         }}
       />
+
+      {/* Morphing irregular blob center */}
       <motion.div
-        className="absolute rounded-full"
+        className="absolute"
         style={{
           left: '50%',
           top: '50%',
@@ -129,16 +179,17 @@ export function StarGlow({ x, y, size = 28, color = PRIMARY, intensity = 1, seed
           height: coreSize,
           backgroundColor: '#fff',
           boxShadow: `0 0 ${10 * intensity}px ${color}, 0 0 ${25 * intensity}px ${color}`,
+          clipPath: blob1,
         }}
         animate={{
-          opacity: [Math.min(1, glowOpacity * 1.5), Math.min(1, glowOpacity * 1.2), Math.min(1, glowOpacity * 1.5)],
-          scale: [1, 0.85, 1.1, 0.95, 1],
+          clipPath: [blob1, blob2, blob3, blob1],
+          scale: [1, 0.9, 1.1, 0.95, 1],
+          opacity: [0.9, 1, 0.85, 1, 0.9],
         }}
         transition={{
-          duration: 0.5 + (seed % 4) * 0.06,
+          duration: 2.5 + (seed % 3) * 0.3,
           repeat: Infinity,
           ease: 'easeInOut',
-          delay: phase3,
         }}
       />
     </motion.div>
@@ -383,7 +434,7 @@ function GravityParticle({ originX, originY, vx, vy, size, rotation, onDone, ...
   )
 }
 
-// ── WeldedText ──
+// ── WeldedText (SVG stroke-dasharray letter tracing) ──
 
 interface WeldedTextProps {
   text: string
@@ -391,69 +442,160 @@ interface WeldedTextProps {
   className?: string
 }
 
+const DASH_TOTAL = 600
+
 export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
   const letters = text.split('')
-  const [weldedIndex, setWeldedIndex] = useState(-1)
-  const [beamLetter, setBeamLetter] = useState(-1)
+  const [drawnCount, setDrawnCount] = useState(-1)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const dashProgress = useMotionValue(DASH_TOTAL)
 
   useEffect(() => {
-    const t1 = setTimeout(() => {
-      let i = 0
-      setWeldedIndex(0)
-      setBeamLetter(0)
-      const interval = setInterval(() => {
-        i++
-        setWeldedIndex(i)
-        setBeamLetter(i)
-        if (i >= letters.length - 1) {
-          clearInterval(interval)
-          setTimeout(() => setBeamLetter(-1), 150)
+    if (!letters.length) return
+
+    const t = setTimeout(() => {
+      let idx = 0
+
+      const traceNext = () => {
+        if (idx >= letters.length) {
+          setActiveIdx(-1)
+          setDrawnCount(letters.length)
+          return
         }
-      }, 90)
-      return () => clearInterval(interval)
+
+        setActiveIdx(idx)
+        dashProgress.set(DASH_TOTAL)
+
+        animate(dashProgress, 0, {
+          duration: 0.35,
+          ease: 'easeInOut',
+          onComplete: () => {
+            setDrawnCount(idx)
+            idx++
+            setTimeout(traceNext, 80)
+          },
+        })
+      }
+
+      traceNext()
     }, startDelay)
-    return () => clearTimeout(t1)
+
+    return () => clearTimeout(t)
   }, [startDelay, letters.length])
 
+  const dashOffset = useTransform(dashProgress, v => v)
+  const beamHead = useTransform(dashProgress, v => `${v + DASH_TOTAL * 0.06} ${DASH_TOTAL}`)
+  const whiteHead = useTransform(dashProgress, v => `${v + DASH_TOTAL * 0.03} ${DASH_TOTAL}`)
+
   return (
-    <span className={className}>
-      {letters.map((letter, i) => (
-        <motion.span
-          key={i}
-          className="inline-block relative"
-          animate={{
-            filter:
-              i <= weldedIndex ? 'url(#weld-letter)' : 'none',
-            textShadow:
-              i <= weldedIndex
-                ? i === weldedIndex
-                  ? `0 0 18px ${GOLD}`
-                  : `0 0 4px ${GOLD}40`
-                : 'none',
-          }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-        >
-          {letter === ' ' ? '\u00A0' : letter}
-          {i === beamLetter && (
-            <motion.span
-              className="absolute inset-y-0"
-              style={{
-                width: 3,
-                left: '-5%',
-                backgroundColor: GOLD,
-                boxShadow: `0 0 10px ${GOLD}, 0 0 25px ${GOLD}`,
-                filter: 'url(#beam-glow)',
-                pointerEvents: 'none',
-              }}
-              animate={{ left: ['-5%', '105%'] }}
-              transition={{ duration: 0.14, ease: 'linear' }}
-            />
-          )}
-        </motion.span>
-      ))}
+    <span className={cn('inline leading-none', className)}>
+      {letters.map((letter, i) => {
+        if (letter === ' ') return <span key={i}>&nbsp;</span>
+
+        const isDone = i < drawnCount
+        const isActive = i === activeIdx
+
+        return (
+          <svg
+            key={i}
+            className="inline-block align-middle overflow-visible"
+            style={{ width: '0.62em', height: '1em' }}
+            viewBox="0 0 100 120"
+          >
+            {isDone && (
+              <text
+                x="50" y="90"
+                textAnchor="middle"
+                fill="hsl(var(--primary))"
+                fontSize="90"
+                fontFamily="inherit"
+                fontWeight="inherit"
+                dominantBaseline="central"
+              >
+                {letter}
+              </text>
+            )}
+
+            {isActive && (
+              <>
+                {/* Tracing stroke */}
+                <motion.text
+                  x="50" y="90"
+                  textAnchor="middle"
+                  fill="transparent"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={String(DASH_TOTAL)}
+                  style={{ strokeDashoffset: dashOffset }}
+                  fontSize="90"
+                  fontFamily="inherit"
+                  fontWeight="inherit"
+                  dominantBaseline="central"
+                >
+                  {letter}
+                </motion.text>
+
+                {/* Beam head glow (thick, filtered) */}
+                <motion.text
+                  x="50" y="90"
+                  textAnchor="middle"
+                  fill="transparent"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={12}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={beamHead}
+                  style={{ strokeDashoffset: dashOffset }}
+                  opacity={0.5}
+                  filter="url(#weld-letter)"
+                  fontSize="90"
+                  fontFamily="inherit"
+                  fontWeight="inherit"
+                  dominantBaseline="central"
+                >
+                  {letter}
+                </motion.text>
+
+                {/* White core */}
+                <motion.text
+                  x="50" y="90"
+                  textAnchor="middle"
+                  fill="transparent"
+                  stroke="#fff"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={whiteHead}
+                  style={{ strokeDashoffset: dashOffset }}
+                  fontSize="90"
+                  fontFamily="inherit"
+                  fontWeight="inherit"
+                  dominantBaseline="central"
+                >
+                  {letter}
+                </motion.text>
+
+                {/* Pulsing mini-beam */}
+                <motion.circle
+                  cx="50" cy="55"
+                  r={10}
+                  fill="hsl(var(--primary))"
+                  filter="url(#weld-letter)"
+                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.3, 0.9, 0.3] }}
+                  transition={{ duration: 0.35, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              </>
+            )}
+          </svg>
+        )
+      })}
     </span>
   )
 }
+
+// ── TextBeamSweep (gradient sweep across entire text) ──
 
 // ── TextBeamSweep (gradient sweep across entire text) ──
 

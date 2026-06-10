@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
+import { useSiteCache } from '@/lib/site-cache';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -183,6 +184,38 @@ export default function WikiSettingsPage() {
         sidebarWidth, headerStyle, articlesPerRow,
         gameTableDisplayFormat, gameTableColumnsCount,
         gameTableTabsEnabled, gameTableTabsSubFormat,
+      });
+
+      useSiteCache.getState().set(cacheKey, {
+        ...tenantState,
+        name,
+        description,
+        logo_url: logoUrl || null,
+        cover_image: coverImageUrl || null,
+        discord_url: discordUrl || null,
+        game_url: gameUrl || null,
+        favicon_url: faviconUrl || null,
+        og_image: ogImage || null,
+        theme: {
+          primary_color: primaryColor,
+          background_color: backgroundColor || null,
+          card_color: cardColor || null,
+          sidebar_color: sidebarColor || null,
+          accent_color: accentColor || null,
+          font_family: fontFamily || null,
+          heading_font: headingFont || null,
+          border_radius: borderRadius || null,
+          sidebar_width: sidebarWidth,
+          header_style: headerStyle,
+          articles_per_row: articlesPerRow,
+          game_tables_display: {
+            default_format: gameTableDisplayFormat,
+            default_columns: gameTableColumnsCount,
+            tabs_enabled: gameTableTabsEnabled,
+            tabs_sub_format: gameTableTabsSubFormat,
+          },
+          widgets: {},
+        },
       });
     } catch (err) {
       if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar.' });

@@ -131,3 +131,141 @@ export function playBorderRevealSound() {
 export function playWavePulse() {
   playTone(40, 25, 0.4, 0.04, 'sine');
 }
+
+export function playBlackHoleSound() {
+  getAudioContext().then((ac) => {
+    if (!ac) return
+    const now = ac.currentTime
+
+    const osc = ac.createOscillator()
+    const gain = ac.createGain()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(80, now)
+    osc.frequency.exponentialRampToValueAtTime(12, now + 1.8)
+    gain.gain.setValueAtTime(0.1, now)
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.5)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2)
+
+    const filter = ac.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(200, now)
+    filter.frequency.exponentialRampToValueAtTime(30, now + 2)
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(ac.destination)
+    osc.start(now)
+    osc.stop(now + 2)
+  })
+}
+
+export function playLaserPulseSound() {
+  getAudioContext().then((ac) => {
+    if (!ac) return
+    const now = ac.currentTime
+
+    const osc = ac.createOscillator()
+    const gain = ac.createGain()
+    osc.type = 'square'
+    osc.frequency.setValueAtTime(2200, now)
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.12)
+    gain.gain.setValueAtTime(0.08, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
+
+    const filter = ac.createBiquadFilter()
+    filter.type = 'highpass'
+    filter.frequency.setValueAtTime(800, now)
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(ac.destination)
+    osc.start(now)
+    osc.stop(now + 0.15)
+  })
+}
+
+export function playLightsaberHumSound(): () => void {
+  let stopped = false
+  let cleanup: (() => void) | null = null
+
+  getAudioContext().then((ac) => {
+    if (stopped || !ac) return
+    const now = ac.currentTime
+
+    const osc = ac.createOscillator()
+    const gain = ac.createGain()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(110, now)
+
+    const lfo = ac.createOscillator()
+    const lfoGain = ac.createGain()
+    lfo.type = 'sine'
+    lfo.frequency.setValueAtTime(3, now)
+    lfoGain.gain.setValueAtTime(15, now)
+    lfo.connect(lfoGain)
+    lfoGain.connect(osc.frequency)
+
+    const filter = ac.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(300, now)
+    filter.Q.value = 8
+
+    gain.gain.setValueAtTime(0.06, now)
+    gain.gain.linearRampToValueAtTime(0.02, now + 0.3)
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(ac.destination)
+    osc.start(now)
+    lfo.start(now)
+
+    cleanup = () => {
+      if (stopped) return
+      stopped = true
+      try {
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2)
+        setTimeout(() => {
+          try { osc.stop(ac.currentTime) } catch {}
+          try { lfo.stop(ac.currentTime) } catch {}
+        }, 250)
+      } catch {}
+    }
+  })
+
+  return () => {
+    stopped = true
+    cleanup?.()
+  }
+}
+
+export function playCrystalShatterSound() {
+  getAudioContext().then((ac) => {
+    if (!ac) return
+    const now = ac.currentTime
+
+    const bufferSize = ac.sampleRate * 0.5
+    const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3)
+    }
+
+    const noise = ac.createBufferSource()
+    noise.buffer = buffer
+
+    const gain = ac.createGain()
+    gain.gain.setValueAtTime(0.12, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
+
+    const filter = ac.createBiquadFilter()
+    filter.type = 'highpass'
+    filter.frequency.setValueAtTime(2000, now)
+    filter.frequency.exponentialRampToValueAtTime(200, now + 0.5)
+
+    noise.connect(filter)
+    filter.connect(gain)
+    gain.connect(ac.destination)
+    noise.start(now)
+    noise.stop(now + 0.5)
+  })
+}

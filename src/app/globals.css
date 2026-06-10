@@ -841,12 +841,40 @@
     30%, 70% { opacity: 1; transform: scale(1); }
   }
 
-  @keyframes splash-border-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+@keyframes splash-border-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-  .splash-border-wrapper {
+.splash-glow {
+  overflow: hidden;
+  filter: blur(30px);
+  opacity: 0.4;
+  border-radius: 9999px;
+}
+
+.splash-glow::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(60deg);
+  width: 999px;
+  height: 999px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-image: conic-gradient(
+    #000,
+    #402fb5 5%,
+    #000 38%,
+    #000 50%,
+    #cf30aa 60%,
+    #000 87%
+  );
+  transition: opacity 2s;
+}
+
+.splash-border-wrapper {
     position: relative;
     border-radius: 1rem;
   }
