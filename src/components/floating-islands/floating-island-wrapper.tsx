@@ -46,7 +46,7 @@ interface FloatingIslandWrapperProps {
 export function FloatingIslandWrapper({ island, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isExpandedRef = useRef(isExpanded);
-  isExpandedRef.current = isExpanded;
+  useEffect(() => { isExpandedRef.current = isExpanded; }, [isExpanded]);
 
   const cronFirst = !!(island.config.cronFirst);
   const cronTarget = cronFirst ? getCronFirstTarget(island) : null;

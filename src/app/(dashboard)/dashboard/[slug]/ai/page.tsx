@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,6 @@ import { CardContent, CardHeader, CardTitle, CardDescription } from '@/component
 import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SelectCard } from '@/components/ui/select-card';
-import type { SelectCardOption } from '@/components/ui/select-card';
-
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
@@ -50,7 +48,7 @@ export default function WikiAIConfigPage() {
   const { toast } = useToast();
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const initialRef = useRef({
+  const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
     primaryProvider: 'openrouter' as 'openrouter' | 'gemini',
@@ -162,7 +160,7 @@ export default function WikiAIConfigPage() {
           setSuggestedQuestions((config.suggested_questions as string[]) || []);
           setBotBanner((config.bot_banner as string) || '');
 
-          initialRef.current = {
+          setSavedConfig({
             enabled: ai_enabled,
             provider: savedProvider as any,
             primaryProvider: savedPrimaryProvider as any,
@@ -184,7 +182,7 @@ export default function WikiAIConfigPage() {
             personalityId: (config.personality_id as string) || 'friendly',
             suggestedQuestions: (config.suggested_questions as string[]) || [],
             botBanner: (config.bot_banner as string) || '',
-          };
+          });
         }
         setLoading(false);
       } catch (err) {
@@ -260,8 +258,8 @@ export default function WikiAIConfigPage() {
       throw new Error(errData.error);
     }
 
-    const { ai_config: savedConfig } = await res.json();
-    initialRef.current = {
+    const { ai_config: _savedConfig } = await res.json();
+    setSavedConfig({
       enabled,
       provider,
       primaryProvider,
@@ -283,8 +281,42 @@ export default function WikiAIConfigPage() {
         personalityId,
         suggestedQuestions,
       botBanner,
-    };
+    });
   };
+
+  const isDirty = useMemo(() =>
+    enabled !== savedConfig.enabled ||
+    provider !== savedConfig.provider ||
+    primaryProvider !== savedConfig.primaryProvider ||
+    resolvedModel !== (savedConfig.modelSource === 'custom' ? savedConfig.customModel : savedConfig.model) ||
+    modelSource !== savedConfig.modelSource ||
+    customModel !== savedConfig.customModel ||
+    customApiKey !== savedConfig.customApiKey ||
+    JSON.stringify(fallbackChain) !== JSON.stringify(savedConfig.fallbackChain) ||
+    fallbackSource !== savedConfig.fallbackSource ||
+    resolvedGeminiModel !== (savedConfig.geminiModelSource === 'custom' ? savedConfig.geminiCustomModel : savedConfig.geminiModel) ||
+    geminiModelSource !== savedConfig.geminiModelSource ||
+    geminiCustomModel !== savedConfig.geminiCustomModel ||
+    geminiCustomApiKey !== savedConfig.geminiCustomApiKey ||
+    JSON.stringify(geminiFallbackChain) !== JSON.stringify(savedConfig.geminiFallbackChain) ||
+    geminiFallbackSource !== savedConfig.geminiFallbackSource ||
+    wakeWordText !== savedConfig.wakeWordText ||
+    chatName !== savedConfig.chatName ||
+    botLogo !== savedConfig.botLogo ||
+    personalityId !== savedConfig.personalityId ||
+    JSON.stringify(suggestedQuestions) !== JSON.stringify(savedConfig.suggestedQuestions) ||
+    botBanner !== savedConfig.botBanner,
+  [
+    savedConfig,
+    enabled, provider, primaryProvider, resolvedModel, modelSource,
+    customModel, customApiKey, fallbackChain, fallbackSource,
+    resolvedGeminiModel, geminiModelSource, geminiCustomModel,
+    geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
+    wakeWordText, chatName, botLogo, personalityId,
+    suggestedQuestions, botBanner,
+  ]);
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   if (loading) {
     return (
@@ -296,31 +328,6 @@ export default function WikiAIConfigPage() {
 
   const showOpenRouter = provider === 'openrouter' || provider === 'hybrid';
   const showGemini = provider === 'gemini' || provider === 'hybrid';
-
-  const isDirty =
-    enabled !== initialRef.current.enabled ||
-    provider !== initialRef.current.provider ||
-    primaryProvider !== initialRef.current.primaryProvider ||
-    resolvedModel !== (initialRef.current.modelSource === 'custom' ? initialRef.current.customModel : initialRef.current.model) ||
-    modelSource !== initialRef.current.modelSource ||
-    customModel !== initialRef.current.customModel ||
-    customApiKey !== initialRef.current.customApiKey ||
-    JSON.stringify(fallbackChain) !== JSON.stringify(initialRef.current.fallbackChain) ||
-    fallbackSource !== initialRef.current.fallbackSource ||
-    resolvedGeminiModel !== (initialRef.current.geminiModelSource === 'custom' ? initialRef.current.geminiCustomModel : initialRef.current.geminiModel) ||
-    geminiModelSource !== initialRef.current.geminiModelSource ||
-    geminiCustomModel !== initialRef.current.geminiCustomModel ||
-    geminiCustomApiKey !== initialRef.current.geminiCustomApiKey ||
-    JSON.stringify(geminiFallbackChain) !== JSON.stringify(initialRef.current.geminiFallbackChain) ||
-    geminiFallbackSource !== initialRef.current.geminiFallbackSource ||
-    wakeWordText !== initialRef.current.wakeWordText ||
-    chatName !== initialRef.current.chatName ||
-    botLogo !== initialRef.current.botLogo ||
-    personalityId !== initialRef.current.personalityId ||
-    JSON.stringify(suggestedQuestions) !== JSON.stringify(initialRef.current.suggestedQuestions) ||
-    botBanner !== initialRef.current.botBanner;
-
-  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   const sections = [
     { id: 'activation', label: 'Ativação', icon: Power },

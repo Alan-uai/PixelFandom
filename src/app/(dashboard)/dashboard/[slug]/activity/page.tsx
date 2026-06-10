@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardTitle } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, History, FileText, Users, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { useUser } from '@/supabase';

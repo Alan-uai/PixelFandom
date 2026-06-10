@@ -25,10 +25,12 @@ function useDataAccess<T>(
   const mountedRef = useRef(true);
 
   const depsKey = JSON.stringify(deps);
-  if (depsKey !== depsRef.current) {
-    depsRef.current = depsKey;
-    cacheRef.current = null;
-  }
+  useEffect(() => {
+    if (depsKey !== depsRef.current) {
+      depsRef.current = depsKey;
+      cacheRef.current = null;
+    }
+  }, [depsKey]);
 
   const execute = useCallback(() => {
     if (cacheRef.current !== null) {

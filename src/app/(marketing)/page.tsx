@@ -112,36 +112,42 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       <ScrollRevealWrapper exitOnly>
-        <HeroSection />
-        <NavStrip onLogin={openAuth} />
+        <section className="min-h-screen flex flex-col items-center justify-center">
+          <HeroSection />
+          <NavStrip onLogin={openAuth} />
+        </section>
       </ScrollRevealWrapper>
 
       <ScrollRevealWrapper id="section-carousel">
-        <SearchSection
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchResults={searchResults}
-          searchLoading={searchLoading}
-          categories={wikis.map((w) => ({ slug: w.slug, name: w.name }))}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
-        <WikisCarousel
-          wikis={wikis}
-          loading={loading}
-          error={error}
-          voteData={voteData}
-          activeCategory={activeCategory}
-        />
+        <section className="min-h-screen flex flex-col items-center justify-center">
+          <SearchSection
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            searchLoading={searchLoading}
+            categories={wikis.map((w) => ({ slug: w.slug, name: w.name }))}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
+          <WikisCarousel
+            wikis={wikis}
+            loading={loading}
+            error={error}
+            voteData={voteData}
+            activeCategory={activeCategory}
+          />
+        </section>
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper>
-        <StatBar
-          wikisCount={wikis.length}
-          membersCount={membersCount}
-          articlesCount={articlesCount}
-        />
-        <Footer />
+      <ScrollRevealWrapper className="pb-[40vh]">
+        <section className="min-h-screen flex flex-col items-center justify-center">
+          <StatBar
+            wikisCount={wikis.length}
+            membersCount={membersCount}
+            articlesCount={articlesCount}
+          />
+          <Footer />
+        </section>
       </ScrollRevealWrapper>
     </div>
   );

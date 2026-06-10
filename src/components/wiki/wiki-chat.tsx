@@ -121,7 +121,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     setShowHistory(false);
   };
 
-  const deleteSession = async (sid: string) => {
+  const deleteSession = useCallback(async (sid: string) => {
     try {
       await fetch(`/api/chat/sessions/${sid}`, { method: 'DELETE' });
       sessionsCache.current = null;
@@ -131,7 +131,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         setMessages([]);
       }
     } catch {}
-  };
+  }, [sessionId]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || loading) return;

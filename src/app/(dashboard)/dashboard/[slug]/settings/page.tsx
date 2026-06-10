@@ -25,7 +25,7 @@ export default function WikiSettingsPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  const initialRef = useRef({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
+  const [savedConfig, setSavedConfig] = useState({ name: '', description: '', logoUrl: '', coverImageUrl: '', discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '', primaryColor: '198 100% 65%' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -94,7 +94,7 @@ export default function WikiSettingsPage() {
           setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
           setGameTableTabsSubFormat(gtDisplay.tabs_sub_format || 'list');
           const widgets = (theme.widgets as Record<string, any>) || {};
-          initialRef.current = {
+          setSavedConfig({
             name: data.name,
             description: data.description || '',
             logoUrl: data.logo_url || '',
@@ -104,7 +104,7 @@ export default function WikiSettingsPage() {
             faviconUrl: data.favicon_url || '',
             ogImage: data.og_image || '',
             primaryColor: theme.primary_color || '198 100% 65%',
-          };
+          });
         }
         setLoading(false);
       } catch (err) {
@@ -160,7 +160,7 @@ export default function WikiSettingsPage() {
         throw error;
       }
 
-      initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor };
+      setSavedConfig({ name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor });
     } catch (err) {
       if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar.' });
       throw err;
@@ -180,17 +180,17 @@ export default function WikiSettingsPage() {
   }
 
   const isDirty =
-    name !== initialRef.current.name ||
-    description !== initialRef.current.description ||
-    logoUrl !== initialRef.current.logoUrl ||
-    coverImageUrl !== initialRef.current.coverImageUrl ||
-    discordUrl !== initialRef.current.discordUrl ||
-    gameUrl !== initialRef.current.gameUrl ||
-    faviconUrl !== initialRef.current.faviconUrl ||
-    ogImage !== initialRef.current.ogImage ||
-    primaryColor !== initialRef.current.primaryColor;
+    name !== savedConfig.name ||
+    description !== savedConfig.description ||
+    logoUrl !== savedConfig.logoUrl ||
+    coverImageUrl !== savedConfig.coverImageUrl ||
+    discordUrl !== savedConfig.discordUrl ||
+    gameUrl !== savedConfig.gameUrl ||
+    faviconUrl !== savedConfig.faviconUrl ||
+    ogImage !== savedConfig.ogImage ||
+    primaryColor !== savedConfig.primaryColor;
 
-  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => initialRef.current = { name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor } });
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => setSavedConfig({ name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor }) });
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },

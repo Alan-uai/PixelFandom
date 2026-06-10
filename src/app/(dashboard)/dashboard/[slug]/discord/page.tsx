@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Bot, Power, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Bot, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { ChannelSelect } from '@/components/discord/channel-select';
@@ -30,7 +30,7 @@ export default function WikiDiscordPage() {
   const [tenant, setTenant] = useState<any>(null);
   const [dbGuilds, setDbGuilds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const initialRef = useRef({
+  const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     botName: '',
     botAvatar: null as string | null,
@@ -121,7 +121,7 @@ export default function WikiDiscordPage() {
     setAutoPostUpdatesChannelName(config.auto_post_updates_channel_name ?? '');
     setAutoIngest(config.auto_ingest ?? []);
 
-    initialRef.current = {
+    setSavedConfig({
       enabled: config.enabled ?? false,
       botName: config.bot_name ?? '',
       botAvatar: config.bot_avatar ?? null,
@@ -150,7 +150,7 @@ export default function WikiDiscordPage() {
       autoPostUpdatesChannelId: config.auto_post_updates_channel_id ?? '',
       autoPostUpdatesChannelName: config.auto_post_updates_channel_name ?? '',
       autoIngest: config.auto_ingest ?? [],
-    };
+    });
   };
 
   useEffect(() => {
@@ -236,7 +236,7 @@ export default function WikiDiscordPage() {
       throw error;
     }
 
-    initialRef.current = {
+    setSavedConfig({
       enabled, botName, botAvatar, prefix, status,
       commands: JSON.parse(JSON.stringify(commands)),
       textChatChannelId, textChatChannelName,
@@ -249,8 +249,54 @@ export default function WikiDiscordPage() {
       autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
       autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
       autoIngest: JSON.parse(JSON.stringify(autoIngest)),
-    };
+    });
   };
+
+  const isDirty = useMemo(() =>
+    enabled !== savedConfig.enabled ||
+    botName !== savedConfig.botName ||
+    botAvatar !== savedConfig.botAvatar ||
+    prefix !== savedConfig.prefix ||
+    status !== savedConfig.status ||
+    JSON.stringify(commands.map((c) => c.enabled)) !== JSON.stringify(savedConfig.commands.map((c) => c.enabled)) ||
+    textChatChannelId !== savedConfig.textChatChannelId ||
+    textChatChannelName !== savedConfig.textChatChannelName ||
+    curationChannelId !== savedConfig.curationChannelId ||
+    curationChannelName !== savedConfig.curationChannelName ||
+    supportRoleId !== savedConfig.supportRoleId ||
+    supportRoleName !== savedConfig.supportRoleName ||
+    memberRoleId !== savedConfig.memberRoleId ||
+    memberRoleName !== savedConfig.memberRoleName ||
+    editorRoleId !== savedConfig.editorRoleId ||
+    editorRoleName !== savedConfig.editorRoleName ||
+    adminRoleId !== savedConfig.adminRoleId ||
+    adminRoleName !== savedConfig.adminRoleName ||
+    autoPostCodesEnabled !== savedConfig.autoPostCodesEnabled ||
+    autoPostCodesChannelId !== savedConfig.autoPostCodesChannelId ||
+    autoPostCodesChannelName !== savedConfig.autoPostCodesChannelName ||
+    autoPostArticlesEnabled !== savedConfig.autoPostArticlesEnabled ||
+    autoPostArticlesChannelId !== savedConfig.autoPostArticlesChannelId ||
+    autoPostArticlesChannelName !== savedConfig.autoPostArticlesChannelName ||
+    autoPostUpdatesEnabled !== savedConfig.autoPostUpdatesEnabled ||
+    autoPostUpdatesChannelId !== savedConfig.autoPostUpdatesChannelId ||
+    autoPostUpdatesChannelName !== savedConfig.autoPostUpdatesChannelName ||
+    JSON.stringify(autoIngest) !== JSON.stringify(savedConfig.autoIngest),
+  [
+    savedConfig,
+    enabled, botName, botAvatar, prefix, status, commands,
+    textChatChannelId, textChatChannelName,
+    curationChannelId, curationChannelName,
+    supportRoleId, supportRoleName,
+    memberRoleId, memberRoleName,
+    editorRoleId, editorRoleName,
+    adminRoleId, adminRoleName,
+    autoPostCodesEnabled, autoPostCodesChannelId, autoPostCodesChannelName,
+    autoPostArticlesEnabled, autoPostArticlesChannelId, autoPostArticlesChannelName,
+    autoPostUpdatesEnabled, autoPostUpdatesChannelId, autoPostUpdatesChannelName,
+    autoIngest,
+  ]);
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   if (loading) {
     return (
@@ -263,38 +309,6 @@ export default function WikiDiscordPage() {
   if (!tenant) {
     return <p className="text-muted-foreground">Wiki não encontrada.</p>;
   }
-
-  const isDirty =
-    enabled !== initialRef.current.enabled ||
-    botName !== initialRef.current.botName ||
-    botAvatar !== initialRef.current.botAvatar ||
-    prefix !== initialRef.current.prefix ||
-    status !== initialRef.current.status ||
-    JSON.stringify(commands.map((c) => c.enabled)) !== JSON.stringify(initialRef.current.commands.map((c) => c.enabled)) ||
-    textChatChannelId !== initialRef.current.textChatChannelId ||
-    textChatChannelName !== initialRef.current.textChatChannelName ||
-    curationChannelId !== initialRef.current.curationChannelId ||
-    curationChannelName !== initialRef.current.curationChannelName ||
-    supportRoleId !== initialRef.current.supportRoleId ||
-    supportRoleName !== initialRef.current.supportRoleName ||
-    memberRoleId !== initialRef.current.memberRoleId ||
-    memberRoleName !== initialRef.current.memberRoleName ||
-    editorRoleId !== initialRef.current.editorRoleId ||
-    editorRoleName !== initialRef.current.editorRoleName ||
-    adminRoleId !== initialRef.current.adminRoleId ||
-    adminRoleName !== initialRef.current.adminRoleName ||
-    autoPostCodesEnabled !== initialRef.current.autoPostCodesEnabled ||
-    autoPostCodesChannelId !== initialRef.current.autoPostCodesChannelId ||
-    autoPostCodesChannelName !== initialRef.current.autoPostCodesChannelName ||
-    autoPostArticlesEnabled !== initialRef.current.autoPostArticlesEnabled ||
-    autoPostArticlesChannelId !== initialRef.current.autoPostArticlesChannelId ||
-    autoPostArticlesChannelName !== initialRef.current.autoPostArticlesChannelName ||
-    autoPostUpdatesEnabled !== initialRef.current.autoPostUpdatesEnabled ||
-    autoPostUpdatesChannelId !== initialRef.current.autoPostUpdatesChannelId ||
-    autoPostUpdatesChannelName !== initialRef.current.autoPostUpdatesChannelName ||
-    JSON.stringify(autoIngest) !== JSON.stringify(initialRef.current.autoIngest);
-
-  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
 
   return (
     <GuildDataProvider>

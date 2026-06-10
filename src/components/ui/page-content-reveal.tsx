@@ -164,7 +164,7 @@ export default function PageContentReveal({
   const [phase, setPhase] = useState<Phase>('idle');
   const mounted = useRef(true);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     return () => {

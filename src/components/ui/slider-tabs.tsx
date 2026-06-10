@@ -83,14 +83,13 @@ export function SliderTabs({
 }: SliderTabsProps) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const [direction, setDirection] = useState<Direction2D>({ x: 0, y: 0 });
-  const valuesRef = useRef<string[]>([]);
+  const [values, setValues] = useState<string[]>([]);
   const prevValueRef = useRef(defaultValue);
 
   const activeValue = controlledValue ?? internalValue;
 
   const setActiveValue = useCallback(
     (newValue: string) => {
-      const values = valuesRef.current;
       const prevIndex = values.indexOf(prevValueRef.current);
       const nextIndex = values.indexOf(newValue);
 
@@ -103,13 +102,11 @@ export function SliderTabs({
       if (!controlledValue) setInternalValue(newValue);
       onValueChange?.(newValue);
     },
-    [controlledValue, onValueChange, transition],
+    [controlledValue, onValueChange, transition, values],
   );
 
   const registerValue = useCallback((value: string) => {
-    if (!valuesRef.current.includes(value)) {
-      valuesRef.current.push(value);
-    }
+    setValues((prev) => prev.includes(value) ? prev : [...prev, value]);
   }, []);
 
   return (
@@ -118,7 +115,7 @@ export function SliderTabs({
         activeValue,
         setActiveValue,
         direction,
-        values: valuesRef.current,
+        values,
         registerValue,
       }}
     >

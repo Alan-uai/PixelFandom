@@ -341,8 +341,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     isConnectingRef.current = false
   }, [])
 
-  connectRef.current = connect
-  disconnectRef.current = disconnect
+  useEffect(() => { connectRef.current = connect; }, [connect])
+  useEffect(() => { disconnectRef.current = disconnect; }, [disconnect])
 
   useEffect(() => {
     startWakeWordDetector()
@@ -395,7 +395,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       <button
         onClick={handleClick}
         className={`fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]} flex items-center justify-center hover:scale-110 hover:shadow-3xl ${animationClass}`}
-        title={apiRef.current ? 'Desconectar' : 'Assistente de Voz'}
+        title={isMicOn ? 'Desconectar' : 'Assistente de Voz'}
       >
         <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
         <div className="relative flex items-center justify-center">

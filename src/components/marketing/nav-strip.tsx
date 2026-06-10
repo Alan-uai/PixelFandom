@@ -31,14 +31,15 @@ interface OrbitalNavItemProps {
   isButton?: boolean;
   compact: boolean;
   waveGlow?: boolean;
+  drawCircle?: boolean;
 }
 
 function generateWaveConfig() {
-  const count = 1 + Math.floor(Math.random() * 6);
+  const count = 1 + Math.floor(Math.random() * 3);
   return Array.from({ length: count }, (_, i) => ({
     height: 16 + Math.floor(Math.random() * 12),
-    duration: 3 + Math.random() * 4,
-    delay: i * (0.2 + Math.random() * 0.5),
+    duration: 8 + Math.random() * 8,
+    delay: i * (0.1 + Math.random() * 0.2),
     vOffset: -28 + Math.floor(Math.random() * 56),
   }));
 }
@@ -50,7 +51,9 @@ interface WaveArc {
   vOffset: number;
 }
 
-function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow }: OrbitalNavItemProps) {
+const CIRC = 2 * Math.PI * 6;
+
+function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, drawCircle }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -73,7 +76,7 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
     const orbitContent = (
       <motion.div
         className="cursor-pointer"
-        style={waveGlow ? { filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 16px ${glowColor})` } : {}}
+        style={waveGlow ? { boxShadow: '0 0 10px hsl(198,100%,65%,0.5), 0 0 20px hsl(270,80%,60%,0.3), 0 0 30px hsl(350,90%,60%,0.15)' } : {}}
         animate={waveGlow ? { scale: 1.2, filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'] } : {}}
         transition={{ duration: 0.4 }}
         onClick={clickHandler}
@@ -117,6 +120,30 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
           >
             {icon}
           </motion.div>
+          <div
+            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{ bottom: -14, width: 16, height: 16, zIndex: 20 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <defs>
+                <linearGradient id="bell-draw-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="hsl(198,100%,65%)" />
+                  <stop offset="50%" stopColor="hsl(270,80%,60%)" />
+                  <stop offset="100%" stopColor="hsl(350,90%,60%)" />
+                </linearGradient>
+              </defs>
+              <motion.circle
+                cx="8" cy="8" r="6"
+                fill="none"
+                stroke="url(#bell-draw-grad)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeDasharray={CIRC}
+                animate={{ strokeDashoffset: drawCircle ? 0 : CIRC }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              />
+            </svg>
+          </div>
           {!isButton && hovered && (
             <motion.div
               className="absolute inset-0 rounded-full blur-md z-0"
@@ -133,7 +160,9 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 0.6, scale: 2.5 }}
               exit={{ opacity: 0, scale: 0.5 }}
-              style={{ backgroundColor: glowColor }}
+              style={{
+                background: 'radial-gradient(circle, hsl(198,100%,65%,0.5), hsl(270,80%,60%,0.25), hsl(350,90%,60%,0.1))',
+              }}
               transition={{ duration: 0.3 }}
             />
           )}
@@ -261,7 +290,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const { phase, setIconRef, setTrailRef, expand, collapse, setOrbitTransition, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length, { paramOverrides });
 
   const expandedPositions = useRef(getExpandedPositions(items));
-  expandedPositions.current = getExpandedPositions(items);
+  useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
 
   const isExpanded = phase === 'expanded';
 
@@ -337,7 +366,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarMouseEnter = useCallback(() => {
     if (isMobile) return;
-    setHoverSpeedMultiplier(2.5);
+    setHoverSpeedMultiplier(1.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -349,7 +378,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const handleAvatarTouchStart = useCallback(() => {
     if (!isMobile) return;
-    setHoverSpeedMultiplier(2.5);
+    setHoverSpeedMultiplier(1.5);
     setHoverRadiusMultiplier(0.65);
   }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
@@ -372,7 +401,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [isExpanded]);
 
   return (
-    <section className="relative w-full py-8 overflow-visible">
+    <section className="relative w-full pb-4 overflow-visible">
       <div className="max-w-4xl mx-auto px-4">
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
           {/* ── Gravitational Waves ── */}
@@ -403,7 +432,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                         duration: arc.duration,
                         times: [0, 0.25, 0.55, 1],
                         delay: leftSideDelay,
-                        repeatDelay: 1.5 + Math.random() * 0.5,
+                        repeatDelay: 0.5 + Math.random() * 0.3,
                         repeat: Infinity,
                         ease: 'easeOut',
                       }}
@@ -431,7 +460,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                         duration: arc.duration,
                         times: [0, 0.25, 0.55, 1],
                         delay: rightSideDelay,
-                        repeatDelay: 1.5 + Math.random() * 0.5,
+                        repeatDelay: 0.5 + Math.random() * 0.3,
                         repeat: Infinity,
                         ease: 'easeOut',
                       }}
@@ -459,20 +488,21 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             >
               {/* Single solid trail per icon */}
               {!isExpanded && items.map((item, i) => (
-                <div
-                  key={`trail-${i}`}
-                  ref={setTrailRef(i)}
-                  className="absolute left-1/2 top-1/2 pointer-events-none"
-                  style={{
-                    height: 3,
-                    background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
-                    borderRadius: 2,
-                    transformOrigin: 'right center',
-                    opacity: 0,
-                    marginTop: -1.5,
-                    willChange: 'transform, width, opacity',
-                  }}
-                />
+              <div
+                key={`trail-${i}`}
+                ref={setTrailRef(i)}
+                className="absolute left-1/2 top-1/2 pointer-events-none"
+                style={{
+                  height: 3,
+                  background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
+                  borderRadius: 2,
+                  transformOrigin: 'right center',
+                  opacity: 0,
+                  marginTop: -1.5,
+                  willChange: 'transform, width, opacity',
+                  transition: 'opacity 0.15s ease',
+                }}
+              />
               ))}
 
               {/* Orbital Icons */}
@@ -497,6 +527,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     isButton={item.isButton}
                     compact={!isExpanded}
                     waveGlow={!isExpanded && ((item.side === 'left' && glowLeft) || (item.side === 'right' && glowRight))}
+                    drawCircle={isExpanded && item.isBadge}
                   />
                 </div>
               ))}

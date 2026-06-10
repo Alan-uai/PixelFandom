@@ -43,14 +43,14 @@ export default function HeroSection() {
   const controls = useAnimationControls();
   const onFirstLetter = useCallback(() => { playRevealSound(); }, []);
 
-  const containerClass = 'relative min-h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden';
+  const containerClass = 'relative flex-1 flex flex-col items-center justify-center text-center px-4 overflow-hidden py-16 md:py-20';
 
   useEffect(() => {
     controls.start('visible');
   }, [controls]);
 
   const phaseRef = useRef(phase);
-  phaseRef.current = phase;
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   useEffect(() => {
     if (!scrollProgress) return;
@@ -115,6 +115,7 @@ export default function HeroSection() {
             text="PixelFandom"
             as="h1"
             className="text-5xl sm:text-6xl md:text-8xl font-bold mb-4 relative"
+            scrollProgress={null}
             onFirstLetterAnimated={onFirstLetter}
           />
         </motion.div>

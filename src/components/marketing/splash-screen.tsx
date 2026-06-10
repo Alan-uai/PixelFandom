@@ -2,25 +2,44 @@
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
-import ParticleField from '@/components/marketing/particle-field'
-import { playRevealSound, playSplashSound } from '@/lib/feedback-sounds'
+import GravitationalWaveCanvas from './gravitational-wave-canvas'
+import {
+  playSplashSound,
+  playGravitationalWaveSound,
+  playBorderRevealSound,
+  playWavePulse,
+} from '@/lib/feedback-sounds'
 
-type Phase = 'intro' | 'stars' | 'text' | 'border' | 'outro'
+type Phase = 'black' | 'waves' | 'border' | 'dissolve' | 'outro'
 
-const PHASE_ORDER: Phase[] = ['intro', 'stars', 'text', 'border', 'outro']
-const PHASE_DURATIONS: Record<Phase, number> = {
-  intro: 400,
-  stars: 800,
-  text: 1200,
-  border: 1000,
+const PHASES: Phase[] = ['black', 'waves', 'border', 'dissolve', 'outro']
+const DURATIONS: Record<Phase, number> = {
+  black: 1000,
+  waves: 3500,
+  border: 2200,
+  dissolve: 2500,
   outro: 800,
 }
-const TOTAL_DURATION = PHASE_ORDER.reduce((a, p) => a + PHASE_DURATIONS[p], 0)
+const TOTAL = PHASES.reduce((a, p) => a + DURATIONS[p], 0)
 
-const CUMULATIVE = PHASE_ORDER.map((p, i) => {
-  const start = PHASE_ORDER.slice(0, i).reduce((a, p) => a + PHASE_DURATIONS[p], 0)
-  return { phase: p, start, end: start + PHASE_DURATIONS[p] }
-})
+const CUMULATIVE = PHASES.map((p, i) => ({
+  phase: p,
+  start: PHASES.slice(0, i).reduce((a, p) => a + DURATIONS[p], 0),
+  end: PHASES.slice(0, i + 1).reduce((a, p) => a + DURATIONS[p], 0),
+}))
+
+function getPhaseAt(elapsed: number): Phase {
+  for (const c of CUMULATIVE) {
+    if (elapsed >= c.start && elapsed < c.end) return c.phase
+  }
+  return 'outro'
+}
+
+function getProgressInPhase(elapsed: number, phase: Phase): number {
+  const c = CUMULATIVE.find((x) => x.phase === phase)
+  if (!c) return 1
+  return Math.min((elapsed - c.start) / (c.end - c.start), 1)
+}
 
 const TEXT = 'PixelFandom'
 
@@ -28,32 +47,123 @@ interface SplashScreenProps {
   onComplete: () => void
 }
 
+function LetterWithBorder({
+  letter,
+  index,
+  active,
+}: {
+  letter: string
+  index: number
+  active: boolean
+}) {
+  return (
+    <span className="relative inline-flex items-center justify-center mx-0">
+      <span
+        className="absolute pointer-events-none transition-opacity duration-700"
+        style={{ inset: -14, opacity: active ? 0.45 : 0, zIndex: -2, filter: 'blur(18px)' }}
+      >
+        <span
+          className="block absolute top-1/2 left-1/2"
+          style={{
+            width: '500px',
+            height: '500px',
+            background: `conic-gradient(from ${index * 25}deg, transparent, hsl(198,100%,65%), hsl(270,80%,60%), hsl(350,90%,60%), transparent)`,
+            animation: active ? `letter-conic-spin ${2.8 + index * 0.12}s linear infinite` : 'none',
+          }}
+        />
+      </span>
+      <span
+        className="absolute inset-[-3px] rounded-[6px] overflow-hidden pointer-events-none transition-opacity duration-500"
+        style={{ opacity: active ? 1 : 0, zIndex: -1 }}
+      >
+        <span className="absolute top-1/2 left-1/2">
+          <span
+            className="block"
+            style={{
+              width: '350px',
+              height: '350px',
+              background: `conic-gradient(from ${index * 20}deg, hsl(198,100%,65%), transparent 15%, hsl(270,80%,60%) 35%, transparent 50%, hsl(350,90%,60%) 70%, transparent 85%, hsl(198,100%,65%))`,
+              filter: 'brightness(1.4)',
+              animation: `letter-conic-spin ${2 + index * 0.18}s linear infinite`,
+            }}
+          />
+        </span>
+      </span>
+      <span
+        className="absolute inset-[-3px] rounded-[6px] overflow-hidden pointer-events-none transition-opacity duration-500"
+        style={{ opacity: active ? 0.6 : 0, zIndex: -1 }}
+      >
+        <span className="absolute top-1/2 left-1/2">
+          <span
+            className="block"
+            style={{
+              width: '350px',
+              height: '350px',
+              background: 'conic-gradient(transparent, #18116a, transparent 15%, transparent 45%, #6e1b60, transparent 60%)',
+              animation: `letter-conic-spin ${3.2 + index * 0.15}s linear infinite`,
+            }}
+          />
+        </span>
+      </span>
+      {active && (
+        <span className="absolute inset-[1px] rounded-[4px] bg-black pointer-events-none" style={{ zIndex: -1 }} />
+      )}
+      <span
+        className="relative inline-block"
+        style={{
+          background: 'linear-gradient(135deg, hsl(198 100% 65%), hsl(270 80% 60%), hsl(350 90% 60%))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}
+      >
+        {letter === ' ' ? '\u00A0' : letter}
+      </span>
+    </span>
+  )
+}
+
+function updateDissolveMask(overlay: HTMLDivElement | null, progress: number) {
+  if (!overlay) return
+
+  const grads: string[] = []
+  for (let i = 0; i < 14; i++) {
+    const cx = 50 + Math.sin(progress * 2.3 + i * 1.5) * 28
+    const cy = 50 + Math.cos(progress * 1.7 + i * 1.1) * 28
+    const size = 6 + progress * 170
+    const rx = size * (0.6 + Math.sin(i * 3.1 + progress * 0.5) * 0.4)
+    const ry = size * (0.6 + Math.cos(i * 2.7 + progress * 0.8) * 0.4)
+    const threshold = progress * 100
+
+    grads.push(
+      `radial-gradient(ellipse ${rx}% ${ry}% at ${cx}% ${cy}%, transparent 0%, transparent ${threshold}%, black ${Math.min(100, threshold + 18)}%)`,
+    )
+  }
+
+  const value = grads.join(', ')
+  overlay.style.setProperty('mask-image', value)
+  overlay.style.setProperty('-webkit-mask-image', value)
+}
+
 const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProps) {
   const [ready, setReady] = useState(false)
   const [shouldShow, setShouldShow] = useState(true)
-  const [phase, setPhase] = useState<Phase>('intro')
+  const [phase, setPhase] = useState<Phase>('black')
   const [showBorder, setShowBorder] = useState(false)
+  const [intensity, setIntensity] = useState(0)
   const [exiting, setExiting] = useState(false)
 
   const speedRef = useRef(1)
   const elapsedRef = useRef(0)
-  const lastTimeRef = useRef(0)
   const rafRef = useRef(0)
   const completeRef = useRef(false)
   const startTimeRef = useRef(0)
+  const lastTimeRef = useRef(0)
+  const overlayRef = useRef<HTMLDivElement>(null)
   const clickCountRef = useRef(0)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>()
-  const soundPlayedRef = useRef(false)
+  const soundPlayedRef = useRef({ waves: false, border: false, dissolve: false })
   const stableOnComplete = useRef(onComplete)
-  stableOnComplete.current = onComplete
-
-  const getPhaseAtProgress = useCallback((progress: number): Phase => {
-    const elapsed = progress * TOTAL_DURATION
-    for (const cum of CUMULATIVE) {
-      if (elapsed >= cum.start && elapsed < cum.end) return cum.phase
-    }
-    return 'outro'
-  }, [])
 
   const finish = useCallback(() => {
     if (completeRef.current) return
@@ -61,32 +171,47 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
     stableOnComplete.current()
   }, [])
 
-  const tick = useCallback((timestamp: number) => {
-    if (completeRef.current) return
+  const tick = useCallback(
+    (timestamp: number) => {
+      if (completeRef.current) return
 
-    if (!startTimeRef.current) startTimeRef.current = timestamp
-    if (!lastTimeRef.current) lastTimeRef.current = timestamp
+      if (!startTimeRef.current) startTimeRef.current = timestamp
+      if (!lastTimeRef.current) lastTimeRef.current = timestamp
 
-    const realDelta = Math.min(timestamp - lastTimeRef.current, 50)
-    lastTimeRef.current = timestamp
+      const realDelta = Math.min(timestamp - lastTimeRef.current, 50)
+      lastTimeRef.current = timestamp
 
-    elapsedRef.current += realDelta * speedRef.current
-    const elapsed = elapsedRef.current
+      elapsedRef.current += realDelta * speedRef.current
+      const elapsed = elapsedRef.current
 
-    if (elapsed >= TOTAL_DURATION) {
-      setExiting(true)
-      setTimeout(finish, 700)
-      return
-    }
+      if (elapsed >= TOTAL) {
+        setExiting(true)
+        setTimeout(finish, 700)
+        return
+      }
 
-    const progress = Math.min(elapsed / TOTAL_DURATION, 1)
-    const newPhase = getPhaseAtProgress(progress)
+      const newPhase = getPhaseAt(elapsed)
+      setPhase(newPhase)
 
-    setPhase(newPhase)
-    if (newPhase === 'border' || newPhase === 'outro') setShowBorder(true)
+      const wavesProgress = getProgressInPhase(elapsed, 'waves')
+      if (newPhase === 'black' || newPhase === 'waves') {
+        const i = newPhase === 'black' ? 0 : Math.min(wavesProgress * 1.5, 1)
+        setIntensity(i)
+      }
 
-    rafRef.current = requestAnimationFrame(tick)
-  }, [getPhaseAtProgress, finish])
+      if (newPhase === 'border' || newPhase === 'dissolve' || newPhase === 'outro') {
+        setShowBorder(true)
+      }
+
+      if (newPhase === 'dissolve') {
+        const dissolveProgress = getProgressInPhase(elapsed, 'dissolve')
+        updateDissolveMask(overlayRef.current, dissolveProgress)
+      }
+
+      rafRef.current = requestAnimationFrame(tick)
+    },
+    [finish],
+  )
 
   useEffect(() => {
     try {
@@ -99,7 +224,9 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
           return
         }
       }
-    } catch {}
+    } catch {
+          /* localStorage unavailable */
+        }
     setShouldShow(true)
     setReady(true)
   }, [])
@@ -121,11 +248,26 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   }, [])
 
   useEffect(() => {
-    if (phase === 'text' && !soundPlayedRef.current) {
-      soundPlayedRef.current = true
-      playRevealSound()
+    if (phase === 'waves' && !soundPlayedRef.current.waves) {
+      soundPlayedRef.current.waves = true
+      playGravitationalWaveSound()
+    }
+    if ((phase === 'border' || phase === 'dissolve') && !soundPlayedRef.current.border) {
+      soundPlayedRef.current.border = true
+      playBorderRevealSound()
     }
   }, [phase])
+
+  useEffect(() => {
+    if (phase === 'waves') {
+      const interval = setInterval(() => playWavePulse(), 600)
+      return () => clearInterval(interval)
+    }
+  }, [phase])
+
+  useEffect(() => {
+    stableOnComplete.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     return () => {
@@ -139,7 +281,7 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
 
   const skipToBorder = useCallback(() => {
     const borderStart = CUMULATIVE.find((c) => c.phase === 'border')!.start
-    elapsedRef.current = borderStart + PHASE_DURATIONS.border * 0.3
+    elapsedRef.current = borderStart + DURATIONS.border * 0.2
     speedRef.current = 1.5
     setShowBorder(true)
   }, [])
@@ -162,49 +304,27 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
   if (!ready) return null
   if (!shouldShow) return null
 
-  const textVisible = phase === 'text' || phase === 'border' || phase === 'outro'
-  const starsVisible = phase !== 'intro'
-  const borderActive = phase === 'border' || phase === 'outro'
+  const canvasActive = phase === 'black' || phase === 'waves'
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black select-none transition-opacity duration-700 ${exiting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center select-none transition-opacity duration-700 ${exiting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       onClick={handleClick}
     >
-      {starsVisible && <ParticleField />}
+      <div
+        ref={overlayRef}
+        className="absolute inset-0 bg-black pointer-events-none"
+        style={{ zIndex: 0 }}
+      />
 
-      <div className="relative flex flex-col items-center">
-        <div className={`splash-border-wrapper ${borderActive ? 'border-active' : ''}`}>
+      <div className="relative flex flex-col items-center" style={{ zIndex: 1 }}>
+        <div className="splash-text-container">
           <h1
             className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight px-8 py-4"
             style={{ transformStyle: 'preserve-3d', perspective: '1200px' }}
           >
             {TEXT.split('').map((letter, i) => (
-              <motion.span
-                key={i}
-                className="inline-block"
-                initial={{ opacity: 0, y: 60, rotateX: -90, scale: 0.3, filter: 'blur(4px)' }}
-                animate={
-                  textVisible
-                    ? { opacity: 1, y: 0, rotateX: 0, scale: 1, filter: 'blur(0px)' }
-                    : { opacity: 0, y: 60, rotateX: -90, scale: 0.3, filter: 'blur(4px)' }
-                }
-                transition={{
-                  type: 'spring',
-                  stiffness: phase === 'text' ? 220 : 300,
-                  damping: phase === 'text' ? 15 : 18,
-                  delay: textVisible && phase === 'text' ? 0.6 + i * 0.05 : (textVisible ? i * 0.02 : 0),
-                }}
-                style={{
-                  background: 'linear-gradient(135deg, hsl(198 100% 65%), hsl(270 80% 60%), hsl(350 90% 60%))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  transformStyle: 'preserve-3d',
-                }}
-              >
-                {letter === ' ' ? '\u00A0' : letter}
-              </motion.span>
+              <LetterWithBorder key={i} letter={letter} index={i} active={showBorder} />
             ))}
           </h1>
         </div>
@@ -212,12 +332,14 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
         <motion.p
           className="text-lg sm:text-xl md:text-2xl text-muted-foreground mt-4"
           initial={{ opacity: 0, y: 16 }}
-          animate={borderActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+          animate={showBorder ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
         >
           Sua wiki, do seu jeito.
         </motion.p>
       </div>
+
+      <GravitationalWaveCanvas active={canvasActive} intensity={intensity} />
     </div>
   )
 })

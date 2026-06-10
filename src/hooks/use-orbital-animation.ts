@@ -36,7 +36,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   const [phase, setPhase] = useState<'orbiting' | 'expanded'>('orbiting');
   const phaseRef = useRef(phase);
   const transitioningRef = useRef(false);
-  phaseRef.current = phase;
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   const speedMult = useRef(1);
   const radiusMult = useRef(1);
@@ -45,7 +45,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   const prevPositions = useRef<{ x: number; y: number }[]>([]);
 
-  if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
+  useEffect(() => {
     const mode = options?.orbitMode ?? 'random';
     const actualMode = mode === 'random'
       ? (Math.random() < 0.5 ? 'shared' : 'individual')
@@ -69,7 +69,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     iconRefs.current = Array.from({ length: count }, () => null);
     trailRefs.current = Array.from({ length: count }, () => null);
     prevPositions.current = Array.from({ length: count }, () => ({ x: 0, y: 0 }));
-  }
+  }, [count, options?.orbitMode, options?.paramOverrides]);
 
   useEffect(() => {
     if (phase !== 'orbiting') return;
@@ -77,6 +77,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     transitioningRef.current = false;
     let start = 0;
     let raf = 0;
+    let frameCount = 0;
     const params = paramsRef.current;
 
     function loop(ts: number) {
@@ -84,8 +85,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
       if (!start) start = ts;
       const elapsed = (ts - start) / 1000;
 
-      speedMult.current += (targetSpeedMult.current - speedMult.current) * 0.04;
-      radiusMult.current += (targetRadiusMult.current - radiusMult.current) * 0.04;
+      speedMult.current += (targetSpeedMult.current - speedMult.current) * 0.015;
+      radiusMult.current += (targetRadiusMult.current - radiusMult.current) * 0.015;
+
+      frameCount++;
 
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
@@ -106,13 +109,15 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
             const dx = x - prev.x;
             const dy = y - prev.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > 0.3) {
-              const trailAngle = Math.atan2(-dy, -dx);
-              trailEl.style.transform = `translate(${x}px, ${y}px) rotate(${trailAngle}rad)`;
-              trailEl.style.width = '32px';
-              trailEl.style.opacity = '0.5';
-            } else {
-              trailEl.style.opacity = '0';
+            if (frameCount > 1) {
+              if (dist > 0.3) {
+                const trailAngle = Math.atan2(-dy, -dx);
+                trailEl.style.transform = `translate(${x}px, ${y}px) rotate(${trailAngle}rad)`;
+                trailEl.style.width = `${Math.min(48, Math.max(16, dist * 4))}px`;
+                trailEl.style.opacity = '0.5';
+              } else {
+                trailEl.style.opacity = '0';
+              }
             }
           }
           prevPositions.current[i] = { x, y };

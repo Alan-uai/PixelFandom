@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useState, useEffect, type ReactNode } from 'react';
 import { motion, useTransform, type MotionValue } from 'framer-motion';
 import { useScrollProgress } from '@/context/scroll-progress-context';
 
@@ -72,18 +72,32 @@ function SpringLetter({
   index,
   gradient,
   onComplete,
+  loopActive,
 }: {
   letter: string;
   index: number;
   gradient: string;
   onComplete?: () => void;
+  loopActive: boolean;
 }) {
   return (
     <motion.span
       className="inline-block"
       initial={{ opacity: 0, y: 60, rotateX: -90, scale: 0.5 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.6 + index * 0.05 }}
+      animate={
+        loopActive
+          ? { opacity: 1, y: [0, -3, 0], rotateX: 0, scale: [1, 1.012, 1] }
+          : { opacity: 1, y: 0, rotateX: 0, scale: 1 }
+      }
+      transition={
+        loopActive
+          ? {
+              y: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.08 },
+              scale: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.08 },
+              opacity: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.08 },
+            }
+          : { type: 'spring', stiffness: 200, damping: 14, delay: 0.6 + index * 0.05 }
+      }
       onAnimationComplete={index === 0 ? onComplete : undefined}
       style={{
         background: gradient,
@@ -112,12 +126,20 @@ export default function AnimatedGradientText({
 }: AnimatedGradientTextProps) {
   const contextScroll = useScrollProgress();
   const scrollProgress = externalScrollProgress !== undefined ? externalScrollProgress : contextScroll;
+  const [loopActive, setLoopActive] = useState(false);
 
   const letters = text.split('');
   const Tag = TagMap[as];
   const handleFirstComplete = useCallback(() => {
     onFirstLetterAnimated?.();
   }, [onFirstLetterAnimated]);
+
+  useEffect(() => {
+    if (scrollProgress) return;
+    const delay = 0.6 + (letters.length - 1) * 0.05 + 1.5;
+    const timer = setTimeout(() => setLoopActive(true), delay * 1000);
+    return () => clearTimeout(timer);
+  }, [scrollProgress, letters.length]);
 
   return (
     <Tag
@@ -142,6 +164,7 @@ export default function AnimatedGradientText({
                 letter={letter}
                 index={i}
                 gradient={gradient}
+                loopActive={loopActive}
                 onComplete={handleFirstComplete}
               />
             ))}
