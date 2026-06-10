@@ -449,6 +449,38 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
   const [drawnCount, setDrawnCount] = useState(-1)
   const [activeIdx, setActiveIdx] = useState(-1)
   const dashProgress = useMotionValue(DASH_TOTAL)
+  const [charWidths, setCharWidths] = useState<number[]>([])
+  const measuredRef = useRef(false)
+
+  useEffect(() => {
+    if (measuredRef.current || !text) return
+    measuredRef.current = true
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('width', '0')
+    svg.setAttribute('height', '0')
+    svg.style.position = 'absolute'
+    svg.style.visibility = 'hidden'
+    document.body.appendChild(svg)
+
+    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    textEl.setAttribute('x', '0')
+    textEl.setAttribute('y', '90')
+    textEl.setAttribute('font-size', '90')
+    textEl.setAttribute('font-family', 'inherit')
+    textEl.setAttribute('font-weight', 'inherit')
+    textEl.textContent = text
+    svg.appendChild(textEl)
+
+    svg.getBoundingClientRect()
+    const widths = text.split('').map((_, i) => {
+      try { return textEl.getSubStringLength(i, 1) }
+      catch { return 62 }
+    })
+    setCharWidths(widths)
+
+    document.body.removeChild(svg)
+  }, [text])
 
   useEffect(() => {
     if (!letters.length) return
@@ -494,17 +526,19 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
 
         const isDone = i < drawnCount
         const isActive = i === activeIdx
+        const cw = charWidths[i] || 62
+        const svgWidth = `${cw / 120}em`
 
         return (
           <svg
             key={i}
             className="inline-block align-middle overflow-visible"
-            style={{ width: '0.62em', height: '1em' }}
-            viewBox="0 0 100 120"
+            style={{ width: svgWidth, height: '1em' }}
+            viewBox={`0 0 ${cw} 120`}
           >
             {isDone && (
               <text
-                x="50" y="90"
+                x={cw / 2} y="90"
                 textAnchor="middle"
                 fill="hsl(var(--primary))"
                 fontSize="90"
@@ -520,7 +554,7 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
               <>
                 {/* Tracing stroke */}
                 <motion.text
-                  x="50" y="90"
+                  x={cw / 2} y="90"
                   textAnchor="middle"
                   fill="transparent"
                   stroke="hsl(var(--primary))"
@@ -539,7 +573,7 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
 
                 {/* Beam head glow (thick, filtered) */}
                 <motion.text
-                  x="50" y="90"
+                  x={cw / 2} y="90"
                   textAnchor="middle"
                   fill="transparent"
                   stroke="hsl(var(--primary))"
@@ -560,7 +594,7 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
 
                 {/* White core */}
                 <motion.text
-                  x="50" y="90"
+                  x={cw / 2} y="90"
                   textAnchor="middle"
                   fill="transparent"
                   stroke="#fff"
@@ -579,7 +613,7 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
 
                 {/* Pulsing mini-beam */}
                 <motion.circle
-                  cx="50" cy="55"
+                  cx={cw / 2} cy="55"
                   r={10}
                   fill="hsl(var(--primary))"
                   filter="url(#weld-letter)"

@@ -44,7 +44,7 @@ function tryParseLastPart(raw: string): Section | null {
   return null;
 }
 
-function processWikiLinks(html: string, tenantSlug?: string): string {
+export function processWikiLinks(html: string, tenantSlug?: string): string {
   if (!tenantSlug) return html;
   return html.replace(
     /\[\[([^\|]+)\|([^\]]+)\]\]/g,

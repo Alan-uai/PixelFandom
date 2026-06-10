@@ -7,7 +7,7 @@ import { useUserPreferences, type ChatSettings } from '@/context/user-preference
 import { AI_PERSONALITIES } from '@/lib/ai-personalities';
 import { personas } from '@/lib/personas';
 import { officialLanguages } from '@/lib/official-languages';
-import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles';
+import { responseFormatStyles, responseStyleGroups, displayModeGroups, displayModes } from '@/lib/response-styles';
 import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -242,6 +242,29 @@ export default function GlobalSettingsPage() {
                     })}
                     value={preferences.chat_settings.response_style}
                     onChange={(v) => updateChat('response_style', v as string)}
+                    layout="compact"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Modo de Exibição</CardTitle>
+              <CardDescription>Como as respostas do assistente são exibidas.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {displayModeGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                  <SelectCard
+                    options={group.keys.map(k => {
+                      const m = displayModes[k as keyof typeof displayModes]
+                      return { value: k, label: m.label, description: m.description, emoji: m.icon }
+                    })}
+                    value={preferences.chat_settings.display_mode}
+                    onChange={(v) => updateChat('display_mode', v as string)}
                     layout="compact"
                   />
                 </div>

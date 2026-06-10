@@ -13,6 +13,7 @@ export interface ChatSettings {
   persona: string;
   emoji_style: string;
   response_style: string;
+  display_mode: string;
   language: string;
 }
 
@@ -35,6 +36,7 @@ const CHAT_DEFAULTS: ChatSettings = {
   persona: 'amigavel',
   emoji_style: 'moderate',
   response_style: 'detailed',
+  display_mode: 'acordeao',
   language: 'pt_br',
 };
 

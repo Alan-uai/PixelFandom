@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useWikiData } from '@/context/wiki-provider'
 import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context'
-import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles'
+import { responseFormatStyles, responseStyleGroups, displayModeGroups, displayModes } from '@/lib/response-styles'
 import type { VoiceName } from '@/lib/voice/geminilive'
 import { AI_PERSONALITIES } from '@/lib/ai-personalities'
 import { personas } from '@/lib/personas'
@@ -311,6 +311,34 @@ export default function AISettingsPage() {
                     })}
                     value={effectiveChatSetting('response_style')}
                     onChange={(v) => updateWikiChat('response_style', v as string)}
+                    layout="compact"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Modo de Exibição</CardTitle>
+                  <CardDescription>Como as respostas do assistente são exibidas.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={isWikiSpecific('display_mode')} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {displayModeGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                  <SelectCard
+                    options={group.keys.map(k => {
+                      const m = displayModes[k as keyof typeof displayModes]
+                      return { value: k, label: m.label, description: m.description, emoji: m.icon }
+                    })}
+                    value={effectiveChatSetting('display_mode')}
+                    onChange={(v) => updateWikiChat('display_mode', v as string)}
                     layout="compact"
                   />
                 </div>

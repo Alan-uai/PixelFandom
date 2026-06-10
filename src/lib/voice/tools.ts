@@ -887,6 +887,31 @@ Example: [{"action":"getItem","params":{"table":"weapons","name":"steel sword"}}
       ['queries']
     ),
 
+    // ── Navigate to item ──
+
+    new FunctionCallTool(
+      'navigateToItem',
+      `Open a game item detail inline within the chat interface. Navigates to a specific item by table and slug for quick viewing. Use when the user says "mostre o item", "show me the item", "quero ver os detalhes".`,
+      {
+        type: 'object',
+        properties: {
+          table: { type: 'string', description: 'Table name (e.g. "weapons", "armors", "enemies")' },
+          slug: { type: 'string', description: 'Item slug (e.g. "steel-sword")' },
+        },
+      },
+      async (params: { table: string; slug: string }) => {
+        return {
+          result: {
+            action: 'navigateToItem',
+            table: params.table,
+            slug: params.slug,
+            message: `Abrindo ${params.table}/${params.slug}...`,
+          },
+        }
+      },
+      ['table', 'slug']
+    ),
+
     // ── Show on screen ──
 
     new FunctionCallTool(

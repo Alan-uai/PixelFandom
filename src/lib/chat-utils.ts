@@ -1,4 +1,4 @@
-import { responseFormatStyles, SECTION_META } from './response-styles';
+import { responseFormatStyles, SECTION_META, displayModes, type DisplayMode } from './response-styles';
 
 export function buildSectionPrompt(responseStyle?: string): string {
   const style = responseStyle ? responseFormatStyles[responseStyle] : null;
@@ -28,6 +28,86 @@ REGRAS:
 - Responda APENAS no formato acima, sem texto fora das seções
 - Use português brasileiro
 `;
+}
+
+export function buildDisplayModePrompt(displayMode?: string): string {
+  const mode = (displayMode && displayModes[displayMode as DisplayMode]) ? displayMode as DisplayMode : 'acordeao';
+
+  if (mode === 'auto') {
+    return `
+MODO DE EXIBIÇÃO: Automático
+Você pode escolher o melhor formato para cada resposta:
+- Use @@@SECTION@@@ com seções para respostas complexas (acordeão)
+- Use markdown contínuo com cabeçalhos para respostas simples (texto puro)
+- Use sectionType "tabela" com headers/rows para dados comparáveis (tabela)
+- Misture formatos conforme necessário (híbrido)
+Baseie sua escolha na natureza da pergunta do usuário.`;
+  }
+
+  if (mode === 'texto_puro') {
+    return `
+MODO DE EXIBIÇÃO: Texto Puro
+NÃO use o formato @@@SECTION@@@. Escreva a resposta como um documento markdown contínuo:
+- Use ## para títulos de seção
+- Use listas, tabelas, negrito normalmente
+- A resposta será renderizada como markdown formatado
+- Use [[item:tabela/slug|Nome]] para referenciar itens clicáveis
+- Use [[compare:tabela/slug/coluna|Rótulo]] para estatísticas clicáveis`;
+  }
+
+  if (mode === 'tabela') {
+    return `
+MODO DE EXIBIÇÃO: Tabela
+NÃO use o formato @@@SECTION@@@. Estruture a resposta como uma única tabela:
+- headers: lista de nomes das colunas
+- rows: lista de linhas com valores
+- A primeira linha pode conter o título/cabeçalho geral
+- Ideal para rankings, comparações, listagens
+- Use [[item:tabela/slug|Nome]] para itens clicáveis`;
+  }
+
+  if (mode === 'cards') {
+    return `
+MODO DE EXIBIÇÃO: Cards
+Use @@@SECTION@@@ normalmente, cada seção vira um card visual.
+- sectionType define o ícone e cor do card
+- O conteúdo de cada seção é markdown
+- Cards aparecem lado a lado quando possível
+- Use [[item:tabela/slug|Nome]] para itens clicáveis
+- Use [[compare:tabela/slug/coluna|Rótulo]] para estatísticas clicáveis`;
+  }
+
+  if (mode === 'hibrido') {
+    return `
+MODO DE EXIBIÇÃO: Híbrido
+Use @@@SECTION@@@ com sectionType variado. Cada sectionType tem renderização diferente:
+- "resumo"/"dicas": texto simples (sem expansão)
+- "detalhes"/"analise"/"contexto"/"desenvolvimento": bloco expansível
+- "topicos"/"passos"/"exemplos": lista ou passo numerado
+- "tabela": Tabela de dados (adicione headers[] e rows[][])
+- "comparacao": Bloco comparativo lado a lado
+Use o sectionType mais adequado para cada parte do conteúdo.
+- Use [[item:tabela/slug|Nome]] para itens clicáveis
+- Use [[compare:tabela/slug/coluna|Rótulo]] para estatísticas clicáveis`;
+  }
+
+  // acordeao (default)
+  return `
+MODO DE EXIBIÇÃO: Acordeão (com suporte a tabelas)
+Use @@@SECTION@@@ como padrão. Além dos sectionTypes comuns, você pode usar:
+sectionType "tabela" com campos extras:
+{
+  "sectionType": "tabela",
+  "title": "Comparação de Armas",
+  "content": "texto opcional antes da tabela",
+  "headers": ["Nome", "Dano", "Tipo"],
+  "rows": [
+    ["Espada de Ferro", "10-15", "Corte"],
+    ["Machado de Guerra", "12-18", "Corte"]
+  ]
+}
+- Use [[item:tabela/slug|Nome]] para itens clicáveis
+- Use [[compare:tabela/slug/coluna|Rótulo]] para estatísticas clicáveis`;
 }
 
 export interface ChatMessage {
@@ -153,6 +233,11 @@ Item Queries: getItem, queryItems, filterByRange, searchTable, countItems, listI
 Stat Analysis: rankByStat, compareOnStat, getStatSummary, getTopItems, getCategoryAverages, getStatDistribution, getStatTrend, formatAsTable
 Cross-ref: compareTwoItems, findSimilarItems, getTableComparison, getItemNeighbors, findUpgrades, searchByExample, getRelatedItems
 Math: evaluateMath
+
+FORMATO DE LINKS:
+- [[item:tabela/slug|Nome]] → link para página do item. Ex: [[item:weapons/iron-sword|Espada de Ferro]]
+- [[compare:tabela/slug/coluna|Rótulo]] → link para comparar estatística. Ex: [[compare:weapons/iron-sword/damage_min|dano mínimo]]
+- [[slug-da-pagina|Nome]] → link para página da wiki. Ex: [[guia-de-armas|Guia de Armas]]
 
 CRITICAL RULES:
 1. ALWAYS use tools to get real data. NEVER invent numbers, stats, or counts.

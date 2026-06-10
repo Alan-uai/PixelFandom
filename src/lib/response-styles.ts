@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+
 export const SECTION_META: Record<string, { icon: string; label: string }> = {
   resumo:          { icon: '📋', label: 'Resumo' },
   detalhes:        { icon: '📖', label: 'Detalhes' },
@@ -23,7 +25,10 @@ export const SECTION_META: Record<string, { icon: string; label: string }> = {
   especificacoes:  { icon: '⚙️', label: 'Especificações' },
   implementacao:   { icon: '💻', label: 'Implementação' },
   observacoes:     { icon: '👁️', label: 'Observações' },
+  tabela:          { icon: '📊', label: 'Tabela' },
 };
+
+export type SectionType = keyof typeof SECTION_META;
 
 export const responseFormatStyles: Record<string, { label: string; description: string; sections: string[]; tone: string; icon: string }> = {
   curto: {
@@ -110,6 +115,28 @@ export const responseStyleGroups = [
   { label: '📚 Completas', keys: ['detalhado', 'tutorial', 'tecnico'] },
   { label: '🧠 Análise', keys: ['analise', 'comparativo', 'debate', 'relatorio'] },
   { label: '🎨 Criativas', keys: ['narrativa', 'aprendizado'] },
+];
+
+export type DisplayMode = 'acordeao' | 'texto_puro' | 'tabela' | 'cards' | 'hibrido' | 'auto';
+
+export interface DisplayModeConfig {
+  label: string;
+  description: string;
+  icon: string;
+}
+
+export const displayModes: Record<DisplayMode, DisplayModeConfig> = {
+  acordeao:   { label: 'Acordeão',   description: 'Blocos expansíveis com seções', icon: '📋' },
+  texto_puro: { label: 'Texto Puro', description: 'Documento markdown contínuo', icon: '📝' },
+  tabela:     { label: 'Tabela',     description: 'Dados em formato de tabela',  icon: '📊' },
+  cards:      { label: 'Cards',      description: 'Seções em cards visuais',     icon: '🃏' },
+  hibrido:    { label: 'Híbrido',    description: 'Mix de formatos por seção',   icon: '🔀' },
+  auto:       { label: 'Automático', description: 'IA escolhe o melhor formato', icon: '🤖' },
+};
+
+export const displayModeGroups = [
+  { label: '🎨 Visual', keys: ['acordeao', 'texto_puro', 'cards'] },
+  { label: '📊 Dados', keys: ['tabela', 'hibrido', 'auto'] },
 ];
 
 export const responseStyles = {

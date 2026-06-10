@@ -7,6 +7,7 @@ import { createClient } from '@/supabase/server';
 import { decryptApiKey } from '@/lib/crypto';
 import {
   buildSectionPrompt,
+  buildDisplayModePrompt,
   TEXT_CHAT_SYSTEM_PROMPT,
   loadChatHistory,
 } from '@/lib/chat-utils';
@@ -49,7 +50,7 @@ async function streamOpenRouter(
       stream: true,
       stream_options: { include_usage: true },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!res.ok) {
@@ -139,7 +140,7 @@ async function callOpenRouter(
       'X-Title': 'PixelFandom',
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!res.ok) {
@@ -151,9 +152,13 @@ async function callOpenRouter(
   return data;
 }
 
-function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string, responseStyle?: string): string {
+function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string, responseStyle?: string, displayMode?: string): string {
   const sectionPrompt = buildSectionPrompt(responseStyle);
+  const displayModePrompt = buildDisplayModePrompt(displayMode);
   const parts = [TEXT_CHAT_SYSTEM_PROMPT, schemaPrompt, sectionPrompt];
+  if (displayModePrompt) {
+    parts.push(displayModePrompt);
+  }
   if (userPrompt) {
     parts.unshift(userPrompt);
   }
@@ -196,6 +201,7 @@ async function buildMessages(
   userPrompt?: string,
   tenantSlug?: string,
   responseStyle?: string,
+  displayMode?: string,
 ): Promise<Record<string, unknown>[]> {
   let history: Record<string, unknown>[] = [];
 
@@ -206,7 +212,7 @@ async function buildMessages(
     ).map((m) => ({ role: m.role, content: m.content }));
   }
 
-  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
+  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
 
   return [
     { role: 'system', content: systemPrompt },
@@ -236,6 +242,7 @@ export async function POST(request: NextRequest) {
     let tenantId: string | null = null;
     let userPrompt = '';
     let responseStyle = 'detalhado';
+    let displayMode = 'acordeao';
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
@@ -252,6 +259,7 @@ export async function POST(request: NextRequest) {
         geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
         primaryProvider = (config.primary_provider as string) || 'openrouter';
         responseStyle = (config.response_style as string) || responseStyle; // Layer 3 (admin default)
+        displayMode = (config.display_mode as string) || displayMode;
       }
     }
 
@@ -270,11 +278,13 @@ export async function POST(request: NextRequest) {
           const chatSettings = p.chat_settings as Record<string, string> | undefined;
           const wikiPrefs = p.wiki_preferences as Record<string, Record<string, string>> | undefined;
           // Layer 1: wiki-specific user preference (highest priority)
-          if (tenantId && wikiPrefs?.[tenantId]?.response_style) {
-            responseStyle = wikiPrefs[tenantId].response_style;
+          if (tenantId && wikiPrefs?.[tenantId]) {
+            responseStyle = wikiPrefs[tenantId].response_style || responseStyle;
+            displayMode = wikiPrefs[tenantId].display_mode || displayMode;
           // Layer 2: global user preference
-          } else if (chatSettings?.response_style) {
-            responseStyle = chatSettings.response_style;
+          } else if (chatSettings) {
+            responseStyle = chatSettings.response_style || responseStyle;
+            displayMode = chatSettings.display_mode || displayMode;
           }
         }
       }
@@ -313,7 +323,7 @@ export async function POST(request: NextRequest) {
         }),
       ]);
 
-      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
+      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
       const ragPrompt = context
         ? `${geminiSystem}
 
@@ -348,7 +358,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
     try {
       let messages = await buildMessages(
-        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle
+        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle, displayMode
       );
       let finalText: string | null = null;
       const MAX_TOOL_ROUNDS = 3;
@@ -462,7 +472,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
           }),
         ]);
 
-      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle);
+      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
         const ragPrompt = context
           ? `${geminiSystem}
 

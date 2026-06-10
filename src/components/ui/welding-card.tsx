@@ -87,7 +87,12 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
   )
 
   const dashOffset = useTransform(beamProgress, [0, 1], [1, 0])
-  const beamTrail = useTransform(beamProgress, (v) => `${v} ${1 - v}`)
+  const TRAIL_LEN = 0.15
+  const beamTrail = useTransform(beamProgress, (v) => {
+    const len = Math.min(TRAIL_LEN, Math.max(0, v))
+    return `${len} 1`
+  })
+  const beamTrailOffset = useTransform(beamProgress, (v) => TRAIL_LEN - v)
 
   if (phase === 'idle' || phase === 'done') {
     return <div className={cn('rounded-xl bg-card', className)} style={style}>{children}</div>
@@ -124,7 +129,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
               <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.12} strokeLinecap="round" strokeLinejoin="round" />
             )}
 
-            {/* Welded trail - reveals from 0 to progress */}
+            {/* Welded trail — extends behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -134,7 +139,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: beamTrail }}
+                style={{ strokeDasharray: beamTrail, strokeDashoffset: beamTrailOffset }}
                 opacity={0.5}
               />
             )}

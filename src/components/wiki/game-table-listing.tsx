@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown,
   Sword, Shield, Zap, Gem, Crosshair, Pickaxe, Sparkles, Star, Skull,
-  Search, X, Eye,
+  Search, X, Eye, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
@@ -87,9 +87,11 @@ type Props = {
   tenantSlug: string;
   tableName: string;
   tenantId?: string;
+  displayFormat?: string;
+  columnsCount?: number;
 };
 
-export default function GameTableListing({ tenantSlug, tableName, tenantId }: Props) {
+export default function GameTableListing({ tenantSlug, tableName, tenantId, displayFormat, columnsCount }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
@@ -105,6 +107,18 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const fmt = displayFormat || 'grid';
+  const cols = Math.max(1, Math.min(5, columnsCount || 2));
+  const gridColsClass = ({
+    1: 'grid-cols-1',
+    2: 'grid-cols-1 sm:grid-cols-2',
+    3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
+    4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4',
+    5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
+  } as Record<number, string>)[cols] || 'grid-cols-1 sm:grid-cols-2';
+  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
+  const getCI = (key: string) => carouselIndices[key] || 0;
 
   useEffect(() => {
     setSelectedSlug(urlItem);
@@ -221,6 +235,105 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
   };
 
   const hasActiveFilters = Object.values(activeFilters).some(s => s.size > 0);
+
+  function renderItems(items: any[], groupKey: string) {
+    if (fmt === 'list') {
+      return (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              tableName={tableName}
+              tenantSlug={tenantSlug}
+              tenantId={tenantId}
+              selectedSlug={selectedSlug}
+              onSelect={selectItem}
+              cardRefs={cardRefs}
+              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (fmt.startsWith('carousel')) {
+      const ci = getCI(groupKey);
+      const maxIdx = Math.max(0, items.length - cols);
+      const visible = items.slice(ci, ci + cols);
+
+      return (
+        <div>
+          <div className={`${gridColsClass} gap-3`}>
+            {visible.map((item) => (
+              <ItemCard
+                key={`${item.id}-${ci}`}
+                item={item}
+                tableName={tableName}
+                tenantSlug={tenantSlug}
+                tenantId={tenantId}
+                selectedSlug={selectedSlug}
+                onSelect={selectItem}
+                cardRefs={cardRefs}
+                onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
+              />
+            ))}
+          </div>
+          {items.length > cols && (
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <button
+                onClick={() => setCarouselIndices(prev => {
+                  const cur = prev[groupKey] || 0;
+                  return { ...prev, [groupKey]: fmt === 'carousel_infinite'
+                    ? (cur - 1 + items.length) % items.length
+                    : Math.max(cur - 1, 0)
+                  };
+                })}
+                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {ci + 1}–{Math.min(ci + cols, items.length)} de {items.length}
+              </span>
+              <button
+                onClick={() => setCarouselIndices(prev => {
+                  const cur = prev[groupKey] || 0;
+                  return { ...prev, [groupKey]: fmt === 'carousel_infinite'
+                    ? (cur + 1) % items.length
+                    : Math.min(cur + 1, maxIdx)
+                  };
+                })}
+                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+                aria-label="Próximo"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${gridColsClass} gap-3`}>
+        {items.map((item) => (
+          <ItemCard
+            key={item.id}
+            item={item}
+            tableName={tableName}
+            tenantSlug={tenantSlug}
+            tenantId={tenantId}
+            selectedSlug={selectedSlug}
+            onSelect={selectItem}
+            cardRefs={cardRefs}
+            onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <article className="max-w-3xl mx-auto">
@@ -342,40 +455,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId }: Pr
                 {category}
                 <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {catItems.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    tableName={tableName}
-                    tenantSlug={tenantSlug}
-                    tenantId={tenantId}
-                    selectedSlug={selectedSlug}
-                    onSelect={selectItem}
-                    cardRefs={cardRefs}
-                    onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-                  />
-                ))}
-              </div>
+              {renderItems(catItems, category)}
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {filteredItems.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              tableName={tableName}
-              tenantSlug={tenantSlug}
-              tenantId={tenantId}
-              selectedSlug={selectedSlug}
-              onSelect={selectItem}
-              cardRefs={cardRefs}
-              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-            />
-          ))}
-        </div>
+        renderItems(filteredItems, '_all')
       )}
     </article>
   );

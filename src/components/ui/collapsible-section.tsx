@@ -126,17 +126,29 @@ export function CollapsibleSection({
   );
 
   const dashOffset = useTransform(beamProgress, [0, 1], [1, 0]);
-  const beamTrail = useTransform(beamProgress, (v) => `${v} ${1 - v}`);
 
-  // Tapered trail layers (thick at start → thin at head)
+  // Tapered trail layers — extend BEHIND the star (ending at v, going backward)
+  const TAPER_WIDE_LEN = 0.15
+  const TAPER_MEDIUM_LEN = 0.10
+  const BEAM_TRAIL_LEN = 0.06
+
   const taperWide = useTransform(beamProgress, (v) => {
-    const r = Math.max(0, v - 0.1)
-    return `${r} ${1 - r}`
+    const len = Math.min(TAPER_WIDE_LEN, Math.max(0, v))
+    return `${len} 1`
   })
+  const taperWideOffset = useTransform(beamProgress, (v) => TAPER_WIDE_LEN - v)
+
   const taperMedium = useTransform(beamProgress, (v) => {
-    const r = Math.max(0, v - 0.05)
-    return `${r} ${1 - r}`
+    const len = Math.min(TAPER_MEDIUM_LEN, Math.max(0, v))
+    return `${len} 1`
   })
+  const taperMediumOffset = useTransform(beamProgress, (v) => TAPER_MEDIUM_LEN - v)
+
+  const beamTrail = useTransform(beamProgress, (v) => {
+    const len = Math.min(BEAM_TRAIL_LEN, Math.max(0, v))
+    return `${len} 1`
+  })
+  const beamTrailOffset = useTransform(beamProgress, (v) => BEAM_TRAIL_LEN - v)
 
   // Concentrated glow at beam head
   const headGlow = useTransform(beamProgress, (v) => {
@@ -186,7 +198,7 @@ export function CollapsibleSection({
               <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.1} strokeLinecap="round" strokeLinejoin="round" />
             )}
 
-            {/* Taper layer 1: wide thick trail (bottom) */}
+            {/* Taper layer 1: wide thick trail (bottom) — behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -196,12 +208,12 @@ export function CollapsibleSection({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: taperWide }}
+                style={{ strokeDasharray: taperWide, strokeDashoffset: taperWideOffset }}
                 opacity={0.12}
               />
             )}
 
-            {/* Taper layer 2: medium trail */}
+            {/* Taper layer 2: medium trail — behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -211,12 +223,12 @@ export function CollapsibleSection({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: taperMedium }}
+                style={{ strokeDasharray: taperMedium, strokeDashoffset: taperMediumOffset }}
                 opacity={0.25}
               />
             )}
 
-            {/* Taper layer 3: thin trail */}
+            {/* Taper layer 3: thin trail — behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -226,7 +238,7 @@ export function CollapsibleSection({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: beamTrail }}
+                style={{ strokeDasharray: beamTrail, strokeDashoffset: beamTrailOffset }}
                 opacity={0.45}
               />
             )}
