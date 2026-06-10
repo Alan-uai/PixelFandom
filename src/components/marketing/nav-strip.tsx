@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,28 +32,54 @@ interface OrbitalNavItemProps {
   compact: boolean;
   waveGlow?: boolean;
   drawCircle?: boolean;
+  glowFilterId: string;
+}
+
+function generateIrregularRingPath(outerRadius: number, innerRatio: number, wobble: number, phase: number): string {
+  const steps = 48;
+  const innerRadius = outerRadius * innerRatio;
+  const cx = 200;
+  const cy = 200;
+  let d = '';
+
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const r = outerRadius * (1 + wobble * Math.sin(a * 4 + phase) + wobble * 0.3 * Math.sin(a * 9 + phase * 1.3));
+    d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+  }
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * -2;
+    const r = innerRadius * (1 + wobble * Math.sin(a * 4 + phase + 1.5) + wobble * 0.3 * Math.sin(a * 9 + phase * 1.7));
+    d += ` L ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+  }
+
+  return d + ' Z';
 }
 
 function generateWaveConfig() {
-  const count = 1 + Math.floor(Math.random() * 3);
+  const count = 3 + Math.floor(Math.random() * 2);
   return Array.from({ length: count }, (_, i) => ({
-    height: 16 + Math.floor(Math.random() * 12),
-    duration: 8 + Math.random() * 8,
-    delay: i * (0.1 + Math.random() * 0.2),
-    vOffset: -28 + Math.floor(Math.random() * 56),
+    outerRadius: 40 + Math.floor(Math.random() * 80),
+    innerRatio: 0.3 + Math.random() * 0.25,
+    wobble: 0.03 + Math.random() * 0.04,
+    duration: 10 + Math.random() * 8,
+    delay: i * (1.5 + Math.random() * 2),
+    phaseSeed: Math.random() * Math.PI * 2,
   }));
 }
 
-interface WaveArc {
-  height: number;
+interface WaveRing {
+  outerRadius: number;
+  innerRatio: number;
+  wobble: number;
   duration: number;
   delay: number;
-  vOffset: number;
+  phaseSeed: number;
 }
 
 const CIRC = 2 * Math.PI * 6;
 
-function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, drawCircle }: OrbitalNavItemProps) {
+function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, drawCircle, glowFilterId: gid }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -76,8 +102,8 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
     const orbitContent = (
       <motion.div
         className="cursor-pointer"
-        style={waveGlow ? { boxShadow: '0 0 10px hsl(198,100%,65%,0.5), 0 0 20px hsl(270,80%,60%,0.3), 0 0 30px hsl(350,90%,60%,0.15)' } : {}}
-        animate={waveGlow ? { scale: 1.2, filter: ['brightness(1)', 'brightness(1.6)', 'brightness(1)'] } : {}}
+        style={waveGlow ? { filter: `url(#${gid})` } : {}}
+        animate={waveGlow ? { scale: 1.2 } : {}}
         transition={{ duration: 0.4 }}
         onClick={clickHandler}
       >
@@ -154,18 +180,7 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
               transition={{ duration: 0.3 }}
             />
           )}
-          {waveGlow && compact && (
-            <motion.div
-              className="absolute inset-0 rounded-full blur-xl z-0"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 0.6, scale: 2.5 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              style={{
-                background: 'radial-gradient(circle, hsl(198,100%,65%,0.5), hsl(270,80%,60%,0.25), hsl(350,90%,60%,0.1))',
-              }}
-              transition={{ duration: 0.3 }}
-            />
-          )}
+
         </div>
         <AnimatePresence>
           {hovered && (
@@ -209,7 +224,7 @@ function getExpandedPositions(items: NavItemDef[]): { x: number; y: number }[] {
   });
 
   return items.map((item, i) => {
-    if (item.isBadge) return { x: 0, y: 12 };
+    if (item.isBadge) return { x: 0, y: 38 };
     if (item.side === 'left') {
       const idx = leftIndices.indexOf(i);
       return { x: -(75 + idx * 70), y: 0 };
@@ -231,6 +246,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
   const [waveArcs] = useState(() => generateWaveConfig());
+  const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);
 
@@ -404,71 +420,80 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     <section className="relative w-full pb-4 overflow-visible">
       <div className="max-w-4xl mx-auto px-4">
         <div className="relative flex items-center justify-center" style={{ perspective: 800 }}>
-          {/* ── Gravitational Waves ── */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
-            {waveArcs.map((arc, aIdx) => {
-              const rightSideDelay = arc.delay;
-              const leftSideDelay = arc.delay + arc.duration * 0.5;
-              return (
-                <div key={`wave-${aIdx}`} className="absolute inset-0 flex items-center justify-center">
-                  {/* Left arc `(` */}
-                  <div
-                    className="absolute"
-                    style={{ right: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
-                  >
-                    <motion.div
-                      style={{
-                        width: 0,
-                        height: `${arc.height}px`,
-                        background: 'linear-gradient(90deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
-                        filter: 'blur(10px)',
-                        borderTopLeftRadius: '50%',
-                        borderBottomLeftRadius: '50%',
-                        transformOrigin: 'right center',
-                        transform: 'translateY(-50%)',
-                      }}
-                      animate={{ width: [0, 300, 300, 0], opacity: [0.6, 0.6, 0.2, 0] }}
-                      transition={{
-                        duration: arc.duration,
-                        times: [0, 0.25, 0.55, 1],
-                        delay: leftSideDelay,
-                        repeatDelay: 0.5 + Math.random() * 0.3,
-                        repeat: Infinity,
-                        ease: 'easeOut',
-                      }}
-                    />
-                  </div>
+          {/* ── SVG Filter Definition ── */}
+          <svg width="0" height="0" className="absolute">
+            <defs>
+              <filter id={glowFilterId} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
+                <feFlood floodColor="hsl(198,100%,65%)" floodOpacity="0.7" result="c1"/>
+                <feFlood floodColor="hsl(270,80%,60%)" floodOpacity="0.5" result="c2"/>
+                <feFlood floodColor="hsl(350,90%,60%)" floodOpacity="0.3" result="c3"/>
+                <feComposite in="c1" in2="blur" operator="in" result="g1"/>
+                <feComposite in="c2" in2="blur" operator="in" result="g2"/>
+                <feComposite in="c3" in2="blur" operator="in" result="g3"/>
+                <feBlend mode="screen" in="g2" in2="g1" result="m1"/>
+                <feBlend mode="screen" in="g3" in2="m1" result="gradGlow"/>
+                <feComponentTransfer in="SourceGraphic" result="bright">
+                  <feFuncR type="linear" slope="1.4"/>
+                  <feFuncG type="linear" slope="1.4"/>
+                  <feFuncB type="linear" slope="1.4"/>
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode in="gradGlow"/>
+                  <feMergeNode in="bright"/>
+                </feMerge>
+              </filter>
+            </defs>
+          </svg>
 
-                  {/* Right arc `)` */}
-                  <div
-                    className="absolute"
-                    style={{ left: '50%', top: `calc(50% + ${arc.vOffset}px)` }}
-                  >
-                    <motion.div
-                      style={{
-                        width: 0,
-                        height: `${arc.height}px`,
-                        background: 'linear-gradient(270deg, transparent 0%, hsl(198 100% 65% / 0.65) 25%, hsl(270 80% 60% / 0.5) 55%, hsl(350 90% 60% / 0.3) 100%)',
-                        filter: 'blur(10px)',
-                        borderTopRightRadius: '50%',
-                        borderBottomRightRadius: '50%',
-                        transformOrigin: 'left center',
-                        transform: 'translateY(-50%)',
-                      }}
-                      animate={{ width: [0, 300, 300, 0], opacity: [0.6, 0.6, 0.2, 0] }}
-                      transition={{
-                        duration: arc.duration,
-                        times: [0, 0.25, 0.55, 1],
-                        delay: rightSideDelay,
-                        repeatDelay: 0.5 + Math.random() * 0.3,
-                        repeat: Infinity,
-                        ease: 'easeOut',
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          {/* ── Gravitational Waves – Irregular Rings ── */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
+            <svg width="0" height="0" className="absolute">
+              <defs>
+                <radialGradient id="ring-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
+                  <stop offset="25%" stopColor="hsl(198,100%,65%)" stopOpacity="0.8" />
+                  <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.6" />
+                  <stop offset="80%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+            </svg>
+
+            {waveArcs.map((arc, i) => (
+              <motion.div
+                key={`ring-${i}`}
+                className="absolute"
+                style={{
+                  width: 400,
+                  height: 400,
+                  left: '50%',
+                  top: '50%',
+                  marginLeft: -200,
+                  marginTop: -200,
+                }}
+                animate={{
+                  scale: [0.25, 1.15, 1.8],
+                  opacity: [0.6, 0.5, 0],
+                }}
+                transition={{
+                  duration: arc.duration,
+                  times: [0, 0.2, 0.6],
+                  delay: arc.delay,
+                  repeat: Infinity,
+                  repeatDelay: 0.8 + Math.random() * 0.6,
+                  ease: 'easeOut',
+                }}
+              >
+                <svg width="400" height="400" viewBox="0 0 400 400">
+                  <path
+                    d={generateIrregularRingPath(arc.outerRadius, arc.innerRatio, arc.wobble, arc.phaseSeed)}
+                    fill="url(#ring-grad)"
+                    fillRule="evenodd"
+                  />
+                </svg>
+              </motion.div>
+            ))}
 
             <div className="absolute w-3/4 h-px bg-gradient-to-r from-transparent via-purple-500/15 to-transparent blur-[2px]" />
           </div>
@@ -476,7 +501,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
             <div
-              className="relative flex items-center justify-center"
+              className="relative z-20 flex items-center justify-center"
               style={{ width: 400, height: 400 }}
               onMouseEnter={() => { if (!isMobile) doExpand(); }}
               onMouseLeave={() => {
@@ -486,38 +511,41 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 }
               }}
             >
-              {/* Single solid trail per icon */}
-              {!isExpanded && items.map((item, i) => (
-              <div
-                key={`trail-${i}`}
-                ref={setTrailRef(i)}
-                className="absolute left-1/2 top-1/2 pointer-events-none"
-                style={{
-                  height: 3,
-                  background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
-                  borderRadius: 2,
-                  transformOrigin: 'right center',
-                  opacity: 0,
-                  marginTop: -1.5,
-                  willChange: 'transform, width, opacity',
-                  transition: 'opacity 0.15s ease',
-                }}
-              />
-              ))}
-
               {/* Orbital Icons */}
               {items.map((item, i) => (
                 <div
                   key={i}
                   ref={setIconRef(i)}
-                  className="absolute left-1/2 top-1/2"
+                  className="absolute flex items-center justify-center"
                   style={{
+                    left: '50%',
+                    top: '50%',
+                    width: 36,
+                    height: 36,
                     marginLeft: -18,
                     marginTop: -18,
                     transition: 'none',
                   }}
                   onClick={() => handleIconClick(item)}
                 >
+                  {!isExpanded && (
+                  <div
+                    ref={setTrailRef(i)}
+                    className="absolute pointer-events-none"
+                    style={{
+                      right: '50%',
+                      top: '50%',
+                      marginTop: -1.5,
+                      height: 3,
+                      background: `linear-gradient(90deg, ${item.glowColor} 0%, transparent 100%)`,
+                      borderRadius: 2,
+                      transformOrigin: 'right center',
+                      opacity: 0,
+                      width: 0,
+                      willChange: 'transform, width, opacity',
+                    }}
+                  />
+                  )}
                   <OrbitalNavItem
                     href={item.href}
                     icon={item.icon}
@@ -528,6 +556,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     compact={!isExpanded}
                     waveGlow={!isExpanded && ((item.side === 'left' && glowLeft) || (item.side === 'right' && glowRight))}
                     drawCircle={isExpanded && item.isBadge}
+                    glowFilterId={glowFilterId}
                   />
                 </div>
               ))}

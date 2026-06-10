@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 
 interface OrbitParams {
   radius: number;
@@ -45,6 +45,18 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   const prevPositions = useRef<{ x: number; y: number }[]>([]);
 
+  const iconRefCallbacks = useMemo(() =>
+    Array.from({ length: count }, (_, i) => (el: HTMLDivElement | null) => {
+      iconRefs.current[i] = el;
+    }),
+  [count]);
+
+  const trailRefCallbacks = useMemo(() =>
+    Array.from({ length: count }, (_, i) => (el: HTMLDivElement | null) => {
+      trailRefs.current[i] = el;
+    }),
+  [count]);
+
   useEffect(() => {
     const mode = options?.orbitMode ?? 'random';
     const actualMode = mode === 'random'
@@ -80,6 +92,11 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     let frameCount = 0;
     const params = paramsRef.current;
 
+    for (let i = 0; i < count; i++) {
+      const el = iconRefs.current[i];
+      if (el) el.style.transition = 'none';
+    }
+
     function loop(ts: number) {
       if (phaseRef.current !== 'orbiting' || transitioningRef.current) return;
       if (!start) start = ts;
@@ -100,7 +117,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         const x = currentRadius * Math.cos(angle);
         const y = currentRadius * Math.sin(angle) * Math.cos(p.inclination);
         el.style.transform = `translate(${x}px, ${y}px)`;
-        el.style.zIndex = String(Math.sin(angle) > 0 ? 1 : 15);
+        el.style.zIndex = String(Math.sin(angle) > 0 ? 11 : 15);
 
         const trailEl = trailRefs.current[i];
         if (trailEl) {
@@ -112,7 +129,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
             if (frameCount > 1) {
               if (dist > 0.3) {
                 const trailAngle = Math.atan2(-dy, -dx);
-                trailEl.style.transform = `translate(${x}px, ${y}px) rotate(${trailAngle}rad)`;
+                trailEl.style.transform = `rotate(${trailAngle}rad)`;
                 trailEl.style.width = `${Math.min(48, Math.max(16, dist * 4))}px`;
                 trailEl.style.opacity = '0.5';
               } else {
@@ -131,24 +148,9 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     return () => cancelAnimationFrame(raf);
   }, [phase, count]);
 
-  const setIconRef = useCallback(
-    (i: number) => (el: HTMLDivElement | null) => {
-      iconRefs.current[i] = el;
-    },
-    [],
-  );
-
-  const setTrailRef = useCallback(
-    (i: number) => (el: HTMLDivElement | null) => {
-      trailRefs.current[i] = el;
-    },
-    [],
-  );
-
   const expand = useCallback(
     (targets: { x: number; y: number }[]) => {
       transitioningRef.current = true;
-      setPhase('expanded');
 
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
@@ -157,6 +159,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         el.style.transform = `translate(${targets[i].x}px, ${targets[i].y}px)`;
         el.style.zIndex = '15';
       }
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setPhase('expanded');
+      }));
     },
     [count],
   );
@@ -174,13 +180,17 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
       const startY = r * Math.sin(p.phaseOffset) * Math.cos(p.inclination);
       el.style.transition = COLLAPSE_TRANSITION;
       el.style.transform = `translate(${startX}px, ${startY}px)`;
-      el.style.zIndex = '1';
+      el.style.zIndex = '11';
     }
 
     setTimeout(() => {
+      for (let i = 0; i < count; i++) {
+        const el = iconRefs.current[i];
+        if (el) el.style.transition = 'none';
+      }
       transitioningRef.current = false;
       setPhase('orbiting');
-    }, 600);
+    }, 1250);
   }, [count]);
 
   const setOrbitTransition = useCallback(() => {
@@ -201,8 +211,8 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   return {
     phase,
-    setIconRef,
-    setTrailRef,
+    setIconRef: (i: number) => iconRefCallbacks[i],
+    setTrailRef: (i: number) => trailRefCallbacks[i],
     expand,
     collapse,
     setOrbitTransition,

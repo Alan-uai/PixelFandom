@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PRIMARY, GOLD, createBeamPathElement, getBeamPosition } from '@/lib/welding-utils';
+import { WeldFilters, StarGlow, SparkStream, GravitySpark } from '@/components/ui/welding-effects';
 
 interface CollapsibleSectionProps {
   id: string;
@@ -14,51 +16,7 @@ interface CollapsibleSectionProps {
   className?: string;
 }
 
-function SparkBurst({ x, y, delay, count, color }: { x: number; y: number; delay: number; count: number; color: string }) {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-        return {
-          angle,
-          distance: 12 + Math.random() * 28,
-          size: 1.5 + Math.random() * 2,
-        };
-      }),
-    [count],
-  );
 
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-xl">
-      {particles.map((p, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            left: `${x}%`,
-            top: `${y}%`,
-            width: p.size,
-            height: p.size,
-            backgroundColor: color,
-            boxShadow: `0 0 3px ${color}`,
-          }}
-          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-          animate={{
-            x: Math.cos(p.angle) * p.distance,
-            y: Math.sin(p.angle) * p.distance,
-            opacity: [1, 0.8, 0],
-            scale: [1, 0.5, 0],
-          }}
-          transition={{
-            delay,
-            duration: 0.6 + Math.random() * 0.3,
-            ease: [0.17, 0.67, 0.12, 0.99],
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 export function CollapsibleSection({
   id,
@@ -72,11 +30,15 @@ export function CollapsibleSection({
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   const [weldPhase, setWeldPhase] = useState<'idle' | 'welding' | 'complete' | 'done'>('idle');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
+  const beamProgress = useMotionValue(0);
+  const [beamPos, setBeamPos] = useState({ x: 0, y: 0, angle: 0 });
 
   useEffect(() => {
     setWeldPhase('welding');
-    const t1 = setTimeout(() => setWeldPhase('complete'), 1800);
-    const t2 = setTimeout(() => setWeldPhase('done'), 2600);
+    const t1 = setTimeout(() => setWeldPhase('complete'), 3500);
+    const t2 = setTimeout(() => setWeldPhase('done'), 4300);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -86,53 +48,85 @@ export function CollapsibleSection({
     }
   }, [open, children]);
 
-  const primary = 'hsl(var(--primary))';
-  const gold = 'hsla(45, 100%, 60%, 0.6)';
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    pathRef.current = createBeamPathElement(rect.width, rect.height, 12);
+
+    const controls = animate(beamProgress, 1, {
+      duration: 3.5,
+      ease: 'linear',
+    });
+    return () => controls.stop();
+  }, [beamProgress]);
+
+  useEffect(() => {
+    const path = pathRef.current;
+    if (!path) return;
+    const unsub = beamProgress.on('change', v => {
+      setBeamPos(getBeamPosition(path, v));
+    });
+    return unsub;
+  }, [beamProgress]);
+
   const showWelding = weldPhase === 'welding';
   const showComplete = weldPhase === 'complete';
-
-  const bursts = useMemo(() => {
-    if (!showWelding) return [];
-    return Array.from({ length: 8 }, (_, i) => {
-      const t = i / 8;
-      let x: number; let y: number;
-      if (t < 0.25) { x = (t / 0.25) * 90 + 5; y = 0; }
-      else if (t < 0.5) { x = 95; y = ((t - 0.25) / 0.25) * 90 + 5; }
-      else if (t < 0.75) { x = 95 - ((t - 0.5) / 0.5) * 90; y = 95; }
-      else { x = 5; y = 95 - ((t - 0.75) / 0.25) * 90; }
-      return { id: i, x, y, delay: i * 0.15 };
-    });
-  }, [showWelding]);
+  const rotation = useTransform(beamProgress, [0, 1], [0, 360]);
 
   return (
-    <section id={id} className={cn('relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm', className)}>
-      {showWelding && (
-        <motion.div
-          className="pointer-events-none absolute inset-0 z-10"
-          style={{
-            background: `conic-gradient(from 0deg, transparent 55%, ${primary} 78%, ${primary} 85%, transparent 90%)`,
-            borderRadius: '0.75rem',
-          }}
-          initial={{ rotate: 0 }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.8, ease: 'linear' }}
-        />
-      )}
+    <section
+      ref={containerRef}
+      id={id}
+      className={cn('relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm', className)}
+    >
+      <WeldFilters />
 
-      {showWelding && bursts.map((b) => (
-        <SparkBurst key={b.id} x={b.x} y={b.y} delay={b.delay} count={6} color={primary} />
-      ))}
+      {showWelding && (
+        <>
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-10"
+            style={{
+              background: `conic-gradient(from -90deg, transparent 12%, ${PRIMARY}40 18%, transparent 22%, transparent 100%)`,
+              borderRadius: '0.75rem',
+              rotate: rotation,
+            }}
+          />
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-10"
+            style={{
+              background: `conic-gradient(from -90deg, ${PRIMARY} 0%, ${PRIMARY} 2.5%, transparent 5.5%, transparent 100%)`,
+              borderRadius: '0.75rem',
+              rotate: rotation,
+            }}
+          />
+          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} />
+          <SparkStream
+            beamX={beamPos.x}
+            beamY={beamPos.y}
+            beamAngle={beamPos.angle}
+            active={showWelding}
+          />
+          <GravitySpark
+            beamX={beamPos.x}
+            beamY={beamPos.y}
+            beamAngle={beamPos.angle}
+            active={showWelding}
+            groundY={containerRef.current?.getBoundingClientRect().height ?? 0}
+          />
+        </>
+      )}
 
       {showComplete && (
         <motion.div
           className="pointer-events-none absolute inset-0 z-20 rounded-xl"
-          initial={{ boxShadow: `0 0 0px ${gold}` }}
+          initial={{ boxShadow: `0 0 0px ${GOLD}` }}
           animate={{
             boxShadow: [
               `0 0 0px transparent`,
-              `0 0 40px ${gold}`,
-              `0 0 60px ${gold}`,
-              `0 0 20px ${gold}`,
+              `0 0 40px ${GOLD}`,
+              `0 0 60px ${GOLD}`,
+              `0 0 20px ${GOLD}`,
               `0 0 0px transparent`,
             ],
           }}

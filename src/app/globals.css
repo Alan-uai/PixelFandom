@@ -883,8 +883,4 @@
     z-index: -1;
   }
 
-  @keyframes letter-conic-spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-  }
 }

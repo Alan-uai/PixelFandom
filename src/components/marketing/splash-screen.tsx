@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import GravitationalWaveCanvas from './gravitational-wave-canvas'
+import SplashSVGText from './splash-svg-text'
 import {
   playSplashSound,
   playGravitationalWaveSound,
@@ -41,86 +42,8 @@ function getProgressInPhase(elapsed: number, phase: Phase): number {
   return Math.min((elapsed - c.start) / (c.end - c.start), 1)
 }
 
-const TEXT = 'PixelFandom'
-
 interface SplashScreenProps {
   onComplete: () => void
-}
-
-function LetterWithBorder({
-  letter,
-  index,
-  active,
-}: {
-  letter: string
-  index: number
-  active: boolean
-}) {
-  return (
-    <span className="relative inline-flex items-center justify-center mx-0">
-      <span
-        className="absolute pointer-events-none transition-opacity duration-700"
-        style={{ inset: -14, opacity: active ? 0.45 : 0, zIndex: -2, filter: 'blur(18px)' }}
-      >
-        <span
-          className="block absolute top-1/2 left-1/2"
-          style={{
-            width: '500px',
-            height: '500px',
-            background: `conic-gradient(from ${index * 25}deg, transparent, hsl(198,100%,65%), hsl(270,80%,60%), hsl(350,90%,60%), transparent)`,
-            animation: active ? `letter-conic-spin ${2.8 + index * 0.12}s linear infinite` : 'none',
-          }}
-        />
-      </span>
-      <span
-        className="absolute inset-[-3px] rounded-[6px] overflow-hidden pointer-events-none transition-opacity duration-500"
-        style={{ opacity: active ? 1 : 0, zIndex: -1 }}
-      >
-        <span className="absolute top-1/2 left-1/2">
-          <span
-            className="block"
-            style={{
-              width: '350px',
-              height: '350px',
-              background: `conic-gradient(from ${index * 20}deg, hsl(198,100%,65%), transparent 15%, hsl(270,80%,60%) 35%, transparent 50%, hsl(350,90%,60%) 70%, transparent 85%, hsl(198,100%,65%))`,
-              filter: 'brightness(1.4)',
-              animation: `letter-conic-spin ${2 + index * 0.18}s linear infinite`,
-            }}
-          />
-        </span>
-      </span>
-      <span
-        className="absolute inset-[-3px] rounded-[6px] overflow-hidden pointer-events-none transition-opacity duration-500"
-        style={{ opacity: active ? 0.6 : 0, zIndex: -1 }}
-      >
-        <span className="absolute top-1/2 left-1/2">
-          <span
-            className="block"
-            style={{
-              width: '350px',
-              height: '350px',
-              background: 'conic-gradient(transparent, #18116a, transparent 15%, transparent 45%, #6e1b60, transparent 60%)',
-              animation: `letter-conic-spin ${3.2 + index * 0.15}s linear infinite`,
-            }}
-          />
-        </span>
-      </span>
-      {active && (
-        <span className="absolute inset-[1px] rounded-[4px] bg-black pointer-events-none" style={{ zIndex: -1 }} />
-      )}
-      <span
-        className="relative inline-block"
-        style={{
-          background: 'linear-gradient(135deg, hsl(198 100% 65%), hsl(270 80% 60%), hsl(350 90% 60%))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}
-      >
-        {letter === ' ' ? '\u00A0' : letter}
-      </span>
-    </span>
-  )
 }
 
 function updateDissolveMask(overlay: HTMLDivElement | null, progress: number) {
@@ -319,14 +242,9 @@ const SplashScreen = memo(function SplashScreen({ onComplete }: SplashScreenProp
 
       <div className="relative flex flex-col items-center" style={{ zIndex: 1 }}>
         <div className="splash-text-container">
-          <h1
-            className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight px-8 py-4"
-            style={{ transformStyle: 'preserve-3d', perspective: '1200px' }}
-          >
-            {TEXT.split('').map((letter, i) => (
-              <LetterWithBorder key={i} letter={letter} index={i} active={showBorder} />
-            ))}
-          </h1>
+          <div className="w-full flex justify-center">
+            <SplashSVGText showBorder={showBorder} />
+          </div>
         </div>
 
         <motion.p

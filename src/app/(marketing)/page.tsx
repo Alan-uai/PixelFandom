@@ -139,7 +139,7 @@ export default function Home() {
         </section>
       </ScrollRevealWrapper>
 
-      <ScrollRevealWrapper className="pb-[40vh]">
+      <ScrollRevealWrapper noExit>
         <section className="min-h-screen flex flex-col items-center justify-center">
           <StatBar
             wikisCount={wikis.length}

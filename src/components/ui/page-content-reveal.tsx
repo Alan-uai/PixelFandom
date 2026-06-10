@@ -7,10 +7,18 @@ import {
   useEffect,
   useRef,
   useMemo,
+  useLayoutEffect,
   type ReactNode,
 } from 'react';
-import { motion } from 'framer-motion';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { PRIMARY, GOLD, createBeamPathElement, getBeamPosition } from '@/lib/welding-utils';
+import {
+  WeldFilters,
+  StarGlow,
+  SparkStream,
+  GravitySpark,
+} from '@/components/ui/welding-effects';
 
 // ── Types ──
 
@@ -31,62 +39,6 @@ function getTextContent(node: ReactNode): string {
   if (typeof node === 'object' && 'props' in node)
     return getTextContent((node as { props: { children: ReactNode } }).props.children);
   return '';
-}
-
-// ── Spark Burst ──
-
-interface SparkBurstProps {
-  x: number;
-  y: number;
-  delay: number;
-  count: number;
-  color: string;
-}
-
-function SparkBurst({ x, y, delay, count, color }: SparkBurstProps) {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-        return {
-          angle,
-          distance: 12 + Math.random() * 28,
-          size: 1.5 + Math.random() * 2,
-        };
-      }),
-    [count],
-  );
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-xl">
-      {particles.map((p, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            left: `${x}%`,
-            top: `${y}%`,
-            width: p.size,
-            height: p.size,
-            backgroundColor: color,
-            boxShadow: `0 0 3px ${color}`,
-          }}
-          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-          animate={{
-            x: Math.cos(p.angle) * p.distance,
-            y: Math.sin(p.angle) * p.distance,
-            opacity: [1, 0.8, 0],
-            scale: [1, 0.5, 0],
-          }}
-          transition={{
-            delay,
-            duration: 0.6 + Math.random() * 0.3,
-            ease: [0.17, 0.67, 0.12, 0.99],
-          }}
-        />
-      ))}
-    </div>
-  );
 }
 
 // ── Sparks Field (scattered across a container) ──
@@ -216,58 +168,95 @@ interface CardProps {
 
 function Card({ className, children }: CardProps) {
   const { phase } = useContext(RevealContext);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement | null>(null);
+  const borderProgress = useMotionValue(0);
+  const [beamPos, setBeamPos] = useState({ x: 0, y: 0, angle: 0 });
+
   if (phase === 'idle') return <div className={cn('rounded-xl bg-card', className)}>{children}</div>;
 
-  const primary = 'hsl(var(--primary))';
-  const gold = 'hsla(45, 100%, 60%, 0.6)';
   const showBorder = phase === 'border';
   const showComplete = phase === 'complete';
 
-  const bursts = useMemo(() => {
-    if (!showBorder) return [];
-    return Array.from({ length: 8 }, (_, i) => {
-      const t = i / 8;
-      let x: number; let y: number;
-      if (t < 0.25) { x = (t / 0.25) * 90 + 5; y = 0; }           // top
-      else if (t < 0.5) { x = 95; y = ((t - 0.25) / 0.25) * 90 + 5; } // right
-      else if (t < 0.75) { x = 95 - ((t - 0.5) / 0.25) * 90; y = 95; } // bottom
-      else { x = 5; y = 95 - ((t - 0.75) / 0.25) * 90; }             // left
-      return { id: i, x, y, delay: i * 0.15 };
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    pathRef.current = createBeamPathElement(rect.width, rect.height, 12);
+
+    const controls = animate(borderProgress, 1, {
+      duration: 1.8,
+      ease: 'linear',
     });
-  }, [showBorder]);
+    return () => controls.stop();
+  }, []);
+
+  useEffect(() => {
+    const path = pathRef.current;
+    if (!path) return;
+    const unsub = borderProgress.on('change', v => {
+      setBeamPos(getBeamPosition(path, v));
+    });
+    return unsub;
+  }, [borderProgress]);
+
+  const rotation = useTransform(borderProgress, [0, 1], [0, 360]);
 
   return (
-    <div className={cn('relative overflow-hidden rounded-xl', className)} style={{ padding: '1.5px' }}>
+    <div
+      ref={containerRef}
+      className={cn('relative overflow-hidden rounded-xl', className)}
+      style={{ padding: '1.5px' }}
+    >
+      <WeldFilters />
+
       {/* Phase 1: border glow beam */}
       {showBorder && (
-        <motion.div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `conic-gradient(from 0deg, transparent 55%, ${primary} 78%, ${primary} 85%, transparent 90%)`,
-            borderRadius: '0.75rem',
-          }}
-          initial={{ rotate: 0 }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.8, ease: 'linear' }}
-        />
+        <>
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-10"
+            style={{
+              background: `conic-gradient(from -90deg, transparent 12%, ${PRIMARY}40 18%, transparent 22%, transparent 100%)`,
+              borderRadius: '0.75rem',
+              rotate: rotation,
+            }}
+          />
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-10"
+            style={{
+              background: `conic-gradient(from -90deg, ${PRIMARY} 0%, ${PRIMARY} 2.5%, transparent 5.5%, transparent 100%)`,
+              borderRadius: '0.75rem',
+              rotate: rotation,
+            }}
+          />
+          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} />
+          <SparkStream
+            beamX={beamPos.x}
+            beamY={beamPos.y}
+            beamAngle={beamPos.angle}
+            active={showBorder}
+          />
+          <GravitySpark
+            beamX={beamPos.x}
+            beamY={beamPos.y}
+            beamAngle={beamPos.angle}
+            active={showBorder}
+            groundY={containerRef.current?.getBoundingClientRect().height ?? 0}
+          />
+        </>
       )}
-
-      {/* Phase 1: border sparks */}
-      {showBorder && bursts.map((b) => (
-        <SparkBurst key={b.id} x={b.x} y={b.y} delay={b.delay} count={6} color={primary} />
-      ))}
 
       {/* Phase 4: completion glow */}
       {showComplete && (
         <motion.div
           className="pointer-events-none absolute inset-0 z-20 rounded-xl"
-          initial={{ boxShadow: `0 0 0px ${gold}` }}
+          initial={{ boxShadow: `0 0 0px ${GOLD}` }}
           animate={{
             boxShadow: [
               `0 0 0px transparent`,
-              `0 0 40px ${gold}`,
-              `0 0 60px ${gold}`,
-              `0 0 20px ${gold}`,
+              `0 0 40px ${GOLD}`,
+              `0 0 60px ${GOLD}`,
+              `0 0 20px ${GOLD}`,
               `0 0 0px transparent`,
             ],
           }}

@@ -167,18 +167,6 @@ export default function WikiSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!tenant) {
-    return <p className="text-muted-foreground">Wiki não encontrada.</p>;
-  }
-
   const isDirty =
     name !== savedConfig.name ||
     description !== savedConfig.description ||
@@ -191,6 +179,18 @@ export default function WikiSettingsPage() {
     primaryColor !== savedConfig.primaryColor;
 
   useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => setSavedConfig({ name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage, primaryColor }) });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!tenant) {
+    return <p className="text-muted-foreground">Wiki não encontrada.</p>;
+  }
 
   const sections = [
     { id: 'basic-info', label: 'Informações Básicas', icon: Info },
