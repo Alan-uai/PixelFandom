@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/supabase';
 
 export type WikiData = {
@@ -24,31 +24,6 @@ const WikiDataContext = createContext<WikiDataContextType>({
   refetch: () => {},
 });
 
-const CACHE_KEY_PREFIX = 'wiki-data:';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-function getCachedWiki(slug: string): WikiData | null {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY_PREFIX + slug);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed?.data && parsed?.cachedAt && Date.now() - parsed.cachedAt < CACHE_TTL) {
-      return parsed.data as WikiData;
-    }
-    localStorage.removeItem(CACHE_KEY_PREFIX + slug);
-  } catch {}
-  return null;
-}
-
-function setCachedWiki(slug: string, data: WikiData) {
-  try {
-    localStorage.setItem(CACHE_KEY_PREFIX + slug, JSON.stringify({
-      data,
-      cachedAt: Date.now(),
-    }));
-  } catch {}
-}
-
 export function WikiDataProvider({
   slug,
   children,
@@ -59,13 +34,13 @@ export function WikiDataProvider({
   const [data, setData] = useState<WikiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cacheRef = useRef<WikiData | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!slug) return;
 
-    const cached = getCachedWiki(slug);
-    if (cached) {
-      setData(cached);
+    if (cacheRef.current) {
+      setData(cacheRef.current);
       setLoading(false);
       return;
     }
@@ -85,8 +60,8 @@ export function WikiDataProvider({
       setData(null);
     } else {
       const wikiData = result as unknown as WikiData;
+      cacheRef.current = wikiData;
       setData(wikiData);
-      setCachedWiki(slug, wikiData);
     }
     setLoading(false);
   }, [slug]);
@@ -95,8 +70,13 @@ export function WikiDataProvider({
     fetchData();
   }, [fetchData]);
 
+  const refetch = useCallback(() => {
+    cacheRef.current = null;
+    fetchData();
+  }, [fetchData]);
+
   return (
-    <WikiDataContext.Provider value={{ data, loading, error, refetch: fetchData }}>
+    <WikiDataContext.Provider value={{ data, loading, error, refetch }}>
       {children}
     </WikiDataContext.Provider>
   );

@@ -10,15 +10,12 @@ import type { VoiceName } from '@/lib/voice/geminilive'
 import { AI_PERSONALITIES } from '@/lib/ai-personalities'
 import { personas } from '@/lib/personas'
 import { officialLanguages } from '@/lib/official-languages'
-import { Button } from '@/components/ui/button'
 import { FloatingLabelInput } from '@/components/ui/floating-label-input'
 import { Label } from '@/components/ui/label'
 import { SelectCard } from '@/components/ui/select-card'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Volume2, Save, Mic, Headphones, Ear, Loader2, MessageCircle, Check, Sparkles, Globe, Radio } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-import { useUser, supabase } from '@/supabase'
+import { Volume2, Mic, Headphones, Ear, MessageCircle, Sparkles, Globe, Radio } from 'lucide-react'
 
 type VoiceSettings = {
   userName: string
@@ -89,8 +86,6 @@ export default function AISettingsPage() {
   const params = useParams()
   const slug = params?.slug as string
   const { data, loading } = useWikiData()
-  const { toast } = useToast()
-  const { user } = useUser()
   const { preferences, updatePreference } = useUserPreferences()
   const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {}
   const wikiPrefs = preferences.wiki_preferences?.[slug] ?? {}
@@ -100,27 +95,13 @@ export default function AISettingsPage() {
     voice: (aiConfig.voice_name as VoiceName) || loadVoice().voice,
     volume: (aiConfig.voice_volume as number) || loadVoice().volume,
   }))
-  const [saving, setSaving] = useState(false)
-  const [synced, setSynced] = useState(false)
 
   useEffect(() => {
-    if (!user || synced) return
-    ;(async () => {
-      const { data } = await supabase
-        .from('user_preferences')
-        .select('preferences')
-        .eq('user_id', user.id)
-        .single()
-      if (data?.preferences) {
-        const cloud = data.preferences as Partial<VoiceSettings>
-        setVoiceSettings((prev) => ({ ...prev, ...cloud }))
-      }
-      setSynced(true)
-    })()
-  }, [user, synced])
-
-  useEffect(() => {
-    saveVoice(voiceSettings)
+    const timer = setTimeout(() => {
+      saveVoice(voiceSettings)
+      updatePreference('voice_settings', voiceSettings as Record<string, unknown>)
+    }, 300)
+    return () => clearTimeout(timer)
   }, [voiceSettings])
 
   const updateVoice = <K extends keyof VoiceSettings>(key: K, value: VoiceSettings[K]) => {
@@ -151,30 +132,6 @@ export default function AISettingsPage() {
       })
     )
   }, [])
-
-  const handleSaveVoice = async () => {
-    if (!user) {
-      saveVoice(voiceSettings)
-      toast({ title: 'Configurações salvas localmente', description: 'Faça login para sincronizar entre dispositivos.' })
-      return
-    }
-    setSaving(true)
-    const { error } = await supabase
-      .from('user_preferences')
-      .upsert(
-        { user_id: user.id, preferences: voiceSettings, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      )
-    if (error) {
-      toast({ variant: 'destructive', title: 'Erro ao salvar', description: error.message })
-    } else {
-      saveVoice(voiceSettings)
-      toast({ title: 'Configurações salvas!', description: 'Preferências sincronizadas com a nuvem.' })
-    }
-    setSaving(false)
-  }
-
-  const lang = voiceSettings.userLang as 'pt' | 'en' | 'es'
 
   if (loading) {
     return (
@@ -379,8 +336,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Perfil</CardTitle>
-              <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Perfil</CardTitle>
+                  <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <FloatingLabelInput
@@ -406,8 +368,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Voz</CardTitle>
-              <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Voz</CardTitle>
+                  <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -467,8 +434,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Áudio</CardTitle>
-              <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Áudio</CardTitle>
+                  <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {(['noiseCancellation', 'echoCancellation', 'autoGainControl'] as const).map((key) => (
@@ -498,11 +470,16 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Ear className="h-5 w-5" />
-                Ativação por Voz
-              </CardTitle>
-              <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Ear className="h-5 w-5" />
+                    Ativação por Voz
+                  </CardTitle>
+                  <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/50 px-4 py-3">
@@ -528,8 +505,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Modo Público</CardTitle>
-              <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Modo Público</CardTitle>
+                  <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -562,8 +544,13 @@ export default function AISettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Comportamento</CardTitle>
-              <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Comportamento</CardTitle>
+                  <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
+                </div>
+                <LayerBadge isWikiSpecific={false} />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -582,13 +569,6 @@ export default function AISettingsPage() {
               </div>
             </CardContent>
           </Card>
-
-          <div className="flex justify-center">
-            <Button onClick={handleSaveVoice} disabled={saving} size="lg">
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {saving ? 'Salvando...' : 'Salvar Configurações'}
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
     </div>
