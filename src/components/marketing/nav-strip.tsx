@@ -68,7 +68,29 @@ function generateRingConfig() {
 }
 
 function generateStarPath(hr: number, vr: number): string {
-  return `M 0,-${vr} C ${hr*0.06},-${vr*0.92} ${hr*0.45},-${vr*0.15} ${hr},0 C ${hr*0.45},${vr*0.15} ${hr*0.06},${vr*0.92} 0,${vr} C -${hr*0.06},${vr*0.92} -${hr*0.45},${vr*0.15} -${hr},0 C -${hr*0.45},-${vr*0.15} -${hr*0.06},-${vr*0.92} 0,-${vr} Z`;
+  return `M 0,-${vr} C ${hr*0.06},-${vr*0.93} ${hr*0.5},-${vr*0.17} ${hr},0 C ${hr*0.5},${vr*0.17} ${hr*0.06},${vr*0.93} 0,${vr} C -${hr*0.06},${vr*0.93} -${hr*0.5},${vr*0.17} -${hr},0 C -${hr*0.5},-${vr*0.17} -${hr*0.06},-${vr*0.93} 0,-${vr} Z`;
+}
+
+function sampleStarPoints(hr: number, vr: number, total: number): { x: number; y: number }[] {
+  const segs: { p0: { x: number; y: number }; p1: { x: number; y: number }; p2: { x: number; y: number }; p3: { x: number; y: number } }[] = [
+    { p0: { x: 0, y: -vr }, p1: { x: hr * 0.06, y: -vr * 0.93 }, p2: { x: hr * 0.5, y: -vr * 0.17 }, p3: { x: hr, y: 0 } },
+    { p0: { x: hr, y: 0 }, p1: { x: hr * 0.5, y: vr * 0.17 }, p2: { x: hr * 0.06, y: vr * 0.93 }, p3: { x: 0, y: vr } },
+    { p0: { x: 0, y: vr }, p1: { x: -hr * 0.06, y: vr * 0.93 }, p2: { x: -hr * 0.5, y: vr * 0.17 }, p3: { x: -hr, y: 0 } },
+    { p0: { x: -hr, y: 0 }, p1: { x: -hr * 0.5, y: -vr * 0.17 }, p2: { x: -hr * 0.06, y: -vr * 0.93 }, p3: { x: 0, y: -vr } },
+  ];
+  const points: { x: number; y: number }[] = [];
+  const stepsPerSeg = Math.max(1, Math.floor(total / 4));
+  for (const seg of segs) {
+    for (let i = 0; i < stepsPerSeg; i++) {
+      const t = i / stepsPerSeg;
+      const u = 1 - t;
+      points.push({
+        x: u * u * u * seg.p0.x + 3 * u * u * t * seg.p1.x + 3 * u * t * t * seg.p2.x + t * t * t * seg.p3.x,
+        y: u * u * u * seg.p0.y + 3 * u * u * t * seg.p1.y + 3 * u * t * t * seg.p2.y + t * t * t * seg.p3.y,
+      });
+    }
+  }
+  return points;
 }
 
 function generateMorphPath(
@@ -81,33 +103,25 @@ function generateMorphPath(
   starVr: number,
   pointCount: number = 60
 ): string {
-  const cx = 200;
-  const cy = 200;
   const innerRadius = ringOuterRadius * ringInnerRatio;
   let d = '';
 
+  const starPts = sampleStarPoints(starHr, starVr, pointCount);
+
   for (let i = 0; i < pointCount; i++) {
     const a = (i / pointCount) * Math.PI * 2;
-
-    const ringOuterR = ringOuterRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.3));
-
-    const starR = 1 / Math.pow(
-      Math.abs(Math.cos(a)) ** 0.6 + Math.abs(Math.sin(a)) ** 0.6,
-      1 / 0.6
-    );
-    const starRnorm = starR * Math.min(starHr, starVr);
-
-    const r = ringOuterR * (1 - progress) + starRnorm * progress;
-    d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+    const ringR = ringOuterRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.3));
+    const ox = ringR * Math.cos(a) * (1 - progress) + starPts[i].x * progress;
+    const oy = ringR * Math.sin(a) * (1 - progress) + starPts[i].y * progress;
+    d += `${i === 0 ? 'M' : 'L'} ${ox} ${oy}`;
   }
 
   for (let i = 0; i < pointCount; i++) {
     const a = (i / pointCount) * Math.PI * -2;
-
     const ringInnerR = innerRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase + 1.5) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.7));
-
-    const r = ringInnerR * (1 - progress);
-    d += ` L ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+    const ix = ringInnerR * Math.cos(a) * (1 - progress);
+    const iy = ringInnerR * Math.sin(a) * (1 - progress);
+    d += ` L ${ix} ${iy}`;
   }
 
   return d + ' Z';
@@ -327,13 +341,28 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const isExpanded = phase === 'expanded';
   const [morphProgress, setMorphProgress] = useState(0);
+  const morphRef = useRef(0);
+  const morphTarget = useRef(0);
 
   useEffect(() => {
-    if (isExpanded) {
-      setMorphProgress(1);
-    } else {
-      setMorphProgress(0);
-    }
+    morphTarget.current = isExpanded ? 1 : 0;
+    if (morphRef.current === morphTarget.current) return;
+    let raf: number;
+    const loop = () => {
+      const curr = morphRef.current;
+      const tgt = morphTarget.current;
+      const diff = tgt - curr;
+      if (Math.abs(diff) < 0.0005) {
+        morphRef.current = tgt;
+        setMorphProgress(tgt);
+        return;
+      }
+      morphRef.current += diff * 0.07;
+      setMorphProgress(morphRef.current);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
   }, [isExpanded]);
 
   const doExpand = useCallback(() => {
@@ -480,18 +509,21 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Morphing Gravitational Waves (single path morph) ── */}
+          {/* ── Morphing Gravitational Waves ── */}
           <motion.div
             className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            style={{ transformStyle: 'preserve-3d' }}
+            animate={{
+              scale: isExpanded ? [1, 1.04, 0.97, 1] : [0.6, 1, 1.3, 0.7],
+              opacity: isExpanded ? [0.5, 0.3, 0.12, 0.35] : [0.4, 0.35, 0.2, 0],
+            }}
+            transition={{
+              duration: isExpanded ? 6 : 10,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              times: [0, 0.2, 0.5, 1],
+            }}
           >
-            <svg
-              className="absolute"
-              width="500"
-              height="500"
-              viewBox="-250 -250 500 500"
-              style={{ left: '50%', top: '50%', marginLeft: -250, marginTop: -250 }}
-            >
+            <svg width="400" height="400" viewBox="-200 -200 400 400">
               <defs>
                 <linearGradient id="morph-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
@@ -516,10 +548,6 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 stroke="url(#morph-stroke-grad)"
                 strokeWidth="3"
                 strokeLinejoin="round"
-                style={{ transformOrigin: 'center' }}
-                initial={{ scale: 0.8, opacity: 0.5 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 1.2, ease: 'easeInOut' }}
               />
             </svg>
           </motion.div>

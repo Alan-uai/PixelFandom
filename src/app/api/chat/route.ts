@@ -10,6 +10,8 @@ import {
   buildDisplayModePrompt,
   TEXT_CHAT_SYSTEM_PROMPT,
   loadChatHistory,
+  trimMessagesToBudget,
+  getContextWindow,
 } from '@/lib/chat-utils';
 import { getSchemaPrompt } from '@/lib/game-schema';
 import {
@@ -360,6 +362,11 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       let messages = await buildMessages(
         schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle, displayMode
       );
+      const contextWindow = getContextWindow(model);
+      if (contextWindow && messages.length > 1) {
+        const systemContent = String(messages[0]?.content || '');
+        messages = trimMessagesToBudget(messages as any, systemContent, contextWindow) as any;
+      }
       let finalText: string | null = null;
       const MAX_TOOL_ROUNDS = 3;
 

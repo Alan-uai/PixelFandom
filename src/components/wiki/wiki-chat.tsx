@@ -210,6 +210,13 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     abortRef.current = new AbortController();
     const timeoutId = setTimeout(() => abortRef.current?.abort(), TIMEOUT_MS);
 
+    const assistantId = crypto.randomUUID();
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantId, role: 'assistant', content: '', isStreaming: true },
+    ]);
+    setStreamStartTime(Date.now());
+
     try {
       const response = await fetch('/api/chat', {
         signal: abortRef.current.signal,
@@ -224,14 +231,12 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         }),
       });
 
-      if (!response.body) throw new Error('Sem resposta');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao processar pergunta');
+      }
 
-      const assistantId = crypto.randomUUID();
-      setMessages((prev) => [
-        ...prev,
-        { id: assistantId, role: 'assistant', content: '', isStreaming: true },
-      ]);
-      setStreamStartTime(Date.now());
+      if (!response.body) throw new Error('Sem resposta');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
