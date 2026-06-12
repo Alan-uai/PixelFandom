@@ -224,14 +224,14 @@ export function WeldingCard({
     { arr: trArr2, off: trOff2, cfg: t[2] },
   ]
 
-  if (phase === 'pending' || phase === 'done') {
-    return <div className={cn('rounded-xl bg-card', className)} style={style}>{children}</div>
-  }
-
   return (
     <div
       ref={containerRef}
-      className={cn('relative rounded-xl', className)}
+      className={cn(
+        'relative rounded-xl',
+        (phase === 'pending' || phase === 'done') ? 'bg-card' : '',
+        className,
+      )}
       style={style}
     >
       <WeldFilters />
@@ -343,7 +343,12 @@ export function WeldingCard({
         </>
       )}
 
-      <div className="relative z-[1] rounded-[11px] bg-card m-[1.5px]">
+      <div className={cn(
+        'relative z-[1]',
+        (phase === 'pending' || phase === 'done')
+          ? ''
+          : 'rounded-[11px] bg-card m-[1.5px]',
+      )}>
         {children}
       </div>
     </div>

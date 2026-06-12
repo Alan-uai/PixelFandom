@@ -39,6 +39,19 @@ function setCache<T>(key: string, data: T): void {
   cache.set(key, data);
 }
 
+export function updateCachedCatalogEntry(
+  tenantSlug: string,
+  tableName: string,
+  updates: Partial<CatalogEntry>,
+): void {
+  const cacheKey = `catalog:${tenantSlug}:counts`;
+  const cached = getCached<CatalogEntry[]>(cacheKey);
+  if (cached) {
+    const entry = cached.find(e => e.table_name === tableName);
+    if (entry) Object.assign(entry, updates);
+  }
+}
+
 export function invalidateDataCache(pattern?: string): void {
   if (pattern) {
     for (const key of cache.keys()) {

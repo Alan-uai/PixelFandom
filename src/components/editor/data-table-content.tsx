@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { invalidateDataCache } from '@/lib/data-access';
+import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -365,6 +365,7 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      updateCachedCatalogEntry(slug, table, { display_format: displayFormat, columns_count: columnsCount });
       toast({ title: 'Configuração de exibição salva!' });
     }
     setDisplaySaving(false);

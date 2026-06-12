@@ -50,33 +50,6 @@ export default function ScrollRevealWrapper({
 
   const xVals = xRange[currentDirection];
 
-  const scale = useTransform(
-    progressSpring,
-    exitOnly ? [0.5, 0.7, 0.85, 1]
-      : noExit ? [0, 0.3, 1]
-      : [0, 0.3, 0.7, 1],
-    exitOnly ? [1, 1, 0.94, 0.88]
-      : noExit ? [0.88, 1, 1]
-      : [0.88, 1, 1, 0.88],
-  );
-  const opacity = useTransform(
-    progressSpring,
-    exitOnly ? [0.5, 0.65, 0.8, 1]
-      : noExit ? [0, 0.2, 1]
-      : [0, 0.2, 0.8, 1],
-    exitOnly ? [1, 1, 0.4, 0]
-      : noExit ? [0, 1, 1]
-      : [0, 1, 1, 0],
-  );
-  const blurAmount = useTransform(
-    progressSpring,
-    exitOnly ? [0.5, 0.65, 0.8, 1]
-      : noExit ? [0, 0.2, 1]
-      : [0, 0.2, 0.8, 1],
-    exitOnly ? [0, 0, 6, 10]
-      : noExit ? [10, 0, 0]
-      : [10, 0, 0, 10],
-  );
   const yOffset = useTransform(
     progressSpring,
     exitOnly ? [0.5, 0.75, 1]
@@ -95,19 +68,15 @@ export default function ScrollRevealWrapper({
       : noExit ? [xVals[0], 0, 0]
       : xVals,
   );
-  const blurFilter = useTransform(blurAmount, (v) => `blur(${v}px)`);
 
   return (
     <div ref={ref} id={id} className={`relative snap-start snap-always ${className}`}>
       <ScrollProgressProvider value={progressSpring}>
         <motion.div
           style={{
-            scale,
-            opacity,
-            x: xOffset,
             y: yOffset,
-            filter: blurFilter,
-            willChange: 'transform, opacity, filter',
+            x: xOffset,
+            willChange: 'transform',
           }}
         >
           {children}
