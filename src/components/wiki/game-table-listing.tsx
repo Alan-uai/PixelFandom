@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown,
   Sword, Shield, Zap, Gem, Crosshair, Pickaxe, Sparkles, Star, Skull,
-  Search, X, Eye, ChevronLeft, ChevronRight,
+  Search, X, Eye,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
@@ -117,8 +117,18 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4',
     5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
   } as Record<number, string>)[cols] || 'grid-cols-1 sm:grid-cols-2';
-  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
-  const getCI = (key: string) => carouselIndices[key] || 0;
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const handleInfiniteScroll = useCallback(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    if (el.scrollLeft >= half) {
+      el.scrollLeft -= half;
+    } else if (el.scrollLeft <= 0) {
+      el.scrollLeft += half;
+    }
+  }, []);
 
   useEffect(() => {
     setSelectedSlug(urlItem);
@@ -258,16 +268,22 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     if (fmt.startsWith('carousel')) {
-      const ci = getCI(groupKey);
-      const maxIdx = Math.max(0, items.length - cols);
-      const visible = items.slice(ci, ci + cols);
+      const isInfinite = fmt === 'carousel_infinite';
+      const displayItems = isInfinite ? [...items, ...items] : items;
 
       return (
-        <div>
-          <div className={`${gridColsClass} gap-3`}>
-            {visible.map((item) => (
+        <div
+          ref={isInfinite ? carouselRef : undefined}
+          className={`flex overflow-x-auto gap-3 pb-2 scrollbar-none ${isInfinite ? '' : 'snap-x snap-mandatory'}`}
+          onScroll={isInfinite ? handleInfiniteScroll : undefined}
+        >
+          {displayItems.map((item, i) => (
+            <div
+              key={isInfinite ? `${item.id}-i${i}` : item.id}
+              className={isInfinite ? 'shrink-0' : 'snap-start shrink-0'}
+              style={{ flex: `0 0 calc((100% - ${cols - 1} * 0.75rem) / ${cols})` }}
+            >
               <ItemCard
-                key={`${item.id}-${ci}`}
                 item={item}
                 tableName={tableName}
                 tenantSlug={tenantSlug}
@@ -277,41 +293,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                 cardRefs={cardRefs}
                 onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
               />
-            ))}
-          </div>
-          {items.length > cols && (
-            <div className="flex items-center justify-center gap-4 mt-3">
-              <button
-                onClick={() => setCarouselIndices(prev => {
-                  const cur = prev[groupKey] || 0;
-                  return { ...prev, [groupKey]: fmt === 'carousel_infinite'
-                    ? (cur - 1 + items.length) % items.length
-                    : Math.max(cur - 1, 0)
-                  };
-                })}
-                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-xs text-muted-foreground">
-                {ci + 1}–{Math.min(ci + cols, items.length)} de {items.length}
-              </span>
-              <button
-                onClick={() => setCarouselIndices(prev => {
-                  const cur = prev[groupKey] || 0;
-                  return { ...prev, [groupKey]: fmt === 'carousel_infinite'
-                    ? (cur + 1) % items.length
-                    : Math.min(cur + 1, maxIdx)
-                  };
-                })}
-                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
-          )}
+          ))}
         </div>
       );
     }
