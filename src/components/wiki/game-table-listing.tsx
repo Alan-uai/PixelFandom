@@ -109,26 +109,39 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const fmt = displayFormat || 'grid';
-  const cols = Math.max(1, Math.min(5, columnsCount || 2));
+  const cols = Math.max(2, Math.min(5, columnsCount || 2));
   const gridColsClass = ({
-    1: 'grid-cols-1',
-    2: 'grid-cols-2',
-    3: 'grid-cols-3',
-    4: 'grid-cols-4',
-    5: 'grid-cols-5',
+    2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
+    3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
   } as Record<number, string>)[cols] || 'grid-cols-2';
+  
   const carouselRef = useRef<HTMLDivElement>(null);
+  const carouselWrapperRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
 
   const handleInfiniteScroll = useCallback(() => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const half = el.scrollWidth / 2;
-    if (el.scrollLeft >= half) {
-      el.scrollLeft -= half;
-    } else if (el.scrollLeft <= 0) {
-      el.scrollLeft += half;
+    const wrapper = carouselWrapperRef.current;
+    if (!wrapper || isScrollingRef.current) return;
+    
+    const scrollLeft = wrapper.scrollLeft;
+    const itemWidth = wrapper.scrollWidth / (items.length + items.length); // First half + second half
+    const threshold = itemWidth * 0.25;
+
+    // Reached end of first copy, loop to second copy
+    if (scrollLeft > itemWidth - threshold) {
+      isScrollingRef.current = true;
+      wrapper.scrollLeft = scrollLeft - itemWidth;
+      setTimeout(() => { isScrollingRef.current = false; }, 50);
     }
-  }, []);
+    // Reached beginning of second copy, loop to first copy
+    else if (scrollLeft < threshold) {
+      isScrollingRef.current = true;
+      wrapper.scrollLeft = scrollLeft + itemWidth;
+      setTimeout(() => { isScrollingRef.current = false; }, 50);
+    }
+  }, [items.length]);
 
   useEffect(() => {
     setSelectedSlug(urlItem);
@@ -273,15 +286,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
       return (
         <div
-          ref={isInfinite ? carouselRef : undefined}
-          className={`flex overflow-x-auto gap-3 pb-2 scrollbar-none ${isInfinite ? '' : 'snap-x snap-mandatory'}`}
+          ref={isInfinite ? carouselWrapperRef : undefined}
+          className={`flex overflow-x-auto gap-3 pb-2 scrollbar-none ${isInfinite ? 'scroll-smooth' : 'snap-x snap-mandatory'}`}
           onScroll={isInfinite ? handleInfiniteScroll : undefined}
         >
           {displayItems.map((item, i) => (
             <div
               key={isInfinite ? `${item.id}-i${i}` : item.id}
               className={isInfinite ? 'shrink-0' : 'snap-start shrink-0'}
-              style={{ flex: `0 0 calc((100% - ${cols - 1} * 0.75rem) / ${cols})` }}
+              style={{ flex: `0 0 calc((100% - ${(cols - 1) * 12}px) / ${cols})` }}
             >
               <ItemCard
                 item={item}
@@ -539,13 +552,13 @@ function ItemCard({
             </div>
             <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
               {rarity && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`}>
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-back[...]
                   <Star className="h-2.5 w-2.5" />
                   {rarity}
                 </span>
               )}
               {tier && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm`}>
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-[...]
                   {TIER_LABEL[tier.toLowerCase()] || tier}
                 </span>
               )}
