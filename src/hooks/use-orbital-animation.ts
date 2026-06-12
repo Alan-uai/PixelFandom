@@ -183,8 +183,8 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
           }
 
           case 'approaching-expand': {
-            const t = elapsed - st.triggerElapsed;
-            const remaining = st.collisionTime - t;
+            const te = elapsed - st.triggerElapsed;
+            const remaining = st.collisionTime - te;
 
             if (remaining > TRANSITION_DURATION) {
               iconMorph = 1;
@@ -200,10 +200,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
               hasCollided = true;
             }
 
-            const orbWeight = Math.pow(iconMorph, 0.2);
-            const hWeight = Math.pow(1 - iconMorph, 2);
-            fx = orbitX * orbWeight + hx * hWeight;
-            fy = orbitY * orbWeight + hy * hWeight;
+            const p = 1 - iconMorph;
+            const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+            fx = orbitX * (1 - ease) + hx * ease;
+            fy = orbitY * (1 - ease) + hy * ease;
             break;
           }
 
@@ -224,8 +224,8 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
           }
 
           case 'approaching-collapse': {
-            const t = elapsed - st.triggerElapsed;
-            const remaining = st.collisionTime - t;
+            const tc = elapsed - st.triggerElapsed;
+            const remaining = st.collisionTime - tc;
 
             if (remaining > TRANSITION_DURATION) {
               iconMorph = 0;
@@ -240,13 +240,13 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
               iconMorph = 1;
             }
 
-            const eoX = currentRadius * Math.cos(st.entryAngle + currentSpeed * t);
-            const eoY = currentRadius * Math.sin(st.entryAngle + currentSpeed * t) * Math.cos(p.inclination);
+            const eoX = currentRadius * Math.cos(st.entryAngle + currentSpeed * tc);
+            const eoY = currentRadius * Math.sin(st.entryAngle + currentSpeed * tc) * Math.cos(p.inclination);
 
-            const oWeight = Math.pow(iconMorph, 0.2);
-            const eWeight = Math.pow(1 - iconMorph, 2);
-            fx = eoX * oWeight + hx * eWeight;
-            fy = eoY * oWeight + hy * eWeight;
+            const m = iconMorph;
+            const ease = m < 0.5 ? 2 * m * m : 1 - Math.pow(-2 * m + 2, 2) / 2;
+            fx = eoX * ease + hx * (1 - ease);
+            fy = eoY * ease + hy * (1 - ease);
             break;
           }
 
