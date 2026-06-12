@@ -25,8 +25,47 @@ interface TrailPoint {
   y: number;
 }
 
-const MORPH_RATE = 0.02;
-const MORPH_EPSILON = 0.005;
+type IconPhase = 'orbiting' | 'approaching-expand' | 'collided' | 'approaching-collapse';
+
+interface IconTransitionState {
+  phase: IconPhase;
+  collisionAngle: number;
+  entryAngle: number;
+  triggerElapsed: number;
+  collisionTime: number;
+  bounceElapsed: number;
+}
+
+const TRANSITION_DURATION = 0.3;
+const BOUNCE_FREQ = 22;
+const BOUNCE_DECAY = 10;
+const BOUNCE_AMP = 5;
+const DEG2RAD = Math.PI / 180;
+
+function findClosestOrbitAngle(R: number, inc: number, tx: number, ty: number): number {
+  let bestAngle = 0;
+  let bestDist = Infinity;
+  for (let deg = 0; deg < 360; deg++) {
+    const a = deg * DEG2RAD;
+    const x = R * Math.cos(a);
+    const y = R * Math.sin(a) * Math.cos(inc);
+    const d = (x - tx) ** 2 + (y - ty) ** 2;
+    if (d < bestDist) {
+      bestDist = d;
+      bestAngle = a;
+    }
+  }
+  return bestAngle;
+}
+
+function angularDistance(from: number, to: number, speed: number): number {
+  let d = to - from;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  if (speed >= 0 && d < 0) d += 2 * Math.PI;
+  if (speed < 0 && d > 0) d -= 2 * Math.PI;
+  return d;
+}
 
 export function useOrbitalAnimation(count: number, options?: { orbitMode?: OrbitMode }) {
   const paramsRef = useRef<OrbitParams[]>([]);
@@ -45,9 +84,11 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   const trailPositions = useRef<TrailPoint[][]>([]);
   const trailFrameSkip = useRef(0);
 
-  const morphProgress = useRef(1);
-  const morphTarget = useRef(1);
   const horizontalTargets = useRef<{ x: number; y: number }[]>([]);
+  const rafElapsed = useRef(0);
+
+  const iconStates = useRef<IconTransitionState[]>([]);
+  const [overallMorph, setOverallMorph] = useState(1);
 
   if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
     const mode = options?.orbitMode ?? 'random';
@@ -67,6 +108,14 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     iconRefs.current = Array.from({ length: count }, () => null);
     trailRefs.current = Array.from({ length: count }, () => Array.from({ length: 8 }, () => null));
     trailPositions.current = Array.from({ length: count }, () => []);
+    iconStates.current = Array.from({ length: count }, () => ({
+      phase: 'orbiting' as IconPhase,
+      collisionAngle: 0,
+      entryAngle: 0,
+      triggerElapsed: 0,
+      collisionTime: 0,
+      bounceElapsed: 0,
+    }));
   }
 
   useEffect(() => {
@@ -82,40 +131,21 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     function loop(ts: number) {
       if (!start) start = ts;
       const elapsed = (ts - start) / 1000;
+      rafElapsed.current = elapsed;
 
       speedMult.current += (targetSpeedMult.current - speedMult.current) * 0.04;
       radiusMult.current += (targetRadiusMult.current - radiusMult.current) * 0.04;
 
-      const curr = morphProgress.current;
-      const tgt = morphTarget.current;
-      const diff = tgt - curr;
-      if (Math.abs(diff) > MORPH_EPSILON) {
-        morphProgress.current += diff * MORPH_RATE;
-      } else if (diff !== 0) {
-        morphProgress.current = tgt;
-        if (tgt === 0) {
-          for (let i = 0; i < count; i++) {
-            const el = iconRefs.current[i];
-            if (!el) continue;
-            const hTarget = horizontalTargets.current[i];
-            el.style.transform = `translate(${hTarget?.x ?? 0}px, ${hTarget?.y ?? 0}px)`;
-            el.style.zIndex = '15';
-          }
-          if (phaseRef.current === 'orbiting') {
-            setPhase('expanded');
-          }
-        } else if (tgt === 1 && phaseRef.current === 'expanded') {
-          setPhase('orbiting');
-        }
-      }
-
-      const morph = morphProgress.current;
       const skip = trailFrameSkip.current;
+      let totalMorph = 0;
+      let hasCollided = false;
+      let allCollided = true;
 
       for (let i = 0; i < count; i++) {
         const el = iconRefs.current[i];
         if (!el) continue;
         const p = params[i];
+        const st = iconStates.current[i];
         const currentRadius = p.radius * radiusMult.current;
         const currentSpeed = p.speed * speedMult.current;
         const angle = p.phaseOffset + currentSpeed * elapsed;
@@ -127,13 +157,100 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         const hx = hTarget?.x ?? 0;
         const hy = hTarget?.y ?? 0;
 
-        const orbWeight = Math.pow(morph, 0.2);
-        const hWeight = Math.pow(1 - morph, 2);
-        const fx = orbitX * orbWeight + hx * hWeight;
-        const fy = orbitY * orbWeight + hy * hWeight;
+        let iconMorph: number;
+        let fx: number;
+        let fy: number;
+
+        switch (st.phase) {
+          case 'orbiting': {
+            iconMorph = 1;
+            fx = orbitX;
+            fy = orbitY;
+            allCollided = false;
+            break;
+          }
+
+          case 'approaching-expand': {
+            const t = elapsed - st.triggerElapsed;
+            const remaining = st.collisionTime - t;
+
+            if (remaining > TRANSITION_DURATION) {
+              iconMorph = 1;
+              allCollided = false;
+            } else if (remaining > 0) {
+              const raw = remaining / TRANSITION_DURATION;
+              iconMorph = raw * raw;
+              allCollided = false;
+            } else {
+              st.phase = 'collided';
+              st.bounceElapsed = elapsed;
+              iconMorph = 0;
+              hasCollided = true;
+            }
+
+            const orbWeight = Math.pow(iconMorph, 0.2);
+            const hWeight = Math.pow(1 - iconMorph, 2);
+            fx = orbitX * orbWeight + hx * hWeight;
+            fy = orbitY * orbWeight + hy * hWeight;
+            break;
+          }
+
+          case 'collided': {
+            iconMorph = 0;
+            const bt = elapsed - st.bounceElapsed;
+            if (bt < 0.35) {
+              const damping = Math.exp(-BOUNCE_DECAY * bt);
+              const osc = Math.cos(BOUNCE_FREQ * bt);
+              const bx = -BOUNCE_AMP * osc * damping;
+              const dist = Math.sqrt(hx * hx + hy * hy) || 1;
+              fx = hx + (hx / dist) * bx;
+              fy = hy + (hy / dist) * bx;
+            } else {
+              fx = hx;
+              fy = hy;
+            }
+            break;
+          }
+
+          case 'approaching-collapse': {
+            const t = elapsed - st.triggerElapsed;
+            const remaining = st.collisionTime - t;
+
+            if (remaining > TRANSITION_DURATION) {
+              iconMorph = 0;
+              allCollided = false;
+            } else if (remaining > 0) {
+              const raw = 1 - remaining / TRANSITION_DURATION;
+              iconMorph = raw * raw;
+              allCollided = false;
+            } else {
+              p.phaseOffset = st.entryAngle - currentSpeed * elapsed;
+              st.phase = 'orbiting';
+              iconMorph = 1;
+            }
+
+            const eoX = currentRadius * Math.cos(st.entryAngle + currentSpeed * t);
+            const eoY = currentRadius * Math.sin(st.entryAngle + currentSpeed * t) * Math.cos(p.inclination);
+
+            const oWeight = Math.pow(iconMorph, 0.2);
+            const eWeight = Math.pow(1 - iconMorph, 2);
+            fx = eoX * oWeight + hx * eWeight;
+            fy = eoY * oWeight + hy * eWeight;
+            break;
+          }
+
+          default: {
+            iconMorph = 1;
+            fx = orbitX;
+            fy = orbitY;
+            allCollided = false;
+          }
+        }
 
         el.style.transform = `translate(${fx}px, ${fy}px)`;
         el.style.zIndex = String(Math.sin(angle) > 0 ? 11 : 15);
+
+        totalMorph += iconMorph;
 
         if (skip % 2 === 0) {
           const trail = trailPositions.current[i];
@@ -163,7 +280,19 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         }
       }
 
-      if (morph < 0.05) {
+      const newOverall = count > 0 ? totalMorph / count : 1;
+
+      if (skip % 4 === 0) {
+        setOverallMorph(newOverall);
+      }
+
+      if (hasCollided && allCollided && phaseRef.current === 'orbiting') {
+        setPhase('expanded');
+      } else if (newOverall > 0.95 && phaseRef.current === 'expanded') {
+        setPhase('orbiting');
+      }
+
+      if (newOverall < 0.05) {
         for (let i = 0; i < count; i++) {
           const trailEls = trailRefs.current[i];
           if (trailEls) {
@@ -186,14 +315,56 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     (targets: { x: number; y: number }[]) => {
       horizontalTargets.current = targets;
       expandedRef.current = true;
-      morphTarget.current = 0;
+      const currentElapsed = rafElapsed.current;
+
+      for (let i = 0; i < count; i++) {
+        const p = paramsRef.current[i];
+        const st = iconStates.current[i];
+        const hTarget = targets[i];
+        if (!p || !hTarget) continue;
+
+        const cAngle = findClosestOrbitAngle(p.radius, p.inclination, hTarget.x, hTarget.y);
+
+        const currentAngle = p.phaseOffset + p.speed * currentElapsed;
+        const dAngle = angularDistance(currentAngle, cAngle, p.speed);
+        const absSpeed = Math.abs(p.speed);
+        const cTime = absSpeed > 0.001 ? Math.abs(dAngle) / absSpeed : 0.3;
+
+        st.collisionAngle = cAngle;
+        st.entryAngle = cAngle;
+        st.triggerElapsed = currentElapsed;
+        st.collisionTime = Math.max(cTime, 0.1);
+        st.bounceElapsed = 0;
+        st.phase = 'approaching-expand';
+      }
     },
     [count],
   );
 
   const collapse = useCallback(() => {
     expandedRef.current = false;
-    morphTarget.current = 1;
+    const currentElapsed = rafElapsed.current;
+
+    for (let i = 0; i < count; i++) {
+      const p = paramsRef.current[i];
+      const st = iconStates.current[i];
+      const hTarget = horizontalTargets.current[i];
+      if (!p || !hTarget) continue;
+
+      const cAngle = findClosestOrbitAngle(p.radius, p.inclination, hTarget.x, hTarget.y);
+
+      const currentAngle = p.phaseOffset + p.speed * currentElapsed;
+      const dAngle = angularDistance(currentAngle, cAngle, p.speed);
+      const absSpeed = Math.abs(p.speed);
+      const cTime = absSpeed > 0.001 ? Math.abs(dAngle) / absSpeed : 0.3;
+
+      st.collisionAngle = cAngle;
+      st.entryAngle = cAngle;
+      st.triggerElapsed = currentElapsed;
+      st.collisionTime = Math.max(cTime, 0.1);
+      st.bounceElapsed = 0;
+      st.phase = 'approaching-collapse';
+    }
   }, [count]);
 
   const setIconRef = useCallback(
@@ -229,5 +400,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     collapse,
     setHoverSpeedMultiplier,
     setHoverRadiusMultiplier,
+    overallMorph,
   };
 }

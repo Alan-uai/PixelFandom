@@ -14,8 +14,9 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input'
 import { Label } from '@/components/ui/label'
 import { SelectCard } from '@/components/ui/select-card'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { LayerCard } from '@/components/ui/layer-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Volume2, Mic, Headphones, Ear, MessageCircle, Sparkles, Globe, Radio } from 'lucide-react'
+import { Volume2, Mic, Headphones, Ear, MessageCircle, Sparkles } from 'lucide-react'
 
 type VoiceSettings = {
   userName: string
@@ -63,23 +64,6 @@ function loadVoice(): VoiceSettings {
 
 function saveVoice(s: VoiceSettings) {
   localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(s))
-}
-
-function LayerBadge({ isWikiSpecific }: { isWikiSpecific: boolean }) {
-  if (isWikiSpecific) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-        <Radio className="h-2.5 w-2.5" />
-        Wiki
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-      <Globe className="h-2.5 w-2.5" />
-      Global
-    </span>
-  )
 }
 
 export default function AISettingsPage() {
@@ -171,15 +155,10 @@ export default function AISettingsPage() {
 
         {/* ── Chat de Texto ── */}
         <TabsContent value="chat" className="space-y-6 mt-6">
-          <Card>
+          <LayerCard layer={isWikiSpecific('personality_id') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Personalidade</CardTitle>
-                  <CardDescription>Escolha a personalidade do assistente IA.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('personality_id')} />
-              </div>
+              <CardTitle>Personalidade</CardTitle>
+              <CardDescription>Escolha a personalidade do assistente IA.</CardDescription>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -196,17 +175,12 @@ export default function AISettingsPage() {
                 size="md"
               />
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer={isWikiSpecific('persona') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Persona</CardTitle>
-                  <CardDescription>Define o tom geral das respostas.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('persona')} />
-              </div>
+              <CardTitle>Persona</CardTitle>
+              <CardDescription>Define o tom geral das respostas.</CardDescription>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -219,17 +193,12 @@ export default function AISettingsPage() {
                 layout="compact"
               />
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer={isWikiSpecific('emoji_style') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Emojis</CardTitle>
-                  <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('emoji_style')} />
-              </div>
+              <CardTitle>Emojis</CardTitle>
+              <CardDescription>Define o uso de emojis nas respostas.</CardDescription>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -243,17 +212,12 @@ export default function AISettingsPage() {
                 layout="compact"
               />
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer={isWikiSpecific('response_style') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Estilo de Resposta</CardTitle>
-                  <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('response_style')} />
-              </div>
+              <CardTitle>Estilo de Resposta</CardTitle>
+              <CardDescription>Como o assistente estrutura as respostas.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {responseStyleGroups.map(group => (
@@ -271,17 +235,12 @@ export default function AISettingsPage() {
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer={isWikiSpecific('display_mode') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Modo de Exibição</CardTitle>
-                  <CardDescription>Como as respostas do assistente são exibidas.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('display_mode')} />
-              </div>
+              <CardTitle>Modo de Exibição</CardTitle>
+              <CardDescription>Como as respostas do assistente são exibidas.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {displayModeGroups.map(group => (
@@ -299,17 +258,12 @@ export default function AISettingsPage() {
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer={isWikiSpecific('language') ? 'wiki' : 'global'}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Idioma do Chat</CardTitle>
-                  <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={isWikiSpecific('language')} />
-              </div>
+              <CardTitle>Idioma do Chat</CardTitle>
+              <CardDescription>Idioma padrão para respostas do assistente.</CardDescription>
             </CardHeader>
             <CardContent>
               <SelectCard
@@ -322,7 +276,7 @@ export default function AISettingsPage() {
                 layout="compact"
               />
             </CardContent>
-          </Card>
+          </LayerCard>
         </TabsContent>
 
         {/* ── Chat de Voz ── */}
@@ -334,15 +288,10 @@ export default function AISettingsPage() {
             </div>
           </div>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Perfil</CardTitle>
-                  <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle>Perfil</CardTitle>
+              <CardDescription>Configure seu nome e preferências de idioma.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <FloatingLabelInput
@@ -364,17 +313,12 @@ export default function AISettingsPage() {
                 </select>
               </div>
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Voz</CardTitle>
-                  <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle>Voz</CardTitle>
+              <CardDescription>Escolha a voz e ajuste o volume do assistente.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -430,17 +374,12 @@ export default function AISettingsPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Áudio</CardTitle>
-                  <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle>Áudio</CardTitle>
+              <CardDescription>Ajuste a qualidade e o comportamento do microfone.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {(['noiseCancellation', 'echoCancellation', 'autoGainControl'] as const).map((key) => (
@@ -466,20 +405,15 @@ export default function AISettingsPage() {
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Ear className="h-5 w-5" />
-                    Ativação por Voz
-                  </CardTitle>
-                  <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Ear className="h-5 w-5" />
+                Ativação por Voz
+              </CardTitle>
+              <CardDescription>Ative ou desative a wake word para iniciar o assistente por comando de voz.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/50 px-4 py-3">
@@ -501,17 +435,12 @@ export default function AISettingsPage() {
                 />
               </div>
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Modo Público</CardTitle>
-                  <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle>Modo Público</CardTitle>
+              <CardDescription>Configure o comportamento em ambientes públicos ou silenciosos.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -540,17 +469,12 @@ export default function AISettingsPage() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </LayerCard>
 
-          <Card>
+          <LayerCard layer="global">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Comportamento</CardTitle>
-                  <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
-                </div>
-                <LayerBadge isWikiSpecific={false} />
-              </div>
+              <CardTitle>Comportamento</CardTitle>
+              <CardDescription>Configure como o agente reage aos seus comandos.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -568,7 +492,7 @@ export default function AISettingsPage() {
                 />
               </div>
             </CardContent>
-          </Card>
+          </LayerCard>
         </TabsContent>
       </Tabs>
     </div>

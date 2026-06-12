@@ -41,7 +41,7 @@ const FloatingLabelTextarea = React.forwardRef<
       <div className={cn("relative", containerClassName)}>
         <div
           className={cn(
-            "relative rounded-md border transition-colors",
+            "relative rounded-md border transition-colors inset-shadow",
             error
               ? "border-destructive"
               : "border-input focus-within:border-primary",

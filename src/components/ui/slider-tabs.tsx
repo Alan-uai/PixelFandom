@@ -249,10 +249,8 @@ export function SliderTabsContent({ value, className, children }: SliderTabsCont
   const isActive = activeValue === value;
 
   const slideTransition = {
-    type: 'spring' as const,
-    stiffness: 450,
-    damping: 45,
-    mass: 0.9,
+    duration: 0.35,
+    ease: [0.32, 0.72, 0, 1],
   };
 
   return (
@@ -264,19 +262,16 @@ export function SliderTabsContent({ value, className, children }: SliderTabsCont
           custom={direction}
           variants={{
             enter: (dir: Direction2D) => ({
-              x: dir.x * 120,
-              y: dir.y * 80,
-              opacity: 0,
+              x: `${dir.x * 100}vw`,
+              y: `${dir.y * 100}vh`,
             }),
             center: {
               x: 0,
               y: 0,
-              opacity: 1,
             },
             exit: (dir: Direction2D) => ({
-              x: dir.x * -120,
-              y: dir.y * -80,
-              opacity: 0,
+              x: `${dir.x * -100}vw`,
+              y: `${dir.y * -100}vh`,
             }),
           }}
           initial="enter"

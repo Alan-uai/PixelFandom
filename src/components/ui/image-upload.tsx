@@ -123,7 +123,7 @@ export function ImageUpload({
             </div>
           ) : (
             <div
-              className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50`}
+              className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50 inset-shadow`}
               onClick={() => inputRef.current?.click()}
             >
               {uploading ? (
@@ -143,7 +143,7 @@ export function ImageUpload({
           <button
             type="button"
             onClick={() => onChange('')}
-            className="absolute -top-2 -right-2 z-10 flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+            className="absolute -top-2 -right-2 z-10 flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
             aria-label="Remover imagem"
           >
             <X className="h-3 w-3" />
@@ -156,7 +156,7 @@ export function ImageUpload({
         <button
           type="button"
           onClick={() => setMode(mode === 'upload' ? 'url' : 'upload')}
-          className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-bold leading-none text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-bold leading-none text-muted-foreground hover:text-foreground transition-colors inset-shadow"
           aria-label="Alternar para URL"
         >
           ou

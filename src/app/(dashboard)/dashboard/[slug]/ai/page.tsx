@@ -49,7 +49,6 @@ export default function WikiAIConfigPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { toast } = useToast();
-  const [tenant, setTenant] = useState<any>(null);
   const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
@@ -104,7 +103,7 @@ export default function WikiAIConfigPage() {
   const [loadingGeminiModels, setLoadingGeminiModels] = useState(true);
   const initializedRef = useRef(false);
 
-  const { data: tenantData } = useCachedData<{ id: string }>(
+  const { data: tenantData, error: tenantError, loading: tenantLoading } = useCachedData<{ id: string }>(
     `tenant-id:${slug}`,
     async () => {
       const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
@@ -126,7 +125,6 @@ export default function WikiAIConfigPage() {
   useEffect(() => {
     if (!tenantData || !aiConfig || initializedRef.current) return;
     initializedRef.current = true;
-    setTenant(tenantData);
 
     const config = aiConfig.ai_config;
     setEnabled(aiConfig.ai_enabled);
@@ -228,7 +226,7 @@ export default function WikiAIConfigPage() {
   const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
 
   const handleSave = useCallback(async () => {
-    const tid = tenant?.id;
+    const tid = tenantData?.id;
     if (!tid) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Tenant não encontrado.' });
       return;
@@ -304,7 +302,7 @@ export default function WikiAIConfigPage() {
       toast({ variant: 'destructive', title: 'Erro', description: message });
     }
   }, [
-    tenant, enabled, provider, primaryProvider, resolvedModel, modelSource,
+    tenantData, enabled, provider, primaryProvider, resolvedModel, modelSource,
     customModel, customApiKey, fallbackChain, fallbackSource,
     resolvedGeminiModel, geminiModelSource, geminiCustomModel,
     geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
@@ -372,10 +370,18 @@ export default function WikiAIConfigPage() {
 
   useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: handleDiscard });
 
-  if (loading) {
+  if (tenantLoading || loading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (tenantError) {
+    return (
+      <div className="flex justify-center py-12">
+        <p className="text-destructive">{tenantError}</p>
       </div>
     );
   }

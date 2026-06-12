@@ -255,36 +255,12 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [user, handleLogout, onLogin, unreadCount]);
 
   const items = useMemo(() => navItems(), [navItems]);
-  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setHoverSpeedMultiplier, setHoverRadiusMultiplier } = useOrbitalAnimation(items.length);
+  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setHoverSpeedMultiplier, setHoverRadiusMultiplier, overallMorph } = useOrbitalAnimation(items.length);
 
   const expandedPositions = useRef(getExpandedPositions(items));
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
 
   const isExpanded = phase === 'expanded';
-  const [morphProgress, setMorphProgress] = useState(0);
-  const morphRef = useRef(0);
-  const morphTarget = useRef(0);
-
-  useEffect(() => {
-    morphTarget.current = isExpanded ? 1 : 0;
-    if (morphRef.current === morphTarget.current) return;
-    let raf: number;
-    const loop = () => {
-      const curr = morphRef.current;
-      const tgt = morphTarget.current;
-      const diff = tgt - curr;
-      if (Math.abs(diff) < 0.0005) {
-        morphRef.current = tgt;
-        setMorphProgress(tgt);
-        return;
-      }
-      morphRef.current += diff * 0.07;
-      setMorphProgress(morphRef.current);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [isExpanded]);
 
   const doExpand = useCallback(() => {
     expand(expandedPositions.current);
@@ -454,7 +430,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
           </svg>
 
           <GravitationalWave
-            morphProgress={morphProgress}
+            morphProgress={overallMorph}
             isExpanded={isExpanded}
             ringOuterRadius={rings[0].outerRadius}
             ringWobble={rings[0].wobble}

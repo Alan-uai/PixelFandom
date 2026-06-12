@@ -836,6 +836,11 @@
   .letter-float-delay-10 { animation-delay: 0.9s; }
   .letter-float-delay-11 { animation-delay: 0.15s; }
 
+  .inset-shadow {
+    box-shadow: 12px 12px 12px rgba(0, 0, 0, 0.1) inset,
+                -10px -10px 10px white inset;
+  }
+
   @keyframes splash-particle-fade {
     0%, 100% { opacity: 0; transform: scale(0.3); }
     30%, 70% { opacity: 1; transform: scale(1); }
@@ -909,6 +914,42 @@
     border-radius: calc(1rem - 1px);
     background: hsl(240 6% 4%);
     z-index: -1;
+  }
+
+  /* ── LayerCard (global/wiki badge) ── */
+  .ai-card {
+    anchor-name: --ai-card;
+    corner-top-right-shape: scoop;
+    border-top-right-radius: 3em;
+    overflow: visible;
+    position: relative;
+  }
+
+  .ai-card::before {
+    content: attr(data-layer);
+    position: absolute;
+    position-anchor: --ai-card;
+    position-area: top right;
+    translate: -50% 50%;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    text-transform: capitalize;
+  }
+
+  .ai-card[data-layer="wiki"]::before {
+    background: hsl(198 100% 65% / 0.1);
+    color: hsl(198 100% 65%);
+  }
+
+  .ai-card[data-layer="global"]::before {
+    background: hsl(240 4% 12%);
+    color: hsl(0 0% 55%);
   }
 
 }
