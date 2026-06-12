@@ -393,64 +393,64 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     </div>
   );
 
-  const chatContent = (
-    <>
-      <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 px-2 min-h-0">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-            {msg.role === 'assistant' && (
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Bot className="h-4 w-4 text-primary" />
-              </div>
-            )}
-            <div className="flex flex-col gap-1 max-w-[85%]">
-              <div className={`rounded-xl px-4 py-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                {msg.role === 'assistant' ? (
-                  renderAssistantContent(msg)
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                )}
-              </div>
-              {msg.role === 'assistant' && !msg.isStreaming && (
-                <MessageFeedback
-                  messageId={msg.id}
-                  currentFeedback={msg.feedback}
-                  onFeedback={handleFeedback}
-                />
+  const chatForm = (
+    <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4 shrink-0">
+      <div className="flex-1">
+        <FloatingLabelInput
+          ref={inputRef}
+          label="Digite sua pergunta..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <Button type="submit" disabled={loading || !input.trim()} className="h-12 px-6">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
+        <Send className="ml-2 h-4 w-4" />
+      </Button>
+    </form>
+  );
+
+  const messagesList = (
+    <div className="flex-1 overflow-y-auto scrollbar-none space-y-4 px-2 min-h-0">
+      {messages.map((msg) => (
+        <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+          {msg.role === 'assistant' && (
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Bot className="h-4 w-4 text-primary" />
+            </div>
+          )}
+          <div className="flex flex-col gap-1 max-w-[85%]">
+            <div className={`rounded-xl px-4 py-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              {msg.role === 'assistant' ? (
+                renderAssistantContent(msg)
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               )}
             </div>
-            {msg.role === 'user' && (
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <User className="h-4 w-4 text-muted-foreground" />
-              </div>
+            {msg.role === 'assistant' && !msg.isStreaming && (
+              <MessageFeedback
+                messageId={msg.id}
+                currentFeedback={msg.feedback}
+                onFeedback={handleFeedback}
+              />
             )}
           </div>
-        ))}
-        {error && (
-          <div className="flex items-center justify-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
-            <AlertCircle className="h-4 w-4" />
-            {error}
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4 shrink-0">
-        <div className="flex-1">
-          <FloatingLabelInput
-            ref={inputRef}
-            label="Digite sua pergunta..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-          />
+          {msg.role === 'user' && (
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <User className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
         </div>
-        <Button type="submit" disabled={loading || !input.trim()} className="h-12 px-6">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
-          <Send className="ml-2 h-4 w-4" />
-        </Button>
-      </form>
-    </>
+      ))}
+      {error && (
+        <div className="flex items-center justify-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
   );
 
   const emptyState = (
@@ -595,7 +595,8 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
               </Button>
             )}
           </div>
-          {messages.length === 0 ? emptyState : chatContent}
+          {messages.length === 0 ? emptyState : messagesList}
+          {chatForm}
         </>
       )}
     </div>
