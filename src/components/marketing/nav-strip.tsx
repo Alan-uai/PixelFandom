@@ -35,24 +35,10 @@ interface OrbitalNavItemProps {
   glowFilterId: string;
 }
 
-function generateIrregularRingPath(outerRadius: number, wobble: number, phase: number): string {
-  const steps = 48;
-  const cx = 200;
-  const cy = 200;
-  let d = '';
-
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * Math.PI * 2;
-    const r = outerRadius * (1 + wobble * Math.sin(a * 4 + phase) + wobble * 0.3 * Math.sin(a * 9 + phase * 1.3));
-    d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
-  }
-
-  return d + ' Z';
-}
-
 function generateRingConfig() {
-  return Array.from({ length: 6 }, (_, i) => ({
-    outerRadius: 18 + i * 16 + Math.floor(Math.random() * 14),
+  const count = 1 + Math.floor(Math.random() * 6);
+  return Array.from({ length: count }, (_, i) => ({
+    outerRadius: 40 + Math.floor(Math.random() * 80),
     wobble: 0.025 + Math.random() * 0.04,
     duration: 3.5 + Math.random() * 2,
     delay: i * (0.3 + Math.random() * 0.8),
@@ -216,8 +202,8 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const { unreadCount } = useNotifications();
   const [clickWave, setClickWave] = useState<'left' | 'right' | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState(false);
-  const autoReturnRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollCleanupRef = useRef<(() => void) | null>(null);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mouseInContainerRef = useRef(false);
 
   const manuallyExpanded = useRef(false);
   const [rings] = useState(() => generateRingConfig());
@@ -308,68 +294,73 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     collapse();
   }, [collapse]);
 
-  const clearAutoReturn = useCallback(() => {
-    if (autoReturnRef.current) {
-      clearTimeout(autoReturnRef.current);
-      autoReturnRef.current = null;
+  const scheduleCollapse = useCallback(() => {
+    if (collapseTimerRef.current) return;
+    collapseTimerRef.current = setTimeout(() => {
+      collapseTimerRef.current = null;
+      doCollapse();
+      setMobileExpanded(false);
+      manuallyExpanded.current = false;
+    }, 5000);
+  }, [doCollapse]);
+
+  const cancelCollapse = useCallback(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
     }
   }, []);
 
-  const startAutoReturn = useCallback(() => {
-    clearAutoReturn();
-    autoReturnRef.current = setTimeout(() => {
-      doCollapse();
-      setMobileExpanded(false);
-    }, 5000);
-  }, [clearAutoReturn, doCollapse]);
-
+  // Auto-collapse após 5s: inicia quando expandido e mouse fora do container
   useEffect(() => {
-    if (!isMobile || !mobileExpanded) return;
+    if (!isExpanded) {
+      cancelCollapse();
+      return;
+    }
+    if (!mouseInContainerRef.current) {
+      scheduleCollapse();
+    }
+  }, [isExpanded, scheduleCollapse, cancelCollapse]);
+
+  // Mobile: collapse on scroll when expanded
+  useEffect(() => {
+    if (!isMobile || !isExpanded) return;
 
     const onScroll = () => {
+      cancelCollapse();
       doCollapse();
       setMobileExpanded(false);
-      clearAutoReturn();
     };
 
     window.addEventListener('scroll', onScroll, { once: true });
-    scrollCleanupRef.current = () => window.removeEventListener('scroll', onScroll);
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, [isMobile, mobileExpanded, doCollapse, clearAutoReturn]);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMobile, isExpanded, doCollapse, cancelCollapse]);
 
   const handleAvatarClick = useCallback(() => {
     playClickSound();
 
     if (expandedRef.current) {
+      cancelCollapse();
       doCollapse();
       manuallyExpanded.current = false;
-      if (isMobile) {
-        clearAutoReturn();
-        setMobileExpanded(false);
-      }
+      if (isMobile) setMobileExpanded(false);
       if (user) router.push('/profile');
       else onLogin?.();
     } else {
       doExpand();
       manuallyExpanded.current = true;
-      if (isMobile) {
-        setMobileExpanded(true);
-        startAutoReturn();
-      }
+      if (isMobile) setMobileExpanded(true);
     }
-  }, [user, router, onLogin, isMobile, doExpand, doCollapse, clearAutoReturn, startAutoReturn]);
+  }, [user, router, onLogin, isMobile, doExpand, doCollapse, cancelCollapse]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
-      clearAutoReturn();
+      cancelCollapse();
       doCollapse();
       setMobileExpanded(false);
     }
     triggerWave(item.side === 'left' ? 'left' : 'right');
-  }, [isMobile, mobileExpanded, clearAutoReturn, doCollapse, triggerWave]);
+  }, [isMobile, mobileExpanded, cancelCollapse, doCollapse, triggerWave]);
 
   const handleAvatarMouseEnter = useCallback(() => {
     if (isMobile) return;
@@ -470,6 +461,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             ringPhaseSeed={rings[0].phaseSeed}
             starHr={STAR_INSTANCES[0].hr}
             starVr={STAR_INSTANCES[0].vr}
+            ringWaves={rings}
             starWaves={starWaves}
           />
 
@@ -478,16 +470,20 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             <div
               className="relative flex items-center justify-center"
               style={{ width: 400, height: 400, perspective: 600, transformStyle: 'preserve-3d' }}
-              onMouseEnter={() => { if (!isMobile && !manuallyExpanded.current) doExpand(); }}
+              onMouseEnter={() => {
+                mouseInContainerRef.current = true;
+                cancelCollapse();
+                if (!isExpanded && !isMobile && !manuallyExpanded.current) doExpand();
+              }}
               onMouseLeave={() => {
-                if (!isMobile && !manuallyExpanded.current) {
-                  doCollapse();
-                  setMobileExpanded(false);
+                mouseInContainerRef.current = false;
+                if (!isMobile && !manuallyExpanded.current && isExpanded) {
+                  scheduleCollapse();
                 }
               }}
             >
-              {/* Trail dots */}
-              {!isExpanded && items.map((item, i) => (
+              {/* Trail dots — always in DOM, visibility controlled by animation loop */}
+              {items.map((item, i) => (
                 Array.from({ length: 8 }).map((_, t) => (
                   <div
                     key={`trail-${i}-${t}`}

@@ -120,15 +120,15 @@ export default function HeroSection() {
           />
         </motion.div>
 
-        <motion.p
+        <motion.div
           className="text-xl md:text-3xl font-semibold text-gradient-primary mb-6"
           variants={fadeUpVariants}
           style={phase === 'exit' && subtitleOpacity ? { opacity: subtitleOpacity } : {}}
         >
           <span className="animate-typing-glow">Sua wiki, do seu jeito.</span>
-        </motion.p>
+        </motion.div>
 
-        <motion.p
+        <motion.div
           className="text-base md:text-lg text-gray-400 leading-relaxed mb-8"
           variants={fadeUpVariants}
         >
@@ -137,7 +137,7 @@ export default function HeroSection() {
             <CreditCardWallet size={16} />
           </span>{' '}
           cartão de crédito
-        </motion.p>
+        </motion.div>
 
         <motion.div
           className="w-full max-w-3xl mb-10"

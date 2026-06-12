@@ -12,14 +12,11 @@ interface OrbitParams {
 function createParams(): OrbitParams {
   return {
     radius: 65 + Math.random() * 55,
-    speed: 0.25 + Math.random() * 0.5,
+    speed: (0.25 + Math.random() * 0.5) * (Math.random() < 0.5 ? 1 : -1),
     inclination: (Math.random() - 0.5) * (Math.PI / 1.5),
     phaseOffset: Math.random() * Math.PI * 2,
   };
 }
-
-const EXPAND_TRANSITION = 'transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.3s';
-const COLLAPSE_TRANSITION = 'transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), z-index 0.25s';
 
 type OrbitMode = 'shared' | 'individual' | 'random';
 
@@ -28,13 +25,15 @@ interface TrailPoint {
   y: number;
 }
 
+const MORPH_RATE = 0.02;
+const MORPH_EPSILON = 0.005;
+
 export function useOrbitalAnimation(count: number, options?: { orbitMode?: OrbitMode }) {
   const paramsRef = useRef<OrbitParams[]>([]);
   const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
   const trailRefs = useRef<(HTMLDivElement | null)[][]>([]);
   const [phase, setPhase] = useState<'orbiting' | 'expanded'>('orbiting');
   const phaseRef = useRef(phase);
-  const transitioningRef = useRef(false);
   const expandedRef = useRef(false);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
@@ -45,7 +44,10 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
   const trailPositions = useRef<TrailPoint[][]>([]);
   const trailFrameSkip = useRef(0);
-  const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const morphProgress = useRef(1);
+  const morphTarget = useRef(1);
+  const horizontalTargets = useRef<{ x: number; y: number }[]>([]);
 
   if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
     const mode = options?.orbitMode ?? 'random';
@@ -68,26 +70,46 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   }
 
   useEffect(() => {
-    if (phase !== 'orbiting') return;
-
-    transitioningRef.current = false;
-    let start = 0;
-    let raf = 0;
-    const params = paramsRef.current;
-
     for (let i = 0; i < count; i++) {
       const el = iconRefs.current[i];
       if (el) el.style.transition = 'none';
     }
 
+    let start = 0;
+    let raf = 0;
+    const params = paramsRef.current;
+
     function loop(ts: number) {
-      if (phaseRef.current !== 'orbiting' || transitioningRef.current) return;
       if (!start) start = ts;
       const elapsed = (ts - start) / 1000;
 
       speedMult.current += (targetSpeedMult.current - speedMult.current) * 0.04;
       radiusMult.current += (targetRadiusMult.current - radiusMult.current) * 0.04;
 
+      const curr = morphProgress.current;
+      const tgt = morphTarget.current;
+      const diff = tgt - curr;
+      if (Math.abs(diff) > MORPH_EPSILON) {
+        morphProgress.current += diff * MORPH_RATE;
+      } else if (diff !== 0) {
+        morphProgress.current = tgt;
+        if (tgt === 0) {
+          for (let i = 0; i < count; i++) {
+            const el = iconRefs.current[i];
+            if (!el) continue;
+            const hTarget = horizontalTargets.current[i];
+            el.style.transform = `translate(${hTarget?.x ?? 0}px, ${hTarget?.y ?? 0}px)`;
+            el.style.zIndex = '15';
+          }
+          if (phaseRef.current === 'orbiting') {
+            setPhase('expanded');
+          }
+        } else if (tgt === 1 && phaseRef.current === 'expanded') {
+          setPhase('orbiting');
+        }
+      }
+
+      const morph = morphProgress.current;
       const skip = trailFrameSkip.current;
 
       for (let i = 0; i < count; i++) {
@@ -97,15 +119,26 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         const currentRadius = p.radius * radiusMult.current;
         const currentSpeed = p.speed * speedMult.current;
         const angle = p.phaseOffset + currentSpeed * elapsed;
-        const x = currentRadius * Math.cos(angle);
-        const y = currentRadius * Math.sin(angle) * Math.cos(p.inclination);
-        el.style.transform = `translate(${x}px, ${y}px)`;
+
+        const orbitX = currentRadius * Math.cos(angle);
+        const orbitY = currentRadius * Math.sin(angle) * Math.cos(p.inclination);
+
+        const hTarget = horizontalTargets.current[i];
+        const hx = hTarget?.x ?? 0;
+        const hy = hTarget?.y ?? 0;
+
+        const orbWeight = Math.pow(morph, 0.2);
+        const hWeight = Math.pow(1 - morph, 2);
+        const fx = orbitX * orbWeight + hx * hWeight;
+        const fy = orbitY * orbWeight + hy * hWeight;
+
+        el.style.transform = `translate(${fx}px, ${fy}px)`;
         el.style.zIndex = String(Math.sin(angle) > 0 ? 11 : 15);
 
         if (skip % 2 === 0) {
           const trail = trailPositions.current[i];
           if (trail) {
-            trail.push({ x, y });
+            trail.push({ x: fx, y: fy });
             if (trail.length > 8) trail.shift();
           }
         }
@@ -130,64 +163,37 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         }
       }
 
-      trailFrameSkip.current = skip + 1;
+      if (morph < 0.05) {
+        for (let i = 0; i < count; i++) {
+          const trailEls = trailRefs.current[i];
+          if (trailEls) {
+            for (let t = 0; t < trailEls.length; t++) {
+              const tEl = trailEls[t];
+              if (tEl) tEl.style.opacity = '0';
+            }
+          }
+        }
+      }
+
       raf = requestAnimationFrame(loop);
     }
 
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [phase, count]);
+  }, [count]);
 
   const expand = useCallback(
     (targets: { x: number; y: number }[]) => {
-      if (collapseTimeoutRef.current) {
-        clearTimeout(collapseTimeoutRef.current);
-        collapseTimeoutRef.current = null;
-      }
-      transitioningRef.current = true;
+      horizontalTargets.current = targets;
       expandedRef.current = true;
-
-      for (let i = 0; i < count; i++) {
-        const el = iconRefs.current[i];
-        if (!el || !targets[i]) continue;
-        el.style.transition = EXPAND_TRANSITION;
-        el.style.transform = `translate(${targets[i].x}px, ${targets[i].y}px)`;
-        el.style.zIndex = '15';
-      }
-
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        setPhase('expanded');
-      }));
+      morphTarget.current = 0;
     },
     [count],
   );
 
   const collapse = useCallback(() => {
-    transitioningRef.current = true;
     expandedRef.current = false;
-
-    const params = paramsRef.current;
-    for (let i = 0; i < count; i++) {
-      const el = iconRefs.current[i];
-      if (!el) continue;
-      const p = params[i];
-      const r = p.radius * radiusMult.current;
-      const startX = r * Math.cos(p.phaseOffset);
-      const startY = r * Math.sin(p.phaseOffset) * Math.cos(p.inclination);
-      el.style.transition = COLLAPSE_TRANSITION;
-      el.style.transform = `translate(${startX}px, ${startY}px)`;
-      el.style.zIndex = '11';
-    }
-
-    collapseTimeoutRef.current = setTimeout(() => {
-      for (let i = 0; i < count; i++) {
-        const el = iconRefs.current[i];
-        if (el) el.style.transition = 'none';
-      }
-      transitioningRef.current = false;
-      collapseTimeoutRef.current = null;
-      setPhase('orbiting');
-    }, 1250);
+    morphTarget.current = 1;
   }, [count]);
 
   const setIconRef = useCallback(
@@ -206,14 +212,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     [],
   );
 
-  const setOrbitTransition = useCallback(() => {
-    for (let i = 0; i < count; i++) {
-      const el = iconRefs.current[i];
-      if (!el) continue;
-      el.style.transition = 'none';
-    }
-  }, [count]);
-
   const setHoverSpeedMultiplier = useCallback((mult: number) => {
     targetSpeedMult.current = mult;
   }, []);
@@ -229,7 +227,6 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
     setTrailRef,
     expand,
     collapse,
-    setOrbitTransition,
     setHoverSpeedMultiplier,
     setHoverRadiusMultiplier,
   };
