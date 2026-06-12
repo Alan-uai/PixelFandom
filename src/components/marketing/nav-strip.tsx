@@ -34,9 +34,8 @@ interface OrbitalNavItemProps {
   glowFilterId: string;
 }
 
-function generateIrregularRingPath(outerRadius: number, innerRatio: number, wobble: number, phase: number): string {
+function generateIrregularRingPath(outerRadius: number, wobble: number, phase: number): string {
   const steps = 48;
-  const innerRadius = outerRadius * innerRatio;
   const cx = 200;
   const cy = 200;
   let d = '';
@@ -46,23 +45,17 @@ function generateIrregularRingPath(outerRadius: number, innerRatio: number, wobb
     const r = outerRadius * (1 + wobble * Math.sin(a * 4 + phase) + wobble * 0.3 * Math.sin(a * 9 + phase * 1.3));
     d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
   }
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * Math.PI * -2;
-    const r = innerRadius * (1 + wobble * Math.sin(a * 4 + phase + 1.5) + wobble * 0.3 * Math.sin(a * 9 + phase * 1.7));
-    d += ` L ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
-  }
 
   return d + ' Z';
 }
 
 function generateRingConfig() {
-  const count = 3 + Math.floor(Math.random() * 2);
-  return Array.from({ length: count }, (_, i) => ({
-    outerRadius: 40 + Math.floor(Math.random() * 80),
-    innerRatio: 0.55 + Math.random() * 0.2,
-    wobble: 0.03 + Math.random() * 0.04,
-    duration: 10 + Math.random() * 8,
-    delay: i * (1.5 + Math.random() * 2),
+  return Array.from({ length: 6 }, (_, i) => ({
+    outerRadius: 18 + i * 16 + Math.floor(Math.random() * 14),
+    wobble: 0.025 + Math.random() * 0.04,
+    duration: 3.5 + Math.random() * 2,
+    delay: i * (0.3 + Math.random() * 0.8),
+    repeatDelay: 2 + Math.random() * 3,
     phaseSeed: Math.random() * Math.PI * 2,
   }));
 }
@@ -96,14 +89,12 @@ function sampleStarPoints(hr: number, vr: number, total: number): { x: number; y
 function generateMorphPath(
   progress: number,
   ringOuterRadius: number,
-  ringInnerRatio: number,
   ringWobble: number,
   ringPhase: number,
   starHr: number,
   starVr: number,
   pointCount: number = 60
 ): string {
-  const innerRadius = ringOuterRadius * ringInnerRatio;
   let d = '';
 
   const starPts = sampleStarPoints(starHr, starVr, pointCount);
@@ -114,14 +105,6 @@ function generateMorphPath(
     const ox = ringR * Math.cos(a) * (1 - progress) + starPts[i].x * progress;
     const oy = ringR * Math.sin(a) * (1 - progress) + starPts[i].y * progress;
     d += `${i === 0 ? 'M' : 'L'} ${ox} ${oy}`;
-  }
-
-  for (let i = 0; i < pointCount; i++) {
-    const a = (i / pointCount) * Math.PI * -2;
-    const ringInnerR = innerRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase + 1.5) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.7));
-    const ix = ringInnerR * Math.cos(a) * (1 - progress);
-    const iy = ringInnerR * Math.sin(a) * (1 - progress);
-    d += ` L ${ix} ${iy}`;
   }
 
   return d + ' Z';
@@ -509,35 +492,86 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Morphing Gravitational Waves ── */}
+          {/* ── Gradients ── */}
+          <svg width="0" height="0" className="absolute">
+            <defs>
+              <linearGradient id="morph-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
+                <stop offset="33%" stopColor="hsl(198,100%,65%)" stopOpacity="0.75" />
+                <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.6" />
+                <stop offset="80%" stopColor="hsl(350,90%,60%)" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
+              </linearGradient>
+              <linearGradient id="wave-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.5" />
+                <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.15" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* ── Gravitational Waves (collapsed) ── */}
           <motion.div
             className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            animate={{
-              scale: isExpanded ? [1, 1.04, 0.97, 1] : [0.6, 1, 1.3, 0.7],
-              opacity: isExpanded ? [0.5, 0.3, 0.12, 0.35] : [0.4, 0.35, 0.2, 0],
-            }}
-            transition={{
-              duration: isExpanded ? 6 : 10,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              times: [0, 0.2, 0.5, 1],
-            }}
+            style={{ perspective: 800, transformStyle: 'preserve-3d' }}
+            animate={{ opacity: isExpanded ? 0 : 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="absolute" style={{ transform: 'rotateX(8deg)', transformStyle: 'preserve-3d' }}>
+              {rings.map((arc, i) => (
+                <motion.div
+                  key={`wave-${i}`}
+                  className="absolute"
+                  style={{
+                    width: 400,
+                    height: 400,
+                    left: '50%',
+                    top: '50%',
+                    marginLeft: -200,
+                    marginTop: -200,
+                    transform: `translateZ(${(i - 2.5) * 10}px)`,
+                  }}
+                  initial={{ scale: 0.05, opacity: 0 }}
+                  animate={{
+                    scale: [0.05, 1.0, 1.5 + i * 0.12],
+                    opacity: [0, 0.5, 0],
+                    rotate: [0, 4 + i * 2],
+                  }}
+                  transition={{
+                    duration: arc.duration,
+                    times: [0, 0.2, 1],
+                    delay: arc.delay,
+                    repeat: Infinity,
+                    repeatDelay: arc.repeatDelay,
+                    ease: 'easeOut',
+                  }}
+                >
+                  <svg width="400" height="400" viewBox="0 0 400 400">
+                    <path
+                      d={generateIrregularRingPath(arc.outerRadius, arc.wobble, arc.phaseSeed)}
+                      fill="none"
+                      stroke="url(#wave-ring-grad)"
+                      strokeWidth={Math.max(1.2, 2.5 - i * 0.15)}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* ── Morph Path (expanded) ── */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
+            animate={{ opacity: isExpanded ? 1 : 0 }}
+            transition={{ duration: 0.6 }}
           >
             <svg width="400" height="400" viewBox="-200 -200 400 400">
-              <defs>
-                <linearGradient id="morph-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
-                  <stop offset="33%" stopColor="hsl(198,100%,65%)" stopOpacity="0.75" />
-                  <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.6" />
-                  <stop offset="80%" stopColor="hsl(350,90%,60%)" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
-                </linearGradient>
-              </defs>
-              <motion.path
+              <path
                 d={generateMorphPath(
                   morphProgress,
                   rings[0].outerRadius,
-                  rings[0].innerRatio,
                   rings[0].wobble,
                   rings[0].phaseSeed,
                   STAR_INSTANCES[0].hr,

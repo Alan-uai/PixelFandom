@@ -47,6 +47,8 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     setSaving(true);
     try {
       await regRef.current.onSave();
+    } catch {
+      // Error already handled by the page — just prevent unhandled rejection
     } finally {
       setSaving(false);
     }

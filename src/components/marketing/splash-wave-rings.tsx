@@ -4,12 +4,10 @@ import { motion } from 'framer-motion'
 
 function generateIrregularRingPath(
   outerRadius: number,
-  innerRatio: number,
   wobble: number,
   phase: number,
 ): string {
   const steps = 48
-  const innerRadius = outerRadius * innerRatio
   const cx = 200
   const cy = 200
   let d = ''
@@ -23,22 +21,12 @@ function generateIrregularRingPath(
         wobble * 0.3 * Math.sin(a * 9 + phase * 1.3))
     d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`
   }
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * Math.PI * -2
-    const r =
-      innerRadius *
-      (1 +
-        wobble * Math.sin(a * 4 + phase + 1.5) +
-        wobble * 0.3 * Math.sin(a * 9 + phase * 1.7))
-    d += ` L ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`
-  }
 
   return d + ' Z'
 }
 
 const RINGS = Array.from({ length: 6 }, (_, i) => ({
   outerRadius: 18 + i * 20,
-  innerRatio: 0.5 + (i * 17) % 15 * 0.01,
   wobble: 0.02 + (i * 3) % 4 * 0.008,
   phaseSeed: i * 0.73 + 1.2,
   delay: i * 0.15,
@@ -101,7 +89,6 @@ export default function SplashWaveRings({ ringCount, speed }: SplashWaveRingsPro
               <path
                 d={generateIrregularRingPath(
                   arc.outerRadius,
-                  arc.innerRatio,
                   arc.wobble,
                   arc.phaseSeed,
                 )}

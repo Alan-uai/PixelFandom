@@ -86,13 +86,27 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
     [cardSize.w, cardSize.h],
   )
 
-  const dashOffset = useTransform(beamProgress, [0, 1], [1, 0])
   const TRAIL_LEN = 0.15
   const beamTrail = useTransform(beamProgress, (v) => {
     const len = Math.min(TRAIL_LEN, Math.max(0, v))
     return `${len} 1`
   })
   const beamTrailOffset = useTransform(beamProgress, (v) => Math.min(0, TRAIL_LEN - v))
+
+  const GLOW_LEN = 0.12
+  const CORE_LEN = 0.04
+
+  const glowTrail = useTransform(beamProgress, (v) => {
+    const len = Math.min(GLOW_LEN, Math.max(0, v))
+    return `${len} 1`
+  })
+  const glowTrailOffset = useTransform(beamProgress, (v) => Math.min(0, GLOW_LEN - v))
+
+  const coreTrail = useTransform(beamProgress, (v) => {
+    const len = Math.min(CORE_LEN, Math.max(0, v))
+    return `${len} 1`
+  })
+  const coreTrailOffset = useTransform(beamProgress, (v) => Math.min(0, CORE_LEN - v))
 
   if (phase === 'idle' || phase === 'done') {
     return <div className={cn('rounded-xl bg-card', className)} style={style}>{children}</div>
@@ -144,7 +158,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
               />
             )}
 
-            {/* Beam head glow - wide glow at beam head */}
+            {/* Beam head glow - wide glow trailing behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -154,13 +168,13 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: '0.12 1', strokeDashoffset: dashOffset }}
+                style={{ strokeDasharray: glowTrail, strokeDashoffset: glowTrailOffset }}
                 opacity={0.6}
                 filter="url(#svg-beam-glow)"
               />
             )}
 
-            {/* Beam head core - narrow bright */}
+            {/* Beam head core - narrow bright trailing behind star */}
             {pathD && (
               <motion.path
                 d={pathD}
@@ -170,7 +184,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength="1"
-                style={{ strokeDasharray: '0.04 1', strokeDashoffset: dashOffset }}
+                style={{ strokeDasharray: coreTrail, strokeDashoffset: coreTrailOffset }}
               />
             )}
           </svg>

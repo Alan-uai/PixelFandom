@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
@@ -227,72 +227,90 @@ export default function WikiAIConfigPage() {
   const resolvedModel = modelSource === 'custom' ? customModel : model;
   const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
+    const tid = tenant?.id;
+    if (!tid) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Tenant não encontrado.' });
+      return;
+    }
+
     const effectiveApiKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
     const effectiveGeminiApiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
 
-    const res = await fetch(`/api/tenants/${tenant!.id}/ai-config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ai_enabled: enabled,
-        ai_config: {
-          provider,
-          primary_provider: primaryProvider,
-          model: resolvedModel,
-          custom_api_key: effectiveApiKey,
-          fallback_chain: fallbackChain,
-          gemini_model: resolvedGeminiModel,
-          gemini_custom_api_key: effectiveGeminiApiKey,
-          gemini_fallback_chain: geminiFallbackChain,
-          wake_word_text: wakeWordText,
-          chat_name: chatName,
-          bot_logo: botLogo,
-          personality_id: personalityId,
-          response_style: responseStyle,
-          system_prompt: getPersonality(personalityId).systemPrompt,
-          suggested_questions: suggestedQuestions,
-          bot_banner: botBanner,
-          wake_word: true,
-        },
-      }),
-    });
+    try {
+      const res = await fetch(`/api/tenants/${tid}/ai-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai_enabled: enabled,
+          ai_config: {
+            provider,
+            primary_provider: primaryProvider,
+            model: resolvedModel,
+            custom_api_key: effectiveApiKey,
+            fallback_chain: fallbackChain,
+            gemini_model: resolvedGeminiModel,
+            gemini_custom_api_key: effectiveGeminiApiKey,
+            gemini_fallback_chain: geminiFallbackChain,
+            wake_word_text: wakeWordText,
+            chat_name: chatName,
+            bot_logo: botLogo,
+            personality_id: personalityId,
+            response_style: responseStyle,
+            system_prompt: getPersonality(personalityId).systemPrompt,
+            suggested_questions: suggestedQuestions,
+            bot_banner: botBanner,
+            wake_word: true,
+          },
+        }),
+      });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({ error: 'Save failed' }));
-      toast({ variant: 'destructive', title: 'Erro', description: errData.error });
-      throw new Error(errData.error);
-    }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Save failed' }));
+        toast({ variant: 'destructive', title: 'Erro', description: errData.error });
+        return;
+      }
 
-    const result = await res.json();
-    const { ai_config: _savedConfig } = result;
-    setSavedConfig({
-      enabled,
-      provider,
-      primaryProvider,
-      model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
-      modelSource,
-      customModel,
-      customApiKey: effectiveApiKey,
-      fallbackChain,
-      fallbackSource,
-      geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
-      geminiModelSource,
-      geminiCustomModel,
-      geminiCustomApiKey: effectiveGeminiApiKey,
-      geminiFallbackChain,
-      geminiFallbackSource,
-      wakeWordText,
+      const result = await res.json();
+      setSavedConfig({
+        enabled,
+        provider,
+        primaryProvider,
+        model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
+        modelSource,
+        customModel,
+        customApiKey: effectiveApiKey,
+        fallbackChain,
+        fallbackSource,
+        geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
+        geminiModelSource,
+        geminiCustomModel,
+        geminiCustomApiKey: effectiveGeminiApiKey,
+        geminiFallbackChain,
+        geminiFallbackSource,
+        wakeWordText,
         chatName,
         botLogo,
         personalityId,
         responseStyle,
         suggestedQuestions,
-      botBanner,
-    });
+        botBanner,
+      });
 
-    useSiteCache.getState().set(`ai-config:${tenant!.id}`, result);
-  };
+      useSiteCache.getState().set(`ai-config:${tid}`, result);
+      toast({ title: 'Salvo', description: 'Configurações salvas com sucesso.' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar configurações';
+      toast({ variant: 'destructive', title: 'Erro', description: message });
+    }
+  }, [
+    tenant, enabled, provider, primaryProvider, resolvedModel, modelSource,
+    customModel, customApiKey, fallbackChain, fallbackSource,
+    resolvedGeminiModel, geminiModelSource, geminiCustomModel,
+    geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
+    wakeWordText, chatName, botLogo, personalityId, responseStyle,
+    suggestedQuestions, botBanner, toast,
+  ]);
 
   const isDirty = useMemo(() =>
     enabled !== savedConfig.enabled ||
@@ -327,7 +345,32 @@ export default function WikiAIConfigPage() {
     suggestedQuestions, botBanner,
   ]);
 
-  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: () => {} });
+  const handleDiscard = useCallback(() => {
+    setEnabled(savedConfig.enabled);
+    setProvider(savedConfig.provider);
+    setPrimaryProvider(savedConfig.primaryProvider);
+    setModel(savedConfig.modelSource === 'custom' ? 'openai/gpt-4o-mini' : savedConfig.model);
+    setModelSource(savedConfig.modelSource);
+    setCustomModel(savedConfig.customModel);
+    setCustomApiKey(savedConfig.customApiKey);
+    setFallbackChain(savedConfig.fallbackChain);
+    setFallbackSource(savedConfig.fallbackSource);
+    setGeminiModel(savedConfig.geminiModelSource === 'custom' ? 'gemini-2.0-flash' : savedConfig.geminiModel);
+    setGeminiModelSource(savedConfig.geminiModelSource);
+    setGeminiCustomModel(savedConfig.geminiCustomModel);
+    setGeminiCustomApiKey(savedConfig.geminiCustomApiKey);
+    setGeminiFallbackChain(savedConfig.geminiFallbackChain);
+    setGeminiFallbackSource(savedConfig.geminiFallbackSource);
+    setWakeWordText(savedConfig.wakeWordText);
+    setChatName(savedConfig.chatName);
+    setBotLogo(savedConfig.botLogo);
+    setPersonalityId(savedConfig.personalityId);
+    setResponseStyle(savedConfig.responseStyle);
+    setSuggestedQuestions(savedConfig.suggestedQuestions);
+    setBotBanner(savedConfig.botBanner);
+  }, [savedConfig]);
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: handleDiscard });
 
   if (loading) {
     return (
