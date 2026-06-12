@@ -1,12 +1,12 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    tsconfigPath: './tsconfig.json',
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    dirs: ['src'],
   },
   images: {
     remotePatterns: [
@@ -29,7 +29,14 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    // Performance: Enable AVIF for better compression
+    formats: ['image/avif', 'image/webp'],
   },
+  // Performance: Enable compression and caching
+  compress: true,
+  productionBrowserSourceMaps: false,
+  // Performance: Optimize bundle
+  swcMinify: true,
   async rewrites() {
     if (process.env.NODE_ENV !== 'production') {
       const backend = process.env.PSYCHO_BACKEND_URL || 'http://localhost:8000';
