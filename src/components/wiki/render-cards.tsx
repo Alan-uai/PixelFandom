@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
-import { processWikiLinks } from './streaming-accordion';
+import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
 
 type Section = {
@@ -74,8 +74,8 @@ export default function RenderCards({ content, isStreaming, tenantSlug }: Props)
           let contentHtml = '';
           if (section.content) {
             try {
-              contentHtml = micromark(section.content, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
-              contentHtml = processWikiLinks(contentHtml, tenantSlug);
+              const withLinks = processSlugLinks(section.content, tenantSlug);
+              contentHtml = micromark(withLinks, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
             } catch {
               contentHtml = `<p>${section.content}</p>`;
             }

@@ -6,14 +6,12 @@ import { chatStreamGemini } from '@/lib/gemini-chat';
 import { createClient } from '@/supabase/server';
 import { decryptApiKey } from '@/lib/crypto';
 import {
-  buildSectionPrompt,
-  buildDisplayModePrompt,
-  TEXT_CHAT_SYSTEM_PROMPT,
   loadChatHistory,
   trimMessagesToBudget,
   getContextWindow,
 } from '@/lib/chat-utils';
 import { getSchemaPrompt } from '@/lib/game-schema';
+import { getOrBuildPrompt } from '@/lib/text-chat-prompt';
 import {
   TEXT_CHAT_TOOLS,
   executeTextChatTool,
@@ -168,19 +166,6 @@ async function callOpenRouter(
   throw lastError || new Error('All models failed');
 }
 
-function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string, responseStyle?: string, displayMode?: string): string {
-  const sectionPrompt = buildSectionPrompt(responseStyle);
-  const displayModePrompt = buildDisplayModePrompt(displayMode);
-  const parts = [TEXT_CHAT_SYSTEM_PROMPT, schemaPrompt, sectionPrompt];
-  if (displayModePrompt) {
-    parts.push(displayModePrompt);
-  }
-  if (userPrompt) {
-    parts.unshift(userPrompt);
-  }
-  return parts.join('\n\n');
-}
-
 async function saveMessage(
   sessionId: string,
   role: string,
@@ -218,6 +203,7 @@ async function buildMessages(
   tenantSlug?: string,
   responseStyle?: string,
   displayMode?: string,
+  userId?: string,
 ): Promise<Record<string, unknown>[]> {
   let history: Record<string, unknown>[] = [];
 
@@ -228,7 +214,9 @@ async function buildMessages(
     ).map((m) => ({ role: m.role, content: m.content }));
   }
 
-  const systemPrompt = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
+  const systemPrompt = getOrBuildPrompt({
+    schemaPrompt, userPrompt, responseStyle, displayMode,
+  }, tenantSlug || 'default', userId);
 
   return [
     { role: 'system', content: systemPrompt },
@@ -259,6 +247,7 @@ export async function POST(request: NextRequest) {
     let userPrompt = '';
     let responseStyle = 'detalhado';
     let displayMode = 'acordeao';
+    let userId: string | undefined;
 
     if (requestTenant?.slug) {
       const tenant = await getTenantBySlug(requestTenant.slug);
@@ -284,6 +273,7 @@ export async function POST(request: NextRequest) {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        userId = user.id;
         const { data: prefs } = await supabase
           .from('user_preferences')
           .select('preferences')
@@ -340,7 +330,9 @@ export async function POST(request: NextRequest) {
         }),
       ]);
 
-      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
+      const geminiSystem = getOrBuildPrompt({
+        schemaPrompt, userPrompt, responseStyle, displayMode,
+      }, tenantSlug || 'default');
       const ragPrompt = context
         ? `${geminiSystem}
 
@@ -375,7 +367,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
     try {
       let messages = await buildMessages(
-        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle, displayMode
+        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle, displayMode, userId
       );
       const contextWindow = getContextWindow(model);
       if (contextWindow && messages.length > 1) {
@@ -497,7 +489,9 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
           }),
         ]);
 
-      const geminiSystem = buildTextSystemPrompt(schemaPrompt, userPrompt, responseStyle, displayMode);
+        const geminiSystem = getOrBuildPrompt({
+          schemaPrompt, userPrompt, responseStyle, displayMode,
+        }, tenantSlug || 'default');
         const ragPrompt = context
           ? `${geminiSystem}
 

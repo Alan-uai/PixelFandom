@@ -55,7 +55,19 @@ function findClosestOrbitAngle(R: number, inc: number, tx: number, ty: number): 
       bestAngle = a;
     }
   }
-  return bestAngle;
+
+  const sinInc2 = Math.sin(inc) ** 2;
+  let theta = bestAngle;
+  for (let iter = 0; iter < 2; iter++) {
+    const sinT = Math.sin(theta);
+    const cosT = Math.cos(theta);
+    const g = tx * sinT - ty * Math.cos(inc) * cosT - R * sinT * cosT * sinInc2;
+    const gp = tx * cosT + ty * Math.cos(inc) * sinT - R * Math.cos(2 * theta) * sinInc2;
+    if (Math.abs(gp) < 1e-12) break;
+    theta -= g / gp;
+  }
+
+  return theta;
 }
 
 function angularDistance(from: number, to: number, speed: number): number {

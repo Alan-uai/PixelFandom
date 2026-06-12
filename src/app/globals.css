@@ -837,8 +837,10 @@
   .letter-float-delay-11 { animation-delay: 0.15s; }
 
   .inset-shadow {
-    box-shadow: 12px 12px 12px rgba(0, 0, 0, 0.1) inset,
-                -10px -10px 10px white inset;
+    box-shadow: 6px 6px 6px rgba(0, 0, 0, 0.1) inset,
+                -5px -5px 5px white inset,
+                -10px -10px 10px white,
+                12px 12px 12px rgba(0, 0, 0, 0.1);
   }
 
   @keyframes splash-particle-fade {

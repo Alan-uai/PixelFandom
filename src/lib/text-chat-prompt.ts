@@ -1,14 +1,14 @@
-import { responseFormatStyles, SECTION_META, type DisplayMode, displayModes } from './response-styles';
+import { responseFormatStyles } from './response-styles';
 
-// ─── BASE MODULES (always included) ───
+// ─── CORE MODULES ───
 
 export const IDENTITY_MODULE = `You are an expert wiki assistant integrated with a game database. You have access to various tools for searching, querying, and analyzing game data.
 
 LINKS:
-Whenever you mention an item or wiki page, use this format: Name@path@
+Whenever you mention an item, wiki page, or game entity, use this format: Name@path@
 - Item: Iron Sword@weapons/iron-sword@
 - Wiki page: Weapon Guide@weapon-guide@
-The renderer will convert these to clickable links automatically.`;
+The renderer converts these to clickable links automatically.`;
 
 export const TOOL_LIST_MODULE = `AVAILABLE TOOLS:
 
@@ -33,35 +33,37 @@ export const CORE_RULES_MODULE = `RULES:
 function buildAcordeaoFormat(responseStyle?: string): string {
   const style = responseStyle ? responseFormatStyles[responseStyle] : null;
   const sections = style?.sections ?? responseFormatStyles.detalhado.sections;
-  const sectionExamples = sections.map(s => {
-    const meta = SECTION_META[s] ?? { icon: '📌', label: s.charAt(0).toUpperCase() + s.slice(1) };
-    return `@@@SECTION@@@\n{"sectionType":"${s}","title":"${meta.label}","content":"..."}`;
-  }).join('\n');
 
   return `MODO DE EXIBIÇÃO: Acordeão
-Forneça sua resposta em seções separadas. Cada seção deve começar com @@@SECTION@@@ na própria linha, seguido de um JSON na linha seguinte.
+
+Estrutura a resposta em seções separadas. Cada seção começa com @@@SECTION@@@ em uma linha própria, seguido de um objeto JSON na linha seguinte.
 
 Seções obrigatórias: ${sections.join(', ')}
 
-Exemplo:
-${sectionExamples}
+Formato de cada seção:
+@@@SECTION@@@
+{"sectionType":"tipo","title":"Título da Seção","content":"Texto em markdown com links Name@path@"}
 
 REGRAS:
 - sectionType deve ser um dos: ${sections.join(', ')}
-- O campo "resumo" deve ser a primeira seção (se presente), enxuta e direta
-- Use Name@path@ para referenciar itens e páginas
-- Responda em português brasileiro
-- sectionType "tabela" pode incluir "headers" (string[]) e "rows" (string[][])`;
+- A seção "resumo" vem primeiro (se presente), enxuta e direta
+- Use Name@path@ para referenciar itens e páginas da wiki
+- Para dados tabulares, inclua "headers" (string[]) e "rows" (string[][]) no JSON
+- Responda em português brasileiro`;
 }
 
 function buildTextoPuroFormat(): string {
   return `MODO DE EXIBIÇÃO: Texto Puro
+
 Escreva a resposta como um documento Markdown contínuo. Use ## para títulos de seção, listas, tabelas e negrito normalmente. Use Name@path@ para referenciar itens e páginas da wiki.`;
 }
 
 function buildTabelaFormat(): string {
   return `MODO DE EXIBIÇÃO: Tabela
-Estruture a resposta como uma única seção com headers (string[]) e rows (string[][]). A primeira linha pode conter o título geral. Use Name@path@ para referenciar itens.`;
+
+Estruture a resposta como uma única seção com headers (string[]) e rows (string[][]). A primeira linha pode conter o título geral.
+
+Use Name@path@ para referenciar itens dentro das células.`;
 }
 
 function buildCardsFormat(responseStyle?: string): string {
@@ -69,11 +71,12 @@ function buildCardsFormat(responseStyle?: string): string {
   const sections = style?.sections ?? responseFormatStyles.detalhado.sections;
 
   return `MODO DE EXIBIÇÃO: Cards
+
 Forneça sua resposta em seções separadas com @@@SECTION@@@. Cada seção vira um card visual.
 
 Seções obrigatórias: ${sections.join(', ')}
 
-Exemplo:
+Formato:
 @@@SECTION@@@
 {"sectionType":"${sections[0]}","title":"...","content":"..."}
 
@@ -85,20 +88,21 @@ function buildHibridoFormat(responseStyle?: string): string {
   const sections = style?.sections ?? responseFormatStyles.detalhado.sections;
 
   return `MODO DE EXIBIÇÃO: Híbrido
-Forneça sua resposta em seções separadas com @@@SECTION@@@. O sectionType define como cada seção é renderizada.
 
-Seções obrigatórias: ${sections.join(', ')}
+Forneça sua resposta em seções separadas com @@@SECTION@@@. O sectionType define como cada seção é renderizada pelo sistema. Use o sectionType mais adequado para cada parte do conteúdo.
 
-Dica: Use o sectionType mais adequado para cada parte do conteúdo.
+Seções disponíveis: ${sections.join(', ')}
+
 Use Name@path@ para referenciar itens e páginas.`;
 }
 
 function buildAutoFormat(): string {
   return `MODO DE EXIBIÇÃO: Automático
-Escolha o melhor formato para cada resposta:
-- @@@SECTION@@@ com seções para respostas complexas
-- Markdown contínuo para respostas simples
-- sectionType "tabela" com headers/rows para dados comparáveis
+
+Escolha o formato mais adequado para cada resposta:
+- Respostas complexas com seções lógicas: use @@@SECTION@@@ com JSON
+- Respostas simples: use Markdown contínuo com ##
+- Dados comparáveis em tabela: use sectionType "tabela" com headers e rows
 Use Name@path@ para referenciar itens e páginas.`;
 }
 

@@ -44,19 +44,24 @@ function tryParseLastPart(raw: string): Section | null {
   return null;
 }
 
-export function processWikiLinks(html: string, tenantSlug?: string): string {
-  if (!tenantSlug) return html;
-  return html.replace(
-    /\[\[([^\|]+)\|([^\]]+)\]\]/g,
-    (_, slug, text) =>
-      `<a href="/w/${tenantSlug}/${slug}" class="inline-flex items-center gap-0.5 text-primary underline decoration-primary/30 hover:decoration-primary transition-all">${text}<svg class="h-3 w-3 inline-block ml-0.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
+export function processSlugLinks(markdown: string, tenantSlug?: string): string {
+  if (!tenantSlug || !markdown) return markdown;
+  return markdown.replace(
+    /([^@]+)@([\w\/.-]+)@/g,
+    (_, text, path) => {
+      const href = path.includes('/')
+        ? `/w/${tenantSlug}/item:${path}`
+        : `/w/${tenantSlug}/${path}`;
+      return `[${text.trim()}](${href})`;
+    }
   );
 }
 
 function renderContent(content: string, tenantSlug?: string): string {
   try {
-    const rawHtml = micromark(content, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
-    return processWikiLinks(rawHtml, tenantSlug);
+    const withLinks = processSlugLinks(content, tenantSlug);
+    const rawHtml = micromark(withLinks, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+    return rawHtml;
   } catch {
     return `<p>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
   }

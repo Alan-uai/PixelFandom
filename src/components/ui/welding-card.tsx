@@ -312,12 +312,14 @@ export function WeldingCard({
           )}
 
           {text && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center rounded-[11px] bg-card/60 pointer-events-none">
-              <WeldedText
-                text={text}
-                startDelay={textStartDelay ?? duration * 0.35}
-                className="text-2xl font-bold text-foreground"
-              />
+            <div className="absolute inset-0 z-30 rounded-[11px] bg-card/60 pointer-events-none">
+              <div className="px-6 py-4">
+                <WeldedText
+                  text={text}
+                  startDelay={textStartDelay ?? duration * 0.35}
+                  className="text-2xl font-bold text-foreground"
+                />
+              </div>
             </div>
           )}
         </>

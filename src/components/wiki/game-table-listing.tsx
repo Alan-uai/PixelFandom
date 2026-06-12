@@ -112,11 +112,11 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const cols = Math.max(1, Math.min(5, columnsCount || 2));
   const gridColsClass = ({
     1: 'grid-cols-1',
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
-    4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4',
-    5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-  } as Record<number, string>)[cols] || 'grid-cols-1 sm:grid-cols-2';
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+    4: 'grid-cols-4',
+    5: 'grid-cols-5',
+  } as Record<number, string>)[cols] || 'grid-cols-2';
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const handleInfiniteScroll = useCallback(() => {

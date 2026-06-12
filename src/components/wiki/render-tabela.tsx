@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
-import { processWikiLinks } from './streaming-accordion';
+import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
 
 type Section = {
@@ -40,13 +40,14 @@ function parseSections(content: string, isStreaming: boolean): { sections: Secti
   return { sections, partial };
 }
 
-function TableSection({ section }: { section: Section }) {
+function TableSection({ section, tenantSlug }: { section: Section; tenantSlug?: string }) {
   const meta = SECTION_META[section.sectionType] ?? { icon: '📌', label: section.sectionType };
 
   let contentHtml = '';
   if (section.content) {
     try {
-      contentHtml = micromark(section.content, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+      const withLinks = processSlugLinks(section.content, tenantSlug);
+      contentHtml = micromark(withLinks, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
     } catch {
       contentHtml = `<p>${section.content}</p>`;
     }
@@ -79,7 +80,7 @@ function TableSection({ section }: { section: Section }) {
                 {section.rows.map((row, ri) => (
                   <tr key={ri} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                     {row.map((cell, ci) => (
-                      <td key={ci} className="px-3 py-2">{cell}</td>
+                      <td key={ci} className="px-3 py-2">{processSlugLinks(cell, tenantSlug)}</td>
                     ))}
                   </tr>
                 ))}
@@ -104,12 +105,12 @@ export function renderSectionTable(section: Section, tenantSlug?: string): strin
   for (const row of section.rows) {
     html += '<tr class="border-b border-border/30">';
     for (const cell of row) {
-      html += `<td class="px-3 py-2">${cell}</td>`;
+      html += `<td class="px-3 py-2">${processSlugLinks(cell, tenantSlug)}</td>`;
     }
     html += '</tr>';
   }
   html += '</tbody></table></div>';
-  return processWikiLinks(html, tenantSlug);
+  return html;
 }
 
 export default function RenderTabela({ content, isStreaming, tenantSlug }: Props) {
@@ -119,19 +120,20 @@ export default function RenderTabela({ content, isStreaming, tenantSlug }: Props
     return <span className="text-muted-foreground italic">Nenhum dado</span>;
   }
 
-  if (sections.length === 0) {
-    const rendered = useMemo(() => {
-      try {
-        const html = micromark(content, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
-        return processWikiLinks(html, tenantSlug);
-      } catch {
-        return `<p>${content?.replace(/</g, '&lt;').replace(/>/g, '&gt;') || ''}</p>`;
-      }
-    }, [content, tenantSlug]);
+  const fallbackHtml = useMemo(() => {
+    if (sections.length > 0 || !content) return null;
+    try {
+      const withLinks = processSlugLinks(content, tenantSlug);
+      return micromark(withLinks, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+    } catch {
+      return `<p>${content?.replace(/</g, '&lt;').replace(/>/g, '&gt;') || ''}</p>`;
+    }
+  }, [content, tenantSlug, sections.length]);
 
+  if (fallbackHtml) {
     return (
       <div>
-        <div className="prose prose-invert prose-sm max-w-none prose-a:text-primary" dangerouslySetInnerHTML={{ __html: rendered }} />
+        <div className="prose prose-invert prose-sm max-w-none prose-a:text-primary" dangerouslySetInnerHTML={{ __html: fallbackHtml }} />
         {isStreaming && <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>}
       </div>
     );
@@ -140,7 +142,7 @@ export default function RenderTabela({ content, isStreaming, tenantSlug }: Props
   return (
     <div className="space-y-3">
       {sections.map((section, idx) => (
-        <TableSection key={idx} section={section} />
+        <TableSection key={idx} section={section} tenantSlug={tenantSlug} />
       ))}
       {partial && isStreaming && (
         <div className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">

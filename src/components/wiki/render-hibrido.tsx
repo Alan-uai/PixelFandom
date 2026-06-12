@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { ChevronDown } from 'lucide-react';
-import { processWikiLinks } from './streaming-accordion';
+import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
 import { renderSectionTable } from './render-tabela';
 
@@ -50,9 +50,8 @@ function parseSections(content: string, isStreaming: boolean): { sections: Secti
 function renderContent(text: string, tenantSlug?: string): string {
   if (!text) return '';
   try {
-    const html = micromark(text, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
-    const withLinks = processWikiLinks(html, tenantSlug);
-    return withLinks;
+    const withLinks = processSlugLinks(text, tenantSlug);
+    return micromark(withLinks, { allowDangerousHtml: false, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
   } catch {
     return `<p>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
   }
@@ -129,7 +128,7 @@ function ListSection({ section }: { section: Section }) {
   );
 }
 
-function TableHybridSection({ section }: { section: Section }) {
+function TableHybridSection({ section, tenantSlug }: { section: Section; tenantSlug?: string }) {
   const meta = SECTION_META[section.sectionType] ?? { icon: '📌', label: section.sectionType };
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -141,13 +140,13 @@ function TableHybridSection({ section }: { section: Section }) {
         {section.content && (
           <div
             className="prose prose-invert prose-sm max-w-none prose-a:text-primary mb-3"
-            dangerouslySetInnerHTML={{ __html: renderContent(section.content) }}
+            dangerouslySetInnerHTML={{ __html: renderContent(section.content, tenantSlug) }}
           />
         )}
         {section.headers && section.rows && (
           <div
             className="text-xs"
-            dangerouslySetInnerHTML={{ __html: renderSectionTable(section) }}
+            dangerouslySetInnerHTML={{ __html: renderSectionTable(section, tenantSlug) }}
           />
         )}
       </div>
@@ -173,7 +172,7 @@ export default function RenderHibrido({ content, isStreaming, tenantSlug }: Prop
         const st = section.sectionType;
 
         if (st === 'tabela') {
-          return <TableHybridSection key={idx} section={section} />;
+          return <TableHybridSection key={idx} section={section} tenantSlug={tenantSlug} />;
         }
 
         if (COMPACT_TYPES.has(st)) {

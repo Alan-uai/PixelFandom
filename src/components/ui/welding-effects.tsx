@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { animate, motion, useMotionValue } from 'framer-motion'
+import * as opentype from 'opentype.js'
 import { cn } from '@/lib/utils'
 import {
   PRIMARY,
@@ -434,7 +435,7 @@ function GravityParticle({ originX, originY, vx, vy, size, rotation, onDone, ...
   )
 }
 
-// ── WeldedText (SVG stroke-dasharray letter tracing) ──
+// ── WeldedText (SVG path tracing via opentype.js) ──
 
 interface WeldedTextProps {
   text: string
@@ -442,69 +443,95 @@ interface WeldedTextProps {
   className?: string
 }
 
-const DASH_TOTAL = 600
+interface LetterPath {
+  path: string
+  length: number
+  advance: number
+  char: string
+}
+
+const FONT_SIZE = 90
+const TRACE_DURATION = 0.4
+const LETTER_GAP = 80
+const FILL_DELAY_FRAC = 0.8
+const FILL_DURATION_FRAC = 0.2
 
 export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
-  const letters = text.split('')
+  const [state, setState] = useState<{ letters: LetterPath[]; fontHeight: number } | null>(null)
   const [drawnCount, setDrawnCount] = useState(-1)
   const [activeIdx, setActiveIdx] = useState(-1)
-  const dashProgress = useMotionValue(DASH_TOTAL)
-  const [charWidths, setCharWidths] = useState<number[]>([])
-  const measuredRef = useRef(false)
+  const dashProgress = useMotionValue(0)
 
   useEffect(() => {
-    if (measuredRef.current || !text) return
-    measuredRef.current = true
+    let cancel = false
+    ;(async () => {
+      try {
+        const font = await opentype.load('/fonts/InterVariable.ttf')
+        if (cancel) return
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('width', '0')
-    svg.setAttribute('height', '0')
-    svg.style.position = 'absolute'
-    svg.style.visibility = 'hidden'
-    document.body.appendChild(svg)
+        const scale = FONT_SIZE / font.unitsPerEm
+        const yOffset = font.ascender * scale
+        const fontHeight = (font.ascender - font.descender) * scale
+        const letters: LetterPath[] = []
 
-    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    textEl.setAttribute('x', '0')
-    textEl.setAttribute('y', '90')
-    textEl.setAttribute('font-size', '90')
-    textEl.setAttribute('font-family', 'inherit')
-    textEl.setAttribute('font-weight', 'inherit')
-    textEl.textContent = text
-    svg.appendChild(textEl)
+        for (const char of text) {
+          const glyph = font.charToGlyph(char)
+          const advance = (glyph.advanceWidth ?? font.unitsPerEm * 0.6) * scale
 
-    svg.getBoundingClientRect()
-    const widths = text.split('').map((_, i) => {
-      try { return textEl.getSubStringLength(i, 1) }
-      catch { return 62 }
-    })
-    setCharWidths(widths)
+          if (char === ' ') {
+            letters.push({ path: '', length: 0, advance, char })
+            continue
+          }
 
-    document.body.removeChild(svg)
+          const pathObj = glyph.getPath(0, yOffset, FONT_SIZE)
+          const pathStr = pathObj.toPathData(1)
+
+          const temp = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+          temp.setAttribute('d', pathStr)
+          const length = temp.getTotalLength()
+
+          letters.push({ path: pathStr, length, advance, char })
+        }
+
+        if (!cancel) setState({ letters, fontHeight })
+      } catch (e) {
+        console.error('WeldedText font load failed:', e)
+      }
+    })()
+    return () => { cancel = true }
   }, [text])
 
   useEffect(() => {
-    if (!letters.length) return
+    if (!state || drawnCount >= 0) return
 
     const t = setTimeout(() => {
       let idx = 0
 
       const traceNext = () => {
-        if (idx >= letters.length) {
+        if (idx >= state.letters.length) {
           setActiveIdx(-1)
-          setDrawnCount(letters.length)
+          setDrawnCount(state.letters.length)
+          return
+        }
+
+        const l = state.letters[idx]
+        if (!l.path || l.length <= 0) {
+          setDrawnCount(idx)
+          idx++
+          setTimeout(traceNext, 40)
           return
         }
 
         setActiveIdx(idx)
-        dashProgress.set(DASH_TOTAL)
+        dashProgress.set(l.length)
 
         animate(dashProgress, 0, {
-          duration: 0.35,
+          duration: TRACE_DURATION,
           ease: 'easeInOut',
           onComplete: () => {
             setDrawnCount(idx)
             idx++
-            setTimeout(traceNext, 80)
+            setTimeout(traceNext, LETTER_GAP)
           },
         })
       }
@@ -513,112 +540,79 @@ export function WeldedText({ text, startDelay, className }: WeldedTextProps) {
     }, startDelay)
 
     return () => clearTimeout(t)
-  }, [startDelay, letters.length])
+  }, [state, startDelay, drawnCount, dashProgress])
 
-  const dashOffset = useTransform(dashProgress, v => v)
-  const beamHead = useTransform(dashProgress, v => `${v + DASH_TOTAL * 0.06} ${DASH_TOTAL}`)
-  const whiteHead = useTransform(dashProgress, v => `${v + DASH_TOTAL * 0.03} ${DASH_TOTAL}`)
+  if (!state) return <span className={cn('inline leading-none opacity-0', className)}>{text}</span>
 
   return (
     <span className={cn('inline leading-none', className)}>
-      {letters.map((letter, i) => {
-        if (letter === ' ') return <span key={i}>&nbsp;</span>
+      {state.letters.map((l, i) => {
+        if (l.char === ' ') return <span key={i} className="inline-block" style={{ width: `${l.advance / state.fontHeight}em` }}>&nbsp;</span>
 
         const isDone = i < drawnCount
         const isActive = i === activeIdx
-        const cw = charWidths[i] || 62
-        const svgWidth = `${cw / 120}em`
 
         return (
           <svg
             key={i}
             className="inline-block align-middle overflow-visible"
-            style={{ width: svgWidth, height: '1em' }}
-            viewBox={`0 0 ${cw} 120`}
+            style={{ width: `${l.advance / state.fontHeight}em`, height: '1em' }}
+            viewBox={`0 0 ${l.advance} ${state.fontHeight}`}
           >
-            {isDone && (
-              <text
-                x={cw / 2} y="90"
-                textAnchor="middle"
-                fill="hsl(var(--primary))"
-                fontSize="90"
-                fontFamily="inherit"
-                fontWeight="inherit"
-                dominantBaseline="central"
-              >
-                {letter}
-              </text>
+            {/* Filled letter */}
+            {(isDone || isActive) && (
+              isActive ? (
+                <motion.path
+                  d={l.path}
+                  fill="hsl(var(--primary))"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    delay: TRACE_DURATION * FILL_DELAY_FRAC,
+                    duration: TRACE_DURATION * FILL_DURATION_FRAC,
+                    ease: 'easeOut',
+                  }}
+                />
+              ) : (
+                <path d={l.path} fill="hsl(var(--primary))" />
+              )
             )}
 
+            {/* Tracing stroke & effects (active only) */}
             {isActive && (
               <>
-                {/* Tracing stroke */}
-                <motion.text
-                  x={cw / 2} y="90"
-                  textAnchor="middle"
+                <motion.path
+                  d={l.path}
                   fill="transparent"
                   stroke="hsl(var(--primary))"
-                  strokeWidth={4}
+                  strokeWidth={5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeDasharray={String(DASH_TOTAL)}
-                  style={{ strokeDashoffset: dashOffset }}
-                  fontSize="90"
-                  fontFamily="inherit"
-                  fontWeight="inherit"
-                  dominantBaseline="central"
-                >
-                  {letter}
-                </motion.text>
-
-                {/* Beam head glow (thick, filtered) */}
-                <motion.text
-                  x={cw / 2} y="90"
-                  textAnchor="middle"
-                  fill="transparent"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={12}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeDasharray={beamHead}
-                  style={{ strokeDashoffset: dashOffset }}
-                  opacity={0.5}
+                  strokeDasharray={`${l.length * 0.08} ${l.length}`}
+                  style={{ strokeDashoffset: dashProgress }}
+                  opacity={0.3}
                   filter="url(#weld-letter)"
-                  fontSize="90"
-                  fontFamily="inherit"
-                  fontWeight="inherit"
-                  dominantBaseline="central"
-                >
-                  {letter}
-                </motion.text>
-
-                {/* White core */}
-                <motion.text
-                  x={cw / 2} y="90"
-                  textAnchor="middle"
+                />
+                <motion.path
+                  d={l.path}
+                  fill="transparent"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={l.length}
+                  style={{ strokeDashoffset: dashProgress }}
+                />
+                <motion.path
+                  d={l.path}
                   fill="transparent"
                   stroke="#fff"
-                  strokeWidth={3}
+                  strokeWidth={0.8}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeDasharray={whiteHead}
-                  style={{ strokeDashoffset: dashOffset }}
-                  fontSize="90"
-                  fontFamily="inherit"
-                  fontWeight="inherit"
-                  dominantBaseline="central"
-                >
-                  {letter}
-                </motion.text>
-
-                {/* Pulsing mini-beam */}
-                <motion.circle
-                  cx={cw / 2} cy="55"
-                  r={10}
-                  fill="hsl(var(--primary))"
-                  filter="url(#weld-letter)"
-                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.3, 0.9, 0.3] }}
-                  transition={{ duration: 0.35, repeat: Infinity, ease: 'easeInOut' }}
+                  strokeDasharray={`${l.length * 0.04} ${l.length}`}
+                  style={{ strokeDashoffset: dashProgress }}
+                  opacity={0.8}
                 />
               </>
             )}
