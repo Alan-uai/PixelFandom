@@ -68,10 +68,10 @@ export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', 
   const fmt = tabsEnabled ? tabsSubFormat : displayFormat;
   const cols = Math.max(2, Math.min(5, columnsCount));
   const gridColsClass = ({
-    2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2',
-    3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3',
-    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4',
-    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5',
+    2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
+    3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
   } as Record<number, string>)[cols];
 
   const allEntries = useMemo(() => (catalog ?? []).filter(e => e.count > 0), [catalog]);
@@ -257,7 +257,7 @@ export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', 
               </button>
               <span className="text-xs text-muted-foreground">
                 {fmt === 'carousel_infinite'
-                  ? `${carouselIndex + 1}–${carouselIndex + cols}`
+                  ? `${carouselIndex + 1}–${Math.min(carouselIndex + cols, filteredEntries.length)} de ${filteredEntries.length}`
                   : `${carouselIndex + 1}–${Math.min(carouselIndex + cols, filteredEntries.length)} de ${filteredEntries.length}`
                 }
               </span>
