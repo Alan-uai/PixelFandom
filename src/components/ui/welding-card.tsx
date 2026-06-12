@@ -92,7 +92,7 @@ export function WeldingCard({ className, style, children, text }: WeldingCardPro
     const len = Math.min(TRAIL_LEN, Math.max(0, v))
     return `${len} 1`
   })
-  const beamTrailOffset = useTransform(beamProgress, (v) => TRAIL_LEN - v)
+  const beamTrailOffset = useTransform(beamProgress, (v) => Math.min(0, TRAIL_LEN - v))
 
   if (phase === 'idle' || phase === 'done') {
     return <div className={cn('rounded-xl bg-card', className)} style={style}>{children}</div>

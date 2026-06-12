@@ -136,19 +136,19 @@ export function CollapsibleSection({
     const len = Math.min(TAPER_WIDE_LEN, Math.max(0, v))
     return `${len} 1`
   })
-  const taperWideOffset = useTransform(beamProgress, (v) => TAPER_WIDE_LEN - v)
+  const taperWideOffset = useTransform(beamProgress, (v) => Math.min(0, TAPER_WIDE_LEN - v))
 
   const taperMedium = useTransform(beamProgress, (v) => {
     const len = Math.min(TAPER_MEDIUM_LEN, Math.max(0, v))
     return `${len} 1`
   })
-  const taperMediumOffset = useTransform(beamProgress, (v) => TAPER_MEDIUM_LEN - v)
+  const taperMediumOffset = useTransform(beamProgress, (v) => Math.min(0, TAPER_MEDIUM_LEN - v))
 
   const beamTrail = useTransform(beamProgress, (v) => {
     const len = Math.min(BEAM_TRAIL_LEN, Math.max(0, v))
     return `${len} 1`
   })
-  const beamTrailOffset = useTransform(beamProgress, (v) => BEAM_TRAIL_LEN - v)
+  const beamTrailOffset = useTransform(beamProgress, (v) => Math.min(0, BEAM_TRAIL_LEN - v))
 
   // Concentrated glow at beam head
   const headGlow = useTransform(beamProgress, (v) => {

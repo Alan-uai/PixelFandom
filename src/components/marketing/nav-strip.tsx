@@ -68,7 +68,49 @@ function generateRingConfig() {
 }
 
 function generateStarPath(hr: number, vr: number): string {
-  return `M 0,-${vr} C ${hr*0.17},-${vr*0.83} ${hr*0.5},-${vr*0.17} ${hr},0 C ${hr*0.5},${vr*0.17} ${hr*0.17},${vr*0.83} 0,${vr} C -${hr*0.17},${vr*0.83} -${hr*0.5},${vr*0.17} -${hr},0 C -${hr*0.5},-${vr*0.17} -${hr*0.17},-${vr*0.83} 0,-${vr} Z`;
+  return `M 0,-${vr} C ${hr*0.06},-${vr*0.92} ${hr*0.45},-${vr*0.15} ${hr},0 C ${hr*0.45},${vr*0.15} ${hr*0.06},${vr*0.92} 0,${vr} C -${hr*0.06},${vr*0.92} -${hr*0.45},${vr*0.15} -${hr},0 C -${hr*0.45},-${vr*0.15} -${hr*0.06},-${vr*0.92} 0,-${vr} Z`;
+}
+
+function generateMorphPath(
+  progress: number,
+  ringOuterRadius: number,
+  ringInnerRatio: number,
+  ringWobble: number,
+  ringPhase: number,
+  starHr: number,
+  starVr: number,
+  pointCount: number = 60
+): string {
+  const cx = 200;
+  const cy = 200;
+  const innerRadius = ringOuterRadius * ringInnerRatio;
+  let d = '';
+
+  for (let i = 0; i < pointCount; i++) {
+    const a = (i / pointCount) * Math.PI * 2;
+
+    const ringOuterR = ringOuterRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.3));
+
+    const starR = 1 / Math.pow(
+      Math.abs(Math.cos(a)) ** 0.6 + Math.abs(Math.sin(a)) ** 0.6,
+      1 / 0.6
+    );
+    const starRnorm = starR * Math.min(starHr, starVr);
+
+    const r = ringOuterR * (1 - progress) + starRnorm * progress;
+    d += `${i === 0 ? 'M' : 'L'} ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+  }
+
+  for (let i = 0; i < pointCount; i++) {
+    const a = (i / pointCount) * Math.PI * -2;
+
+    const ringInnerR = innerRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase + 1.5) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.7));
+
+    const r = ringInnerR * (1 - progress);
+    d += ` L ${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
+  }
+
+  return d + ' Z';
 }
 
 const STAR_INSTANCES = [
@@ -284,6 +326,15 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
 
   const isExpanded = phase === 'expanded';
+  const [morphProgress, setMorphProgress] = useState(0);
+
+  useEffect(() => {
+    if (isExpanded) {
+      setMorphProgress(1);
+    } else {
+      setMorphProgress(0);
+    }
+  }, [isExpanded]);
 
   const doExpand = useCallback(() => {
     expand(expandedPositions.current);
@@ -429,15 +480,20 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Irregular Rings (solid gradient stroke) — compact only ── */}
+          {/* ── Morphing Gravitational Waves (single path morph) ── */}
           <motion.div
             className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            animate={{ opacity: isExpanded ? 0 : 1 }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            style={{ transformStyle: 'preserve-3d' }}
           >
-            <svg width="0" height="0" className="absolute">
+            <svg
+              className="absolute"
+              width="500"
+              height="500"
+              viewBox="-250 -250 500 500"
+              style={{ left: '50%', top: '50%', marginLeft: -250, marginTop: -250 }}
+            >
               <defs>
-                <linearGradient id="ring-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id="morph-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.9" />
                   <stop offset="33%" stopColor="hsl(198,100%,65%)" stopOpacity="0.75" />
                   <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.6" />
@@ -445,81 +501,26 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.3" />
                 </linearGradient>
               </defs>
-            </svg>
-
-            {rings.map((arc, i) => (
-              <motion.div
-                key={`ring-${i}`}
-                className="absolute"
-                style={{
-                  width: 400,
-                  height: 400,
-                  left: '50%',
-                  top: '50%',
-                  marginLeft: -200,
-                  marginTop: -200,
-                }}
-                animate={{
-                  scale: [0.35, 1.0, 1.5],
-                  opacity: [0.5, 0.4, 0],
-                  rotate: [0, 15, 30],
-                }}
-                transition={{
-                  duration: arc.duration,
-                  times: [0, 0.25, 0.65],
-                  delay: arc.delay,
-                  repeat: Infinity,
-                  repeatDelay: 1.5 + Math.random() * 0.5,
-                  ease: 'easeOut',
-                }}
-              >
-                <svg width="400" height="400" viewBox="0 0 400 400">
-                  <path
-                    d={generateIrregularRingPath(arc.outerRadius, arc.innerRatio, arc.wobble, arc.phaseSeed)}
-                    fill="none"
-                    stroke="url(#ring-stroke-grad)"
-                    strokeWidth="3"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* ── Star Waves (4-pointed) — expanded only ── */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            animate={{ opacity: isExpanded ? 1 : 0 }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }}
-          >
-            <svg className="absolute" width="500" height="500" viewBox="-250 -250 500 500" style={{ left: '50%', top: '50%', marginLeft: -250, marginTop: -250 }}>
-              <defs>
-                <linearGradient id="star-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(198,100%,65%)" stopOpacity="0.45" />
-                  <stop offset="50%" stopColor="hsl(270,80%,60%)" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="hsl(350,90%,60%)" stopOpacity="0.15" />
-                </linearGradient>
-              </defs>
-              {STAR_INSTANCES.map((s, idx) => (
-                <motion.path
-                  key={idx}
-                  d={generateStarPath(s.hr, s.vr)}
-                  fill="none"
-                  stroke="url(#star-grad)"
-                  strokeWidth={2.5 - idx * 0.5}
-                  strokeLinecap="round"
-                  style={{ transformOrigin: 'center' }}
-                  initial={{ scale: 0, opacity: 0.5 }}
-                  animate={{ scale: [0, 1, 1.15, 0.85], opacity: [0.5, 0.35, 0.12, 0] }}
-                  transition={{
-                    duration: 6,
-                    delay: s.delay,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                    times: [0, 0.12, 0.35, 1],
-                  }}
-                />
-              ))}
+              <motion.path
+                d={generateMorphPath(
+                  morphProgress,
+                  rings[0].outerRadius,
+                  rings[0].innerRatio,
+                  rings[0].wobble,
+                  rings[0].phaseSeed,
+                  STAR_INSTANCES[0].hr,
+                  STAR_INSTANCES[0].vr,
+                  60
+                )}
+                fill="none"
+                stroke="url(#morph-stroke-grad)"
+                strokeWidth="3"
+                strokeLinejoin="round"
+                style={{ transformOrigin: 'center' }}
+                initial={{ scale: 0.8, opacity: 0.5 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 1.2, ease: 'easeInOut' }}
+              />
             </svg>
           </motion.div>
 
