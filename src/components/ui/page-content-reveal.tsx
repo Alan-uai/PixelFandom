@@ -7,18 +7,12 @@ import {
   useEffect,
   useRef,
   useMemo,
-  useLayoutEffect,
   type ReactNode,
 } from 'react';
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { PRIMARY, GOLD, getBeamPathD, getBeamPosition, createBeamPathElement } from '@/lib/welding-utils';
-import {
-  WeldFilters,
-  StarGlow,
-  SparkStream,
-  GravitySpark,
-} from '@/components/ui/welding-effects';
+import { GOLD } from '@/lib/welding-utils';
+import { WeldingCard } from '@/components/ui/welding-card';
 
 // ── Types ──
 
@@ -168,141 +162,23 @@ interface CardProps {
 
 function Card({ className, children }: CardProps) {
   const { phase } = useContext(RevealContext);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pathRef = useRef<SVGPathElement | null>(null);
-  const borderProgress = useMotionValue(0);
-  const [beamPos, setBeamPos] = useState({ x: 0, y: 0, angle: 0 });
-  const [cardSize, setCardSize] = useState({ w: 0, h: 0 });
-  const [groundY, setGroundY] = useState(0);
-
   const showBorder = phase === 'border';
   const showComplete = phase === 'complete';
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const w = Math.round(rect.width);
-    const h = Math.round(rect.height);
-    setCardSize({ w, h });
-    setGroundY(h);
-    pathRef.current = createBeamPathElement(w, h, 12);
-
-    const controls = animate(borderProgress, 1, {
-      duration: 1.8,
-      ease: 'linear',
-    });
-    return () => controls.stop();
-  }, []);
-
-  useEffect(() => {
-    const path = pathRef.current;
-    if (!path) return;
-    const unsub = borderProgress.on('change', v => {
-      setBeamPos(getBeamPosition(path, v));
-    });
-    return unsub;
-  }, [borderProgress]);
-
-  const pathD = useMemo(
-    () => getBeamPathD(cardSize.w, cardSize.h, 12),
-    [cardSize.w, cardSize.h],
-  );
-
-  const dashOffset = useTransform(borderProgress, [0, 1], [1, 0]);
-  const beamTrail = useTransform(borderProgress, (v) => `${v} ${1 - v}`);
 
   if (phase === 'idle') {
     return <div className={cn('rounded-xl bg-card', className)}>{children}</div>;
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('relative rounded-xl', className)}
-    >
-      <WeldFilters />
-
-      {showBorder && (
-        <>
-          <svg
-            className="pointer-events-none absolute inset-0 z-10"
-            width={cardSize.w || '100%'}
-            height={cardSize.h || '100%'}
-            viewBox={`0 0 ${cardSize.w || 0} ${cardSize.h || 0}`}
-          >
-            <defs>
-              <filter id="svg-reveal-beam-glow">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            {pathD && (
-              <path d={pathD} fill="none" stroke={PRIMARY} strokeWidth={1.5} opacity={0.12} strokeLinecap="round" strokeLinejoin="round" />
-            )}
-
-            {pathD && (
-              <motion.path
-                d={pathD}
-                fill="none"
-                stroke={PRIMARY}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength="1"
-                style={{ strokeDasharray: beamTrail }}
-                opacity={0.5}
-              />
-            )}
-
-            {pathD && (
-              <motion.path
-                d={pathD}
-                fill="none"
-                stroke={PRIMARY}
-                strokeWidth={6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength="1"
-                style={{ strokeDasharray: '0.12 1', strokeDashoffset: dashOffset }}
-                opacity={0.6}
-                filter="url(#svg-reveal-beam-glow)"
-              />
-            )}
-
-            {pathD && (
-              <motion.path
-                d={pathD}
-                fill="none"
-                stroke="#fff"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength="1"
-                style={{ strokeDasharray: '0.04 1', strokeDashoffset: dashOffset }}
-              />
-            )}
-          </svg>
-          <StarGlow x={beamPos.x} y={beamPos.y} color={PRIMARY} intensity={1.2} seed={0} />
-          <SparkStream
-            beamX={beamPos.x}
-            beamY={beamPos.y}
-            beamAngle={beamPos.angle}
-            active={showBorder}
-          />
-          <GravitySpark
-            beamX={beamPos.x}
-            beamY={beamPos.y}
-            beamAngle={beamPos.angle}
-            active={showBorder}
-            groundY={groundY}
-          />
-        </>
-      )}
+    <div className="relative rounded-xl">
+      <WeldingCard
+        className={className}
+        duration={1800}
+        showGolden={false}
+        showSparks={showBorder}
+      >
+        {children}
+      </WeldingCard>
 
       {showComplete && (
         <motion.div
@@ -320,8 +196,6 @@ function Card({ className, children }: CardProps) {
           transition={{ duration: 0.8, ease: 'easeInOut' }}
         />
       )}
-
-      <div className="relative rounded-[11px] bg-card m-[1.5px]">{children}</div>
     </div>
   );
 }

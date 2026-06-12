@@ -10,6 +10,7 @@ import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
 import { useOrbitalAnimation } from '@/hooks/use-orbital-animation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications } from '@/hooks/use-notifications';
+import GravitationalWave, { generateStarConfig } from './gravitational-wave';
 
 interface NavItemDef {
   href?: string;
@@ -58,56 +59,6 @@ function generateRingConfig() {
     repeatDelay: 2 + Math.random() * 3,
     phaseSeed: Math.random() * Math.PI * 2,
   }));
-}
-
-function generateStarPath(hr: number, vr: number): string {
-  return `M 0,-${vr} C ${hr*0.06},-${vr*0.93} ${hr*0.5},-${vr*0.17} ${hr},0 C ${hr*0.5},${vr*0.17} ${hr*0.06},${vr*0.93} 0,${vr} C -${hr*0.06},${vr*0.93} -${hr*0.5},${vr*0.17} -${hr},0 C -${hr*0.5},-${vr*0.17} -${hr*0.06},-${vr*0.93} 0,-${vr} Z`;
-}
-
-function sampleStarPoints(hr: number, vr: number, total: number): { x: number; y: number }[] {
-  const segs: { p0: { x: number; y: number }; p1: { x: number; y: number }; p2: { x: number; y: number }; p3: { x: number; y: number } }[] = [
-    { p0: { x: 0, y: -vr }, p1: { x: hr * 0.06, y: -vr * 0.93 }, p2: { x: hr * 0.5, y: -vr * 0.17 }, p3: { x: hr, y: 0 } },
-    { p0: { x: hr, y: 0 }, p1: { x: hr * 0.5, y: vr * 0.17 }, p2: { x: hr * 0.06, y: vr * 0.93 }, p3: { x: 0, y: vr } },
-    { p0: { x: 0, y: vr }, p1: { x: -hr * 0.06, y: vr * 0.93 }, p2: { x: -hr * 0.5, y: vr * 0.17 }, p3: { x: -hr, y: 0 } },
-    { p0: { x: -hr, y: 0 }, p1: { x: -hr * 0.5, y: -vr * 0.17 }, p2: { x: -hr * 0.06, y: -vr * 0.93 }, p3: { x: 0, y: -vr } },
-  ];
-  const points: { x: number; y: number }[] = [];
-  const stepsPerSeg = Math.max(1, Math.floor(total / 4));
-  for (const seg of segs) {
-    for (let i = 0; i < stepsPerSeg; i++) {
-      const t = i / stepsPerSeg;
-      const u = 1 - t;
-      points.push({
-        x: u * u * u * seg.p0.x + 3 * u * u * t * seg.p1.x + 3 * u * t * t * seg.p2.x + t * t * t * seg.p3.x,
-        y: u * u * u * seg.p0.y + 3 * u * u * t * seg.p1.y + 3 * u * t * t * seg.p2.y + t * t * t * seg.p3.y,
-      });
-    }
-  }
-  return points;
-}
-
-function generateMorphPath(
-  progress: number,
-  ringOuterRadius: number,
-  ringWobble: number,
-  ringPhase: number,
-  starHr: number,
-  starVr: number,
-  pointCount: number = 60
-): string {
-  let d = '';
-
-  const starPts = sampleStarPoints(starHr, starVr, pointCount);
-
-  for (let i = 0; i < pointCount; i++) {
-    const a = (i / pointCount) * Math.PI * 2;
-    const ringR = ringOuterRadius * (1 + ringWobble * Math.sin(a * 4 + ringPhase) + ringWobble * 0.3 * Math.sin(a * 9 + ringPhase * 1.3));
-    const ox = ringR * Math.cos(a) * (1 - progress) + starPts[i].x * progress;
-    const oy = ringR * Math.sin(a) * (1 - progress) + starPts[i].y * progress;
-    d += `${i === 0 ? 'M' : 'L'} ${ox} ${oy}`;
-  }
-
-  return d + ' Z';
 }
 
 const STAR_INSTANCES = [
@@ -270,6 +221,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const manuallyExpanded = useRef(false);
   const [rings] = useState(() => generateRingConfig());
+  const [starWaves] = useState(() => generateStarConfig());
   const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);
@@ -510,81 +462,16 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          {/* ── Gravitational Waves (collapsed) ── */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            style={{ perspective: 800, transformStyle: 'preserve-3d' }}
-            animate={{ opacity: isExpanded ? 0 : 1 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="absolute" style={{ transform: 'rotateX(8deg)', transformStyle: 'preserve-3d' }}>
-              {rings.map((arc, i) => (
-                <motion.div
-                  key={`wave-${i}`}
-                  className="absolute"
-                  style={{
-                    width: 400,
-                    height: 400,
-                    left: '50%',
-                    top: '50%',
-                    marginLeft: -200,
-                    marginTop: -200,
-                    transform: `translateZ(${(i - 2.5) * 10}px)`,
-                  }}
-                  initial={{ scale: 0.05, opacity: 0 }}
-                  animate={{
-                    scale: [0.05, 1.0, 1.5 + i * 0.12],
-                    opacity: [0, 0.5, 0],
-                    rotate: [0, 4 + i * 2],
-                  }}
-                  transition={{
-                    duration: arc.duration,
-                    times: [0, 0.2, 1],
-                    delay: arc.delay,
-                    repeat: Infinity,
-                    repeatDelay: arc.repeatDelay,
-                    ease: 'easeOut',
-                  }}
-                >
-                  <svg width="400" height="400" viewBox="0 0 400 400">
-                    <path
-                      d={generateIrregularRingPath(arc.outerRadius, arc.wobble, arc.phaseSeed)}
-                      fill="none"
-                      stroke="url(#wave-ring-grad)"
-                      strokeWidth={Math.max(1.2, 2.5 - i * 0.15)}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* ── Morph Path (expanded) ── */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
-            animate={{ opacity: isExpanded ? 1 : 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <svg width="400" height="400" viewBox="-200 -200 400 400">
-              <path
-                d={generateMorphPath(
-                  morphProgress,
-                  rings[0].outerRadius,
-                  rings[0].wobble,
-                  rings[0].phaseSeed,
-                  STAR_INSTANCES[0].hr,
-                  STAR_INSTANCES[0].vr,
-                  60
-                )}
-                fill="none"
-                stroke="url(#morph-stroke-grad)"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </motion.div>
+          <GravitationalWave
+            morphProgress={morphProgress}
+            isExpanded={isExpanded}
+            ringOuterRadius={rings[0].outerRadius}
+            ringWobble={rings[0].wobble}
+            ringPhaseSeed={rings[0].phaseSeed}
+            starHr={STAR_INSTANCES[0].hr}
+            starVr={STAR_INSTANCES[0].vr}
+            starWaves={starWaves}
+          />
 
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
