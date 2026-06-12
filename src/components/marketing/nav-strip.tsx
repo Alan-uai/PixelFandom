@@ -613,37 +613,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 </div>
               ))}
 
-              {/* Badge abaixo do avatar quando expandido */}
-              <AnimatePresence>
-                {isExpanded && user && (() => {
-                  const badgeItem = items.find(i => i.isBadge);
-                  if (!badgeItem) return null;
-                  return (
-                    <motion.div
-                      key="expanded-badge"
-                      className="absolute left-1/2 z-20 pointer-events-auto"
-                      style={{ bottom: -12, transform: 'translateX(-50%) translateZ(30px)' }}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 12 }}
-                      transition={{ duration: 0.55, ease: 'easeOut' }}
-                    >
-                      <Link href="/notifications" className="block">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group relative">
-                          <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
-                            <Bell className="h-4 w-4 text-yellow-400" />
-                          </div>
-                          {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[7px] font-bold text-white flex items-center justify-center px-[3px] leading-none shadow-[0_0_6px_rgba(239,68,68,0.6)]">
-                              {unreadCount > 99 ? '99+' : unreadCount}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })()}
-              </AnimatePresence>
+
             </div>
 
             {/* ── Center Avatar ── */}
@@ -687,6 +657,37 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   </div>
                 </motion.div>
               </div>
+            {/* ── Badge sobreposto ao avatar ── */}
+            <AnimatePresence>
+              {isExpanded && user && (() => {
+                const badgeItem = items.find(i => i.isBadge);
+                if (!badgeItem) return null;
+                return (
+                  <motion.div
+                    key="expanded-badge"
+                    className="absolute z-20 pointer-events-auto"
+                    style={{ left: '50%', top: 'calc(50% + 28px)', transform: 'translateX(-50%) translateZ(30px)' }}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                  >
+                    <Link href="/notifications" className="block">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group relative">
+                        <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
+                          <Bell className="h-4 w-4 text-yellow-400" />
+                        </div>
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[7px] font-bold text-white flex items-center justify-center px-[3px] leading-none shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
             </div>
           </div>
         </div>
