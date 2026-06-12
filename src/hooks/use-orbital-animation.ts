@@ -213,10 +213,9 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
             if (bt < 0.35) {
               const damping = Math.exp(-BOUNCE_DECAY * bt);
               const osc = Math.cos(BOUNCE_FREQ * bt);
-              const bx = -BOUNCE_AMP * osc * damping;
-              const dist = Math.sqrt(hx * hx + hy * hy) || 1;
-              fx = hx + (hx / dist) * bx;
-              fy = hy + (hy / dist) * bx;
+              const by = -BOUNCE_AMP * osc * damping;
+              fx = hx;
+              fy = hy + by;
             } else {
               fx = hx;
               fy = hy;
