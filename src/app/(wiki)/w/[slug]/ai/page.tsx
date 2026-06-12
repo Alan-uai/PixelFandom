@@ -93,9 +93,7 @@ export default function AISettingsPage() {
   const { user } = useUser()
   const { preferences, updatePreference } = useUserPreferences()
   const aiConfig = (data?.tenant?.ai_config as Record<string, unknown>) || {}
-  const tenantId = (data?.tenant?.id as string) || ''
-
-  const wikiPrefs = preferences.wiki_preferences?.[tenantId] ?? {}
+  const wikiPrefs = preferences.wiki_preferences?.[slug] ?? {}
 
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => ({
     ...loadVoice(),
@@ -130,10 +128,10 @@ export default function AISettingsPage() {
   }
 
   const updateWikiChat = <K extends keyof ChatSettings>(key: K, value: ChatSettings[K]) => {
-    const current = preferences.wiki_preferences?.[tenantId] ?? {}
+    const current = preferences.wiki_preferences?.[slug] ?? {}
     updatePreference('wiki_preferences', {
       ...preferences.wiki_preferences,
-      [tenantId]: { ...current, [key]: value },
+      [slug]: { ...current, [key]: value },
     })
   }
 

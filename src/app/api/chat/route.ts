@@ -46,8 +46,6 @@ async function streamOpenRouter(
     },
     body: JSON.stringify({
       model: modelsToTry[0],
-      models: modelsToTry.slice(0, 3),
-      route: 'fallback',
       messages,
       stream: true,
       stream_options: { include_usage: true },
@@ -123,35 +121,51 @@ async function callOpenRouter(
   apiKey: string,
   tools?: typeof TEXT_CHAT_TOOLS
 ): Promise<Record<string, unknown>> {
-  const body: Record<string, unknown> = {
-    model: modelsToTry[0],
-    models: modelsToTry.slice(0, 3),
-    route: 'fallback',
-    messages,
-    stream: false,
-    max_tokens: 4096,
-  };
-  if (tools) body.tools = tools;
+  let lastError: Error | null = null;
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://pixelfandom.vercel.app',
-      'X-Title': 'PixelFandom',
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120_000),
-  });
+  for (const model of modelsToTry) {
+    const body: Record<string, unknown> = {
+      model,
+      messages,
+      stream: false,
+      max_tokens: tools ? 512 : 4096,
+    };
+    if (tools) body.tools = tools;
 
-  if (!res.ok) {
-    const errData = await res.json().catch(() => null);
-    throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://pixelfandom.vercel.app',
+          'X-Title': 'PixelFandom',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+
+      if (res.status === 429 || res.status === 402 || res.status === 403) {
+        lastError = new Error(`Model ${model} unavailable (${res.status})`);
+        continue;
+      }
+
+      const errData = await res.json().catch(() => null);
+      throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        lastError = e;
+        continue;
+      }
+      throw e;
+    }
   }
 
-  const data = await res.json();
-  return data;
+  throw lastError || new Error('All models failed');
 }
 
 function buildTextSystemPrompt(schemaPrompt: string, userPrompt?: string, responseStyle?: string, displayMode?: string): string {
@@ -280,11 +294,12 @@ export async function POST(request: NextRequest) {
           const chatSettings = p.chat_settings as Record<string, string> | undefined;
           const wikiPrefs = p.wiki_preferences as Record<string, Record<string, string>> | undefined;
           // Layer 1: wiki-specific user preference (highest priority)
-          if (tenantId && wikiPrefs?.[tenantId]) {
-            responseStyle = wikiPrefs[tenantId].response_style || responseStyle;
-            displayMode = wikiPrefs[tenantId].display_mode || displayMode;
-          // Layer 2: global user preference
-          } else if (chatSettings) {
+          if (tenantSlug && wikiPrefs?.[tenantSlug]) {
+            responseStyle = wikiPrefs[tenantSlug].response_style || responseStyle;
+            displayMode = wikiPrefs[tenantSlug].display_mode || displayMode;
+          }
+          // Layer 2: global user preference (fallback)
+          if (chatSettings) {
             responseStyle = chatSettings.response_style || responseStyle;
             displayMode = chatSettings.display_mode || displayMode;
           }
@@ -368,7 +383,8 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         messages = trimMessagesToBudget(messages as any, systemContent, contextWindow) as any;
       }
       let finalText: string | null = null;
-      const MAX_TOOL_ROUNDS = 3;
+      let hadToolCalls = false;
+      const MAX_TOOL_ROUNDS = 2;
 
       for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const response = await callOpenRouter(messages, modelsToTry, apiKey, TEXT_CHAT_TOOLS);
@@ -379,6 +395,8 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
           finalText = responseMsg?.content || '';
           break;
         }
+
+        hadToolCalls = true;
 
         messages.push({
           role: 'assistant',
@@ -411,7 +429,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
       let stream: ReadableStream;
 
-      if (finalText !== null) {
+      if (finalText !== null && !hadToolCalls) {
         stream = createTextStream(finalText);
       } else {
         stream = await streamOpenRouter(messages, modelsToTry, apiKey);
