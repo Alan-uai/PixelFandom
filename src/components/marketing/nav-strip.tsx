@@ -76,61 +76,45 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
     onClick?.();
   };
 
-  if (compact) {
-    const orbitContent = (
-      <motion.div
-        className="cursor-pointer"
-        style={
-          waveGlow
-            ? {
-                filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 20px ${glowColor})`,
-              }
-            : {}
-        }
-        animate={waveGlow ? { scale: 1.25 } : { scale: 1 }}
-        transition={{ duration: 0.35 }}
-        onClick={clickHandler}
-      >
-        {icon}
-      </motion.div>
-    );
-
-    if (href) {
-      return <Link href={href} onClick={clickHandler}>{orbitContent}</Link>;
-    }
-    return orbitContent;
-  }
-
   const content = (
     <div
       ref={itemRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => { if (!compact) setHovered(true); }}
       onMouseLeave={() => { setHovered(false); setTilt({ x: 0, y: 0 }); soundRef.current = false; }}
       onClick={clickHandler}
       className="relative cursor-pointer"
       style={{ perspective: 600, transformStyle: 'preserve-3d' }}
     >
       <motion.div
-        animate={{ rotateX: tilt.x, rotateY: tilt.y }}
+        animate={{ rotateX: compact ? 0 : tilt.x, rotateY: compact ? 0 : tilt.y }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className={`relative flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-300 ${
+        className={`relative flex items-center gap-2 rounded-xl transition-all duration-500 ease-in-out ${
+          compact ? '' : 'px-3 py-2'
+        } ${
           isButton
             ? 'bg-primary/15 border border-primary/20 hover:bg-primary/25 hover:border-primary/40'
-            : hovered
+            : hovered && !compact
               ? 'bg-white/[0.06]'
               : 'bg-transparent'
         }`}
       >
         <div className="relative">
           <motion.div
-            animate={hovered ? { scale: 1.15 } : { scale: 1 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            animate={{ scale: compact ? (waveGlow ? 1.25 : 1) : (hovered ? 1.15 : 1) }}
+            transition={compact ? { duration: 0.35 } : { type: 'spring', stiffness: 400, damping: 15 }}
             className="relative z-10"
+            style={
+              compact && waveGlow
+                ? {
+                    filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 20px ${glowColor})`,
+                  }
+                : {}
+            }
           >
             {icon}
           </motion.div>
-          {!isButton && hovered && (
+          {!isButton && hovered && !compact && (
             <motion.div
               className="absolute inset-0 rounded-full blur-md z-0"
               initial={{ opacity: 0, scale: 0.5 }}
@@ -140,25 +124,29 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
               transition={{ duration: 0.3 }}
             />
           )}
-
         </div>
+
         <AnimatePresence>
-          {hovered && (
+          {!compact && hovered && (
             <motion.span
+              key="label"
               initial={{ opacity: 0, x: -6, width: 0 }}
               animate={{ opacity: 1, x: 0, width: 'auto' }}
               exit={{ opacity: 0, x: -6, width: 0 }}
               transition={{ duration: 0.2 }}
-              className="text-xs font-medium text-foreground overflow-hidden whitespace-nowrap"
+              className="text-xs font-medium overflow-hidden whitespace-nowrap"
+              style={{ color: isButton ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
             >
               {label}
             </motion.span>
           )}
         </AnimatePresence>
-        {isButton && !hovered && (
-          <span className="text-xs font-medium text-primary">{label}</span>
+
+        {isButton && !compact && !hovered && (
+          <span className="text-xs font-medium text-primary whitespace-nowrap">{label}</span>
         )}
-        {isButton && hovered && (
+
+        {isButton && !compact && hovered && (
           <motion.div
             className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 opacity-100"
             animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}

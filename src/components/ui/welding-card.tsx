@@ -311,18 +311,22 @@ export function WeldingCard({
             </>
           )}
 
-          {text && (
-            <div className="absolute inset-0 z-30 rounded-[11px] bg-card/60 pointer-events-none">
-              <div className="px-6 py-4">
-                <WeldedText
-                  text={text}
-                  startDelay={textStartDelay ?? duration * 0.35}
-                  className="text-2xl font-bold text-foreground"
-                />
-              </div>
-            </div>
-          )}
         </>
+      )}
+
+      {text && phase !== 'pending' && (
+        <div className="absolute inset-0 z-30 rounded-[11px] pointer-events-none">
+          {showWelding && (
+            <div className="absolute inset-0 rounded-[11px] bg-card/60" />
+          )}
+          <div className="relative px-6 py-4">
+            <WeldedText
+              text={text}
+              startDelay={textStartDelay ?? duration * 0.35}
+              className="text-2xl font-bold text-foreground"
+            />
+          </div>
+        </div>
       )}
 
       {showGoldenPhase && (
@@ -341,7 +345,6 @@ export function WeldingCard({
             }}
             transition={{ duration: 0.8, ease: 'easeInOut' }}
           />
-          <StarGlow x={cardSize.w / 2} y={cardSize.h / 2} color={goldenColor} intensity={goldenStarIntensity} seed={1} />
         </>
       )}
 
