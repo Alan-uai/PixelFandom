@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { TABLE_ICONS, resolveTableIcon, isCustomIcon } from '@/lib/table-icons';
+import { TABLE_ICONS, resolveTableIcon, isCustomIcon, type TableIconName } from '@/lib/table-icons';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import type { ComponentType } from 'react';
 
 interface TableIconPickerProps {
   value: string;
@@ -26,9 +27,9 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
 
   const resolvedIcons = useMemo(() => {
     return filtered.reduce((acc, name) => {
-      acc[name] = resolveTableIcon(name);
+      (acc as Record<string, ComponentType<{ className?: string }>>)[name] = resolveTableIcon(name);
       return acc;
-    }, {} as Record<string, React.ComponentType<{ className?: string }>>);
+    }, {} as Record<string, ComponentType<{ className?: string }>>);
   }, [filtered]);
 
   useEffect(() => {
