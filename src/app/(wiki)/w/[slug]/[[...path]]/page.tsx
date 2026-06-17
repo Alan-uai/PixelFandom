@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, Book
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
+import { parseViewerConfig } from '@/lib/viewer-config';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
@@ -194,6 +195,7 @@ export default function WikiPage() {
         tenantId={tenant.id}
         displayFormat={tableDisplayFormat}
         columnsCount={tableColumnsCount}
+        viewerConfig={tableEntry?.viewer_config ? parseViewerConfig(tableEntry.viewer_config) : null}
       />
     );
   }

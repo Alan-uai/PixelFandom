@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect, useMemo, useId } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Trophy, Bell, LayoutDashboard, LogOut, LogIn, Info } from 'lucide-react';
+import { User, Trophy, Bell, LayoutDashboard, LogOut, LogIn, Settings } from 'lucide-react';
 import { useUser, useSupabase } from '@/supabase';
 import { playHoverSound, playClickSound } from '@/lib/feedback-sounds';
 import { useOrbitalAnimation } from '@/hooks/use-orbital-animation';
@@ -213,7 +213,6 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const navItems = useCallback((): NavItemDef[] => {
     const items: NavItemDef[] = [
-      { href: '/about', icon: <Info className="h-4 w-4" />, label: 'Sobre', side: 'left', glowColor: 'hsl(198,100%,65%)' },
       { href: '/leaderboard', icon: <Trophy className="h-4 w-4" />, label: 'Explorar', side: 'left', glowColor: 'hsl(270,80%,60%)' },
     ];
 
@@ -230,6 +229,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
           </div>
         ), label: 'Notificações', side: 'right', glowColor: 'hsl(35,100%,55%)', isBadge: true },
         { href: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', side: 'right', glowColor: 'hsl(198,100%,65%)' },
+        { href: '/settings', icon: <Settings className="h-4 w-4" />, label: 'Configurações', side: 'right', glowColor: 'hsl(198,100%,65%)' },
         { icon: <LogOut className="h-4 w-4" />, label: 'Sair', side: 'right', glowColor: 'hsl(350,90%,60%)', onClick: handleLogout },
       );
     } else {

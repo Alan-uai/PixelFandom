@@ -19,6 +19,7 @@ import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
+import type { ViewerConfig } from '@/lib/viewer-config';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -89,9 +90,10 @@ type Props = {
   tenantId?: string;
   displayFormat?: string;
   columnsCount?: number;
+  viewerConfig?: ViewerConfig | null;
 };
 
-export default function GameTableListing({ tenantSlug, tableName, tenantId, displayFormat, columnsCount }: Props) {
+export default function GameTableListing({ tenantSlug, tableName, tenantId, displayFormat, columnsCount, viewerConfig }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
@@ -191,35 +193,98 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     const candidates = Object.keys(columnValues);
-    let categoryColumn: string | null = null;
+
+    // Priority tiers for auto-detection
+    const tier1: string[] = []; // type, category, *_type
+    const tier2: string[] = []; // rarity, *_rarity
+    const tier3: string[] = []; // element, *_element
+    const tier4: string[] = []; // everything else
 
     for (const col of candidates) {
-      if (isTypeLike(col)) { categoryColumn = col; break; }
-    }
-    if (!categoryColumn && candidates.length > 0) {
-      categoryColumn = candidates[0];
+      const lower = col.toLowerCase();
+      if (lower === 'type' || lower === 'category' || lower.endsWith('_type')) {
+        tier1.push(col);
+      } else if (lower === 'rarity' || lower.endsWith('_rarity')) {
+        tier2.push(col);
+      } else if (lower === 'element' || lower.endsWith('_element')) {
+        tier3.push(col);
+      } else if (lower === 'tier' || lower.endsWith('_tier') || lower === 'class' || lower.endsWith('_class')) {
+        tier3.push(col);
+      } else {
+        tier4.push(col);
+      }
     }
 
-    const filterColumns = candidates
-      .filter(col => col !== categoryColumn)
-      .map(col => ({
-        column: col,
-        values: columnValues[col],
-        label: deriveLabel(col),
-      }));
+    // Use viewerConfig categorization column if set
+    let categoryColumn: string | null = null;
+    const catConfig = viewerConfig?.categorization;
+    if (catConfig?.enabled !== false && catConfig?.column && catConfig.column !== 'none') {
+      if (columnValues[catConfig.column]) {
+        categoryColumn = catConfig.column;
+      }
+    }
+
+    // Auto-detect category column (priority order)
+    if (!categoryColumn) {
+      for (const col of tier1) {
+        if (isTypeLike(col)) { categoryColumn = col; break; }
+      }
+      if (!categoryColumn) {
+        for (const col of tier2) { categoryColumn = col; break; }
+      }
+      if (!categoryColumn) {
+        for (const col of tier3) { categoryColumn = col; break; }
+      }
+      if (!categoryColumn && candidates.length > 0) {
+        categoryColumn = candidates[0];
+      }
+    }
+
+    // Determine active filter columns
+    const allFilterCandidates = [...tier1, ...tier2, ...tier3, ...tier4]
+      .filter(col => col !== categoryColumn);
+
+    // Use viewerConfig filter columns if set
+    const filterConfig = viewerConfig?.filters;
+    const hasConfiguredFilters = filterConfig?.columns && filterConfig.columns.length > 0 && filterConfig.autoDetect !== false;
+
+    let filterColumns: { column: string; values: string[]; label: string }[];
+    if (hasConfiguredFilters) {
+      filterColumns = filterConfig!.columns
+        .map(fc => ({
+          column: fc.column,
+          values: columnValues[fc.column] || [],
+          label: fc.label || deriveLabel(fc.column),
+        }))
+        .filter(fc => fc.values.length > 0);
+    } else {
+      filterColumns = allFilterCandidates
+        .map(col => ({
+          column: col,
+          values: columnValues[col],
+          label: deriveLabel(col),
+        }))
+        .filter(fc => fc.values.length > 0);
+    }
 
     return { categoryColumn, filterColumns };
-  }, [items]);
+  }, [items, viewerConfig]);
 
   const filteredItems = useMemo(() => {
     let result = items;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
+      const searchConfig = viewerConfig?.search;
+      const searchableCols = searchConfig?.searchableColumns?.length
+        ? new Set(searchConfig.searchableColumns)
+        : null;
+
       result = result.filter(item =>
         Object.entries(item).some(([key, val]) => {
           if (SYSTEM_COLS.has(key) || key === 'embedding') return false;
           if (val == null) return false;
+          if (searchableCols && !searchableCols.has(key)) return false;
           return String(val).toLowerCase().includes(q);
         })
       );
@@ -232,24 +297,72 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     return result;
-  }, [items, searchQuery, activeFilters]);
+  }, [items, searchQuery, activeFilters, viewerConfig]);
 
   const groupedItems = useMemo(() => {
     if (!columnAnalysis.categoryColumn) return null;
+    const catStyle = viewerConfig?.categorization?.style;
+    if (catStyle === 'none') return null;
+
     const groups: Record<string, typeof items> = {};
     const catCol = columnAnalysis.categoryColumn!;
+    const manualGroups = viewerConfig?.categorization?.manualGroups || [];
+
     for (const item of filteredItems) {
       const raw = item[catCol];
-      const cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
+      let cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
+
+      // Apply manual group mapping
+      if (manualGroups.length > 0) {
+        const matched = manualGroups.find(mg => mg.values.includes(String(raw ?? '')));
+        if (matched) cat = matched.label;
+      }
+
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     }
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredItems, columnAnalysis.categoryColumn]);
+
+    let entries = Object.entries(groups);
+
+    // Apply custom order if set
+    const customOrder = viewerConfig?.categorization?.order;
+    if (customOrder && customOrder.length > 0) {
+      const orderMap = new Map(customOrder.map((k, i) => [k, i]));
+      entries.sort(([a], [b]) => {
+        const ai = orderMap.get(a);
+        const bi = orderMap.get(b);
+        if (ai != null && bi != null) return ai - bi;
+        if (ai != null) return -1;
+        if (bi != null) return 1;
+        return a.localeCompare(b);
+      });
+    } else {
+      entries.sort(([a], [b]) => a.localeCompare(b));
+    }
+
+    // Filter empty categories if configured
+    if (!viewerConfig?.categorization?.showEmptyCategories) {
+      entries = entries.filter(([, cats]) => cats.length > 0);
+    }
+
+    return entries;
+  }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
 
   const toggleFilter = (col: string, value: string) => {
     setActiveFilters(prev => {
       const next = { ...prev };
+
+      // Check if this column uses single-select mode
+      const filterCol = viewerConfig?.filters?.columns?.find(fc => fc.column === col);
+      if (filterCol?.mode === 'single') {
+        if (prev[col]?.has(value)) {
+          delete next[col];
+        } else {
+          next[col] = new Set([value]);
+        }
+        return next;
+      }
+
       const set = new Set(next[col] || []);
       if (set.has(value)) set.delete(value); else set.add(value);
       if (set.size === 0) delete next[col]; else next[col] = set;
@@ -331,8 +444,30 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     );
   }
 
+  const renderHeaderIcon = () => {
+    const headerIcon = viewerConfig?.header?.icon;
+    if (headerIcon) {
+      return <IconRenderer icon={headerIcon} size="md" />;
+    }
+    return <Database className="h-5 w-5" />;
+  };
+
+  const renderHeaderTitle = () => {
+    const headerTitle = viewerConfig?.header?.title;
+    if (headerTitle) return headerTitle;
+    return tableName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const showBreadcrumb = viewerConfig?.header?.showBreadcrumb ?? true;
+
   return (
-    <article className="max-w-3xl mx-auto">
+    <article className={`max-w-3xl mx-auto ${viewerConfig?.header?.backgroundImage ? 'relative' : ''}`}>
+      {viewerConfig?.header?.backgroundImage && (
+        <div className="absolute inset-0 -z-10 rounded-2xl overflow-hidden">
+          <img src={viewerConfig.header.backgroundImage} alt="" className="w-full h-48 object-cover opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        </div>
+      )}
       {compareStat && compareItemId && tenantId && (
         <ComparePopup
           table={tableName}
@@ -343,21 +478,23 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           onClose={() => { setCompareStat(null); setCompareItemId(null); }}
         />
       )}
-      <Link
-        href={homePath}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-      >
-        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-        Voltar para home
-      </Link>
+      {showBreadcrumb && (
+        <Link
+          href={homePath}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+        >
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+          Voltar para home
+        </Link>
+      )}
 
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <Database className="h-5 w-5" />
+            {renderHeaderIcon()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold capitalize">{tableName.replace(/_/g, ' ')}</h1>
+            <h1 className="text-2xl font-bold">{renderHeaderTitle()}</h1>
             <p className="text-sm text-muted-foreground">
               {filteredItems.length} de {items.length} ite{items.length === 1 ? 'm' : 'ns'}
             </p>
@@ -365,26 +502,28 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar..."
-          className="w-full rounded-xl border bg-card pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      {(viewerConfig?.search?.enabled ?? true) && (
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={viewerConfig?.search?.placeholder || 'Buscar...'}
+            className="w-full rounded-xl border bg-card pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
 
-      {columnAnalysis.filterColumns.length > 0 && (
+      {(viewerConfig?.filters?.enabled ?? true) && columnAnalysis.filterColumns.length > 0 && (
         <div className="space-y-2 mb-6">
           {columnAnalysis.filterColumns.map((fc) => (
             <div key={fc.column} className="flex items-start gap-2">
@@ -424,23 +563,38 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       )}
 
       {loading ? (
-        <div className="space-y-3 animate-pulse">
+        <div className={`space-y-3 ${viewerConfig?.loading?.skeleton === 'pulse' ? 'animate-pulse' : viewerConfig?.loading?.skeleton === 'shimmer' ? 'animate-pulse' : ''}`}>
           <div className="h-5 w-32 bg-muted rounded mb-6" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-20 rounded-xl bg-muted" />
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3`}>
+            {Array.from({ length: viewerConfig?.loading?.skeletonCount || 6 }).map((_, i) => (
+              <div key={i} className={`h-20 rounded-xl ${viewerConfig?.loading?.skeleton === 'spinner' ? 'flex items-center justify-center' : 'bg-muted'}`}>
+                {viewerConfig?.loading?.skeleton === 'spinner' && (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                )}
+              </div>
             ))}
           </div>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="text-center py-20 rounded-xl border bg-card">
-          <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Nenhum item encontrado</h2>
+          {viewerConfig?.emptyState?.imageUrl ? (
+            <img src={viewerConfig.emptyState.imageUrl} alt="" className="h-24 w-24 mx-auto mb-4 object-contain opacity-60" />
+          ) : (
+            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          )}
+          <h2 className="text-xl font-semibold mb-2">{viewerConfig?.emptyState?.message || 'Nenhum item encontrado'}</h2>
           <p className="text-muted-foreground">
             {searchQuery || hasActiveFilters
               ? 'Tente ajustar a busca ou os filtros.'
               : 'Esta tabela ainda não possui dados.'}
           </p>
+          {viewerConfig?.emptyState?.ctaText && viewerConfig?.emptyState?.ctaUrl && (
+            <a href={viewerConfig.emptyState.ctaUrl}
+              className="inline-flex items-center gap-2 mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              {viewerConfig.emptyState.ctaText}
+            </a>
+          )}
         </div>
       ) : groupedItems ? (
         <div className="space-y-8">
