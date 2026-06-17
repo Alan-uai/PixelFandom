@@ -62,7 +62,7 @@ export default function ProfileView() {
           profileCache.current = data;
           setProfile(data);
         }
-      } catch {} finally {
+      } catch {/* noop */} finally {
         setLoading(false);
       }
     })();
@@ -84,7 +84,7 @@ export default function ProfileView() {
           badgesCache.current = data;
           setBadges(data);
         }
-      } catch {} finally {
+      } catch {/* noop */} finally {
         setBadgesLoading(false);
       }
     })();

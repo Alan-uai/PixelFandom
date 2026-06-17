@@ -35,7 +35,7 @@ export function CommentsSection({ articleId, tenantId, tenantSlug }: Props) {
         cacheRef.current = data;
         setComments(data);
       }
-    } catch {} finally {
+    } catch {/* noop */} finally {
       setLoading(false);
     }
   }, [articleId]);

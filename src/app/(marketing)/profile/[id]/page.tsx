@@ -50,7 +50,7 @@ export default function ProfilePage() {
           cache.current[id] = data;
           setProfile(data);
         }
-      } catch {} finally {
+      } catch {/* noop */} finally {
         setLoading(false);
       }
     })();

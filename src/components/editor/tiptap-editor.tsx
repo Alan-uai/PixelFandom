@@ -27,7 +27,7 @@ import {
   Gamepad2,
   Layers,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GameItemEmbed, TierlistBlock } from './extensions';
 import { GameItemSelector } from './game-item-selector';
 
@@ -147,7 +147,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
 
   if (!editor) return null;
 
-  const ToolbarButton = ({ onClick, active, children }: any) => (
+  const ToolbarButton = useMemo(() => ({ onClick, active, children }: any) => (
     <button
       type="button"
       onClick={onClick}
@@ -157,9 +157,9 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
     >
       {children}
     </button>
-  );
+  ), []);
 
-  const Divider = () => <div className="w-px h-5 bg-border mx-1" />;
+  const Divider = useMemo(() => () => <div className="w-px h-5 bg-border mx-1" />, []);
 
   return (
     <div className="border rounded-lg overflow-hidden">

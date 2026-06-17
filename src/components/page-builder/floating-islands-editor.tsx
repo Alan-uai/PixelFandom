@@ -553,7 +553,7 @@ function ConfigFields({
             <textarea
               value={JSON.stringify((island.config.rows as string[][]) || [], null, 2)}
               onChange={(e) => {
-                try { onChange(id, 'rows', JSON.parse(e.target.value)); } catch {}
+                try { onChange(id, 'rows', JSON.parse(e.target.value)); } catch {/* noop */}
               }}
               rows={4}
               className="w-full rounded-md border bg-background px-2 py-1.5 font-mono text-[10px] resize-none"

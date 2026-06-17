@@ -17,7 +17,7 @@ function getCachedTenant(request: NextRequest): { slug: string; id: string } | n
     if (parsed?.slug && parsed?.id && parsed?.exp && Date.now() < parsed.exp) {
       return { slug: parsed.slug, id: parsed.id };
     }
-  } catch {}
+  } catch {/* noop */}
   return null;
 }
 

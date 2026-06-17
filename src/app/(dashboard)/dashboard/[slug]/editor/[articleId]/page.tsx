@@ -298,7 +298,7 @@ function EditPageContent() {
             raw_data: i.raw_data 
           }))
         }, null, 2);
-      } catch {}
+      } catch {/* noop */}
 
       const result = await generateGuide({
         topic: guideTopic,
@@ -342,7 +342,7 @@ function EditPageContent() {
             raw_data: i.raw_data
           }))
         }, null, 2);
-      } catch {}
+      } catch {/* noop */}
 
       const result = await improveArticle({
         title: values.title,
@@ -421,7 +421,7 @@ function EditPageContent() {
           p_article_id: articleId,
           p_summary: changeSummary.trim(),
         }).then();
-      } catch {}
+      } catch {/* noop */}
     }
 
     if (isNewArticle) {

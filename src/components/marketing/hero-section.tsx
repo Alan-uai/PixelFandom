@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, useTransform, useAnimationControls } from 'framer-motion';
+import { motion, useTransform, useAnimationControls, useMotionValue } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ChevronDown, Sparkles, Cpu, Users, Globe, Layout } from 'lucide-react';
@@ -72,21 +72,10 @@ export default function HeroSection() {
     return unsub;
   }, [scrollProgress, phase]);
 
-  const subtitleOpacity = scrollProgress
-    ? useTransform(scrollProgress, [0.5, 0.8], [1, 0])
-    : undefined;
-
-  const featuresOpacity = scrollProgress
-    ? useTransform(scrollProgress, [0.5, 0.8], [1, 0])
-    : undefined;
-
-  const ctaOpacity = scrollProgress
-    ? useTransform(scrollProgress, [0.5, 0.8], [1, 0])
-    : undefined;
-
-  const ctaY = scrollProgress
-    ? useTransform(scrollProgress, [0.5, 0.8], [0, -30])
-    : undefined;
+   const subtitleOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
+   const featuresOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
+   const ctaOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
+   const ctaY = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [0, -30]);
 
   return (
     <section className={containerClass}>

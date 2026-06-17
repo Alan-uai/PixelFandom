@@ -257,7 +257,7 @@ function renderTierlistBlock(node: any): string {
         ? JSON.parse(node.attrs.tiers)
         : node.attrs.tiers;
     }
-  } catch {}
+  } catch {/* noop */}
 
   const tierColors: Record<string, string> = {
     S: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',

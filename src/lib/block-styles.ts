@@ -1,4 +1,5 @@
 import type { BlockStyle, SpacingOption, BorderStyle, ShadowSize, TextAlign, AnimationType, VisibilityMode, AnimationConfig, DurationOption, DelayOption, EasingOption } from '@/components/page-builder/types';
+import React from 'react'
 
 const SPACING_MAP: Record<SpacingOption, string> = {
   none: '', sm: 'p-2', md: 'p-4', lg: 'p-6', xl: 'p-8',

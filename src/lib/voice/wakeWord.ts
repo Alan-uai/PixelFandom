@@ -70,7 +70,7 @@ export class WakeWordDetector {
       if (this.isListening) {
         this.restartTimeout = setTimeout(() => {
           if (this.isListening) {
-            try { recognition.start(); } catch {}
+            try { recognition.start(); } catch {/* noop */}
           }
         }, 100);
       }
@@ -93,7 +93,7 @@ export class WakeWordDetector {
       this.recognition.onresult = null;
       this.recognition.onerror = null;
       this.recognition.onend = null;
-      try { this.recognition.abort(); } catch {}
+      try { this.recognition.abort(); } catch {/* noop */}
       this.recognition = null;
     }
   }

@@ -121,7 +121,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         sessionsCache.current = data;
         setSessions(data);
       }
-    } catch {} finally {
+    } catch {/* noop */} finally {
       setLoadingHistory(false);
     }
   };
@@ -146,7 +146,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         setSessions((prev) => [session, ...prev]);
         return session.id;
       }
-    } catch {}
+    } catch {/* noop */}
     return null;
   };
 
@@ -165,7 +165,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         setSessionId(sid);
         setShowHistory(false);
       }
-    } catch {}
+    } catch {/* noop */}
   };
 
   const newChat = () => {
@@ -185,7 +185,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         setSessionId(null);
         setMessages([]);
       }
-    } catch {}
+    } catch {/* noop */}
   }, [sessionId]);
 
   const handleSend = useCallback(async () => {
@@ -299,7 +299,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedback: newFeedback || null }),
       });
-    } catch {}
+    } catch {/* noop */}
   };
 
   const renderAssistantContent = (msg: ChatMessage) => {

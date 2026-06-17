@@ -21,7 +21,7 @@ export async function translateGameTerm(text: string): Promise<{ translated: str
       cache.set(key, result);
       return result;
     }
-  } catch {}
+  } catch {/* noop */}
 
   const slug = trimmed.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   const result = { translated: trimmed, slug };

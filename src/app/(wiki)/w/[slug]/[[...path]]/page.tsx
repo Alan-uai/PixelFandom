@@ -114,7 +114,7 @@ export default function WikiPage() {
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
         }
-      } catch {}
+      } catch {/* noop */}
       setLoadingLayout(false);
     })();
   }, [articleSlug, tenant?.id]);

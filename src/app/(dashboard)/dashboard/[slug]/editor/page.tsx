@@ -124,14 +124,14 @@ export default function EditorArticlesPage() {
     try {
       const stored = localStorage.getItem('editor-active-tab');
       if (stored) setActiveTab(stored);
-    } catch {}
+    } catch {/* noop */}
   }, []);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     try {
       localStorage.setItem('editor-active-tab', value);
-    } catch {}
+    } catch {/* noop */}
   };
 
   useEffect(() => {

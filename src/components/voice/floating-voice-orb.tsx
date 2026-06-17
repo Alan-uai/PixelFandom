@@ -27,7 +27,7 @@ function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch {/* noop */}
   return {}
 }
 
@@ -65,7 +65,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
           messages: [{ role, content, provider: 'voice', metadata: { transcribed: true } }],
         }),
       })
-    } catch {}
+    } catch {/* noop */}
   }, [])
 
   const handleMessage = useCallback(async (message: ResponseMessage) => {

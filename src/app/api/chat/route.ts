@@ -101,7 +101,7 @@ async function streamOpenRouter(
               if (content) {
                 controller.enqueue(new TextEncoder().encode(content));
               }
-            } catch {}
+            } catch {/* noop */}
           }
         }
 

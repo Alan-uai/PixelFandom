@@ -1,6 +1,7 @@
 'use client';
 
 import {
+import React from 'react'
   Star, Sword, Shield, Zap, Flame, Snowflake, Skull, Ghost,
   Globe, Droplets, Gem, ScrollText, Lightbulb, MessageCircle,
   Eye, Crosshair, Coins, Pickaxe, Sparkles, Crown,

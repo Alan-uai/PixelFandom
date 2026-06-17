@@ -41,8 +41,7 @@ export async function PATCH(request: NextRequest) {
     .eq('user_id', user.id)
     .is('read_at', null);
 
-  if (markAllRead) {
-  } else if (Array.isArray(ids) && ids.length > 0) {
+  if (markAllRead) { /* noop */ } else if (Array.isArray(ids) && ids.length > 0) {
     query = query.in('id', ids);
   } else {
     return NextResponse.json({ error: 'No ids provided' }, { status: 400 });

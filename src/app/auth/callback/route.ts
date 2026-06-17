@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     let redirectUrl: URL | null = null;
     if (redirectTo) {
-      try { redirectUrl = new URL(redirectTo); } catch {}
+      try { redirectUrl = new URL(redirectTo); } catch {/* noop */}
     }
     const isExternal = redirectUrl !== null && redirectUrl.origin !== origin;
 

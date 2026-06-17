@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar, Tags, FileText, ImageIcon } from 'lucide-react';
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import type { CardPosition } from '@/components/page-builder/types';
+import React from 'react'
 
 type Article = {
   id: string;

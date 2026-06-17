@@ -58,7 +58,7 @@ function loadVoice(): VoiceSettings {
   try {
     const raw = localStorage.getItem(VOICE_STORAGE_KEY)
     if (raw) return { ...defaultVoice, ...JSON.parse(raw) }
-  } catch {}
+  } catch {/* noop */}
   return defaultVoice
 }
 

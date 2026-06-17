@@ -120,7 +120,7 @@ function WikiLayoutContent({
         const catalog = await getTableCatalog(slug, false);
         const names = catalog.map((t) => t.table_name);
         setGameTableNames(names);
-      } catch {}
+      } catch {/* noop */}
     })();
   }, [slug]);
 

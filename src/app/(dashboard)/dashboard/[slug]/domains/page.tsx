@@ -198,7 +198,7 @@ export default function WikiDomainsPage() {
           <a
             href={`/w/${slug}`}
             target="_blank"
-            className="inline-flex items-center gap-2 text-sm font-mono text-primary hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-mono text-primary hover:underline" rel="noreferrer"
           >
             <Globe className="h-4 w-4" />
             pixelfandom.vercel.app/w/{slug}

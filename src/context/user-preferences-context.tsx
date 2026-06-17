@@ -56,14 +56,14 @@ function loadLocal(): UserPreferences {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
-  } catch { }
+  } catch {/* noop */}
   return { ...DEFAULTS };
 }
 
 function saveLocal(prefs: UserPreferences) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  } catch { }
+  } catch {/* noop */}
 }
 
 interface UserPreferencesContextValue {

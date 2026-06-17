@@ -62,6 +62,7 @@ import { ErrorPollBlock } from './blocks/error-poll-block';
 import { ErrorFactBlock } from './blocks/error-fact-block';
 import { ErrorSocialBlock } from './blocks/error-social-block';
 import { ErrorCharacterBlock } from './blocks/error-character-block';
+import React from 'react'
 
 interface BlockRendererProps {
   block: BlockConfig;

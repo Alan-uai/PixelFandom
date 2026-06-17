@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { MAIN_URL } from '@/lib/constants';
+import React from 'react'
 
 interface HubLinkProps {
   children: React.ReactNode;

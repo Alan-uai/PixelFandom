@@ -225,10 +225,10 @@ export function playLightsaberHumSound(): () => void {
       try {
         gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2)
         setTimeout(() => {
-          try { osc.stop(ac.currentTime) } catch {}
-          try { lfo.stop(ac.currentTime) } catch {}
+          try { osc.stop(ac.currentTime) } catch {/* noop */}
+          try { lfo.stop(ac.currentTime) } catch {/* noop */}
         }, 250)
-      } catch {}
+      } catch {/* noop */}
     }
   })
 

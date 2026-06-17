@@ -62,7 +62,7 @@ export default function NotificationBell() {
         setNotifications(data);
         setUnreadCount(data.length);
       }
-    } catch {}
+    } catch {/* noop */}
   }
 
   async function markRead(id?: string) {

@@ -113,7 +113,7 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       }
-    } catch {}
+    } catch {/* noop */}
     setSaving(false);
   };
 

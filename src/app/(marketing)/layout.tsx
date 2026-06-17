@@ -52,7 +52,7 @@ export default function MarketingLayout({
   const handleSplashComplete = useCallback(() => {
     try {
       localStorage.setItem('pf_splash', new Date().toISOString());
-    } catch {}
+    } catch {/* noop */}
     setSplashDone(true);
   }, []);
 

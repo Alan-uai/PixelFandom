@@ -206,7 +206,7 @@ export default function WikiAIConfigPage() {
             setFreeModels(data);
           }
         }
-      } catch {
+      } catch {/* noop */}
       } finally {
         setLoadingModels(false);
       }

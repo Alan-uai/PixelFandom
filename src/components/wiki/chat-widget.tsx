@@ -25,7 +25,7 @@ function loadPosition(): Position | null {
   try {
     const raw = localStorage.getItem(LS_POSITION);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch {/* noop */}
   return null;
 }
 
@@ -37,7 +37,7 @@ function loadVisible(): boolean {
   try {
     const raw = localStorage.getItem(LS_VISIBLE);
     if (raw !== null) return raw === 'true';
-  } catch {}
+  } catch {/* noop */}
   return true;
 }
 

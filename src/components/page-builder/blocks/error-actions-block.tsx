@@ -1,6 +1,7 @@
 'use client';
 
 import { Home, ArrowLeft, Mail } from 'lucide-react';
+import React from 'react'
 
 const iconMap: Record<string, React.ElementType> = {
   home: Home,

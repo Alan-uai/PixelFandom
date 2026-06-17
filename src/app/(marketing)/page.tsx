@@ -102,7 +102,7 @@ export default function Home() {
       try {
         const res = await fetch(`/api/wikis/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
         if (res.ok) setSearchResults(await res.json());
-      } catch {} finally {
+      } catch {/* noop */} finally {
         setSearchLoading(false);
       }
     }, 300);

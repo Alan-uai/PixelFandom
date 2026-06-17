@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { TABLE_ICONS, resolveTableIcon, isCustomIcon } from '@/lib/table-icons';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,11 +18,18 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const CurrentIcon = resolveTableIcon(value);
+  const CurrentIcon = useMemo(() => resolveTableIcon(value), [value]);
 
   const filtered = search.trim()
     ? TABLE_ICONS.filter((name) => name.toLowerCase().includes(search.toLowerCase()))
     : TABLE_ICONS;
+
+  const resolvedIcons = useMemo(() => {
+    return filtered.reduce((acc, name) => {
+      acc[name] = resolveTableIcon(name);
+      return acc;
+    }, {} as Record<string, React.ComponentType<{ className?: string }>>);
+  }, [filtered]);
 
   useEffect(() => {
     if (open) {
@@ -73,7 +80,7 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
         <div className="max-h-40 overflow-y-auto">
           <div className="grid grid-cols-8 gap-1">
             {filtered.map((name) => {
-              const Icon = resolveTableIcon(name);
+              const Icon = resolvedIcons[name];
               const selected = value === name;
               return (
                 <button

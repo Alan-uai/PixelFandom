@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       const slug = translated.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       return NextResponse.json({ translated, slug });
     }
-  } catch {}
+  } catch {/* noop */}
 
   const slug = rawText.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   return NextResponse.json({ translated: rawText, slug });

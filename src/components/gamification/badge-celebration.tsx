@@ -80,7 +80,7 @@ export function BadgeCelebration() {
             body: JSON.stringify({ ids: [n.id] }),
           });
         }
-      } catch {}
+      } catch {/* noop */}
     }
 
     checkBadges();

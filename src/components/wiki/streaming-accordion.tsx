@@ -33,13 +33,15 @@ function tryParseLastPart(raw: string): Section | null {
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed.sectionType && parsed.title) return parsed;
-  } catch {}
+   } catch {/* noop */}
+
 
   try {
     const fixed = trimmed.endsWith('"') ? trimmed + '}' : trimmed + '"}';
     const parsed = JSON.parse(fixed);
     if (parsed.sectionType && parsed.title) return parsed;
-  } catch {}
+   } catch {/* noop */}
+
 
   return null;
 }

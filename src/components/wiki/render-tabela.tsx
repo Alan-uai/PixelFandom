@@ -35,7 +35,7 @@ function parseSections(content: string, isStreaming: boolean): { sections: Secti
     try {
       const parsed = JSON.parse(p);
       if (parsed.sectionType) sections.push(parsed);
-    } catch {}
+    } catch {/* noop */}
   }
   return { sections, partial };
 }
