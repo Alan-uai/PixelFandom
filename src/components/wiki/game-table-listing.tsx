@@ -552,13 +552,13 @@ function ItemCard({
             </div>
             <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
               {rarity && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-back[...]
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm`}>
                   <Star className="h-2.5 w-2.5" />
                   {rarity}
                 </span>
               )}
               {tier && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-[...]
+                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm`}>
                   {TIER_LABEL[tier.toLowerCase()] || tier}
                 </span>
               )}
