@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { PanelProps } from './types';
 import { ItemsListEditor } from './shared/items-list-editor';
 import {
   SelectField, CheckboxField, TextField, ColorField, UrlField,
 } from './shared/fields';
 import { ImageIcon } from 'lucide-react';
+import { MediaLibrary } from '@/components/ui/media-library';
 
 function ImageUrlField({ label, value, onChange, tenantId }: { label: string; value: string; onChange: (v: string) => void; tenantId?: string }) {
   const [libOpen, setLibOpen] = useState(false);
@@ -28,11 +29,8 @@ function ImageUrlField({ label, value, onChange, tenantId }: { label: string; va
 
 function MediaLibraryInline({ open, onOpenChange, tenantId, onSelect }: { open: boolean; onOpenChange: (v: boolean) => void; tenantId: string; onSelect: (url: string) => void }) {
   if (!open) return null;
-  const MediaLibrary = React.lazy(() => import('@/components/ui/media-library').then(m => ({ default: m.MediaLibrary })));
   return (
-    <React.Suspense fallback={null}>
-      <MediaLibrary open={open} onOpenChange={onOpenChange} tenantId={tenantId} onSelect={onSelect} />
-    </React.Suspense>
+    <MediaLibrary open={open} onOpenChange={onOpenChange} tenantId={tenantId} onSelect={onSelect} />
   );
 }
 
