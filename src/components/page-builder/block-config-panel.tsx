@@ -209,7 +209,7 @@ function StylePanel({ style, onChange }: StylePanelProps) {
 
 // ── Main Config Panel ──
 
-export function BlockConfigPanel({ block, onUpdate, onClose }: BlockConfigPanelProps) {
+export function BlockConfigPanel({ block, onUpdate, onClose, tenantId }: BlockConfigPanelProps & { tenantId?: string }) {
   const [localConfig, setLocalConfig] = useState({ ...block.config });
   const prevBlockKey = useRef('');
 
@@ -244,7 +244,7 @@ export function BlockConfigPanel({ block, onUpdate, onClose }: BlockConfigPanelP
 
       <div className="space-y-3">
         {SpecificPanel ? (
-          <SpecificPanel config={localConfig} onChange={(key: string, value: unknown) => update(key, value)} />
+          <SpecificPanel config={localConfig} onChange={(key: string, value: unknown) => update(key, value)} tenantId={tenantId} />
         ) : (
           <p className="text-[10px] text-muted-foreground italic">Nenhuma configuração disponível para este bloco.</p>
         )}

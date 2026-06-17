@@ -367,14 +367,46 @@
   .letter-float-delay-11 { animation-delay: 0.15s; }
 
   .inset-shadow {
-    box-shadow: 6px 6px 6px rgba(0, 0, 0, 0.5) inset,
-                -5px -5px 5px rgba(255, 255, 255, 0.1) inset,
-                -5px -5px 5px rgba(255, 255, 255, 0.1),
-                6px 6px 6px rgba(0, 0, 0, 0.5);
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5) inset,
+                -2px -2px 2px rgba(255, 255, 255, 0.1) inset,
+                -2px -2px 2px rgba(255, 255, 255, 0.1),
+                2px 2px 2px rgba(0, 0, 0, 0.5);
   }
 
   @keyframes splash-particle-fade {
     0%, 100% { opacity: 0; transform: scale(0.3); }
     30%, 70% { opacity: 1; transform: scale(1); }
+  }
+
+  .ai-card {
+    position: relative;
+  }
+  .ai-card[data-layer]::after {
+    content: attr(data-layer);
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    z-index: 20;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 2px solid hsl(var(--border));
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  }
+  .ai-card[data-layer="wiki"]::after {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary));
+  }
+  .ai-card[data-layer="global"]::after {
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    border-color: hsl(var(--muted));
   }
 }

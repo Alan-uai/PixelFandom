@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -26,7 +25,6 @@ export function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen);
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
-  const [initialWeldDone, setInitialWeldDone] = useState(false);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -35,97 +33,32 @@ export function CollapsibleSection({
   }, [open, children]);
 
   return (
-    <WeldingCard
-      key={`${id}-${open}`}
-      className={cn('border bg-card text-card-foreground shadow-sm', className)}
-      trails={[
-        { width: 8, opacity: 0.12, length: 0.15 },
-        { width: 5, opacity: 0.25, length: 0.10 },
-        { width: 2.5, opacity: 0.45, length: 0.06 },
-      ]}
-      glowWidth={8}
-      glowOpacity={0.65}
-      glowLength={0.1}
-      glowBlur={5}
-      coreWidth={3}
-      coreLength={0.04}
-      starIntensity={1.2}
-      text={initialWeldDone ? undefined : title}
-      textStartDelay={200}
-      showGolden
-      goldenDuration={800}
-      onGoldenDone={() => setInitialWeldDone(true)}
-    >
-      <motion.button
+    <WeldingCard className={cn('', className)}>
+      <button
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between gap-4 w-full px-6 py-4 text-left cursor-pointer select-none hover:bg-accent/50 transition-colors rounded-t-xl"
-        whileTap={{ scale: 0.995 }}
-        style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
       >
         <div className="space-y-1 min-w-0 flex-1">
-          <motion.h3
-            className="font-semibold leading-none tracking-tight relative"
-            animate={{ x: open ? 4 : 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-          >
-            <motion.span
-              className="block"
-              animate={{ opacity: open ? 0 : 1 }}
-              transition={{ duration: 0.25 }}
-            >
-              {title}
-            </motion.span>
-            <motion.span
-              className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
-              animate={{ opacity: open ? 1 : 0 }}
-              transition={{ duration: 0.25 }}
-              aria-hidden
-            >
-              {title}
-            </motion.span>
-          </motion.h3>
+          <h3 className="font-semibold leading-none tracking-tight">{title}</h3>
           {description && (
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        <motion.div
-          animate={{ rotate: open ? 180 : 0, scale: open ? 1.2 : 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 12, mass: 0.8 }}
-          style={{ transformStyle: 'preserve-3d' }}
+        <div
+          className={`shrink-0 transition-transform duration-300 ${open ? 'rotate-180 scale-110' : ''}`}
         >
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-        </motion.div>
-      </motion.button>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </button>
 
-      <motion.div
-        initial={false}
-        animate={{
-          height: open ? height : 0,
-          opacity: open ? 1 : 0,
-          rotateX: open ? 0 : -15,
-          scaleY: open ? 1 : 0.92,
-          filter: open ? 'blur(0px)' : 'blur(6px)',
-        }}
-        transition={{
-          duration: 0.5,
-          ease: [0.22, 1, 0.36, 1],
-          height: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-          opacity: { duration: 0.3, delay: open ? 0.08 : 0 },
-          rotateX: { duration: 0.45 },
-          scaleY: { duration: 0.4 },
-          filter: { duration: 0.35, delay: open ? 0.05 : 0 },
-        }}
-        style={{
-          transformOrigin: 'top center',
-          perspective: 1200,
-          transformStyle: 'preserve-3d',
-          overflow: 'hidden',
-        }}
+      <div
+        className="transition-all duration-300 overflow-hidden"
+        style={{ height: open ? height : 0, opacity: open ? 1 : 0 }}
       >
         <div ref={contentRef} className="px-6 pb-4 pt-2">
           {children}
         </div>
-      </motion.div>
+      </div>
     </WeldingCard>
   );
 }

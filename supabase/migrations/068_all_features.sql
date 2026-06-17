@@ -85,7 +85,7 @@ ALTER TABLE import_jobs ADD COLUMN IF NOT EXISTS file_url TEXT;
 -- ============================================================
 -- Helpful view for dashboard analytics (#2)
 -- ============================================================
-CREATE OR REPLACE VIEW v_user_tenant_stats AS
+CREATE OR REPLACE VIEW v_user_tenant_stats WITH (security_invoker = true) AS
 SELECT
     tm.user_id,
     tm.tenant_id,

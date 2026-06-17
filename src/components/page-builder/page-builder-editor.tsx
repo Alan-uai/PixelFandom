@@ -340,7 +340,7 @@ export function PageBuilderEditor({
             {selectedBlock && (
               <>
                 <div className="hidden md:block">
-                  <BlockConfigPanel block={selectedBlock} onUpdate={handleUpdateBlock} onClose={() => setSelectedId(null)} />
+                  <BlockConfigPanel block={selectedBlock} onUpdate={handleUpdateBlock} onClose={() => setSelectedId(null)} tenantId={slug} />
                 </div>
                 <button onClick={() => setShowMobileConfig(true)}
                   className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg"

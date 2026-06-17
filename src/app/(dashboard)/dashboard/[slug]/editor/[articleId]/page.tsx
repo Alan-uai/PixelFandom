@@ -604,6 +604,7 @@ function EditPageContent() {
                         }}
                         placeholder="Escreva o conteúdo do artigo..."
                         articleId={articleId}
+                        tenantId={params.slug as string}
                       />
                     </FormControl>
                     <FormMessage />

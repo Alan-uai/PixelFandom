@@ -2,11 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Loader2, Upload, X } from 'lucide-react';
+import { ImageIcon, Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
 
 type Props = {
   bucket?: string;
@@ -16,11 +15,11 @@ type Props = {
   accept?: string;
   previewSize?: string;
   label?: string;
+  tenantId?: string;
+  onOpenLibrary?: () => void;
 };
 
 type Mode = 'upload' | 'url';
-
-const spring = { type: 'spring' as const, stiffness: 350, damping: 28, mass: 0.6 };
 
 export function ImageUpload({
   bucket = 'wiki-images',
@@ -30,6 +29,7 @@ export function ImageUpload({
   accept = 'image/*',
   previewSize = 'w-32 h-32',
   label = 'Imagem',
+  onOpenLibrary,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -103,20 +103,33 @@ export function ImageUpload({
         accept={accept}
       />
 
+      {/* Corner */}
+      <div className="absolute -top-2 -right-2 z-20 flex items-center gap-0.5">
+        {!value && onOpenLibrary && (
+          <button
+            type="button"
+            onClick={onOpenLibrary}
+            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+            aria-label="Abrir biblioteca"
+          >
+            <ImageIcon className="h-3 w-3" />
+          </button>
+        )}
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+            aria-label="Remover imagem"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
       {/* Card (upload mode) */}
       <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
-        <motion.div
-          initial={false}
-          animate={{
-            height: showUpload ? 'auto' : 0,
-            opacity: showUpload ? 1 : 0,
-            scaleY: showUpload ? 1 : 0,
-            rotateX: showUpload ? 0 : 90,
-          }}
-          transition={spring}
-          style={{ transformStyle: 'preserve-3d', perspective: 800, transformOrigin: 'bottom' }}
-          className="overflow-hidden"
-        >
+        <div className="overflow-hidden">
           {value ? (
             <div className={`${previewSize} flex items-center justify-center`}>
               <img src={value} alt={label} className="object-cover w-full h-full" />
@@ -136,19 +149,7 @@ export function ImageUpload({
               </span>
             </div>
           )}
-        </motion.div>
-
-        {/* X button - only when image present */}
-        {value && showUpload && (
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="absolute -top-2 -right-2 z-10 flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-            aria-label="Remover imagem"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
+        </div>
       </div>
 
       {/* "ou" toggle */}
@@ -165,18 +166,7 @@ export function ImageUpload({
 
       {/* URL input (URL mode) */}
       <div className={showUrl ? 'border rounded-lg' : 'border-t'}>
-        <motion.div
-          initial={false}
-          animate={{
-            height: showUrl ? 'auto' : 0,
-            opacity: showUrl ? 1 : 0,
-            scaleY: showUrl ? 1 : 0,
-            rotateX: showUrl ? 0 : -90,
-          }}
-          transition={spring}
-          style={{ transformStyle: 'preserve-3d', perspective: 800, transformOrigin: 'top' }}
-          className="overflow-hidden"
-        >
+        <div className="overflow-hidden">
           <div className="p-3">
             <FloatingLabelInput
               label={`URL da ${label.toLowerCase()}`}
@@ -186,7 +176,7 @@ export function ImageUpload({
               className="text-xs"
             />
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -173,9 +173,6 @@ function Card({ className, children }: CardProps) {
     <div className="relative rounded-xl">
       <WeldingCard
         className={className}
-        duration={1800}
-        showGolden={false}
-        showSparks={showBorder}
       >
         {children}
       </WeldingCard>

@@ -26,19 +26,22 @@ import {
   Loader2,
   Gamepad2,
   Layers,
+  Library,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GameItemEmbed, TierlistBlock } from './extensions';
 import { GameItemSelector } from './game-item-selector';
+import { MediaLibrary } from '@/components/ui/media-library';
 
 type TiptapEditorProps = {
   content: string;
   onChange: (html: string, json: string) => void;
   placeholder?: string;
   articleId?: string;
+  tenantId?: string;
 };
 
-export default function TiptapEditor({ content, onChange, placeholder, articleId }: TiptapEditorProps) {
+export default function TiptapEditor({ content, onChange, placeholder, articleId, tenantId }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -68,6 +71,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [slug, setSlug] = useState('');
   const [showGameItemSelector, setShowGameItemSelector] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   useEffect(() => {
     const parts = window.location.pathname.split('/');
@@ -211,6 +215,11 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
         <ToolbarButton onClick={handleImageUpload}>
           <Image className="h-4 w-4" />
         </ToolbarButton>
+        {(tenantId || slug) && (
+          <ToolbarButton onClick={() => setShowLibrary(true)}>
+            <Library className="h-4 w-4" />
+          </ToolbarButton>
+        )}
         <ToolbarButton onClick={handleLinkAdd} active={editor.isActive('link')}>
           <Link className="h-4 w-4" />
         </ToolbarButton>
@@ -233,6 +242,16 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
           tenantId={slug}
         />
       )}
+      <MediaLibrary
+        open={showLibrary}
+        onOpenChange={setShowLibrary}
+        tenantId={tenantId || slug}
+        onSelect={(url) => {
+          if (editor) {
+            editor.chain().focus().setImage({ src: url }).run();
+          }
+        }}
+      />
     </div>
   );
 }

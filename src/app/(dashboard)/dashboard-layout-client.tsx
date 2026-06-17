@@ -115,10 +115,10 @@ export default function DashboardLayoutClient({
 
         <div className="mx-2 h-5 w-px bg-border" />
 
-        <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        <nav className="flex items-center gap-1 flex-1 min-w-0">
           {isWikiPage && navItems.length > 0 && (
             <SliderTabs defaultValue={activeValue} value={activeValue} onValueChange={(v) => router.push(v)}>
-              <SliderTabsList className="border-0 bg-transparent backdrop-blur-none p-0 gap-0.5">
+              <SliderTabsList className="border-0 bg-transparent backdrop-blur-none p-0 gap-0.5 w-full flex-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const href = `/dashboard/${wikiSlug}/${item.href}`;
@@ -128,7 +128,7 @@ export default function DashboardLayoutClient({
                       value={href}
                       icon={Icon}
                       title={item.label}
-                      className="p-2 rounded-md"
+                      className="flex-1 p-2 rounded-md justify-center"
                     />
                   );
                 })}
@@ -138,11 +138,11 @@ export default function DashboardLayoutClient({
 
           {isWikiPage && (
             <>
-              <div className="mx-1 h-5 w-px bg-border" />
+              <div className="mx-1 h-5 w-px bg-border shrink-0" />
               <Link
                 href={wikiCustomDomain ? `https://${wikiCustomDomain}` : `/w/${wikiSlug}`}
                 target={wikiCustomDomain ? '_blank' : undefined}
-                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
                 title="Ver Wiki"
               >
                 <ExternalLink className="h-4 w-4" />

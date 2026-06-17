@@ -1,13 +1,46 @@
+import React, { useState } from 'react';
 import type { PanelProps } from './types';
 import { ItemsListEditor } from './shared/items-list-editor';
 import {
   SelectField, CheckboxField, TextField, ColorField, UrlField,
 } from './shared/fields';
+import { ImageIcon } from 'lucide-react';
 
-export function ImagePanel({ config, onChange }: PanelProps) {
+function ImageUrlField({ label, value, onChange, tenantId }: { label: string; value: string; onChange: (v: string) => void; tenantId?: string }) {
+  const [libOpen, setLibOpen] = useState(false);
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] text-muted-foreground">{label}</label>
+      <div className="flex gap-1">
+        <input type="url" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 rounded-md border bg-background px-2 py-1 text-xs" />
+        {tenantId && (
+          <button type="button" onClick={() => setLibOpen(true)} className="shrink-0 rounded-md border bg-background px-2 text-muted-foreground hover:text-foreground transition-colors" title="Biblioteca">
+            <ImageIcon className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {tenantId && (
+        <MediaLibraryInline open={libOpen} onOpenChange={setLibOpen} tenantId={tenantId} onSelect={onChange} />
+      )}
+    </div>
+  );
+}
+
+function MediaLibraryInline({ open, onOpenChange, tenantId, onSelect }: { open: boolean; onOpenChange: (v: boolean) => void; tenantId: string; onSelect: (url: string) => void }) {
+  if (!open) return null;
+  const MediaLibrary = React.lazy(() => import('@/components/ui/media-library').then(m => ({ default: m.MediaLibrary })));
+  return (
+    <React.Suspense fallback={null}>
+      <MediaLibrary open={open} onOpenChange={onOpenChange} tenantId={tenantId} onSelect={onSelect} />
+    </React.Suspense>
+  );
+}
+
+export function ImagePanel(props: PanelProps) {
+  const { config, onChange, tenantId } = props;
   return (
     <>
-      <UrlField label="URL da Imagem" value={(config.src as string) || ''} onChange={(v) => onChange('src', v)} />
+      <ImageUrlField label="URL da Imagem" value={(config.src as string) || ''} onChange={(v) => onChange('src', v)} tenantId={tenantId} />
       <TextField label="Alt" value={(config.alt as string) || ''} onChange={(v) => onChange('alt', v)} />
       <TextField label="Legenda" value={(config.caption as string) || ''} onChange={(v) => onChange('caption', v)} />
       <UrlField label="Link" value={(config.link as string) || ''} onChange={(v) => onChange('link', v)} />
