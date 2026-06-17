@@ -11,6 +11,7 @@ type BadgeWithEarned = {
   icon: string;
   category: string;
   rarity: number;
+  rarity_color?: string | null;
   earned: boolean;
 };
 
@@ -19,6 +20,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   content: 'Conteúdo',
   social: 'Social',
   expert: 'Especialista',
+  community: 'Comunidade',
+  streak: 'Streak',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -26,6 +29,16 @@ const CATEGORY_COLORS: Record<string, string> = {
   content: 'border-violet-500/30 bg-violet-500/5',
   social: 'border-emerald-500/30 bg-emerald-500/5',
   expert: 'border-amber-500/30 bg-amber-500/5',
+  community: 'border-emerald-500/30 bg-emerald-500/5',
+  streak: 'border-orange-500/30 bg-orange-500/5',
+};
+
+const RARITY_HSL: Record<number, string> = {
+  1: '0 0% 60%',
+  2: '142 76% 36%',
+  3: '217 91% 60%',
+  4: '271 81% 56%',
+  5: '38 92% 50%',
 };
 
 export function AchievementProgress() {
@@ -52,13 +65,25 @@ export function AchievementProgress() {
 
   if (!badges.length) return null;
 
+  const totalEarned = badges.filter((b) => b.earned).length;
   const categories = [...new Set(badges.map((b) => b.category))];
+
+  function getBarGradient(catBadges: BadgeWithEarned[]): string {
+    const maxRarity = Math.max(...catBadges.map((b) => b.rarity), 1);
+    const hsl = RARITY_HSL[maxRarity] || RARITY_HSL[1];
+    return `linear-gradient(90deg, hsl(${hsl} / 0.5), hsl(${hsl}))`;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Trophy className="h-5 w-5 text-primary" />
-        <h3 className="text-sm font-semibold">Conquistas</h3>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-semibold">Conquistas</h3>
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {totalEarned}/{badges.length}
+        </span>
       </div>
       {categories.map((cat) => {
         const catBadges = badges.filter((b) => b.category === cat);
@@ -77,10 +102,10 @@ export function AchievementProgress() {
                 {earned}/{total}
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary transition-all duration-500"
-                style={{ width: `${pct}%` }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, background: getBarGradient(catBadges) }}
               />
             </div>
             {pct === 100 && (

@@ -41,9 +41,16 @@ export default [
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/immutability': 'off',
+      'react/prop-types': 'off',
     },
     settings: {
       react: { version: 'detect' },
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-undef': 'off',
     },
   },
   {
@@ -56,6 +63,6 @@ export default [
     },
   },
   {
-    ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', '**/build/**', '**/.opencode/**', 'supabase/functions/**', 'test-websocket.mjs', 'tailwind.config.ts', 'vitest.config.ts', 'next-env.d.ts', 'next.config.ts', 'public/**'],
+    ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', '**/build/**', '**/.opencode/**', '**/.vercel/**', 'supabase/functions/**', 'test-websocket.mjs', 'tailwind.config.ts', 'vitest.config.ts', 'next-env.d.ts', 'next.config.ts', 'public/**'],
   },
 ];

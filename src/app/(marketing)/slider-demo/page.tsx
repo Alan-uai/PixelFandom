@@ -620,7 +620,7 @@ export default function SliderDemoPage() {
                 Card com Skeleton
               </PageContentReveal.Title>
               <PageContentReveal.Text className="text-sm text-muted-foreground">
-                Este card foi "soldado" na página com glow e faíscas.
+                Este card foi &ldquo;soldado&rdquo; na página com glow e faíscas.
               </PageContentReveal.Text>
               <PageContentReveal.Text className="mt-2 text-sm text-muted-foreground">
                 A borda acendeu primeiro, depois o título, e por fim o texto.

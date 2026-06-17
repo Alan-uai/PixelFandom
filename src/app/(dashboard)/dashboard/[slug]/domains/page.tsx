@@ -91,6 +91,7 @@ export default function WikiDomainsPage() {
     };
   }, [tenant?.custom_domain]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const checkDomain = useCallback(async (d: string) => {
     setChecking(true);
     try {

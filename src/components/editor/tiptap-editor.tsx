@@ -27,7 +27,7 @@ import {
   Gamepad2,
   Layers,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GameItemEmbed, TierlistBlock } from './extensions';
 import { GameItemSelector } from './game-item-selector';
 
@@ -147,20 +147,6 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
 
   if (!editor) return null;
 
-  const ToolbarButton = useMemo(() => ({ onClick, active, children }: any) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`p-1.5 rounded hover:bg-muted transition-colors ${
-        active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
-      }`}
-    >
-      {children}
-    </button>
-  ), []);
-
-  const Divider = useMemo(() => () => <div className="w-px h-5 bg-border mx-1" />, []);
-
   return (
     <div className="border rounded-lg overflow-hidden">
       <div className="flex flex-wrap items-center gap-0.5 p-2 border-b bg-muted/30">
@@ -249,6 +235,24 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       )}
     </div>
   );
+}
+
+function ToolbarButton({ onClick, active, children }: any) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-1.5 rounded hover:bg-muted transition-colors ${
+        active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="w-px h-5 bg-border mx-1" />;
 }
 
 function parseInitialContent(content: string): any {

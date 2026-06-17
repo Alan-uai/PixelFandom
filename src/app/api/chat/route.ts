@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch {}
+    } catch { /* ignore profile load errors */ }
 
     if (session_id) {
       await saveMessage(session_id, 'user', message);

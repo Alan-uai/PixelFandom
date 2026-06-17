@@ -26,7 +26,7 @@ const bubbleVariants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.15 } },
 };
 
-const ChatBubble = memo(({ message }: ChatBubbleProps) => {
+const ChatBubble = memo(function ChatBubble({ message }: ChatBubbleProps) {
   const isUser = message.role === 'user';
 
   return (

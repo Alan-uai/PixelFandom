@@ -56,7 +56,7 @@ function useDataAccess<T>(
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [fetcher, depsKey]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -49,7 +49,7 @@ function tryParseLastPart(raw: string): Section | null {
 export function processSlugLinks(markdown: string, tenantSlug?: string): string {
   if (!tenantSlug || !markdown) return markdown;
   return markdown.replace(
-    /([^@]+)@([\w\/.-]+)@/g,
+    /([^@]+)@([\w/.-]+)@/g,
     (_, text, path) => {
       const href = path.includes('/')
         ? `/w/${tenantSlug}/item:${path}`

@@ -2,8 +2,10 @@
 'use client';
 import './globals.css';
 import { useEffect } from 'react';
+import { NextIntlClientProvider } from 'next-intl';
 import { AppProvider } from '@/context/app-provider';
 import { Toaster } from '@/components/ui/toaster';
+import ptMessages from '@/i18n/messages/pt.json';
 
 function PwaRegister() {
   useEffect(() => {
@@ -38,11 +40,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppProvider>
-          {children}
-          <Toaster />
-          <PwaRegister />
-        </AppProvider>
+        <NextIntlClientProvider locale="pt" messages={ptMessages}>
+          <AppProvider>
+            {children}
+            <Toaster />
+            <PwaRegister />
+          </AppProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

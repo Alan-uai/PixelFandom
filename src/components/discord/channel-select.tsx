@@ -32,6 +32,7 @@ export function ChannelSelect({ channelId, channelName, onChange, label, descrip
     c.name.toLowerCase().includes(inputValue.toLowerCase())
   );
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const selectById = useCallback((id: string) => {
     const ch = textChannels.find((c) => c.id === id);
     if (ch) {

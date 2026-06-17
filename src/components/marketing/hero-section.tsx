@@ -72,10 +72,11 @@ export default function HeroSection() {
     return unsub;
   }, [scrollProgress, phase]);
 
-   const subtitleOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
-   const featuresOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
-   const ctaOpacity = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [1, 0]);
-   const ctaY = useTransform(scrollProgress || useMotionValue(0), [0.5, 0.8], [0, -30]);
+  const fallbackMV = useMotionValue(0);
+  const subtitleOpacity = useTransform(scrollProgress || fallbackMV, [0.5, 0.8], [1, 0]);
+  const featuresOpacity = useTransform(scrollProgress || fallbackMV, [0.5, 0.8], [1, 0]);
+  const ctaOpacity = useTransform(scrollProgress || fallbackMV, [0.5, 0.8], [1, 0]);
+  const ctaY = useTransform(scrollProgress || fallbackMV, [0.5, 0.8], [0, -30]);
 
   return (
     <section className={containerClass}>

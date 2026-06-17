@@ -17,8 +17,11 @@ export function useCachedData<T>(
   const [loading, setLoading] = useState(!cached && !!key);
   const [error, setError] = useState<string | null>(null);
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
   const fetchId = useRef(0);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
 
   const fetch = useCallback(async () => {
     if (!key) return;

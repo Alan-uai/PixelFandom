@@ -1,25 +1,26 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TABLE_ICONS, resolveTableIcon, isCustomIcon, type TableIconName } from '@/lib/table-icons';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import type { ComponentType } from 'react';
-
 interface TableIconPickerProps {
   value: string;
   onChange: (icon: string) => void;
   slug: string;
 }
 
+function IconRender({ name, className }: { name?: string | null; className?: string }) {
+  return React.createElement(resolveTableIcon(name), { className } as React.Attributes);
+}
+
 export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const CurrentIcon = resolveTableIcon(value);
 
   const filtered = search.trim()
     ? TABLE_ICONS.filter((name) => name.toLowerCase().includes(search.toLowerCase()))
@@ -41,7 +42,7 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
           {isCustomIcon(value) ? (
             <img src={value} className="h-4 w-4 shrink-0 rounded object-cover" />
           ) : (
-            <CurrentIcon className="h-4 w-4 shrink-0" />
+            <IconRender name={value} className="h-4 w-4 shrink-0" />
           )}
           <span className="text-sm truncate">
             {isCustomIcon(value) ? 'Imagem personalizada' : (value || 'Selecionar ícone')}

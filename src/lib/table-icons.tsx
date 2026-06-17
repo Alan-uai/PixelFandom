@@ -1,5 +1,4 @@
 import * as LucideIcons from 'lucide-react';
-import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import React from 'react'
 
@@ -42,6 +41,5 @@ export function TableIconDisplay({ icon, className }: { icon?: string | null; cl
   if (isCustomIcon(icon)) {
     return <img src={icon} className={cn('rounded object-cover', className)} />;
   }
-  const Icon = useMemo(() => resolveTableIcon(icon), [icon]);
-  return <Icon className={className} />;
+  return React.createElement(resolveTableIcon(icon), { className } as React.Attributes);
 }

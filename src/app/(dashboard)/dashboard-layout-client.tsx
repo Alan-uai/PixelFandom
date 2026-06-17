@@ -17,6 +17,7 @@ import {
   Headphones,
   Download,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger } from '@/components/ui/slider-tabs';
 import { UnsavedChangesProvider } from '@/components/unsaved-changes';
@@ -69,9 +70,11 @@ export default function DashboardLayoutClient({
   const navItems = canManage
     ? [
         { href: 'settings', label: 'Configurações', icon: Settings },
+        { href: 'settings/export', label: 'Exportar', icon: Download },
         { href: 'domains', label: 'Domínios', icon: Globe },
         { href: 'members', label: 'Membros', icon: Users },
         { href: 'ai', label: 'IA', icon: Cpu },
+        { href: 'ai/feedback', label: 'Feedback', icon: MessageSquare },
         { href: 'discord', label: 'Discord', icon: Headphones },
         { href: 'editor', label: 'Conteúdo', icon: BookOpen },
         { href: 'importer', label: 'Importar', icon: Download },

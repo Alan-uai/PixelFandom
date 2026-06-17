@@ -78,7 +78,7 @@ export function BlockRenderer({ block, tenantId, preview, basePath }: BlockRende
   const renderContent = () => {
     switch (block.type as BlockType) {
       case 'section':
-        return <SectionBlock config={block.config as any} children={block.children} tenantId={tenantId} preview={preview} />;
+        return <SectionBlock config={block.config as any} tenantId={tenantId} preview={preview}>{block.children}</SectionBlock>;
       case 'hero':
         return <HeroBlock config={block.config as any} />;
       case 'heading':

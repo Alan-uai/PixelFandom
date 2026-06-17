@@ -6,8 +6,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Trophy, Flame, FileText, MessageSquare, Heart, Calendar, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BadgeDisplay } from '@/components/gamification/badge-display';
+import { BadgeGrid } from '@/components/gamification/badge-display';
 import { supabase } from '@/supabase';
+
+type BadgeData = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  image_url: string | null;
+  category: string;
+  rarity: number;
+  rarity_color: string | null;
+  rarity_icon: string | null;
+  earned: boolean;
+  earned_at: string | null;
+};
 
 type ProfileData = {
   id: string;
@@ -24,7 +39,7 @@ type ProfileData = {
   comments_count: number;
   reactions_received: number;
   created_at: string;
-  badges: { badge: any; earned_at: string }[];
+  badges: { badge: BadgeData; earned_at: string }[];
   recent_comments: { id: string; content: string; created_at: string; article: { title: string; slug: string } }[];
 };
 
@@ -39,11 +54,11 @@ const badgeCategories = [
 export default function ProfileView() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [badges, setBadges] = useState<any[]>([]);
+  const [badges, setBadges] = useState<BadgeData[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(true);
   const [badgeCategory, setBadgeCategory] = useState('all');
   const profileCache = useRef<ProfileData | null>(null);
-  const badgesCache = useRef<any[] | null>(null);
+  const badgesCache = useRef<BadgeData[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -184,14 +199,7 @@ export default function ProfileView() {
                         <span className="h-2 w-2 rounded-full bg-emerald-500" />
                         Desbloqueadas ({earned.length})
                       </h3>
-                      <div className="flex flex-wrap gap-3">
-                        {earned.map((b: any) => (
-                          <div key={b.id} className="flex flex-col items-center gap-1">
-                            <BadgeDisplay badge={b} size="lg" />
-                            <span className="text-[10px] text-muted-foreground">{b.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <BadgeGrid badges={earned} />
                     </div>
                   )}
 
@@ -201,14 +209,7 @@ export default function ProfileView() {
                         <Lock className="h-3 w-3 text-muted-foreground" />
                         Bloqueadas ({locked.length})
                       </h3>
-                      <div className="flex flex-wrap gap-3">
-                        {locked.map((b: any) => (
-                          <div key={b.id} className="flex flex-col items-center gap-1">
-                            <BadgeDisplay badge={b} size="lg" />
-                            <span className="text-[10px] text-muted-foreground">{b.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <BadgeGrid badges={locked} />
                     </div>
                   )}
 

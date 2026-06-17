@@ -18,6 +18,7 @@ import { Loader2, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, Lis
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
+import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
 
 export default function WikiSettingsPage() {
   const params = useParams();
@@ -343,6 +344,34 @@ export default function WikiSettingsPage() {
 
       <CollapsibleSection id="theme" title="Cores do Tema" description="Personalize as cores da sua wiki (formato HSL).">
         <div className="space-y-4">
+          <div>
+            <p className="text-xs font-medium mb-2">Presets de Tema</p>
+            <div className="grid grid-cols-3 gap-2">
+              {THEME_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setPrimaryColor(preset.colors.primary);
+                    setAccentColor(preset.colors.accent || '');
+                    setBackgroundColor(preset.colors.background);
+                    setCardColor(preset.colors.card);
+                  }}
+                  className="relative rounded-lg border p-2 text-left transition-colors hover:border-primary/50"
+                  title={preset.name}
+                >
+                  <div className="flex gap-1 mb-1.5">
+                    <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${preset.colors.primary})` }} />
+                    <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${preset.colors.accent || preset.colors.primary})` }} />
+                  </div>
+                  <p className="text-[10px] font-medium truncate">{preset.name}</p>
+                  <span className={`text-[8px] uppercase ${preset.mode === 'light' ? 'text-amber-500' : 'text-blue-400'}`}>
+                    {preset.mode}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
           <ColorField id="primaryColor" label="Cor Primária" value={primaryColor} onChange={setPrimaryColor} placeholder="198 100% 65%" />
           <ColorField id="backgroundColor" label="Cor de Fundo" value={backgroundColor} onChange={setBackgroundColor} placeholder="0 0% 13%" />
           <ColorField id="cardColor" label="Cor dos Cards" value={cardColor} onChange={setCardColor} placeholder="0 0% 15%" />

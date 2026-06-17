@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bell, BellRing, CheckCheck, X, Loader2 } from 'lucide-react';
+import { Bell, BellRing, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -83,7 +83,7 @@ export function NotificationBell() {
             </div>
           ) : (
             <ScrollArea className="max-h-80">
-              {notifications.slice(0, 20).map((notif) => (
+              {notifications.slice(0, 5).map((notif) => (
                 <NotifItem key={notif.id} notif={notif} onRead={markAsRead} />
               ))}
             </ScrollArea>

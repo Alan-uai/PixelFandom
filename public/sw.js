@@ -38,7 +38,12 @@ self.addEventListener('fetch', (event) => {
 
   const path = url.pathname;
 
-  if (path.startsWith('/api/')) return;
+  if (path.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => new Response('Offline', { status: 503 }))
+    );
+    return;
+  }
 
   const isStatic = STATIC_EXTENSIONS.some((ext) => path.endsWith(ext));
   if (isStatic || path === '/manifest.json') {

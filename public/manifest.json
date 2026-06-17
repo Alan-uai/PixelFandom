@@ -1,13 +1,14 @@
 {
   "name": "PixelFandom",
   "short_name": "PixelFandom",
-  "description": "Crie wikis para seus jogos e comunidades com assistente IA.",
+  "description": "Platform for game wikis",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#09090b",
   "theme_color": "#4BC5FF",
   "orientation": "any",
   "icons": [
+    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

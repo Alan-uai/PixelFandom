@@ -29,6 +29,7 @@ import {
   Check,
   AlertTriangle,
   Trash2,
+  Bell,
 } from 'lucide-react';
 
 const VOICES = [
@@ -144,7 +145,7 @@ export default function GlobalSettingsPage() {
       </div>
 
       <Tabs defaultValue="chat" className="w-full">
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Chat</span>
@@ -152,6 +153,10 @@ export default function GlobalSettingsPage() {
           <TabsTrigger value="voice" className="flex items-center gap-2">
             <Headphones className="h-4 w-4" />
             <span className="hidden sm:inline">Voz</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notif.</span>
           </TabsTrigger>
           <TabsTrigger value="theme" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -412,6 +417,79 @@ export default function GlobalSettingsPage() {
                   onCheckedChange={(checked) => updateVoice('wakeWordEnabled', checked)}
                 />
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Notificações ── */}
+        <TabsContent value="notifications" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Canais de Notificação</CardTitle>
+              <CardDescription>Como você deseja receber notificações.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {([
+                { key: 'push_enabled', label: 'Push', desc: 'Notificações no navegador' },
+                { key: 'in_app_enabled', label: 'No App', desc: 'Notificações dentro da plataforma' },
+                { key: 'email_digest_daily', label: 'Resumo Diário (Email)', desc: 'Resumo diário de notificações não lidas' },
+                { key: 'email_digest_weekly', label: 'Resumo Semanal (Email)', desc: 'Resumo semanal de notificações não lidas' },
+              ] as const).map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={preferences.notification_preferences[key] ?? true}
+                    onCheckedChange={(checked) => {
+                      updatePreference('notification_preferences', {
+                        ...preferences.notification_preferences,
+                        [key]: checked,
+                      });
+                    }}
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tipos de Notificação</CardTitle>
+              <CardDescription>Selecione quais eventos geram notificações.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {([
+                { key: 'article_created', label: 'Artigo Criado', desc: 'Quando um novo artigo é publicado' },
+                { key: 'article_updated', label: 'Artigo Atualizado', desc: 'Quando um artigo existente é editado' },
+                { key: 'article_deleted', label: 'Artigo Excluído', desc: 'Quando um artigo é removido' },
+                { key: 'member_invited', label: 'Membro Convidado', desc: 'Quando um novo membro é convidado' },
+                { key: 'member_joined', label: 'Membro Entrou', desc: 'Quando um convite é aceito' },
+                { key: 'suggestion_submitted', label: 'Sugestão Enviada', desc: 'Quando uma sugestão é submetida' },
+                { key: 'suggestion_approved', label: 'Sugestão Aprovada', desc: 'Quando sua sugestão é aprovada' },
+                { key: 'suggestion_rejected', label: 'Sugestão Rejeitada', desc: 'Quando sua sugestão é rejeitada' },
+                { key: 'domain_verified', label: 'Domínio Verificado', desc: 'Quando o domínio personalizado é verificado' },
+                { key: 'domain_failed', label: 'Falha no Domínio', desc: 'Quando a verificação do domínio falha' },
+                { key: 'badge_earned', label: 'Conquista', desc: 'Quando você ganha uma medalha ou badge' },
+                { key: 'ai_feedback_reviewed', label: 'Feedback de IA', desc: 'Quando seu feedback sobre a IA é revisado' },
+              ] as const).map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <Switch
+                    checked={preferences.notification_preferences[key] ?? true}
+                    onCheckedChange={(checked) => {
+                      updatePreference('notification_preferences', {
+                        ...preferences.notification_preferences,
+                        [key]: checked,
+                      });
+                    }}
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>

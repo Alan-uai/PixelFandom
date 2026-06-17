@@ -115,11 +115,6 @@ export function renderSectionTable(section: Section, tenantSlug?: string): strin
 
 export default function RenderTabela({ content, isStreaming, tenantSlug }: Props) {
   const { sections, partial } = useMemo(() => parseSections(content, isStreaming), [content, isStreaming]);
-
-  if (!content && !isStreaming) {
-    return <span className="text-muted-foreground italic">Nenhum dado</span>;
-  }
-
   const fallbackHtml = useMemo(() => {
     if (sections.length > 0 || !content) return null;
     try {
@@ -129,6 +124,10 @@ export default function RenderTabela({ content, isStreaming, tenantSlug }: Props
       return `<p>${content?.replace(/</g, '&lt;').replace(/>/g, '&gt;') || ''}</p>`;
     }
   }, [content, tenantSlug, sections.length]);
+
+  if (!content && !isStreaming) {
+    return <span className="text-muted-foreground italic">Nenhum dado</span>;
+  }
 
   if (fallbackHtml) {
     return (

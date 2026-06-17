@@ -10,6 +10,7 @@ type WikiContentProps = {
 };
 
 export function WikiContent({ content, className = '' }: WikiContentProps) {
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const html = useMemo(() => {
     if (!content) return null;
 
@@ -123,9 +124,10 @@ function renderProseMirrorNode(node: any): string {
     case 'paragraph':
       return `<p>${renderInline(node)}</p>`;
 
-    case 'heading':
+    case 'heading': {
       const level = node.attrs?.level || 2;
       return `<h${level}>${renderInline(node)}</h${level}>`;
+    }
 
     case 'bulletList':
       return `<ul>${(node.content || []).map(renderProseMirrorNode).join('\n')}</ul>`;
@@ -136,9 +138,10 @@ function renderProseMirrorNode(node: any): string {
     case 'listItem':
       return `<li>${renderInline(node)}</li>`;
 
-    case 'codeBlock':
+    case 'codeBlock': {
       const lang = node.attrs?.language ? ` class="language-${node.attrs.language}"` : '';
       return `<pre><code${lang}>${escapeHtml(node.content?.[0]?.text || '')}</code></pre>`;
+    }
 
     case 'blockquote':
       return `<blockquote>${(node.content || []).map(renderProseMirrorNode).join('\n')}</blockquote>`;
@@ -210,10 +213,11 @@ function renderMarks(text: string, marks?: any[]): string {
       case 'code':
         result = `<code>${result}</code>`;
         break;
-      case 'link':
+      case 'link': {
         const href = escapeHtml(mark.attrs?.href || '#');
         result = `<a href="${href}">${result}</a>`;
         break;
+      }
       case 'strike':
         result = `<s>${result}</s>`;
         break;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Plus, Edit, Trash2, FileText,
-  BookOpen,
+  BookOpen, Clock,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import { translateGameTerm } from '@/lib/translate';
@@ -36,6 +36,8 @@ interface Article {
   summary: string | null;
   tags: string[] | null;
   created_at: string;
+  status?: string;
+  scheduled_at?: string | null;
 }
 
 interface TenantTable {
@@ -72,6 +74,13 @@ export default function EditorArticlesPage() {
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletingTable, setDeletingTable] = useState(false);
 
+  const [showCreateArticleDialog, setShowCreateArticleDialog] = useState(false);
+  const [createArticleTitle, setCreateArticleTitle] = useState('');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [creatingArticle, setCreatingArticle] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const { data: tenantData } = useCachedData<{ id: string }>(
     `tenant-id:${slug}`,
     async () => {
@@ -90,7 +99,7 @@ export default function EditorArticlesPage() {
     async () => {
       const { data } = await supabase
         .from('wiki_articles')
-        .select('id, title, summary, tags, created_at')
+        .select('id, title, summary, tags, created_at, status, scheduled_at')
         .eq('tenant_id', editorTenantId!)
         .order('created_at', { ascending: false });
       return data || [];
@@ -303,7 +312,88 @@ export default function EditorArticlesPage() {
     setDeletingTable(false);
   };
 
+  const filteredArticles = useMemo(() => {
+    if (statusFilter === 'all') return articles;
+    if (statusFilter === 'scheduled') {
+      return articles.filter((a) => a.status === 'draft' && a.scheduled_at);
+    }
+    return articles.filter((a) => a.status === statusFilter);
+  }, [articles, statusFilter]);
+
   const catalogMap = new Map(catalog.map((t) => [t.table_name, t.display_label]));
+
+  const handleCreateArticle = async () => {
+    if (!tenantId) return;
+    const title = createArticleTitle.trim();
+    if (!title) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Digite um título para o artigo.' });
+      return;
+    }
+
+    setCreatingArticle(true);
+
+    const articleId = crypto.randomUUID();
+    const articleSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const { data: { user } } = await supabase.auth.getUser();
+    const now = new Date().toISOString();
+
+    const isScheduled = scheduleEnabled && scheduledAt;
+
+    const articleData: Record<string, unknown> = {
+      id: articleId,
+      title,
+      slug: articleSlug,
+      tenant_id: tenantId,
+      created_at: now,
+      updated_at: now,
+      status: isScheduled ? 'draft' : 'published',
+      created_by: user?.id ?? null,
+    };
+
+    if (isScheduled) {
+      articleData.scheduled_at = new Date(scheduledAt).toISOString();
+    }
+
+    const { error } = await supabase.from('wiki_articles').insert(articleData);
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      setCreatingArticle(false);
+      return;
+    }
+
+    if (isScheduled) {
+      await supabase.from('scheduled_actions').insert({
+        tenant_id: tenantId,
+        target_type: 'article',
+        target_id: articleId,
+        action: 'publish',
+        scheduled_at: new Date(scheduledAt).toISOString(),
+        created_by: user?.id ?? null,
+      });
+    }
+
+    invalidateDataCache(slug);
+    useSiteCache.getState().invalidate(`articles:${tenantId}`);
+    articlesCache.current = null;
+
+    setShowCreateArticleDialog(false);
+    setCreateArticleTitle('');
+    setScheduleEnabled(false);
+    setScheduledAt('');
+
+    const { data: refreshed } = await supabase
+      .from('wiki_articles')
+      .select('id, title, summary, tags, created_at, status, scheduled_at')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false });
+    if (refreshed) setArticles(refreshed);
+
+    toast({ title: isScheduled ? 'Artigo agendado!' : 'Artigo criado!' });
+    router.push(`/dashboard/${slug}/editor/${articleId}`);
+
+    setCreatingArticle(false);
+  };
 
   return (
     <div className="p-6">
@@ -342,30 +432,64 @@ export default function EditorArticlesPage() {
                     Gerencie os artigos da sua wiki.
                   </p>
                 </div>
-                <Button onClick={() => router.push(`/dashboard/${slug}/editor/new`)}>
+                <Button onClick={() => setShowCreateArticleDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Artigo
                 </Button>
               </div>
 
-              {articles.length === 0 ? (
+              <div className="flex gap-2">
+                {[
+                  { key: 'all', label: 'Todos' },
+                  { key: 'published', label: 'Publicados' },
+                  { key: 'draft', label: 'Rascunhos' },
+                  { key: 'scheduled', label: 'Agendados' },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setStatusFilter(f.key)}
+                    className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                      statusFilter === f.key
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {filteredArticles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium">Nenhum artigo ainda</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Crie seu primeiro artigo para começar.
+                  <p className="text-lg font-medium">
+                    {statusFilter === 'all'
+                      ? 'Nenhum artigo ainda'
+                      : statusFilter === 'published'
+                        ? 'Nenhum artigo publicado'
+                        : statusFilter === 'draft'
+                          ? 'Nenhum rascunho'
+                          : 'Nenhum artigo agendado'}
                   </p>
-                  <Button
-                    onClick={() => router.push(`/dashboard/${slug}/editor/new`)}
-                    className="mt-4"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Artigo
-                  </Button>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {statusFilter === 'scheduled'
+                      ? 'Artigos agendados aparecerão aqui.'
+                      : 'Crie seu primeiro artigo para começar.'}
+                  </p>
+                  {statusFilter !== 'scheduled' && (
+                    <Button
+                      onClick={() => setShowCreateArticleDialog(true)}
+                      className="mt-4"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar Artigo
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {articles.map((article) => (
+                  {filteredArticles.map((article) => (
                     <WeldingCard key={article.id}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
@@ -394,9 +518,16 @@ export default function EditorArticlesPage() {
                                   )}
                                 </div>
                               )}
-                              <span className="text-[10px] text-muted-foreground ml-auto">
-                                {new Date(article.created_at).toLocaleDateString('pt-BR')}
-                              </span>
+                              {article.status === 'draft' && article.scheduled_at ? (
+                                <span className="flex items-center gap-1 text-[10px] text-amber-500 ml-auto">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(article.scheduled_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                  {new Date(article.created_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
@@ -448,6 +579,73 @@ export default function EditorArticlesPage() {
           );
         })}
       </Tabs>
+
+      {/* Create Article Dialog */}
+      <Dialog open={showCreateArticleDialog} onOpenChange={setShowCreateArticleDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Novo Artigo</DialogTitle>
+            <DialogDescription>
+              Crie um novo artigo para sua wiki. Você poderá editar o conteúdo depois.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Título do artigo</Label>
+              <Input
+                value={createArticleTitle}
+                onChange={(e) => setCreateArticleTitle(e.target.value)}
+                placeholder="Digite o título do artigo"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateArticle();
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Agendar publicação</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="schedule-toggle"
+                  checked={scheduleEnabled}
+                  onChange={(e) => setScheduleEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="schedule-toggle" className="text-sm font-normal">
+                  Agendar para data futura
+                </Label>
+              </div>
+              {scheduleEnabled && (
+                <Input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="mt-1"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleCreateArticle} disabled={creatingArticle || !createArticleTitle.trim()}>
+              {creatingArticle ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Clock className="h-4 w-4 mr-2" />
+              )}
+              {scheduleEnabled && scheduledAt ? 'Agendar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Table Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

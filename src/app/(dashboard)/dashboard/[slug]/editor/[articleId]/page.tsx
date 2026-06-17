@@ -30,7 +30,9 @@ import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
 import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
 import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
-import { supabase } from '@/supabase';
+import { supabase, useUser } from '@/supabase';
+import { RealtimeCursors } from '@/components/editor/realtime-cursors';
+import { RealtimeIndicator } from '@/components/editor/realtime-indicator';
 
 const articleSchema = z.object({
   title: z.string().min(3, 'O título é obrigatório.'),
@@ -484,8 +486,18 @@ function EditPageContent() {
     <div className="p-6 max-w-4xl mx-auto">
       <WeldingCard>
         <CardHeader>
-          <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
-          <CardDescription>Faça as alterações abaixo e clique em salvar.</CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
+              <CardDescription>Faça as alterações abaixo e clique em salvar.</CardDescription>
+            </div>
+            {tenantId && articleId && (
+              <>
+                <RealtimeCursors articleId={articleId} tenantId={tenantId} />
+                <RealtimeIndicator articleId={articleId} />
+              </>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -634,7 +646,7 @@ function EditPageContent() {
                         Extrair de Arquivo
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Cole o texto bruto e clique em "Formatar Texto", extraia de um arquivo, ou edite o JSON diretamente.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Cole o texto bruto e clique em &ldquo;Formatar Texto&rdquo;, extraia de um arquivo, ou edite o JSON diretamente.</p>
                   </div>
                 )}
               />
@@ -768,7 +780,7 @@ function EditPageContent() {
                                 <li>Criam <strong>tierlists</strong> comparativas</li>
                                 <li>Dão <strong>dicas de progressão</strong> por mundo</li>
                               </ul>
-                              <p className="mt-2">Os stats dos itens são puxados automaticamente das tabelas do jogo — você só linka eles via o campo "Tabelas (JSON)".</p>
+                              <p className="mt-2">Os stats dos itens são puxados automaticamente das tabelas do jogo — você só linka eles via o campo &ldquo;Tabelas (JSON)&rdquo;.</p>
                             </div>
                           </div>
                         </div>

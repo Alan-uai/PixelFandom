@@ -102,33 +102,35 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
   const iconStates = useRef<IconTransitionState[]>([]);
   const [overallMorph, setOverallMorph] = useState(1);
 
-  if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
-    const mode = options?.orbitMode ?? 'random';
-    const actualMode = mode === 'random'
-      ? (Math.random() < 0.5 ? 'shared' : 'individual')
-      : mode;
+  useEffect(() => {
+    if (paramsRef.current.length !== count || iconRefs.current.length !== count) {
+      const mode = options?.orbitMode ?? 'random';
+      const actualMode = mode === 'random'
+        ? (Math.random() < 0.5 ? 'shared' : 'individual')
+        : mode;
 
-    if (actualMode === 'shared' && count > 0) {
-      const shared = createParams();
-      paramsRef.current = Array.from({ length: count }, (_, i) => ({
-        ...shared,
-        phaseOffset: Math.random() * Math.PI * 2,
+      if (actualMode === 'shared' && count > 0) {
+        const shared = createParams();
+        paramsRef.current = Array.from({ length: count }, (_, i) => ({
+          ...shared,
+          phaseOffset: Math.random() * Math.PI * 2,
+        }));
+      } else {
+        paramsRef.current = Array.from({ length: count }, createParams);
+      }
+      iconRefs.current = Array.from({ length: count }, () => null);
+      trailRefs.current = Array.from({ length: count }, () => Array.from({ length: 8 }, () => null));
+      trailPositions.current = Array.from({ length: count }, () => []);
+      iconStates.current = Array.from({ length: count }, () => ({
+        phase: 'orbiting' as IconPhase,
+        collisionAngle: 0,
+        entryAngle: 0,
+        triggerElapsed: 0,
+        collisionTime: 0,
+        bounceElapsed: 0,
       }));
-    } else {
-      paramsRef.current = Array.from({ length: count }, createParams);
     }
-    iconRefs.current = Array.from({ length: count }, () => null);
-    trailRefs.current = Array.from({ length: count }, () => Array.from({ length: 8 }, () => null));
-    trailPositions.current = Array.from({ length: count }, () => []);
-    iconStates.current = Array.from({ length: count }, () => ({
-      phase: 'orbiting' as IconPhase,
-      collisionAngle: 0,
-      entryAngle: 0,
-      triggerElapsed: 0,
-      collisionTime: 0,
-      bounceElapsed: 0,
-    }));
-  }
+  }, [count]);
 
   useEffect(() => {
     for (let i = 0; i < count; i++) {
