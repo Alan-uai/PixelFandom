@@ -6,7 +6,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import ImageExtension from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
-import { Button } from '@/components/ui/button';
 import {
   Bold,
   Italic,
@@ -140,7 +139,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       setUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = '';
     }
-  }, [editor, articleId]);
+  }, [editor, articleId, slug]);
 
   const handleLinkAdd = useCallback(() => {
     const url = window.prompt('URL do link:');

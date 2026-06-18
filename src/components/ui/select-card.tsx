@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useId } from 'react';
+import { useRef, useCallback } from 'react';
 import {
   motion,
   useMotionValue,
@@ -10,7 +10,7 @@ import {
 } from 'framer-motion';
 import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+
 
 export interface SelectCardOption<T = string> {
   value: T;
@@ -117,7 +117,6 @@ function CardItem<T>({
   onClick: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
-  const id = useId();
 
   const x = useMotionValue(0.5);
   const y = useMotionValue(0.5);

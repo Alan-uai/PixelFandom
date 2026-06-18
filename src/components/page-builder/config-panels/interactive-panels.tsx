@@ -1,7 +1,7 @@
 import type { PanelProps } from './types';
 import { ItemsListEditor } from './shared/items-list-editor';
 import {
-  SelectField, CheckboxField, TextField, UrlField,
+  SelectField, TextField, UrlField,
 } from './shared/fields';
 
 export function DiscordEmbedPanel({ config, onChange }: PanelProps) {

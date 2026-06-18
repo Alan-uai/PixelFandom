@@ -1,5 +1,5 @@
 'use client';
 
-export function RealtimeIndicator({ articleId }: { articleId: string }) {
+export function RealtimeIndicator({ articleId: _articleId }: { articleId: string }) {
   return null;
 }

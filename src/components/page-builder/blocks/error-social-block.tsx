@@ -1,6 +1,6 @@
 'use client';
 
-import { HeartHandshake, Share2, Twitter, MessageCircle, ExternalLink } from 'lucide-react';
+import { HeartHandshake, Share2, Twitter, MessageCircle } from 'lucide-react';
 
 export function ErrorSocialBlock({ config }: { config: Record<string, unknown> }) {
   const title = (config.title as string) || 'Não vá ainda!';

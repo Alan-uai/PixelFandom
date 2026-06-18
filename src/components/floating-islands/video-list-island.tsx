@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Play } from 'lucide-react';
 
 interface VideoListIslandProps {
@@ -31,7 +32,7 @@ export function VideoListIsland({ config }: VideoListIslandProps) {
         >
           {item.thumbnail ? (
             <div className="relative h-10 w-16 shrink-0 rounded overflow-hidden bg-muted">
-              <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+              <Image src={item.thumbnail} alt="" fill className="object-cover" />
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Play className="h-4 w-4 text-white" />
               </div>

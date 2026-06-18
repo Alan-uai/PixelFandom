@@ -15,7 +15,7 @@ interface CollapsibleSectionProps {
 }
 
 export function CollapsibleSection({
-  id,
+  id: _id,
   title,
   description,
   defaultOpen = true,

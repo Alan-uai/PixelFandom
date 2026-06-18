@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { FileText, Calendar } from 'lucide-react';
 
@@ -73,7 +74,9 @@ export function ArticleGridBlock({ config, tenantId }: { config: Record<string, 
           articles.map((article: any, i: number) => (
             <div key={i} className="rounded-lg border bg-card overflow-hidden hover:border-primary/30 transition-colors">
               {showImages && article.imageUrl && (
-                <img src={article.imageUrl} alt="" className="w-full aspect-video object-cover" />
+                <div className="relative w-full aspect-video">
+                  <Image src={article.imageUrl} alt="" fill className="object-cover" />
+                </div>
               )}
               <div className="p-4">
                 <div className="flex items-start gap-2">

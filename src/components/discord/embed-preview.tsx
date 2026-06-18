@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import type { EmbedPayload } from './types';
 
 function hexToRgb(hex: string): string {
@@ -41,10 +42,12 @@ export function EmbedPreview({ embed }: { embed?: EmbedPayload | null }) {
         {embed.author && embed.author.name && (
           <div className="flex items-center gap-2">
             {embed.author.icon_url && (
-              <img
+              <Image
                 src={embed.author.icon_url}
                 alt=""
-                className="w-5 h-5 rounded-full object-cover"
+                width={20}
+                height={20}
+                className="rounded-full object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
@@ -90,22 +93,27 @@ export function EmbedPreview({ embed }: { embed?: EmbedPayload | null }) {
           </div>
 
           {embed.thumbnail && embed.thumbnail.url && (
-            <img
+            <Image
               src={embed.thumbnail.url}
               alt=""
-              className="w-[60px] h-[60px] rounded-md object-cover shrink-0"
+              width={60}
+              height={60}
+              className="rounded-md object-cover shrink-0"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           )}
         </div>
 
         {embed.image && embed.image.url && (
-          <img
-            src={embed.image.url}
-            alt=""
-            className="w-full max-h-[300px] rounded-md object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
+          <div className="relative w-full max-h-[300px] rounded-md overflow-hidden">
+            <Image
+              src={embed.image.url}
+              alt=""
+              fill
+              className="object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
         )}
 
         <TimestampDisplay timestamp={embed.timestamp} />
@@ -113,10 +121,12 @@ export function EmbedPreview({ embed }: { embed?: EmbedPayload | null }) {
         {embed.footer && embed.footer.text && (
           <div className="flex items-center gap-2 mt-1">
             {embed.footer.icon_url && (
-              <img
+              <Image
                 src={embed.footer.icon_url}
                 alt=""
-                className="w-4 h-4 rounded-full object-cover"
+                width={16}
+                height={16}
+                className="rounded-full object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}

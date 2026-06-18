@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
@@ -23,7 +23,6 @@ type Props = {
   tenantSlug?: string;
 };
 
-const EXPANDABLE_TYPES = new Set(['detalhes', 'analise', 'contexto', 'desenvolvimento', 'reflexao', 'implementacao', 'especificacoes']);
 const COMPACT_TYPES = new Set(['resumo', 'dicas', 'conclusao', 'recomendacao', 'veredito']);
 const LIST_TYPES = new Set(['topicos', 'passos', 'exemplos', 'pros', 'contras', 'resultados', 'observacoes']);
 

@@ -18,7 +18,7 @@ function rotateZ(v: Vec3, angle: number): Vec3 {
   return { x: v.x * c - v.y * s, y: v.x * s + v.y * c, z: v.z };
 }
 
-function project3D(x: number, y: number, z: number, w: number, h: number, mx: number, my: number): { sx: number; sy: number; scale: number } {
+function project3D(x: number, y: number, z: number, w: number, h: number, _mx: number, _my: number): { sx: number; sy: number; scale: number } {
   const perspective = 800 / (800 + z);
   const px = (mouseX - w / 2) * 0.02;
   const py = (mouseY - h / 2) * 0.02;
@@ -28,7 +28,7 @@ function project3D(x: number, y: number, z: number, w: number, h: number, mx: nu
 let mouseX = 0;
 let mouseY = 0;
 
-function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, _t: number) {
   const cx = w / 2;
   const cy = h / 2 + 100;
   const spacing = 50;
@@ -121,8 +121,6 @@ function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[], w: 
 }
 
 function drawShape3D(ctx: CanvasRenderingContext2D, s: Shape3D, w: number, h: number, t: number) {
-  const cx = w / 2;
-  const cy = h / 2;
   const rx = s.rotX + t * s.speed * 0.0006;
   const ry = s.rotY + t * s.speed * 0.0008;
   const rz = s.rotZ + t * s.speed * 0.0004;

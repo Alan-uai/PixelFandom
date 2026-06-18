@@ -48,7 +48,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const disconnectIntentionalRef = useRef(false)
 
   const voiceSessionIdRef = useRef<string | null>(null)
-  const turnTranscriptsRef = useRef<string[]>([])
+
 
   useEffect(() => {
     settingsRef.current = loadSettings()
@@ -325,7 +325,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       isConnectingRef.current = false
       setIsConnecting(false)
     }
-  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector])
+  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector])
 
   const disconnect = useCallback(() => {
     disconnectIntentionalRef.current = true

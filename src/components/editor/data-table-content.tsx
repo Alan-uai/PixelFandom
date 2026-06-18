@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+
 import {
   Loader2,
   Plus,
@@ -106,7 +106,7 @@ export default function DataTableContent({
   const [parentLoading, setParentLoading] = useState(false);
   const [displayFormat, setDisplayFormat] = useState('grid');
   const [columnsCount, setColumnsCount] = useState(4);
-  const [displaySettingsLoading, setDisplaySettingsLoading] = useState(false);
+
   const [displaySaving, setDisplaySaving] = useState(false);
 
   const getParentLabel = (t: string) => tableLabels[t] || t;

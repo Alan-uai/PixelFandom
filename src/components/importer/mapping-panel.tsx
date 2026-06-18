@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Tag, Check, X, FileText, Link2, History } from 'lucide-react';
+import { Tag, Check, FileText, Link2, History } from 'lucide-react';
 import type { ImportArticle, MappingConfig } from '@/lib/importer/types';
 
 interface MappingPanelProps {

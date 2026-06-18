@@ -1,6 +1,6 @@
 'use client';
 
-export function DividerBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function DividerBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const style = (config.style as string) || 'solid';
   const color = config.color as string | undefined;
   const thickness = (config.thickness as string) || 'sm';

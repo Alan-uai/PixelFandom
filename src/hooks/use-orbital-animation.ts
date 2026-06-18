@@ -111,7 +111,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
 
       if (actualMode === 'shared' && count > 0) {
         const shared = createParams();
-        paramsRef.current = Array.from({ length: count }, (_, i) => ({
+        paramsRef.current = Array.from({ length: count }, (_, _i) => ({
           ...shared,
           phaseOffset: Math.random() * Math.PI * 2,
         }));
@@ -130,7 +130,7 @@ export function useOrbitalAnimation(count: number, options?: { orbitMode?: Orbit
         bounceElapsed: 0,
       }));
     }
-  }, [count]);
+  }, [count, options?.orbitMode]);
 
   useEffect(() => {
     for (let i = 0; i < count; i++) {

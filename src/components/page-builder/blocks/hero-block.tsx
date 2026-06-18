@@ -1,6 +1,8 @@
 'use client';
 
-export function HeroBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+import Image from 'next/image';
+
+export function HeroBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const title = (config.title as string) || 'Título';
   const subtitle = (config.subtitle as string) || '';
   const ctaText = (config.ctaText as string) || '';
@@ -15,7 +17,7 @@ export function HeroBlock({ config, preview }: { config: Record<string, unknown>
     >
       {imageUrl && (
         <div className="absolute inset-0">
-          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+          <Image src={imageUrl} alt="" fill className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80" />
         </div>
       )}

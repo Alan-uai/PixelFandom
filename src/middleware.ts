@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase() || '';
   const isDev = host === 'localhost' || host === '127.0.0.1';
-  const isApiRoute = pathname.startsWith('/api/');
+
 
   // Main domain or dev: pass through, rewrite short URLs using tenant cookie
   if (isDev || host === MAIN_DOMAIN) {

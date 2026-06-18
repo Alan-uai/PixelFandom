@@ -5,7 +5,7 @@ import { Rabbit } from 'lucide-react';
 
 export function ErrorMazeBlock({ config }: { config: Record<string, unknown> }) {
   const size = (config.size as number) || 8;
-  const showTimer = config.showTimer !== false;
+
 
   const gridSize = Math.min(Math.max(size, 5), 12);
   const cellSize = Math.floor(400 / gridSize);

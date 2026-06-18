@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { Newspaper, Calendar, ExternalLink } from 'lucide-react';
 
@@ -65,7 +66,7 @@ export function NewsFeedBlock({ config, tenantId }: { config: Record<string, any
             <div key={i} className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors">
               <div className="flex items-start gap-3">
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt="" className="h-16 w-16 rounded object-cover shrink-0" />
+                  <Image src={item.imageUrl} alt="" width={64} height={64} className="rounded object-cover shrink-0" />
                 ) : (
                   <Newspaper className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 )}

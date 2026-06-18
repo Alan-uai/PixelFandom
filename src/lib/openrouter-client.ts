@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { getGameData, getUpdateLog } from '@/supabase';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';

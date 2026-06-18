@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
@@ -171,9 +172,9 @@ export function WikiCard({
           <div className="relative z-10 flex flex-col h-full p-5">
             {/* Logo + Name */}
             <div className="flex items-center gap-3 mb-auto min-h-[4rem]">
-              <div className="h-16 w-16 rounded-lg overflow-hidden shrink-0 bg-white/10 flex items-center justify-center ring-1 ring-white/20">
+              <div className="relative h-16 w-16 rounded-lg overflow-hidden shrink-0 bg-white/10 flex items-center justify-center ring-1 ring-white/20">
                 {wiki.logo_url ? (
-                  <img src={wiki.logo_url} alt="" className="h-full w-full object-cover" />
+                  <Image src={wiki.logo_url} alt="" fill className="object-cover" />
                 ) : (
                   <BookOpen className="h-8 w-8 text-white/60" />
                 )}

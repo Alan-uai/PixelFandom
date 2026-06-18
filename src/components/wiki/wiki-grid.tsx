@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Tags, FileText, ImageIcon } from 'lucide-react';
+import { Calendar, Tags, ImageIcon } from 'lucide-react';
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import type { CardPosition } from '@/components/page-builder/types';
 import React from 'react'
@@ -44,18 +45,20 @@ export default function WikiGrid({ articles, basePath, columns, votePosition }: 
               href={href}
               className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 flex flex-col relative"
             >
-              <div className="aspect-video overflow-hidden rounded-t-xl bg-muted">
+              <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
                 {article.image_url ? (
-                  <img
+                  <Image
                     src={article.image_url}
                     alt={article.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : article.icon && article.icon.startsWith('http') ? (
-                  <img
+                  <Image
                     src={article.icon}
                     alt=""
-                    className="w-full h-full object-contain p-4"
+                    fill
+                    className="object-contain p-4"
                   />
                 ) : article.icon ? (
                   <div className="w-full h-full flex items-center justify-center text-4xl">

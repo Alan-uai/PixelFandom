@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { IslandMedia } from '@/components/page-builder/types';
 import { IslandMediaDisplay } from './island-media-display';
@@ -34,13 +34,13 @@ function getNextTargetTime(time: string): Date {
 
 export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandProps) {
   const cfg = config as QueueTimerConfig;
-  const items = cfg.items || [];
+  const items = useMemo(() => cfg.items || [], [cfg.items]);
   const displayFormat = cfg.displayFormat || 'sequential';
   const media = cfg.media || null;
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [nextTime, setNextTime] = useState<Date | null>(null);
-  const [remaining, setRemaining] = useState(() => getRemaining(new Date()));
+
   const [triggered, setTriggered] = useState(false);
   const triggeredRef = useRef(false);
   const [carouselIdx, setCarouselIdx] = useState(0);

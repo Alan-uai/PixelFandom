@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot } from 'lucide-react';
+
 
 const characterEmoji: Record<string, string> = {
   'sad-robot': '🤖',

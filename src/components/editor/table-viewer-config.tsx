@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Loader2, Save, Check, Eye } from 'lucide-react';
+import { Loader2, Save, Check } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { ViewerConfigSchema } from '@/lib/viewer-config';
 import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
@@ -60,7 +59,7 @@ export default function TableViewerConfig({
     setLoading(false);
   }, [table]);
 
-  const fetchColumns = useCallback(async (tid: string) => {
+  const fetchColumns = useCallback(async (_tid: string) => {
     const { data } = await supabase.rpc('get_table_columns', { p_table: table });
     if (data && (data as any).ok) {
       const cols = (data as any).columns

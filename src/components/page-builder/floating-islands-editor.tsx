@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List, Image as ImageIcon, ListOrdered } from 'lucide-react';
@@ -82,7 +82,7 @@ interface FloatingIslandsEditorProps {
 export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, onSlotFlowChange, onClipStyleChange }: FloatingIslandsEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const POSITION_PRIORITY: FloatingIslandPosition[] = ['center', 'left', 'right'];
+  const POSITION_PRIORITY = useMemo<FloatingIslandPosition[]>(() => ['center', 'left', 'right'], []);
 
   const addIsland = useCallback(() => {
     if (islands.length >= 3) return;
@@ -100,7 +100,7 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
     };
     onChange([...islands, newIsland]);
     setExpandedId(newIsland.id);
-  }, [islands, onChange]);
+  }, [islands, onChange, POSITION_PRIORITY]);
 
   const updateIsland = useCallback((id: string, patch: Partial<FloatingIslandConfig>) => {
     onChange(islands.map((i) => (i.id === id ? { ...i, ...patch } : i)));

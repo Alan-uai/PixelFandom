@@ -3,7 +3,7 @@ import {
   LayoutTemplate, Columns3, Image, Heading, Text, AlignJustify, MousePointerClick,
   Minus, Square, List, ImageIcon, Images, Video, BookOpen, ImagesIcon,
   Grid3X3, Newspaper, Star, FolderOpen, FileText,
-  Trophy, DollarSign, BarChart3, GitGraph, Clock, HelpCircle,
+  Trophy, DollarSign, BarChart3, GitGraph, HelpCircle,
   MessageCircle, Share2, TimerReset, FormInput, Search, Table2, Puzzle,
   Copyright, Mail, Smartphone, ArrowUpToLine, CreditCard, Globe, Menu,
   TriangleAlert, SearchX, Shuffle, ArrowUpRight, Gamepad2, ImageOff,

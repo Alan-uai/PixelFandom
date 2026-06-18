@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save, Star, ArrowUpDown } from 'lucide-react';
+import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save, ArrowUpDown } from 'lucide-react';
 import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
 import { CardPositionEditor } from './card-position-editor';
 

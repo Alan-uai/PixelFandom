@@ -1,11 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { Star } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 
 function renderIcon(item: any) {
   if (item.imageUrl) {
-    return <img src={item.imageUrl} alt="" className="h-10 w-10 rounded object-cover shrink-0" />;
+    return <Image src={item.imageUrl} alt="" width={40} height={40} className="rounded object-cover shrink-0" />;
   }
   if (item.icon) {
     if (typeof item.icon === 'string') {
@@ -64,7 +65,7 @@ export function FeaturedListBlock({ config }: { config: Record<string, any>; ten
           {items.map((item: any, i: number) => (
             <div key={i} className="rounded-lg border bg-card p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center gap-3">
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
+                <Image src={item.imageUrl} alt="" width={48} height={48} className="rounded-full object-cover" />
               ) : item.icon ? (
                 <div className="rounded-full bg-primary/10 p-2.5">
                   {typeof item.icon === 'string' && item.icon.includes(':') ? (

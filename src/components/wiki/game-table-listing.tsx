@@ -1,11 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown,
-  Sword, Shield, Zap, Gem, Crosshair, Pickaxe, Sparkles, Star, Skull,
+  Star,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -73,13 +74,13 @@ function getIcon(item: Record<string, any>) {
     const v = item[col];
     if (v) {
       if (typeof v === 'string' && v.includes(':')) return <IconRenderer icon={v} size="md" />;
-      if (typeof v === 'string' && v.startsWith('http')) return <img src={v} alt="" className="w-full h-full object-contain" />;
+      if (typeof v === 'string' && v.startsWith('http')) return <Image src={v} alt="" fill className="object-contain" />;
       if (typeof v === 'string') return <span className="text-lg">{v}</span>;
     }
   }
   for (const col of imageColumnNames) {
     const v = item[col];
-    if (v && typeof v === 'string') return <img src={v} alt="" className="w-full h-full object-cover" />;
+    if (v && typeof v === 'string') return <Image src={v} alt="" fill className="object-cover" />;
   }
   return null;
 }
@@ -97,8 +98,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
-  const items: any[] = data?.items ?? [];
-  const labelCol = data?.labelCol ?? 'name';
+  const items: any[] = useMemo(() => data?.items ?? [], [data?.items]);
+
   const { homePath } = useWikiPath(tenantSlug);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,7 +120,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
   } as Record<number, string>)[cols] || 'grid-cols-2';
   
-  const carouselRef = useRef<HTMLDivElement>(null);
   const carouselWrapperRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
 
@@ -372,7 +372,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   const hasActiveFilters = Object.values(activeFilters).some(s => s.size > 0);
 
-  function renderItems(items: any[], groupKey: string) {
+  function renderItems(items: any[], _groupKey: string) {
     if (fmt === 'list') {
       return (
         <div className="space-y-3">
@@ -464,7 +464,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     <article className={`max-w-3xl mx-auto ${viewerConfig?.header?.backgroundImage ? 'relative' : ''}`}>
       {viewerConfig?.header?.backgroundImage && (
         <div className="absolute inset-0 -z-10 rounded-2xl overflow-hidden">
-          <img src={viewerConfig.header.backgroundImage} alt="" className="w-full h-48 object-cover opacity-20" />
+          <Image src={viewerConfig.header.backgroundImage} alt="" fill className="object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
         </div>
       )}
@@ -578,7 +578,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       ) : filteredItems.length === 0 ? (
         <div className="text-center py-20 rounded-xl border bg-card">
           {viewerConfig?.emptyState?.imageUrl ? (
-            <img src={viewerConfig.emptyState.imageUrl} alt="" className="h-24 w-24 mx-auto mb-4 object-contain opacity-60" />
+            <Image src={viewerConfig.emptyState.imageUrl} alt="" width={96} height={96} className="mx-auto mb-4 object-contain opacity-60" />
           ) : (
             <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           )}
@@ -678,7 +678,7 @@ function ItemCard({
           <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
           {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
           <div className="relative p-4 flex items-start gap-3">
-            <div className="h-12 w-12 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="relative h-12 w-12 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
               {icon || collIcon}
             </div>
             <div className="flex-1 min-w-0 self-center">

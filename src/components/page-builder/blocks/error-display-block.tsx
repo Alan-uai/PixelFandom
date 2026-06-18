@@ -1,6 +1,6 @@
 'use client';
 
-import { TriangleAlert } from 'lucide-react';
+
 
 const sizeMap: Record<string, string> = {
   sm: 'text-6xl',

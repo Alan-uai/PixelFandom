@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { IslandMedia } from '@/components/page-builder/types';
 import { IslandMediaDisplay } from './island-media-display';
@@ -25,7 +25,7 @@ interface MultiTimerIslandProps {
 
 export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandProps) {
   const cfg = config as MultiTimerConfig;
-  const events = cfg.events || [];
+  const events = useMemo(() => cfg.events || [], [cfg.events]);
   const displayFormat = cfg.displayFormat || 'parallel';
   const media = cfg.media || null;
 
@@ -109,8 +109,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
   if (displayFormat === 'carousel') {
     const slide = events[carouselIndex];
     if (!slide) return null;
-    const slideRem = getRemaining(slide.targetDate);
-    const isHorizontal = true;
+
 
     return (
       <div className="space-y-2">

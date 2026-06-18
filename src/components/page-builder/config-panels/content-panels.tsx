@@ -1,7 +1,7 @@
 import type { PanelProps } from './types';
 import { StringListEditor } from './shared/string-list-editor';
 import {
-  SelectField, CheckboxField, NumberField, TextField, ColorField, UrlField,
+  SelectField, CheckboxField, TextField, ColorField,
 } from './shared/fields';
 
 export function ParagraphPanel({ config, onChange }: PanelProps) {

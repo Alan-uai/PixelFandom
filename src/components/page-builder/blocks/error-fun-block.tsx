@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Gamepad2, Zap, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Gamepad2, Zap } from 'lucide-react';
 
-function ClickerGame({ redirectUrl, redirectSeconds }: { redirectUrl?: string; redirectSeconds?: number }) {
+function ClickerGame({ redirectUrl, redirectSeconds: _redirectSeconds }: { redirectUrl?: string; redirectSeconds?: number }) {
   const [clicks, setClicks] = useState(0);
   const target = 100;
 

@@ -20,7 +20,7 @@ import { PagePreview } from './page-preview';
 import { FloatingIslandsEditor } from './floating-islands-editor';
 import { WidgetsEditor } from './widgets-editor';
 import {
-  Save, Loader2, Check, Plus, X, PanelRightOpen, PanelRightClose,
+  Save, Loader2, Check, Plus, X, PanelRightOpen,
   LayoutList, Undo2, Redo2, Smartphone, BookTemplate, Settings2,
 } from 'lucide-react';
 import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig, SlotFlowId, ClipStyleId } from './types';
@@ -50,7 +50,7 @@ function createBlock(type: BlockType): BlockConfig {
   };
 
   if (type === 'section') {
-    block.children = Array.from({ length: config.columns as number || 1 }).map((_, i) => ({
+    block.children = Array.from({ length: config.columns as number || 1 }).map((_, _i) => ({
       id: nanoid(),
       type: 'column' as BlockType,
       config: { width: `${100 / ((config.columns as number) || 1)}%`, verticalAlign: 'top' },
@@ -59,15 +59,6 @@ function createBlock(type: BlockType): BlockConfig {
   }
 
   return block;
-}
-
-function flattenTree(blocks: BlockConfig[]): string[] {
-  const ids: string[] = [];
-  for (const b of blocks) {
-    ids.push(b.id);
-    if (b.children) ids.push(...flattenTree(b.children));
-  }
-  return ids;
 }
 
 export function PageBuilderEditor({
@@ -212,7 +203,7 @@ export function PageBuilderEditor({
         setSaveError(msg);
         setTimeout(() => setSaveError(null), 5000);
       }
-    } catch (err) {
+    } catch (_err) {
       setSaveError('Erro de rede ao salvar layout');
       setTimeout(() => setSaveError(null), 5000);
     }

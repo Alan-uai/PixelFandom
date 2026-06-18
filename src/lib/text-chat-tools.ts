@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase';
 import { searchAll, type SearchAllResult } from '@/lib/search';
-import { getGameSchema, getTableSchema, type ColumnInfo } from '@/lib/game-schema';
+import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
 
 export interface ToolContext {
@@ -994,7 +994,7 @@ async function handleSearchTable(args: { table: string; term: string; limit?: nu
   if (!tenant) return { error: 'Tenant not found', items: [] };
 
   const limit = Math.min(args.limit ?? 20, 50);
-  const { data: byName, error: err1 } = await supabase
+  const { data: byName } = await supabase
     .from(args.table)
     .select('*')
     .eq('tenant_id', tenant.id)
@@ -1809,7 +1809,7 @@ async function handleMultiTableQuery(args: { tables: string[]; filters: Record<s
           query = query.ilike(col, `%${val}%`);
         }
       }
-      const { data, count } = await query.limit(limit);
+      const { data } = await query.limit(limit);
       return { table, count: (data || []).length, items: data || [] };
     }),
   );

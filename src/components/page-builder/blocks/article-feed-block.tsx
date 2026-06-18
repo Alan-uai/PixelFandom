@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/supabase';
@@ -163,8 +164,8 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
         className="rounded-lg border bg-card overflow-hidden hover:border-primary/30 transition-colors group block"
       >
         {showImages && article.image_url && (
-          <div className="w-full aspect-video overflow-hidden">
-            <img src={article.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          <div className="relative w-full aspect-video overflow-hidden">
+            <Image src={article.image_url} alt="" fill className="object-cover group-hover:scale-105 transition-transform" />
           </div>
         )}
         <div className="p-4">
@@ -243,7 +244,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
                 className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group"
               >
                 {showImages && article.image_url ? (
-                  <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                  <Image src={article.image_url} alt="" width={32} height={32} className="rounded object-cover shrink-0" />
                 ) : (
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}

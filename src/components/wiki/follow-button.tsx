@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
 import { MAIN_URL } from '@/lib/constants';
@@ -11,7 +10,6 @@ type FollowButtonProps = {
 };
 
 export function FollowButton({ tenantId }: FollowButtonProps) {
-  const router = useRouter();
   const [following, setFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -21,16 +19,16 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     fetchState();
-  }, [tenantId]);
+  }, [tenantId, fetchState]);
 
-  const fetchState = async () => {
+  const fetchState = useCallback(async () => {
     const res = await fetch(`/api/follows?tenant_id=${tenantId}`);
     if (res.ok) {
       const data = await res.json();
       setFollowing(data.following);
       setFollowerCount(data.follower_count);
     }
-  };
+  }, [tenantId]);
 
   const handleToggle = async () => {
     const { data: { user } } = await supabase.auth.getUser();

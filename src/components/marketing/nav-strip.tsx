@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, useState, useCallback, useEffect, useMemo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -53,7 +54,7 @@ const STAR_INSTANCES = [
   { hr: 220, vr: 68, delay: 2.4 },
 ];
 
-function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, glowFilterId: gid }: OrbitalNavItemProps) {
+function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compact, waveGlow, glowFilterId: _gid }: OrbitalNavItemProps) {
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -188,7 +189,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const { unreadCount } = useNotifications();
-  const [clickWave, setClickWave] = useState<'left' | 'right' | null>(null);
+
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseInContainerRef = useRef(false);
@@ -315,7 +316,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
       manuallyExpanded.current = true;
       if (isMobile) setMobileExpanded(true);
     }
-  }, [user, router, onLogin, isMobile, doExpand, doCollapse, cancelCollapse]);
+  }, [user, router, onLogin, isMobile, doExpand, doCollapse, cancelCollapse, expandedRef]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
@@ -522,9 +523,9 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 p-[2.5px] shadow-[0_0_40px_rgba(75,197,255,0.25)] relative group cursor-pointer"
                     style={{ transform: 'translateZ(20px)' }}
                   >
-                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+                    <div className="relative w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                       {user?.user_metadata?.avatar_url ? (
-                        <img src={user.user_metadata.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <Image src={user.user_metadata.avatar_url} alt="" fill className="object-cover" />
                       ) : (
                         <User className="h-8 w-8 text-primary" />
                       )}

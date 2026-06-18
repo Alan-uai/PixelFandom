@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { MessageCircle, Twitter, Youtube, Github, Instagram, Music2, Link } from 'lucide-react';
 
 const platformIconMap: Record<string, React.ElementType> = {
@@ -24,7 +25,9 @@ export function FooterBrandBlock({ config }: { config: Record<string, unknown> }
   return (
     <div className={`flex flex-col gap-2 ${alignClass}`}>
       {logo && (
-        <img src={logo} alt={tagline || 'Logo'} className="h-8 w-auto object-contain" />
+        <div className="relative h-8" style={{ width: 'fit-content', maxWidth: 200 }}>
+          <Image src={logo} alt={tagline || 'Logo'} fill className="object-contain" />
+        </div>
       )}
       {tagline && <h3 className="text-base font-semibold">{tagline}</h3>}
       {description && <p className="text-sm text-muted-foreground max-w-xs">{description}</p>}

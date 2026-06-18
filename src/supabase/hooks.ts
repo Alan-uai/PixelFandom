@@ -31,6 +31,7 @@ export function useCollection<T>(query: string | null, dependencies: any[] = [])
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, ...dependencies]);
 
   return { data, isLoading, error, refetch: () => setData(prev => prev) };
@@ -71,6 +72,7 @@ export function useDoc<T>(query: string | null, dependencies: any[] = []) {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, ...dependencies]);
 
   return { data, isLoading, error, refetch: () => setData(prev => prev) };

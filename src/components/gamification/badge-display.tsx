@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -77,7 +78,7 @@ function BadgeDisplay({ badge, size = 'md' }: Props) {
       } : undefined}
     >
       {badge.image_url ? (
-        <img src={badge.image_url} alt={badge.name} className="h-full w-full object-cover rounded-lg" />
+        <Image src={badge.image_url} alt={badge.name} fill className="object-cover rounded-lg" />
       ) : (
         <span className="relative leading-none">
           {badge.icon}
@@ -163,7 +164,7 @@ function BadgeGrid({ badges, variant = 'grid' }: BadgeGridProps) {
                   } : undefined}
                 >
                   {badge.image_url ? (
-                    <img src={badge.image_url} alt={badge.name} className="w-10 h-10 object-contain" />
+                    <Image src={badge.image_url} alt={badge.name} width={40} height={40} className="object-contain" />
                   ) : (
                     <span className="text-2xl relative leading-none">
                       {badge.icon}

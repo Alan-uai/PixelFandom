@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { X, Loader2, ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/supabase';
@@ -39,7 +40,7 @@ const STAT_LABELS: Record<string, string> = {
 };
 
 export default function ComparePopup({
-  table, tenantId, tenantSlug, currentItemId, initialStat, onClose,
+  table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, onClose,
 }: {
   table: string;
   tenantId: string;
@@ -244,7 +245,7 @@ export default function ComparePopup({
                         <td className="px-5 py-2.5">
                           <div className="flex items-center gap-2.5">
                             {item.icon_url ? (
-                              <img src={item.icon_url} alt="" className="h-6 w-6 rounded object-contain shrink-0" />
+                              <Image src={item.icon_url} alt="" width={24} height={24} className="rounded object-contain shrink-0" />
                             ) : item.icon && typeof item.icon === 'string' && item.icon.includes(':') ? (
                               <IconRenderer icon={item.icon} size="sm" />
                             ) : null}

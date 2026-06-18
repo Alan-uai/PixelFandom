@@ -67,7 +67,7 @@ function useElapsedTime(startTime: number | null, timeoutMs: number): string {
 
 const TIMEOUT_MS = 120_000;
 
-export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps) {
+export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: WikiChatProps) {
   const { user } = useUser();
   const displayMode = useDisplayMode(tenantSlug);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -93,7 +93,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
 
   useEffect(() => {
     if (user) loadSessions();
-  }, [user, tenantSlug]);
+  }, [user, tenantSlug, loadSessions]);
 
   useEffect(() => {
     (window as any).__onItemClick = (table: string, slug: string) => {
@@ -108,7 +108,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     };
   }, []);
 
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     if (sessionsCache.current) {
       setSessions(sessionsCache.current);
       return;
@@ -124,9 +124,9 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
     } catch {/* noop */} finally {
       setLoadingHistory(false);
     }
-  };
+  }, [tenantSlug]);
 
-  const createSession = async (): Promise<string | null> => {
+  const createSession = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
     const { data: tenant } = await supabase
       .from('tenants')
@@ -148,7 +148,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
       }
     } catch {/* noop */}
     return null;
-  };
+  }, [user, tenantSlug]);
 
   const loadSessionMessages = async (sid: string) => {
     try {
@@ -283,7 +283,7 @@ export default function WikiChat({ tenantSlug, compact, onClose }: WikiChatProps
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, loading, tenantSlug, sessionId, user]);
+  }, [input, loading, tenantSlug, sessionId, user, createSession, loadSessions]);
 
   const handleFeedback = async (messageId: string, type: 'positive' | 'negative') => {
     const message = messages.find((m) => m.id === messageId);

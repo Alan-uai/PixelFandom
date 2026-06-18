@@ -1,7 +1,7 @@
 import type { PanelComponent } from './types';
 
 import {
-  SelectField, CheckboxField, TextField, UrlField, NumberField, ColorField,
+  SelectField, CheckboxField, TextField, UrlField, ColorField,
 } from './shared/fields';
 import { ItemsListEditor } from './shared/items-list-editor';
 

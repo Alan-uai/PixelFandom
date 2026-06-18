@@ -156,7 +156,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchWikiArticles();
-  }, []);
+  }, [wikiArticles]);
 
   useEffect(() => {
     if (!user || user.is_anonymous) {

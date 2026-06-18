@@ -1,6 +1,6 @@
 'use client';
 
-import { Route, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const demoStructure: Record<string, string[]> = {
   'Início': ['/'],

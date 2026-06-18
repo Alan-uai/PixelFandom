@@ -1,6 +1,6 @@
 'use client';
 
-export function ListBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function ListBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const items = (config.items as string[]) || [];
   const ordered = config.ordered as boolean | undefined;
   const style = (config.style as string) || (ordered ? 'decimal' : 'disc');

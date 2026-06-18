@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
 export interface TenantTheme {
   primary_color?: string;
@@ -80,7 +80,7 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ tenantTheme, mode, onModeChange, children }: ThemeProviderProps) {
-  const merged = { ...defaultTheme, ...(tenantTheme || {}) };
+  const merged = useMemo(() => ({ ...defaultTheme, ...(tenantTheme || {}) }), [tenantTheme]);
   const resolved = resolveMode(mode);
   const isDark = resolved === 'dark';
 

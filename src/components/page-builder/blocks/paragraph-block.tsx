@@ -1,6 +1,6 @@
 'use client';
 
-export function ParagraphBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function ParagraphBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const content = (config.content as string) || '';
   const size = (config.size as string) || 'md';
   const color = config.color as string | undefined;

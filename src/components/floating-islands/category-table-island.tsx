@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface CategoryTableIslandProps {
   config: Record<string, unknown>;
 }
@@ -32,7 +34,7 @@ export function CategoryTableIsland({ config }: CategoryTableIslandProps) {
                 return (
                   <td key={ci} className="px-2 py-1.5">
                     {isFirstImage ? (
-                      <img src={cell} alt="" className="h-8 w-8 rounded object-cover" />
+                      <Image src={cell} alt="" width={32} height={32} className="rounded object-cover" />
                     ) : (
                       <span className="text-muted-foreground">{cell}</span>
                     )}

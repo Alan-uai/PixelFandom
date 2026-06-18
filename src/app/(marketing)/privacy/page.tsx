@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         <section>
           <h2>1. Introdução</h2>
           <p>
-            O PixelFandom ("nós", "nosso") respeita sua privacidade e está comprometido em proteger os dados pessoais que você compartilha conosco. Esta Política de Privacidade explica como coletamos, usamos, armazenamos e protegemos suas informações.
+            O PixelFandom (&ldquo;nós&rdquo;, &ldquo;nosso&rdquo;) respeita sua privacidade e está comprometido em proteger os dados pessoais que você compartilha conosco. Esta Política de Privacidade explica como coletamos, usamos, armazenamos e protegemos suas informações.
           </p>
         </section>
 

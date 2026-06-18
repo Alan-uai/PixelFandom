@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FileUploader } from './file-uploader';
 import { MappingPanel } from './mapping-panel';
 import { ImportProgress } from './import-progress';
-import type { ImportPreview, MappingConfig, ImportArticle } from '@/lib/importer/types';
+import type { ImportPreview, MappingConfig } from '@/lib/importer/types';
 
 interface ImportWizardProps {
   tenantSlug: string;

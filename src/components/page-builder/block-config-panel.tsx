@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X, Layers } from 'lucide-react';
-import type { BlockConfig, BlockType, BlockStyle, SpacingOption, TextAlign, AnimationConfig, AnimationType, DurationOption, DelayOption, EasingOption, HoverEffect, TapEffect, ChainMode } from './types';
+import type { BlockConfig, BlockType, BlockStyle, SpacingOption, TextAlign, AnimationConfig, AnimationType, DurationOption, DelayOption, EasingOption, HoverEffect, TapEffect } from './types';
 import { configPanels } from './config-panels/index';
 import { ANIMATION_CATEGORIES } from '@/lib/animation-categories';
 import { AnimationPreview } from './animation-preview';

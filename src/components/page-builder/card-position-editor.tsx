@@ -98,8 +98,6 @@ export function CardPositionEditor({ value, onChange }: Props) {
       if (delta.x === 0 && delta.y === 0) return;
 
       const SQUARE_SIZE = 256;
-      const centerX = SQUARE_SIZE / 2;
-      const centerY = SQUARE_SIZE / 2;
       const current = id === 'follow-drag' ? follow : vote;
       const edgeOffsets: Record<string, { x: number; y: number }> = {
         top: { x: (current.offsetPct / 100) * SQUARE_SIZE, y: 0 },

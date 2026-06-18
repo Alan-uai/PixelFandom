@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { ImageIcon, Loader2, Upload, X } from 'lucide-react';
@@ -131,8 +132,8 @@ export function ImageUpload({
       <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
         <div className="overflow-hidden">
           {value ? (
-            <div className={`${previewSize} flex items-center justify-center`}>
-              <img src={value} alt={label} className="object-cover w-full h-full" />
+            <div className={`relative ${previewSize} flex items-center justify-center`}>
+              <Image src={value} alt={label} fill className="object-cover" />
             </div>
           ) : (
             <div

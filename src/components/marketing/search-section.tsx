@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, ArrowRight, Loader2, Hash } from 'lucide-react';
 import Link from 'next/link';
@@ -118,7 +119,7 @@ export default function SearchSection({
                       className="flex items-center gap-4 rounded-lg border border-border/40 p-4 hover:border-primary/30 hover:bg-primary/[0.03] hover:scale-[1.01] transition-all group"
                     >
                       {wiki.logo_url ? (
-                        <img src={wiki.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                        <Image src={wiki.logo_url} alt="" width={40} height={40} className="rounded-lg object-cover shrink-0" />
                       ) : (
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                           <BookOpen className="h-5 w-5 text-primary" />

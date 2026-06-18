@@ -10,7 +10,7 @@ export default function TermsPage() {
         <section>
           <h2>1. Aceitação dos Termos</h2>
           <p>
-            Ao acessar ou usar a plataforma PixelFandom ("Plataforma"), você confirma que leu, entendeu e concorda em ficar vinculado a estes Termos de Serviço ("Termos"). Se você não concordar com qualquer parte destes Termos, não utilize a Plataforma.
+            Ao acessar ou usar a plataforma PixelFandom (&ldquo;Plataforma&rdquo;), você confirma que leu, entendeu e concorda em ficar vinculado a estes Termos de Serviço (&ldquo;Termos&rdquo;). Se você não concordar com qualquer parte destes Termos, não utilize a Plataforma.
           </p>
         </section>
 
@@ -54,7 +54,7 @@ export default function TermsPage() {
         <section>
           <h2>6. Limitação de Responsabilidade</h2>
           <p>
-            O PixelFandom não se responsabiliza por danos diretos, indiretos, incidentais ou consequenciais decorrentes do uso ou da impossibilidade de uso da Plataforma. A Plataforma é fornecida "como está", sem garantias de qualquer tipo, expressas ou implícitas.
+            O PixelFandom não se responsabiliza por danos diretos, indiretos, incidentais ou consequenciais decorrentes do uso ou da impossibilidade de uso da Plataforma. A Plataforma é fornecida &ldquo;como está&rdquo;, sem garantias de qualquer tipo, expressas ou implícitas.
           </p>
         </section>
 

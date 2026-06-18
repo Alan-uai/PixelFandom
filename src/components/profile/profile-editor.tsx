@@ -45,7 +45,7 @@ export default function ProfileEditor() {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [router]);
 
   const handleSave = async () => {
     setSaving(true);

@@ -32,13 +32,13 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data, loading } = useWikiData();
-  const { basePath, articlePath, homePath, isSubdomain } = useWikiPath(tenantSlug);
+  const { articlePath, isSubdomain } = useWikiPath(tenantSlug);
   const [articleCollapsed, setArticleCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const currentView = searchParams.get('view') || 'grid';
-  const articles: SidebarArticle[] = (data?.articles || []) as SidebarArticle[];
+  const articles: SidebarArticle[] = useMemo(() => (data?.articles || []) as SidebarArticle[], [data]);
 
   const currentSlug = useMemo(() => {
     if (pathname === `/w/${tenantSlug}` || pathname === '/') return '';
@@ -79,7 +79,7 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
     );
   }
 
-  const isHome = pathname === `/w/${tenantSlug}` || pathname === '/';
+
 
   return (
     <aside className="w-64 shrink-0 border-r bg-sidebar flex flex-col h-full transition-all duration-200">
@@ -157,11 +157,11 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
                       }`}
                     >
                       {article.icon && article.icon.startsWith('http') ? (
-                        <img src={article.icon} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                        <Image src={article.icon} alt="" width={14} height={14} className="rounded object-cover shrink-0" />
                       ) : article.icon ? (
                         <span className="text-xs shrink-0">{article.icon}</span>
                       ) : article.image_url ? (
-                        <img src={article.image_url} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                        <Image src={article.image_url} alt="" width={14} height={14} className="rounded object-cover shrink-0" />
                       ) : (
                         <FileText className="h-3.5 w-3.5 shrink-0" />
                       )}
@@ -217,11 +217,11 @@ export default function WikiSidebar({ tenantSlug, collapsed, onClose }: Props) {
                               }`}
                             >
                               {article.icon && article.icon.startsWith('http') ? (
-                                <img src={article.icon} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                                <Image src={article.icon} alt="" width={14} height={14} className="rounded object-cover shrink-0" />
                               ) : article.icon ? (
                                 <span className="text-xs shrink-0">{article.icon}</span>
                               ) : article.image_url ? (
-                                <img src={article.image_url} alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+                                <Image src={article.image_url} alt="" width={14} height={14} className="rounded object-cover shrink-0" />
                               ) : (
                                 <FileText className="h-3.5 w-3.5 shrink-0" />
                               )}

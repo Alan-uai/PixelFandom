@@ -1,6 +1,6 @@
 'use client';
 
-export function ButtonBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function ButtonBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const text = (config.text as string) || 'Button';
   const url = config.url as string | undefined;
   const variant = (config.variant as string) || 'primary';

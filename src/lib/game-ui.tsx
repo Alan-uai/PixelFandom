@@ -2,9 +2,8 @@
 
 import React from 'react';
 import {
-  Star, Sword, Shield, Zap, Flame, Snowflake, Skull, Ghost,
-  Globe, Droplets, Gem, ScrollText, Lightbulb, MessageCircle,
-  Eye, Crosshair, Coins, Pickaxe, Sparkles, Crown,
+  Sword, Shield, Zap, Flame, Snowflake, Skull, Ghost,
+  Globe, Droplets, Gem, ScrollText, Pickaxe,
 } from 'lucide-react';
 
 export const RARITY_COLORS: Record<string, string> = {

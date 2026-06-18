@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Trophy, Medal, Award, Flame, FileText, MessageSquare, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -64,9 +65,9 @@ export function LeaderboardTable({ users, metric }: Props) {
             <RankBadge rank={u.rank} />
           </div>
 
-          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary overflow-hidden shrink-0">
+          <div className="relative h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary overflow-hidden shrink-0">
             {u.avatar_url ? (
-              <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
+              <Image src={u.avatar_url} alt="" fill className="object-cover" />
             ) : (
               (u.display_name || u.username || '?')[0].toUpperCase()
             )}

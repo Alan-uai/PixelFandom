@@ -162,7 +162,7 @@ interface CardProps {
 
 function Card({ className, children }: CardProps) {
   const { phase } = useContext(RevealContext);
-  const showBorder = phase === 'border';
+
   const showComplete = phase === 'complete';
 
   if (phase === 'idle') {

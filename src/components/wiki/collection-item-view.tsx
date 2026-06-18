@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
@@ -174,11 +175,6 @@ const SYSTEM_FIELDS = new Set([
   'rarity', 'tier', 'element',
   'image', 'image_url', 'icon', 'icon_url',
   '_source_table', 'embedding',
-]);
-
-const SPECIAL_TEXT_FIELDS = new Set([
-  'weapon_type', 'attack_speed', 'enemy_type', 'difficulty', 'boss_type',
-  'category', 'health_level',
 ]);
 
 function hasValue(v: unknown): boolean {
@@ -636,7 +632,7 @@ function renderDynamicSections(
   return <>{sections}</>;
 }
 
-function metaLabel(col: ColumnInfo, data: Record<string, any>): string {
+function metaLabel(col: ColumnInfo, _data: Record<string, any>): string {
   const known = FIELD_LABELS[col.column_name];
   if (known) return known.label;
   return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
@@ -718,18 +714,18 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const tier = data.tier != null ? String(data.tier) : undefined;
   const element = data.element != null ? String(data.element) : undefined;
   const imageUrl = (data.image_url || data.image) as string | undefined;
-  const [fullImg, setFullImg] = useState<string | null>(null);
+
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
   const itemIcon = data.icon_url ? (
-    <img src={data.icon_url} alt="" className="w-full h-full object-contain" />
+    <Image src={data.icon_url} alt="" fill className="object-contain" />
   ) : data.icon && data.icon.includes(':') ? (
     <IconRenderer icon={data.icon} size="lg" />
   ) : data.icon && data.icon.startsWith('http') ? (
-    <img src={data.icon} alt="" className="w-full h-full object-contain" />
+    <Image src={data.icon} alt="" fill className="object-contain" />
   ) : data.icon ? (
     <span className="text-lg">{data.icon}</span>
   ) : (
@@ -772,7 +768,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
         {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
-          <div className="h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
             {itemIcon}
           </div>
           <div className="flex-1 min-w-0">

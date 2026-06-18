@@ -26,9 +26,9 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     fetchVotes();
-  }, [targetId]);
+  }, [targetId, fetchVotes]);
 
-  const fetchVotes = async () => {
+  const fetchVotes = useCallback(async () => {
     const res = await fetch(`/api/${targetType}s/${targetId}/vote`);
     if (res.ok) {
       const data = await res.json();
@@ -36,7 +36,7 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
       setDownvotes(data.downvotes);
       setUserVote(data.user_vote);
     }
-  };
+  }, [targetType, targetId]);
 
   const handleVote = useCallback(async (voteType: 'up' | 'down') => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -59,7 +59,6 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
 
       if (res.ok) {
         const data = await res.json();
-        const newVote = data.vote_type;
 
         if (userVote === voteType) {
           setUpvotes((p) => voteType === 'up' ? p - 1 : p);
@@ -80,7 +79,7 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
     } finally {
       setLoading(false);
     }
-  }, [targetType, targetId, userVote, router]);
+  }, [targetType, targetId, userVote]);
 
   const score = upvotes - downvotes;
 

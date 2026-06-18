@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/supabase';
-import { useCachedData } from '@/hooks/use-cached-data';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -12,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { TableIconDisplay } from '@/lib/table-icons';
 import {
   Loader2, Save, Check, Database, Eye, Search, LayoutGrid, List,
-  Layers, PanelTop, Filter, FolderTree, CreditCard, Plus, Trash2,
-  GripVertical, FileText, Image,
+  PanelTop, Filter, FolderTree, CreditCard, Plus, Trash2,
+  FileText,
 } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
 
@@ -24,7 +23,7 @@ interface TenantTable {
   icon?: string;
 }
 
-export function TableViewerEditor({ tenantId, slug }: { tenantId: string; slug?: string }) {
+export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string; slug?: string }) {
   const { toast } = useToast();
   const [tables, setTables] = useState<TenantTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -50,7 +49,7 @@ export function TableViewerEditor({ tenantId, slug }: { tenantId: string; slug?:
       }
       setLoading(false);
     })();
-  }, [tenantId]);
+  }, [tenantId, selectedTable]);
 
   useEffect(() => {
     if (!selectedTable) return;

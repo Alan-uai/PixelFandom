@@ -11,7 +11,7 @@ interface Props {
   mode?: 'insert' | 'copy';
 }
 
-export function VariablePicker({ onInsert, onClose, mode = 'insert' }: Props) {
+export function VariablePicker({ onInsert, onClose, mode: _mode = 'insert' }: Props) {
   const [search, setSearch] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const grouped = useMemo(() => getVariablesByCategory(), []);

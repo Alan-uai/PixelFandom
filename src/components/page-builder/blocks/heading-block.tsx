@@ -2,7 +2,7 @@
 
 import { type ElementType } from 'react';
 
-export function HeadingBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function HeadingBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const content = (config.content as string) || 'Heading';
   const level = (config.level as string) || 'h2';
   const color = config.color as string | undefined;

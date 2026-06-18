@@ -14,7 +14,7 @@ interface Props {
   onChange: (embeds: EmbedPayload[]) => void;
 }
 
-function EmbedFieldRow({ field, index, onChange, onRemove }: {
+function EmbedFieldRow({ field, index: _index, onChange, onRemove }: {
   field: EmbedField;
   index: number;
   onChange: (f: EmbedField) => void;

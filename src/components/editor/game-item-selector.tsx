@@ -88,7 +88,7 @@ function getDescriptionField(table: string): string[] {
   }
 }
 
-export function GameItemSelector({ open, onClose, onSelect, tenantId }: GameItemSelectorProps) {
+export function GameItemSelector({ open, onClose, onSelect, tenantId: _tenantId }: GameItemSelectorProps) {
   const [selectedTable, setSelectedTable] = useState<string>(TABLE_KEYS[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);

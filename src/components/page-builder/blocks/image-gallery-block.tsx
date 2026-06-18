@@ -1,5 +1,6 @@
 'use client';
 
+import NextImage from 'next/image';
 import { Image } from 'lucide-react';
 
 export function ImageGalleryBlock({ config }: { config: Record<string, unknown> }) {
@@ -12,9 +13,9 @@ export function ImageGalleryBlock({ config }: { config: Record<string, unknown> 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {images.length > 0 ? (
           images.map((img, i) => (
-            <div key={i} className="aspect-video rounded-lg overflow-hidden border bg-muted">
+            <div key={i} className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
               {img.src ? (
-                <img src={img.src} alt={img.alt || ''} className="w-full h-full object-cover" />
+                <NextImage src={img.src} alt={img.alt || ''} fill className="object-cover" />
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <Image className="h-6 w-6 text-muted-foreground" />

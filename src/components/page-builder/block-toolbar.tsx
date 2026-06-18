@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { BlockType, BlockDefinition } from './types';
-import { BLOCK_REGISTRY, CATEGORIES, FOOTER_BLOCK_TYPES, ERROR_BLOCK_TYPES, getBlocksByCategory } from '@/lib/block-registry';
-import { Search, type LucideIcon } from 'lucide-react';
+import { BLOCK_REGISTRY, CATEGORIES, FOOTER_BLOCK_TYPES, ERROR_BLOCK_TYPES } from '@/lib/block-registry';
+import { Search } from 'lucide-react';
 
 function DraggableBlock({ def }: { def: BlockDefinition }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

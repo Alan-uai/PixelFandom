@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
 import { TABLE_ICONS, resolveTableIcon, isCustomIcon, type TableIconName } from '@/lib/table-icons';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -40,7 +41,7 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
           className="w-full justify-start gap-2 h-10"
         >
           {isCustomIcon(value) ? (
-            <img src={value} className="h-4 w-4 shrink-0 rounded object-cover" />
+            <Image src={value} alt="" width={16} height={16} className="shrink-0 rounded object-cover" />
           ) : (
             <IconRender name={value} className="h-4 w-4 shrink-0" />
           )}

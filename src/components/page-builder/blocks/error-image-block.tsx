@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ImageOff } from 'lucide-react';
 
 const roundedMap: Record<string, string> = {
@@ -21,7 +22,7 @@ export function ErrorImageBlock({ config }: { config: Record<string, unknown> })
     <div className="flex justify-center py-4">
       <div className={`relative overflow-hidden ${roundedMap[rounded] || 'rounded-xl'} max-w-lg w-full`}>
         {src ? (
-          <img src={src} alt={alt} className="w-full h-auto object-cover" />
+          <Image src={src} alt={alt} width={800} height={500} className="w-full h-auto object-cover" />
         ) : (
           <div className="flex items-center justify-center bg-muted h-64">
             <ImageOff className="h-16 w-16 text-muted-foreground/50" />

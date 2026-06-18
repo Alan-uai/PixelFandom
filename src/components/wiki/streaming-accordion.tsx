@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
-import { ChevronDown, FileText, ExternalLink } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { SECTION_META } from '@/lib/response-styles';
 
 type Section = {

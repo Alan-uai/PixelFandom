@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogIn, LogOut, RefreshCw, Server, ChevronDown } from 'lucide-react';
+import { Loader2, LogIn, LogOut, RefreshCw, Server } from 'lucide-react';
 import { useGuildData } from './guild-data-context';
 
 export function DiscordLoginGate() {

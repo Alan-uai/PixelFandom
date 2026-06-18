@@ -40,6 +40,7 @@ export function CountdownBlock({ config }: { config: Record<string, unknown> }) 
   );
 
   useEffect(() => {
+    const target = targetDate ? new Date(targetDate + 'T' + targetTime) : null;
     if (!target) return;
     setTimeLeft(calculateTimeLeft(target));
     const id = setInterval(() => setTimeLeft(calculateTimeLeft(target)), 1000);

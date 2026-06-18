@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { RealtimeClient } from '@supabase/realtime-js';
-import * as Y from 'yjs';
 import { useUser } from '@/supabase';
 
 interface Cursor {
@@ -14,7 +13,7 @@ interface Cursor {
 
 const CURSOR_COLORS = ['#4BC5FF', '#FF4B4B', '#4BFF4B', '#FFBB4B', '#BB4BFF', '#FF4BBB'];
 
-export function RealtimeCursors({ articleId, tenantId }: { articleId: string; tenantId: string }) {
+export function RealtimeCursors({ articleId, tenantId: _tenantId }: { articleId: string; tenantId: string }) {
   const { user } = useUser();
   const [cursors, setCursors] = useState<Cursor[]>([]);
   const [activeUsers, setActiveUsers] = useState<number>(0);
@@ -37,7 +36,7 @@ export function RealtimeCursors({ articleId, tenantId }: { articleId: string; te
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const users: Cursor[] = [];
-        Object.entries(state).forEach(([key, presence]: [string, any]) => {
+        Object.entries(state).forEach(([_key, presence]: [string, any]) => {
           presence.forEach((p: any) => {
             if (p.userId !== user.id) {
               users.push({ userId: p.userId, username: p.username || 'Anônimo', color: p.color || '#4BC5FF', y: p.y || 0 });
@@ -77,7 +76,7 @@ export function RealtimeCursors({ articleId, tenantId }: { articleId: string; te
       {activeUsers} {activeUsers === 1 ? 'pessoa' : 'pessoas'} editando
       {cursors.length > 0 && (
         <div className="flex -space-x-1 ml-1">
-          {cursors.slice(0, 3).map((c, i) => (
+          {cursors.slice(0, 3).map((c, _i) => (
             <div
               key={c.userId}
               className="w-5 h-5 rounded-full border-2 border-background flex items-center justify-center text-[8px] font-bold"

@@ -252,7 +252,6 @@ function renderGameItemEmbed(node: any): string {
 }
 
 function renderTierlistBlock(node: any): string {
-  const table = node.attrs?.table || '';
   const title = node.attrs?.title || 'Tierlist';
   let tiers: { label: string; color: string; itemIds: string[] }[] = [];
   try {

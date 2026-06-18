@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ImageIcon } from 'lucide-react';
 
 const roundedMap: Record<string, string> = {
@@ -27,10 +28,12 @@ export function ImageBlock({ config }: { config: Record<string, unknown> }) {
   const img = (
     <div className={`overflow-hidden ${shadowMap[shadow] || ''}`}>
       {src ? (
-        <img
+        <Image
           src={src}
           alt={alt}
-          className={`w-full object-cover ${roundedMap[rounded] || 'rounded-lg'}`}
+          width={800}
+          height={600}
+          className={`w-full h-auto object-cover ${roundedMap[rounded] || 'rounded-lg'}`}
         />
       ) : (
         <div className={`flex items-center justify-center bg-muted h-48 ${roundedMap[rounded] || 'rounded-lg'}`}>

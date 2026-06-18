@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useUser, useSupabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { LogIn, LayoutDashboard, Trophy, User, Settings, LogOut, Bell, BellRing } from 'lucide-react';
-import { usePathname } from 'next/navigation';
 import { useNotifications } from '@/hooks/use-notifications';
 
 interface MainNavProps {
@@ -15,7 +14,6 @@ interface MainNavProps {
 export default function MainNav({ onLogin }: MainNavProps) {
   const { user, isLoading } = useUser();
   const { signOut } = useSupabase();
-  const pathname = usePathname();
   const router = useRouter();
 
   const handleLogout = async () => {

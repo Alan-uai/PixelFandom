@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -56,12 +57,14 @@ export function CarouselIsland({ config }: CarouselIslandProps) {
           {hasMedia && (
             <div className="relative">
               {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="w-full max-h-36 object-cover"
-                  loading="lazy"
-                />
+                <div className="relative w-full max-h-36">
+                  <Image
+                    src={item.imageUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               )}
               {item.videoUrl && (
                 <video

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -136,14 +137,14 @@ export default function ProfileView() {
       <Card>
         {profile.cover_image && (
           <div className="relative h-24 md:h-32 rounded-t-xl overflow-hidden">
-            <img src={profile.cover_image} alt="" className="w-full h-full object-cover" />
+            <Image src={profile.cover_image} alt="" fill className="object-cover" />
           </div>
         )}
         <CardHeader className={profile.cover_image ? 'pb-2' : ''}>
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary overflow-hidden shrink-0">
+            <div className="relative h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary overflow-hidden shrink-0">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                <Image src={profile.avatar_url} alt="" fill className="object-cover" />
               ) : (
                 (profile.display_name || profile.username || 'U')[0].toUpperCase()
               )}

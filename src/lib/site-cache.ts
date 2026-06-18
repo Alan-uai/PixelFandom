@@ -27,7 +27,7 @@ export const useSiteCache = create<SiteCacheState>()(
         if (!entry) return null;
         if (Date.now() - entry.timestamp > entry.ttl) {
           set((state) => {
-            const { [key]: _, ...rest } = state.cache;
+            const { [key]: _unused, ...rest } = state.cache;
             return { cache: rest };
           });
           return null;

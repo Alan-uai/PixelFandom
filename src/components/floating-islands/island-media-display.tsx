@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import type { IslandMedia } from '@/components/page-builder/types';
 
 interface IslandMediaDisplayProps {
@@ -16,12 +17,14 @@ export function IslandMediaDisplay({ media }: IslandMediaDisplayProps) {
   return (
     <div className="rounded-lg overflow-hidden border border-border/50 bg-muted/30">
       {isImage && (
-        <img
-          src={media.url}
-          alt=""
-          className="w-full max-h-40 object-cover"
-          loading="lazy"
-        />
+        <div className="relative w-full max-h-40">
+          <Image
+            src={media.url}
+            alt=""
+            fill
+            className="object-cover"
+          />
+        </div>
       )}
       {isVideo && (
         <video

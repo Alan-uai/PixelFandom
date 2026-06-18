@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ImageIcon } from 'lucide-react';
 
 export function MediaTextBlock({ config }: { config: Record<string, unknown> }) {
@@ -12,9 +13,9 @@ export function MediaTextBlock({ config }: { config: Record<string, unknown> }) 
   const ctaUrl = config.ctaUrl as string | undefined;
 
   const imageSide = (
-    <div className="overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-lg" style={{ minHeight: 200 }}>
       {imageSrc ? (
-        <img src={imageSrc} alt={title || ''} className="w-full h-full object-cover" />
+        <Image src={imageSrc} alt={title || ''} fill className="object-cover" />
       ) : (
         <div className="flex items-center justify-center bg-muted h-full min-h-[200px]">
           <ImageIcon className="h-10 w-10 text-muted-foreground/50" />

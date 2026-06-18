@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -217,12 +218,12 @@ export function MediaLibrary({
                     onOpenChange(false);
                   }}
                 >
-                  <div className="aspect-square">
-                    <img
+                  <div className="relative aspect-square">
+                    <Image
                       src={item.public_url}
                       alt={item.alt_text || item.file_name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                      fill
+                      className="object-cover"
                     />
                   </div>
                   <div className="p-2">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileText, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 
 interface FileUploaderProps {
   onFilesSelected: (files: File[]) => void;

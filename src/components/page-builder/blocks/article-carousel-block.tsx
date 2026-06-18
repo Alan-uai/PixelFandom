@@ -1,9 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
-export function ArticleCarouselBlock({ config, tenantId }: { config: Record<string, any>; tenantId?: string }) {
+export function ArticleCarouselBlock({ config, tenantId: _tenantId }: { config: Record<string, any>; tenantId?: string }) {
   const title = config.title || 'Artigos';
   const articles = config.articles || [];
   const autoplay = config.autoplay ?? false;
@@ -72,7 +73,9 @@ export function ArticleCarouselBlock({ config, tenantId }: { config: Record<stri
                 className="min-w-[280px] max-w-[320px] snap-start rounded-lg border bg-card overflow-hidden shrink-0 hover:border-primary/30 transition-colors"
               >
                 {article.imageUrl && (
-                  <img src={article.imageUrl} alt="" className="w-full aspect-video object-cover" />
+                  <div className="relative w-full aspect-video">
+                    <Image src={article.imageUrl} alt="" fill className="object-cover" />
+                  </div>
                 )}
                 <div className="p-4">
                   <div className="flex items-start gap-2">

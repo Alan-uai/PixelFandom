@@ -1,6 +1,6 @@
 'use client';
 
-export function SpacerBlock({ config, preview }: { config: Record<string, unknown>; preview?: boolean }) {
+export function SpacerBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const height = (config.height as string) || 'md';
 
   const heightMap: Record<string, string> = {

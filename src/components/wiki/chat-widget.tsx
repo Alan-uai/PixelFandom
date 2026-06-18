@@ -1,7 +1,7 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { MessageCircle, X, GripVertical, Bot, MessageSquare, HelpCircle } from 'lucide-react';
 import WikiChat from './wiki-chat';
 import type { WidgetChatConfig } from '@/components/page-builder/types';
@@ -226,7 +226,7 @@ export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: Cha
           <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/50">
             <span className="text-sm font-medium flex items-center gap-2">
               {botLogo ? (
-                <img src={botLogo} alt="" className="h-5 w-5 rounded-full" />
+                <Image src={botLogo} alt="" width={20} height={20} className="rounded-full" />
               ) : (
                 <Bot className="h-4 w-4 text-primary" />
               )}

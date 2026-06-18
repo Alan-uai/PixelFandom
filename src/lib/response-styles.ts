@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+
 
 export const SECTION_META: Record<string, { icon: string; label: string }> = {
   resumo:          { icon: '📋', label: 'Resumo' },

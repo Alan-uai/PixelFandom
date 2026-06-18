@@ -57,7 +57,7 @@ function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
   );
 }
 
-export default function GameDataCards({ slug, tenantId, displayFormat = 'grid', columnsCount = 4, title, tabsEnabled = false, tabsSubFormat = 'list' }: Props) {
+export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat = 'grid', columnsCount = 4, title, tabsEnabled = false, tabsSubFormat = 'list' }: Props) {
   const { data: catalog = [], loading } = useTableCatalog(slug, true);
   const { homePath } = useWikiPath(slug);
 
