@@ -200,6 +200,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);
+  const [clickWave, setClickWave] = useState<string | null>(null);
 
   const handleLogout = useCallback(async () => {
     playClickSound();

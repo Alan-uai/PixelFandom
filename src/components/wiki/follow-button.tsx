@@ -15,12 +15,6 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef(false);
 
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    fetchState();
-  }, [tenantId, fetchState]);
-
   const fetchState = useCallback(async () => {
     const res = await fetch(`/api/follows?tenant_id=${tenantId}`);
     if (res.ok) {
@@ -29,6 +23,12 @@ export function FollowButton({ tenantId }: FollowButtonProps) {
       setFollowerCount(data.follower_count);
     }
   }, [tenantId]);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchState();
+  }, [tenantId, fetchState]);
 
   const handleToggle = async () => {
     const { data: { user } } = await supabase.auth.getUser();

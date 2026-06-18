@@ -22,12 +22,6 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef(false);
 
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    fetchVotes();
-  }, [targetId, fetchVotes]);
-
   const fetchVotes = useCallback(async () => {
     const res = await fetch(`/api/${targetType}s/${targetId}/vote`);
     if (res.ok) {
@@ -37,6 +31,12 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
       setUserVote(data.user_vote);
     }
   }, [targetType, targetId]);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchVotes();
+  }, [targetId, fetchVotes]);
 
   const handleVote = useCallback(async (voteType: 'up' | 'down') => {
     const { data: { user } } = await supabase.auth.getUser();

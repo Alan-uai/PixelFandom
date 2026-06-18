@@ -106,7 +106,7 @@ export function MediaLibrary({
         .from(bucket)
         .getPublicUrl(filePath);
 
-      const img = new Image();
+      const img = new window.Image();
       img.onload = async () => {
         await fetch(`/api/tenants/${tenantId}/media`, {
           method: 'POST',

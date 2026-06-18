@@ -87,6 +87,24 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
   const abortRef = useRef<AbortController | null>(null);
   const elapsedStr = useElapsedTime(streamStartTime, TIMEOUT_MS);
 
+  const loadSessions = useCallback(async () => {
+    if (sessionsCache.current) {
+      setSessions(sessionsCache.current);
+      return;
+    }
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/chat/sessions?tenant_slug=${tenantSlug}&limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        sessionsCache.current = data;
+        setSessions(data);
+      }
+    } catch {/* noop */} finally {
+      setLoadingHistory(false);
+    }
+  }, [tenantSlug]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -107,24 +125,6 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
       delete (window as any).__onCompareClick;
     };
   }, []);
-
-  const loadSessions = useCallback(async () => {
-    if (sessionsCache.current) {
-      setSessions(sessionsCache.current);
-      return;
-    }
-    setLoadingHistory(true);
-    try {
-      const res = await fetch(`/api/chat/sessions?tenant_slug=${tenantSlug}&limit=20`);
-      if (res.ok) {
-        const data = await res.json();
-        sessionsCache.current = data;
-        setSessions(data);
-      }
-    } catch {/* noop */} finally {
-      setLoadingHistory(false);
-    }
-  }, [tenantSlug]);
 
   const createSession = useCallback(async (): Promise<string | null> => {
     if (!user) return null;

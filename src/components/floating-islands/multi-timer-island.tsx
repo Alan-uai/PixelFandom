@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { IslandMedia } from '@/components/page-builder/types';
 import { IslandMediaDisplay } from './island-media-display';
@@ -87,7 +87,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
   if (displayFormat === 'list') {
     return (
       <div className="space-y-2 max-h-52 overflow-y-auto">
-        {events.map((ev, i) => {
+        {events.map((ev: TimerEvent, i: number) => {
           const rem = getRemaining(ev.targetDate);
           const isActive = i === eventIndex;
           return (
@@ -132,7 +132,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
         </div>
         {events.length > 1 && (
           <div className="flex items-center justify-center gap-1.5">
-            {events.map((_, i) => (
+            {events.map((_: unknown, i: number) => (
               <button key={i} onClick={() => setCarouselIndex(i)}
                 className={`rounded-full transition-all ${i === carouselIndex ? 'h-2 w-4 bg-primary' : 'h-2 w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'}`}
               />
@@ -155,7 +155,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
       {events.length > 1 && (
         <>
           <div className="flex items-center justify-center gap-1.5 pt-1">
-            {events.map((_, i) => (
+            {events.map((_: unknown, i: number) => (
               <div key={i} className={`h-1 rounded-full transition-all ${i === eventIndex ? 'w-3 bg-primary' : 'w-1 bg-muted-foreground/30'}`} />
             ))}
           </div>
