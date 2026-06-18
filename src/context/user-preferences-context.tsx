@@ -3,8 +3,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase, useUser } from '@/supabase';
 import { applyThemePreset } from '@/lib/theme-presets';
+import type { Theme } from '@/lib/types';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = Theme;
 export type Density = 'comfortable' | 'compact';
 export type FontSize = 'small' | 'medium' | 'large';
 
@@ -18,7 +19,7 @@ export interface ChatSettings {
 }
 
 export interface UserPreferences {
-  theme_mode: ThemeMode;
+  theme_mode: Theme;
   font_size: FontSize;
   density: Density;
   sidebar_collapsed: boolean;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,12 @@ import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Bot, MessageSquare, Terminal, Server, Pencil, Settings2, Hash, Shield, Webhook, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Bot, Pencil, Settings2, Webhook } from 'lucide-react';
 import { GuildDataProvider } from '@/components/discord/guild-data-context';
 import { DiscordLoginGate } from '@/components/discord/discord-login-gate';
 import { ChannelSelect } from '@/components/discord/channel-select';
 import { RoleSelect } from '@/components/discord/role-select';
-import { createDefaultCommand, migrateOldCommand, generateId, type DiscordConfig as DiscordConfigType, type CustomCommand, type IngestConfig } from '@/components/discord/types';
+import { migrateOldCommand, generateId, type DiscordConfig as DiscordConfigType, type CustomCommand, type IngestConfig } from '@/components/discord/types';
 import { IngestEntry } from '@/components/discord/ingest-entry';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
@@ -98,7 +98,7 @@ export default function WikiDiscordPage() {
     return raw.map(migrateOldCommand);
   };
 
-  const loadConfig = (config: DiscordConfigType) => {
+  const loadConfig = useCallback((config: DiscordConfigType) => {
     setEnabled(config.enabled ?? false);
     setBotName(config.bot_name ?? '');
     setBotAvatar(config.bot_avatar ?? null);
@@ -160,7 +160,7 @@ export default function WikiDiscordPage() {
       autoPostUpdatesChannelName: config.auto_post_updates_channel_name ?? '',
       autoIngest: config.auto_ingest ?? [],
     });
-  };
+  }, []);
 
   const guildsKey = tenantData?.id ? `discord-guilds:${tenantData.id}` : null;
   const { data: guildsData } = useCachedData<any[]>(
@@ -176,7 +176,7 @@ export default function WikiDiscordPage() {
     setTenant(tenantData);
     const config = (tenantData.discord_config as DiscordConfigType) || {};
     loadConfig(config);
-  }, [tenantData]);
+  }, [tenantData, loadConfig]);
 
   useEffect(() => {
     if (guildsData) setDbGuilds(guildsData);

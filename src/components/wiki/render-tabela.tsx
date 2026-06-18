@@ -5,6 +5,7 @@ import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
+import { StreamingCursor } from '@/components/ui/streaming-cursor';
 
 type Section = {
   sectionType: string;
@@ -133,7 +134,7 @@ export default function RenderTabela({ content, isStreaming, tenantSlug }: Props
     return (
       <div>
         <div className="prose prose-invert prose-sm max-w-none prose-a:text-primary" dangerouslySetInnerHTML={{ __html: fallbackHtml }} />
-        {isStreaming && <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>}
+        {isStreaming && <StreamingCursor />}
       </div>
     );
   }
@@ -145,7 +146,7 @@ export default function RenderTabela({ content, isStreaming, tenantSlug }: Props
       ))}
       {partial && isStreaming && (
         <div className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
-          <span className="animate-pulse">▍</span>
+          <StreamingCursor />
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MAIN_DOMAIN } from '@/lib/constants';
 import { useUser, supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
@@ -93,7 +94,7 @@ export default function NewWikiPage() {
                 required
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Será usado na URL: pixelfandom.vercel.app/w/{slug || '...'}
+                Será usado na URL: {MAIN_DOMAIN}/w/{slug || '...'}
               </p>
             </div>
             <FloatingLabelTextarea

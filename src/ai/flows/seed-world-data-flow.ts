@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SeedWorldDataInputSchema = z.object({
+export const SeedWorldDataInputSchema = z.object({
     worldName: z.string().describe("O nome do novo mundo."),
     worldDataJson: z.string().describe("Uma string JSON contendo todos os dados do mundo, incluindo subcoleções como powers, npcs, etc."),
 });

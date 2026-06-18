@@ -208,5 +208,15 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+  plugins: [
+    require('tailwindcss-animate'),
+    require('@tailwindcss/typography'),
+    require('tailwindcss/plugin')(function({ addUtilities }) {
+      addUtilities({
+        '.inset-shadow': {
+          boxShadow: '2px 2px 2px rgba(0, 0, 0, 0.5) inset, -2px -2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(255, 255, 255, 0.1), 2px 2px 2px rgba(0, 0, 0, 0.5)',
+        },
+      });
+    }),
+  ],
 } satisfies Config;

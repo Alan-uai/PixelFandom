@@ -22,12 +22,12 @@ const IdentifiedItemSchema = z.object({
 });
 export type IdentifiedItem = z.infer<typeof IdentifiedItemSchema>;
 
-const IdentifyPowersInputSchema = z.object({
+export const IdentifyPowersInputSchema = z.object({
   images: z.array(z.string()).describe("Uma lista de screenshots do jogo, como data URIs."),
 });
 export type IdentifyPowersInput = z.infer<typeof IdentifyPowersInputSchema>;
 
-const IdentifyPowersOutputSchema = z.object({
+export const IdentifyPowersOutputSchema = z.object({
   items: z.array(IdentifiedItemSchema).describe('Uma lista de todos os itens únicos identificados nas imagens, com seus nomes e categorias.'),
 });
 export type IdentifyPowersOutput = z.infer<typeof IdentifyPowersOutputSchema>;

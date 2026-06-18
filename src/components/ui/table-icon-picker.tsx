@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
-import { TABLE_ICONS, resolveTableIcon, isCustomIcon, type TableIconName } from '@/lib/table-icons';
+import { TABLE_ICONS, resolveTableIcon, isCustomIcon } from '@/lib/table-icons';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';

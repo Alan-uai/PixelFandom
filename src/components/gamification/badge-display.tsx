@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { RARITY_HSL } from '@/lib/game-ui';
 import {
   Tooltip,
   TooltipContent,
@@ -43,14 +44,6 @@ const RARITY_TAILWIND: Record<number, string> = {
   4: 'bg-purple-500/20 border-purple-500/30',
   5: 'bg-amber-500/20 border-amber-500/30',
 };
-const RARITY_HSL: Record<number, string> = {
-  1: '0 0% 60%',
-  2: '142 76% 36%',
-  3: '217 91% 60%',
-  4: '271 81% 56%',
-  5: '38 92% 50%',
-};
-
 const sizes = {
   sm: 'h-8 w-8 text-sm',
   md: 'h-12 w-12 text-xl',

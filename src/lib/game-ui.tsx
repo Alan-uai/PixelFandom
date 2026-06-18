@@ -77,6 +77,14 @@ export function effectColor(v: string): string {
   return '';
 }
 
+export const RARITY_HSL: Record<number, string> = {
+  1: '0 0% 60%',
+  2: '142 76% 36%',
+  3: '217 91% 60%',
+  4: '271 81% 56%',
+  5: '38 92% 50%',
+};
+
 export const COLL_ICON: Record<string, React.ReactNode> = {
   weapons: <Sword className="h-5 w-5" />,
   armors: <Shield className="h-5 w-5" />,

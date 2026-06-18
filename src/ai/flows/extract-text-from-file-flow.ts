@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const ExtractTextFromFileInputSchema = z.object({
+export const ExtractTextFromFileInputSchema = z.object({
   fileDataUri: z
     .string()
     .describe(
@@ -12,7 +12,7 @@ const ExtractTextFromFileInputSchema = z.object({
 });
 export type ExtractTextFromFileInput = z.infer<typeof ExtractTextFromFileInputSchema>;
 
-const ExtractTextFromFileOutputSchema = z.object({
+export const ExtractTextFromFileOutputSchema = z.object({
   extractedText: z.string().describe('O texto extraído do arquivo no formato solicitado.'),
 });
 export type ExtractTextFromFileOutput = z.infer<typeof ExtractTextFromFileOutputSchema>;

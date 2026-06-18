@@ -1,3 +1,4 @@
+import { GEMINI_FREE_MODELS } from '@/lib/models';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -61,11 +62,5 @@ export async function GET() {
 }
 
 function getFallbackModels() {
-  return [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', context_length: 1_000_000 },
-    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite', context_length: 1_000_000 },
-    { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro', context_length: 2_000_000 },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', context_length: 1_000_000 },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', context_length: 2_000_000 },
-  ];
+  return GEMINI_FREE_MODELS;
 }

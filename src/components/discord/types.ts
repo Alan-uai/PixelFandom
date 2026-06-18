@@ -1,5 +1,3 @@
-'use client';
-
 export type BotActionType =
   | 'send_message'
   | 'edit_message'

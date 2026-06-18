@@ -2,12 +2,12 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const FormatTextToJsonInputSchema = z.object({
+export const FormatTextToJsonInputSchema = z.object({
   rawText: z.string().describe('O texto bruto a ser convertido em JSON.'),
 });
 export type FormatTextToJsonInput = z.infer<typeof FormatTextToJsonInputSchema>;
 
-const FormatTextToJsonOutputSchema = z.object({
+export const FormatTextToJsonOutputSchema = z.object({
   jsonString: z.string().describe('A string JSON formatada a partir do texto bruto.'),
 });
 export type FormatTextToJsonOutput = z.infer<typeof FormatTextToJsonOutputSchema>;

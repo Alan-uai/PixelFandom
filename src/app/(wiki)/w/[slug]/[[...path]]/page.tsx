@@ -11,7 +11,6 @@ import { parseViewerConfig } from '@/lib/viewer-config';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
 import { useWikiData } from '@/context/wiki-provider';
-import { supabase } from '@/supabase';
 import { useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
@@ -46,7 +45,6 @@ export default function WikiPage() {
   const widgetConfig = (tenantTheme.widgets as Record<string, unknown>) || {};
   const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
   const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
-  const marketingCardVotePos = (cardPositions.marketing_card as { vote?: CardPosition } | undefined)?.vote;
   const comparisonMode = ((widgetConfig.comparison as Record<string, unknown>)?.display_mode as string) || 'modal';
   const { searchQuery, setSearchQuery } = useWikiSearch();
 

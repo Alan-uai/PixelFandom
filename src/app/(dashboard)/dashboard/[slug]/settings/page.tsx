@@ -14,15 +14,14 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { SelectCard } from '@/components/ui/select-card';
-import { Loader2, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database, Eye } from 'lucide-react';
+import { Loader2, Image, LayoutGrid, List, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
-import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
+import { THEME_PRESETS } from '@/lib/theme-presets';
 
 export default function WikiSettingsPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const { toast } = useToast();
   const [tenantState, setTenantState] = useState<any>(null);
@@ -283,17 +282,6 @@ export default function WikiSettingsPage() {
   if (!tenantState) {
     return <p className="text-muted-foreground">Wiki não encontrada.</p>;
   }
-
-  const sections = [
-    { id: 'basic-info', label: 'Informações Básicas', icon: Info },
-    { id: 'media', label: 'Mídia', icon: Image },
-    { id: 'theme', label: 'Cores do Tema', icon: Pipette },
-    { id: 'layout', label: 'Layout', icon: LayoutGrid },
-    { id: 'fonts', label: 'Fontes', icon: Type },
-    { id: 'pages', label: 'Páginas', icon: FileText },
-    { id: 'links', label: 'Links', icon: MessageCircle },
-    { id: 'danger-zone', label: 'Zona Perigosa', icon: AlertTriangle },
-  ];
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -886,6 +874,7 @@ function ColorField({
   placeholder?: string;
 }) {
   const hexValue = hslToHex(value || '');
+  void id;
 
   return (
     <div>

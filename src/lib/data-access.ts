@@ -1,4 +1,5 @@
 import type { ColumnInfo, GameSchema } from './game-schema';
+import { findLabelColumn } from './game-schema';
 
 export interface CatalogEntry {
   table_name: string;
@@ -312,17 +313,4 @@ async function getSchema(): Promise<GameSchema> {
   return cachedSchema;
 }
 
-function findLabelColumn(columns: ColumnInfo[]): string {
-  const candidates = ['name', 'title', 'code', 'label', 'item_name', 'display_name', 'full_name', 'username', 'config_key'];
-  for (const col of candidates) {
-    if (columns.some((c) => c.column_name === col)) return col;
-  }
-  const nameEnding = columns.find((c) => c.column_name.endsWith('_name'));
-  if (nameEnding) return nameEnding.column_name;
-  const orderable = columns.find((c) =>
-    !['id', 'tenant_id'].includes(c.column_name) &&
-    ['character varying', 'text', 'varchar', 'integer', 'bigint', 'numeric', 'real'].includes(c.data_type),
-  );
-  if (orderable) return orderable.column_name;
-  return columns[0]?.column_name || 'id';
-}
+

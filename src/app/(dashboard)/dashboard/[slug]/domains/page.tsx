@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { MAIN_DOMAIN } from '@/lib/constants';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import {
   RefreshCw,
   AlertTriangle,
   ExternalLink,
-  Link,
   Clock,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
@@ -41,7 +41,7 @@ export default function WikiDomainsPage() {
   const [domain, setDomain] = useState('');
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [verifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
   const dataLoadedRef = useRef(false);
@@ -53,6 +53,30 @@ export default function WikiDomainsPage() {
       return data!;
     }
   );
+
+  const checkDomain = useCallback(async (d: string) => {
+    setChecking(true);
+    try {
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setDomainInfo(data);
+    } catch {
+      setDomainInfo({
+        verified: false,
+        configured: false,
+        cname: null,
+        cnameResolves: false,
+        pending: true,
+        nameservers: [],
+      });
+    }
+    setChecking(false);
+  }, [slug]);
 
   useEffect(() => {
     if (!cachedTenant || dataLoadedRef.current) return;
@@ -71,7 +95,7 @@ export default function WikiDomainsPage() {
       }
       checkDomain(cachedTenant.custom_domain);
     }
-  }, [cachedTenant]);
+  }, [cachedTenant, checkDomain]);
 
   useEffect(() => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -89,32 +113,7 @@ export default function WikiDomainsPage() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [tenant?.custom_domain]);
-
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const checkDomain = useCallback(async (d: string) => {
-    setChecking(true);
-    try {
-      const res = await fetch('/api/domains', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setDomainInfo(data);
-    } catch (err: any) {
-      setDomainInfo({
-        verified: false,
-        configured: false,
-        cname: null,
-        cnameResolves: false,
-        pending: true,
-        nameservers: [],
-      });
-    }
-    setChecking(false);
-  }, [slug]);
+  }, [tenant?.custom_domain, checkDomain]);
 
   const handleAddDomain = async () => {
     if (!domain || !tenant) return;
@@ -171,11 +170,6 @@ export default function WikiDomainsPage() {
 
   const badge = statusBadge();
 
-  const sections = [
-    { id: 'default-url', label: 'URL Padrão', icon: Globe },
-    { id: 'custom-domain', label: 'Domínio Personalizado', icon: Link },
-  ];
-
   const formatLastCheck = (date: string | null | undefined) => {
     if (!date) return null;
     const d = new Date(date);
@@ -202,7 +196,7 @@ export default function WikiDomainsPage() {
             className="inline-flex items-center gap-2 text-sm font-mono text-primary hover:underline" rel="noreferrer"
           >
             <Globe className="h-4 w-4" />
-            pixelfandom.vercel.app/w/{slug}
+            {MAIN_DOMAIN}/w/{slug}
             <ExternalLink className="h-3 w-3" />
           </a>
         </CardContent>

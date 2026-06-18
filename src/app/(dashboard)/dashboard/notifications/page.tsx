@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotifications, type Notification } from '@/hooks/use-notifications';
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';

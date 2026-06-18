@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { addDomain, removeDomain, getDomainConfig, listDomains, addDomainWithRetry } from '@/lib/vercel-domains';
-
-const ROLE_HIERARCHY: Record<string, number> = { viewer: 0, editor: 1, admin: 2, owner: 3 };
+import { ROLE_HIERARCHY } from '@/lib/tenant';
 
 function domainRegex(d: string): boolean {
   return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i.test(d.trim());

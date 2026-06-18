@@ -4,7 +4,7 @@
 import { useAdmin } from '@/hooks/use-admin';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldAlert, Inbox, Download, User, Image as ImageIcon, ThumbsDown, Bot, MessageSquare, AlertTriangle, Check, Eye } from 'lucide-react';
+import { Loader2, ShieldAlert, Inbox, Download, User, ThumbsDown, Bot, MessageSquare, Check, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Head from 'next/head';
 import { Badge } from '@/components/ui/badge';

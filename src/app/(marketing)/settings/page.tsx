@@ -23,7 +23,6 @@ import {
   Palette,
   Settings2,
   Volume2,
-  Mic,
   Ear,
   Loader2,
   Check,
@@ -49,7 +48,7 @@ const LANGUAGES = [
 export default function GlobalSettingsPage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
-  const { preferences, updatePreference, updatePreferences, saving } = useUserPreferences();
+  const { preferences, updatePreference, saving } = useUserPreferences();
 
   useEffect(() => {
     if (!isLoading && !user) {

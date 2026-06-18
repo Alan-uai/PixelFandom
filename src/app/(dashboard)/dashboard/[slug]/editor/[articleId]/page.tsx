@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { extractTextFromContent } from '@/lib/content-utils';
-import { Sparkles, FileText, Wand2, Loader2, ChevronRight, ShieldAlert, Text, History } from 'lucide-react';
+import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
@@ -25,12 +25,11 @@ import { searchAll } from '@/lib/search';
 import { invalidateDataCache } from '@/lib/data-access';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
-import { useApp } from '@/context/app-provider';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
 import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
 import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
-import { supabase, useUser } from '@/supabase';
+import { supabase } from '@/supabase';
 import { RealtimeCursors } from '@/components/editor/realtime-cursors';
 import { RealtimeIndicator } from '@/components/editor/realtime-indicator';
 
@@ -63,7 +62,6 @@ function EditPageContent() {
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
   const [showAiSidebar, setShowAiSidebar] = useState(false);
-  const [aiSidebarTab, setAiSidebarTab] = useState<'generate' | 'improve'>('generate');
   const [guideTopic, setGuideTopic] = useState('');
   const [guideTone, setGuideTone] = useState<'guia' | 'tutorial' | 'analise'>('guia');
 
@@ -284,7 +282,7 @@ function EditPageContent() {
     if (!guideTopic.trim() || !tenantId || !slug) return;
     setIsGeneratingGuide(true);
     try {
-      const { data: gameData } = await supabase
+      await supabase
         .from('wiki_articles')
         .select('title')
         .eq('tenant_id', tenantId)
@@ -502,7 +500,7 @@ function EditPageContent() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <input type="file" ref={fileInputRef} onChange={(e) => {}} style={{ display: 'none' }} accept="image/*,application/pdf" />
+              <input type="file" ref={fileInputRef} onChange={(_e) => {}} style={{ display: 'none' }} accept="image/*,application/pdf" />
 
               <FormField
                 control={form.control}

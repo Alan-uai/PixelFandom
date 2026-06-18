@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSupabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthDialogProps {

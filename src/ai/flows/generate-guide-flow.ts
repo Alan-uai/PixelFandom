@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const GenerateGuideInputSchema = z.object({
+export const GenerateGuideInputSchema = z.object({
   topic: z.string().describe('O tópico do guia (ex: "Melhores armas para iniciantes", "Como derrotar o Goblin Rei").'),
   gameDataContext: z.string().describe('String JSON com dados relevantes do jogo (itens, stats, etc.) que a IA pode referenciar.'),
   tone: z.enum(['guia', 'tutorial', 'analise']).describe('O tom do guia: guia (prático e direto), tutorial (passo a passo), analise (análise detalhada).'),
@@ -10,7 +10,7 @@ const GenerateGuideInputSchema = z.object({
 });
 export type GenerateGuideInput = z.infer<typeof GenerateGuideInputSchema>;
 
-const GenerateGuideOutputSchema = z.object({
+export const GenerateGuideOutputSchema = z.object({
   title: z.string().describe('O título do guia, claro e informativo.'),
   summary: z.string().describe('Resumo conciso de 2-3 frases sobre o guia.'),
   content: z.string().describe('JSON string do conteúdo no formato TipTap ProseMirror (doc com content array).'),

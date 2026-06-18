@@ -2,6 +2,7 @@ import { supabase } from '@/supabase';
 import { searchAll, type SearchAllResult } from '@/lib/search';
 import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
+import { parseContentToJson } from '@/lib/content-utils';
 
 export interface ToolContext {
   slug: string;
@@ -773,19 +774,6 @@ async function getTenantBySlugOrId(slug: string, tenantId: string | null): Promi
     return data as { id: string; name: string; slug: string; logo_url: string | null; description: string | null } | null;
   }
   return null;
-}
-
-function parseContentToJson(content: string | null): Record<string, unknown> | null {
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      return parsed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Handler implementations ──

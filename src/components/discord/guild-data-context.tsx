@@ -132,7 +132,7 @@ export function GuildDataProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error('Failed to fetch guilds');
       const guilds = await res.json();
       setState((prev) => ({ ...prev, guilds, loading: false }));
-    } catch (_err) {
+    } catch {
       setState((prev) => ({ ...prev, error: 'Erro ao buscar servidores', loading: false }));
     }
   }, []);

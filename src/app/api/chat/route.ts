@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { DEFAULT_FALLBACK_CHAIN as BASE_FALLBACK } from '@/lib/models';
+import { MAIN_URL } from '@/lib/constants';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
@@ -20,7 +22,7 @@ import {
 
 const FALLBACK_CHAIN = (
   process.env.FALLBACK_CHAIN ||
-  'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
+  BASE_FALLBACK.join(',')
 ).split(',').map((m) => m.trim()).filter(Boolean);
 
 const STREAM_HEADERS = {
@@ -39,7 +41,7 @@ async function streamOpenRouter(
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://pixelfandom.vercel.app',
+      'HTTP-Referer': MAIN_URL,
       'X-Title': 'PixelFandom',
     },
     body: JSON.stringify({
@@ -136,7 +138,7 @@ async function callOpenRouter(
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://pixelfandom.vercel.app',
+          'HTTP-Referer': MAIN_URL,
           'X-Title': 'PixelFandom',
         },
         body: JSON.stringify(body),

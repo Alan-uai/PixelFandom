@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
 
     import('crypto').then(crypto => {
-      const hash = crypto.createHash('sha256').update(ip + tenantSlug).digest('hex').slice(0, 16);
+      crypto.createHash('sha256').update(ip + tenantSlug).digest('hex').slice(0, 16);
     });
 
     if (type === 'pageview') {

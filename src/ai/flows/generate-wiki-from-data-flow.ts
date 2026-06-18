@@ -3,13 +3,13 @@ import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 import { nanoid } from 'nanoid';
 
-const GenerateWikiArticleFromDataInputSchema = z.object({
+export const GenerateWikiArticleFromDataInputSchema = z.object({
   worldName: z.string().describe("O nome do mundo, por exemplo, 'World 20 - Grand Elder'."),
   worldDataJson: z.string().describe("Uma string JSON contendo todos os dados do mundo, incluindo subcoleções como powers, npcs, etc."),
 });
 export type GenerateWikiArticleFromDataInput = z.infer<typeof GenerateWikiArticleFromDataInputSchema>;
 
-const GenerateWikiArticleFromDataOutputSchema = z.object({
+export const GenerateWikiArticleFromDataOutputSchema = z.object({
     wikiArticleJson: z.string().describe("Uma string JSON que representa o objeto completo do artigo da wiki gerado."),
 });
 export type GenerateWikiArticleFromDataOutput = z.infer<typeof GenerateWikiArticleFromDataOutputSchema>;

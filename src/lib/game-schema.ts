@@ -1,3 +1,5 @@
+import { GAME_TABLE_META } from '@/lib/game-table-labels';
+
 export interface ColumnInfo {
   column_name: string;
   data_type: string;
@@ -33,21 +35,6 @@ type TableMeta = {
   keywords: string[];
 };
 
-const TABLE_META: Record<string, TableMeta> = {
-  weapons: { label: 'Armas', keywords: ['arma', 'armas', 'weapon'] },
-  armors: { label: 'Armaduras', keywords: ['armadura', 'armaduras', 'armor'] },
-  rings: { label: 'Anéis', keywords: ['anel', 'anéis', 'aneis', 'ring'] },
-  enemies: { label: 'Inimigos', keywords: ['inimigo', 'inimigos', 'enemy'] },
-  bosses: { label: 'Chefes', keywords: ['chefe', 'chefes', 'boss'] },
-  potions: { label: 'Poções', keywords: ['poção', 'poções', 'pocao', 'pocoes', 'potion', 'flask'] },
-  upgrades: { label: 'Upgrades/Banners', keywords: ['upgrade', 'banner', 'banners'] },
-  worlds: { label: 'Mundos', keywords: ['mundo', 'mundos', 'world'] },
-  codes: { label: 'Códigos', keywords: ['código', 'códigos', 'codigo', 'codigos', 'code'] },
-  crafting_recipes: { label: 'Receitas', keywords: ['receita', 'receitas', 'recipe', 'craft'] },
-  resources: { label: 'Materiais', keywords: ['recurso', 'recursos', 'resource', 'material', 'materiais'] },
-  build_presets: { label: 'Builds/Presets', keywords: ['build', 'builds', 'preset', 'presets'] },
-};
-
 let cachedSchema: GameSchema | null = null;
 let cacheTime = 0;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -63,7 +50,7 @@ function deriveSingular(tableName: string): string {
 }
 
 function autoLabel(tableName: string): string {
-  const meta = TABLE_META[tableName];
+  const meta = GAME_TABLE_META[tableName];
   if (meta) return meta.label;
   return tableName
     .split('_')
@@ -72,7 +59,7 @@ function autoLabel(tableName: string): string {
 }
 
 function getTableMeta(tableName: string): TableMeta {
-  const existing = TABLE_META[tableName];
+  const existing = GAME_TABLE_META[tableName];
   if (existing) return existing;
   const singular = deriveSingular(tableName);
   return {

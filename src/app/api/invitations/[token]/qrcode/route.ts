@@ -1,8 +1,9 @@
+import { MAIN_URL } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const origin = request.headers.get('origin') || 'https://pixelfandom.vercel.app';
+  const origin = request.headers.get('origin') || MAIN_URL;
   const inviteUrl = `${origin}/invite/${token}`;
 
   try {

@@ -2,14 +2,14 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const GenerateTagsInputSchema = z.object({
+export const GenerateTagsInputSchema = z.object({
   title: z.string().describe('The title of the wiki article.'),
   summary: z.string().describe('The summary of the wiki article.'),
   content: z.string().describe('The main content of the wiki article.'),
 });
 export type GenerateTagsInput = z.infer<typeof GenerateTagsInputSchema>;
 
-const GenerateTagsOutputSchema = z.object({
+export const GenerateTagsOutputSchema = z.object({
   tags: z.string().describe('A comma-separated string of relevant tags for the article.'),
 });
 export type GenerateTagsOutput = z.infer<typeof GenerateTagsOutputSchema>;

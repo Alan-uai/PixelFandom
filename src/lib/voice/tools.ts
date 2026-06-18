@@ -1,3 +1,4 @@
+import { MAIN_URL } from '@/lib/constants';
 import type { VoiceName } from './geminilive'
 
 export class FunctionCallTool {
@@ -214,7 +215,7 @@ NEVER hallucinate — read actual numbers from raw_data.`,
         properties: {},
       },
       async () => {
-        ctx.navigate('https://pixelfandom.vercel.app/')
+        ctx.navigate(MAIN_URL + '/')
         return { result: { success: true, page: 'hub' } }
       }
     ),

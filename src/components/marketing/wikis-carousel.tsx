@@ -22,7 +22,7 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
   const rafRef = useRef<number>(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [atEnd, setAtEnd] = useState(false);
+  const [, setAtEnd] = useState(false);
 
 
   const filtered = activeCategory

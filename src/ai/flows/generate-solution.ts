@@ -2,7 +2,7 @@
 'use server';
 import { z } from 'zod';
 import { chatWithTools, chatStreamSSE, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
-import { getGameDataByWorld, getUserProfileJson } from '@/supabase/game-data';
+import { getUserProfileJson } from '@/supabase/game-data';
 import { personas } from '@/lib/personas';
 import { responseStyles } from '@/lib/response-styles';
 import { emojiStyles } from '@/lib/emoji-styles';
@@ -17,7 +17,7 @@ const MessageSchema = z.object({
   content: z.string(),
 });
 
-const GenerateSolutionInputSchema = z.object({
+export const GenerateSolutionInputSchema = z.object({
   problemDescription: z.string().describe('A description of the player is encountering in Anime Eternal.'),
   wikiContext: z.string().describe('The entire content of the game wiki to be used as a knowledge base.'),
   history: z.array(MessageSchema).optional().describe('The previous messages in the conversation.'),
@@ -33,7 +33,7 @@ const GenerateSolutionInputSchema = z.object({
 });
 export type GenerateSolutionInput = z.infer<typeof GenerateSolutionInputSchema>;
 
-const GenerateSolutionOutputSchema = z.object({
+export const GenerateSolutionOutputSchema = z.object({
   generalResponse: z.string().describe('Uma string JSON de um array de objetos.'),
   personalizedResponse: z.string().describe('Uma string JSON de um array de objetos.'),
 });

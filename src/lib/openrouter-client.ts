@@ -1,9 +1,11 @@
+import { DEFAULT_FALLBACK_CHAIN as BASE_FALLBACK } from '@/lib/models';
+import { MAIN_URL } from '@/lib/constants';
 import { getGameData, getUpdateLog } from '@/supabase';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 const DEFAULT_FALLBACK_CHAIN = (process.env.FALLBACK_CHAIN ||
-  'openai/gpt-4o-mini,minimax/minimax-m2.5:free,google/gemini-flash-1.5,anthropic/claude-3.5-haiku'
+  BASE_FALLBACK.join(',')
 ).split(',').map(m => m.trim()).filter(Boolean);
 
 export interface OpenRouterConfig {
@@ -11,7 +13,8 @@ export interface OpenRouterConfig {
   fallbackChain?: string[];
 }
 
-export const GENERIC_ERROR_MESSAGE = 'Desculpe não pude te responder, porém acredito que @suporte pode te ajudar';
+import { GENERIC_ERROR_MESSAGE } from './constants';
+export { GENERIC_ERROR_MESSAGE };
 
 const getGameDataToolDef = {
   type: 'function' as const,
@@ -51,7 +54,7 @@ async function openRouterFetch(
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey || process.env.OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://pixelfandom.vercel.app',
+      'HTTP-Referer': MAIN_URL,
       'X-Title': 'PixelFandom',
     },
     body: JSON.stringify(body),

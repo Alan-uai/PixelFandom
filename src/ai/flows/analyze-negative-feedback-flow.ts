@@ -2,13 +2,13 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const AnalyzeNegativeFeedbackInputSchema = z.object({
+export const AnalyzeNegativeFeedbackInputSchema = z.object({
   question: z.string().describe('A pergunta original do usuário.'),
   negativeResponse: z.string().describe('A resposta da IA que foi marcada como negativa.'),
 });
 export type AnalyzeNegativeFeedbackInput = z.infer<typeof AnalyzeNegativeFeedbackInputSchema>;
 
-const AnalyzeNegativeFeedbackOutputSchema = z.object({
+export const AnalyzeNegativeFeedbackOutputSchema = z.object({
   suggestion: z.string().describe('Uma sugestão para o administrador sobre como melhorar a resposta da IA.'),
   reputationPointsAwarded: z.number().describe('A quantidade de pontos de reputação (1-5) a serem concedidos ao usuário por este feedback.'),
 });

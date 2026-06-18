@@ -1,5 +1,4 @@
 import * as LucideIcons from 'lucide-react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import React from 'react'
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,17 +11,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'slug required' }, { status: 400 });
     }
 
-    const { supabase } = await import('@/supabase');
-
-    const { data: tenant } = await supabase
-      .from('tenants')
-      .select('id')
-      .eq('slug', slug)
-      .single();
+    const tenant = await getTenantBySlug(slug);
 
     if (!tenant) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
+
+    const { supabase } = await import('@/supabase');
 
     let query = supabase
       .from('wiki_articles')

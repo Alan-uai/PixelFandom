@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,19 +10,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'slug required' }, { status: 400 });
     }
 
-    const { supabase } = await import('@/supabase');
+    const tenant = await getTenantBySlug(slug);
 
-    const { data: tenant, error } = await supabase
-      .from('tenants')
-      .select('id, name, slug, logo_url, description')
-      .eq('slug', slug)
-      .single();
-
-    if (error || !tenant) {
+    if (!tenant) {
       return NextResponse.json({ error: 'Wiki not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ wiki: tenant });
+    return NextResponse.json({
+      wiki: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        logo_url: tenant.logo_url,
+        description: tenant.description,
+      },
+    });
   } catch (error) {
     console.error('Voice wiki error:', error);
     return NextResponse.json({ error: 'Failed to get wiki' }, { status: 500 });

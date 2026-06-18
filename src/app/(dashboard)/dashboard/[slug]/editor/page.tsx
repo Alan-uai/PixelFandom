@@ -196,7 +196,7 @@ export default function EditorArticlesPage() {
 
     setCreating(true);
 
-    const { translated, slug } = await translateGameTerm(rawName);
+    const { slug } = await translateGameTerm(rawName);
     const label = createLabel.trim() || rawName;
 
     const { data, error } = await supabase.rpc('ensure_game_table', {
@@ -340,7 +340,7 @@ export default function EditorArticlesPage() {
     return articles.filter((a) => a.status === statusFilter);
   }, [articles, statusFilter]);
 
-  const catalogMap = new Map(catalog.map((t) => [t.table_name, t.display_label]));
+  // const catalogMap = new Map(catalog.map((t) => [t.table_name, t.display_label]));
 
   const handleCreateArticle = async () => {
     if (!tenantId) return;

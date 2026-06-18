@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-async function getTenantId(slug: string): Promise<string | null> {
-  const { supabase } = await import('@/supabase')
-  const { data } = await supabase
-    .from('tenants')
-    .select('id')
-    .eq('slug', slug)
-    .single()
-  return data?.id || null
-}
+import { getTenantBySlug } from '@/lib/tenant'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'slug and action required' }, { status: 400 })
     }
 
-    const tenantId = await getTenantId(slug)
-    if (!tenantId) {
+    const tenant = await getTenantBySlug(slug)
+    if (!tenant) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
@@ -46,7 +37,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const result = await executeTextChatTool(action, args, { slug, tenantId })
+    const result = await executeTextChatTool(action, args, { slug, tenantId: tenant.id })
     return NextResponse.json(result)
   } catch (error) {
     console.error('Voice query error:', error)

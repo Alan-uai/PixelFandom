@@ -6,6 +6,7 @@ import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
+import { StreamingCursor } from '@/components/ui/streaming-cursor';
 
 type Section = {
   sectionType: string;
@@ -119,7 +120,7 @@ export default function RenderCards({ content, isStreaming, tenantSlug }: Props)
                         dangerouslySetInnerHTML={{ __html: contentHtml }}
                       />
                       {idx === sections.length - 1 && isStreaming && (
-                        <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+                        <StreamingCursor />
                       )}
                     </div>
                   </motion.div>
@@ -131,12 +132,12 @@ export default function RenderCards({ content, isStreaming, tenantSlug }: Props)
       </AnimatePresence>
       {partial && isStreaming && (
         <div className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground bg-muted/20 col-span-full">
-          <span className="animate-pulse">▍</span>
+          <StreamingCursor />
         </div>
       )}
       {!isStreaming && sections.length === 0 && !content && (
         <div className="col-span-full text-center text-muted-foreground py-4">
-          <span className="inline-block animate-pulse text-primary">▍</span>
+          <StreamingCursor />
         </div>
       )}
     </div>

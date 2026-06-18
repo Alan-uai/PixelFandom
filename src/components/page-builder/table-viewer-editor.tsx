@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 
 import { TableIconDisplay } from '@/lib/table-icons';
 import {
-  Loader2, Save, Check, Database, Eye, Search, LayoutGrid, List,
+  Loader2, Save, Check, Database, Eye, Search, LayoutGrid,
   PanelTop, Filter, FolderTree, CreditCard, Plus, Trash2,
   FileText,
 } from 'lucide-react';

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
     const slug = searchParams.get('slug');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    parseInt(searchParams.get('limit') || '10');
 
     if (!query || !slug) {
       return NextResponse.json({ error: 'q and slug are required' }, { status: 400 });

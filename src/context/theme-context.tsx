@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import type { Theme } from '@/lib/types';
 
 export interface TenantTheme {
   primary_color?: string;
@@ -16,7 +17,7 @@ export interface TenantTheme {
   articles_per_row?: number;
 }
 
-type ThemeMode = 'system' | 'light' | 'dark';
+type ThemeMode = Theme;
 
 interface ThemeContextValue {
   theme: TenantTheme;

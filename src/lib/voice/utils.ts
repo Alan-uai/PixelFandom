@@ -1,3 +1,5 @@
+import { extractTextFromProseMirror as pmExtract } from '@/lib/content-utils';
+
 export function stripTipTapContent(content: string): string {
   if (!content) return '';
   const trimmed = content.trim();
@@ -7,7 +9,7 @@ export function stripTipTapContent(content: string): string {
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed?.type === 'doc') {
-      return extractTextFromProseMirror(parsed);
+      return pmExtract(parsed, '\n');
     }
     if (typeof parsed === 'object') {
       return formatObjectAsText(parsed);
@@ -17,18 +19,6 @@ export function stripTipTapContent(content: string): string {
   }
 
   return content;
-}
-
-function extractTextFromProseMirror(node: any): string {
-  if (!node || typeof node !== 'object') return '';
-
-  if (node.text) return node.text;
-
-  if (node.content && Array.isArray(node.content)) {
-    return node.content.map(extractTextFromProseMirror).join('\n');
-  }
-
-  return '';
 }
 
 function formatObjectAsText(obj: Record<string, unknown>, depth = 0): string {

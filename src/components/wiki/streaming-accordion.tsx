@@ -5,6 +5,7 @@ import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { ChevronDown } from 'lucide-react';
 import { SECTION_META } from '@/lib/response-styles';
+import { StreamingCursor } from '@/components/ui/streaming-cursor';
 
 type Section = {
   sectionType: string;
@@ -145,7 +146,7 @@ export default function StreamingAccordion({ streamContent, isStreaming, tenantS
     return (
       <div className="text-sm text-muted-foreground">
         {isStreaming ? (
-          <span className="inline-block animate-pulse">▍</span>
+          <StreamingCursor />
         ) : null}
       </div>
     );
@@ -183,7 +184,7 @@ export default function StreamingAccordion({ streamContent, isStreaming, tenantS
                   }}
                 />
                 {idx === sections.length - 1 && partialSection && isStreaming && (
-                  <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+                  <StreamingCursor />
                 )}
               </div>
             )}
@@ -200,7 +201,7 @@ export default function StreamingAccordion({ streamContent, isStreaming, tenantS
             <p className="text-muted-foreground">{partialSection.content}</p>
           )}
           {isStreaming && (
-            <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+            <StreamingCursor />
           )}
         </div>
       )}

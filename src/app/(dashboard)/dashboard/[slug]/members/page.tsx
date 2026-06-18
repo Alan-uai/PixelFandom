@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
-import { useSiteCache } from '@/lib/site-cache';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';

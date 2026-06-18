@@ -1,5 +1,3 @@
-'use client';
-
 const cache = new Map<string, { translated: string; slug: string }>();
 
 export async function translateGameTerm(text: string): Promise<{ translated: string; slug: string }> {

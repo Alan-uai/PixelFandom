@@ -15,8 +15,9 @@ import { CardContent, CardHeader, CardTitle, CardDescription } from '@/component
 import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SelectCard } from '@/components/ui/select-card';
+import { OPENROUTER_FREE_MODELS, GEMINI_FREE_MODELS as GEMINI_FREE_MODELS_SHARED } from '@/lib/models';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Headphones, Mic, MicOff, Power, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
+import { Loader2, Mic, MicOff, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
 import { AI_PERSONALITIES, getPersonality } from '@/lib/ai-personalities';
 import { responseFormatStyles, responseStyleGroups } from '@/lib/response-styles';
@@ -28,22 +29,9 @@ interface FreeModel {
   context_length: number;
 }
 
-const DEFAULT_FREE_MODELS: FreeModel[] = [
-  { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', context_length: 128000 },
-  { id: 'minimax/minimax-m2.5:free', name: 'MiniMax M2.5', context_length: 262144 },
-  { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', context_length: 1000000 },
-  { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', context_length: 200000 },
-  { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash', context_length: 1048576 },
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', context_length: 131072 },
-];
+const DEFAULT_FREE_MODELS: FreeModel[] = OPENROUTER_FREE_MODELS;
 
-const DEFAULT_GEMINI_FREE_MODELS: FreeModel[] = [
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', context_length: 1_000_000 },
-  { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash-Lite', context_length: 1_000_000 },
-  { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro', context_length: 2_000_000 },
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', context_length: 1_000_000 },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', context_length: 2_000_000 },
-];
+const DEFAULT_GEMINI_FREE_MODELS: FreeModel[] = GEMINI_FREE_MODELS_SHARED;
 
 export default function WikiAIConfigPage() {
   const params = useParams();
@@ -99,8 +87,7 @@ export default function WikiAIConfigPage() {
   const [primaryProvider, setPrimaryProvider] = useState<'openrouter' | 'gemini'>('openrouter');
   const [freeModels, setFreeModels] = useState<FreeModel[]>(DEFAULT_FREE_MODELS);
   const [loadingModels, setLoadingModels] = useState(true);
-  const [geminiFreeModels, setGeminiFreeModels] = useState<FreeModel[]>([]);
-  const [loadingGeminiModels, setLoadingGeminiModels] = useState(true);
+  const [geminiFreeModels] = useState<FreeModel[]>([]);
   const initializedRef = useRef(false);
 
   const { data: tenantData, error: tenantError, loading: tenantLoading } = useCachedData<{ id: string }>(
@@ -211,15 +198,6 @@ export default function WikiAIConfigPage() {
       }
     })();
   }, []);
-
-  function isFreeModel(modelId: string) {
-    return freeModels.some((m) => m.id === modelId);
-  }
-
-  function isGeminiFreeModel(modelId: string) {
-    const list = geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS;
-    return list.some((m) => m.id === modelId);
-  }
 
   const resolvedModel = modelSource === 'custom' ? customModel : model;
   const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
@@ -387,14 +365,6 @@ export default function WikiAIConfigPage() {
 
   const showOpenRouter = provider === 'openrouter' || provider === 'hybrid';
   const showGemini = provider === 'gemini' || provider === 'hybrid';
-
-  const sections = [
-    { id: 'activation', label: 'Ativação', icon: Power },
-    { id: 'model', label: 'Configuração do Modelo', icon: Cpu },
-    { id: 'personality', label: 'Personalidade', icon: MessageSquare },
-    { id: 'voice', label: 'Agente de Voz', icon: Headphones },
-    { id: 'test', label: 'Testar Assistente de Voz', icon: Mic },
-  ];
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">

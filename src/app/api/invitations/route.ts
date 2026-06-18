@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MAIN_URL } from '@/lib/constants';
 import { createClient } from '@/supabase/server';
 import crypto from 'crypto';
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const origin = request.headers.get('origin') || 'https://pixelfandom.vercel.app';
+  const origin = request.headers.get('origin') || MAIN_URL;
   const inviteUrl = `${origin}/invite/${token}`;
 
   return NextResponse.json({ ...data, invite_url: inviteUrl }, { status: 201 });

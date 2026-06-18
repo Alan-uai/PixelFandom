@@ -40,7 +40,7 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [nextTime, setNextTime] = useState<Date | null>(null);
-  const [remaining, setRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
+  const [, setRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
 
   const [triggered, setTriggered] = useState(false);
   const triggeredRef = useRef(false);

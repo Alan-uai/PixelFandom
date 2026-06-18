@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@/supabase';
 import { Trophy, Loader2 } from 'lucide-react';
+import { RARITY_HSL } from '@/lib/game-ui';
 
 type BadgeWithEarned = {
   id: string;
@@ -31,14 +32,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   expert: 'border-amber-500/30 bg-amber-500/5',
   community: 'border-emerald-500/30 bg-emerald-500/5',
   streak: 'border-orange-500/30 bg-orange-500/5',
-};
-
-const RARITY_HSL: Record<number, string> = {
-  1: '0 0% 60%',
-  2: '142 76% 36%',
-  3: '217 91% 60%',
-  4: '271 81% 56%',
-  5: '38 92% 50%',
 };
 
 export function AchievementProgress() {

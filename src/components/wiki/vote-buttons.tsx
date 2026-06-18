@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
 import { MAIN_URL } from '@/lib/constants';
@@ -15,7 +14,6 @@ type VoteButtonsProps = {
 };
 
 export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialDownvotes = 0, initialUserVote = null }: VoteButtonsProps) {
-  const router = useRouter();
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [userVote, setUserVote] = useState<string | null>(initialUserVote);
@@ -58,7 +56,7 @@ export function VoteButtons({ targetType, targetId, initialUpvotes = 0, initialD
       });
 
       if (res.ok) {
-        const data = await res.json();
+        await res.json();
 
         if (userVote === voteType) {
           setUpvotes((p) => voteType === 'up' ? p - 1 : p);

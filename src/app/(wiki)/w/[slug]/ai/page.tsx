@@ -13,7 +13,7 @@ import { officialLanguages } from '@/lib/official-languages'
 import { FloatingLabelInput } from '@/components/ui/floating-label-input'
 import { Label } from '@/components/ui/label'
 import { SelectCard } from '@/components/ui/select-card'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { LayerCard } from '@/components/ui/layer-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Volume2, Mic, Headphones, Ear, MessageCircle, Sparkles } from 'lucide-react'
@@ -86,7 +86,7 @@ export default function AISettingsPage() {
       updatePreference('voice_settings', voiceSettings as Record<string, unknown>)
     }, 300)
     return () => clearTimeout(timer)
-  }, [voiceSettings])
+  }, [voiceSettings, updatePreference])
 
   const updateVoice = <K extends keyof VoiceSettings>(key: K, value: VoiceSettings[K]) => {
     setVoiceSettings((prev) => ({ ...prev, [key]: value }))
@@ -108,7 +108,7 @@ export default function AISettingsPage() {
     return key in wikiPrefs
   }
 
-  const responseStyleOptions = useMemo(() => {
+  useMemo(() => {
     return responseStyleGroups.flatMap(group =>
       group.keys.map(k => {
         const s = responseFormatStyles[k]

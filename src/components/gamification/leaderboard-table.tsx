@@ -24,14 +24,6 @@ type Props = {
   metric: string;
 };
 
-const metricLabels: Record<string, string> = {
-  reputation_points: 'Reputação',
-  articles_count: 'Artigos',
-  comments_count: 'Comentários',
-  streak_days: 'Streak',
-  reactions_received: 'Reações',
-};
-
 const metricIcons: Record<string, React.ElementType> = {
   reputation_points: Trophy,
   articles_count: FileText,

@@ -112,19 +112,19 @@ export async function getUserTenants(userId: string): Promise<(Tenant & { role: 
     }));
 }
 
+export const ROLE_HIERARCHY: Record<string, number> = {
+  viewer: 0,
+  editor: 1,
+  admin: 2,
+  owner: 3,
+};
+
 export async function isTenantMember(
   tenantId: string,
   userId: string,
   minRole?: 'viewer' | 'editor' | 'admin' | 'owner'
 ): Promise<boolean> {
-  const roleHierarchy: Record<string, number> = {
-    viewer: 0,
-    editor: 1,
-    admin: 2,
-    owner: 3,
-  };
-
-  const minLevel = minRole ? roleHierarchy[minRole] : 0;
+  const minLevel = minRole ? ROLE_HIERARCHY[minRole] : 0;
 
   const { data, error } = await supabase
     .from('tenant_members')
@@ -135,5 +135,5 @@ export async function isTenantMember(
 
   if (error || !data) return false;
 
-  return roleHierarchy[data.role] >= minLevel;
+  return ROLE_HIERARCHY[data.role] >= minLevel;
 }

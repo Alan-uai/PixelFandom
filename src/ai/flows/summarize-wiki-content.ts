@@ -2,13 +2,13 @@
 import { z } from 'zod';
 import { chat, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const SummarizeWikiContentInputSchema = z.object({
+export const SummarizeWikiContentInputSchema = z.object({
   wikiContent: z.string().describe('The content of the wiki page to summarize.'),
   topic: z.string().optional().describe('The topic of the wiki page.'),
 });
 export type SummarizeWikiContentInput = z.infer<typeof SummarizeWikiContentInputSchema>;
 
-const SummarizeWikiContentOutputSchema = z.object({
+export const SummarizeWikiContentOutputSchema = z.object({
   summary: z.string().describe('The summary of the wiki content.'),
 });
 export type SummarizeWikiContentOutput = z.infer<typeof SummarizeWikiContentOutputSchema>;

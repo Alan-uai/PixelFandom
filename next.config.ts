@@ -38,8 +38,7 @@ const nextConfig: NextConfig = {
   // Performance: Enable compression and caching
   compress: true,
   productionBrowserSourceMaps: false,
-  // Performance: Optimize bundle
-  swcMinify: true,
+  // Performance: Optimize bundle (removed swcMinify - deprecated in Next.js 15)
   async headers() {
     return [
       {

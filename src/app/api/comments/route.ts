@@ -4,7 +4,6 @@ import { createClient } from '@/supabase/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const articleId = searchParams.get('article_id');
-  const tenantId = searchParams.get('tenant_id');
   const limit = Math.min(Number(searchParams.get('limit')) || 50, 100);
   const offset = Number(searchParams.get('offset')) || 0;
 

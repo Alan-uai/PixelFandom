@@ -8,6 +8,7 @@ import { ChevronDown } from 'lucide-react';
 import { processSlugLinks } from './streaming-accordion';
 import { SECTION_META } from '@/lib/response-styles';
 import { renderSectionTable } from './render-tabela';
+import { StreamingCursor } from '@/components/ui/streaming-cursor';
 
 type Section = {
   sectionType: string;
@@ -101,7 +102,7 @@ function ExpandableSection({ section, isOpen, onToggle, isLast, isStreaming }: {
                 dangerouslySetInnerHTML={{ __html: renderContent(section.content) }}
               />
               {isLast && isStreaming && (
-                <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+                <StreamingCursor />
               )}
             </div>
           </motion.div>
@@ -160,7 +161,7 @@ export default function RenderHibrido({ content, isStreaming, tenantSlug }: Prop
   if (sections.length === 0 && !partial) {
     return (
       <div className="text-sm text-muted-foreground">
-        {isStreaming ? <span className="inline-block animate-pulse">▍</span> : null}
+        {isStreaming ? <StreamingCursor /> : null}
       </div>
     );
   }
@@ -195,7 +196,7 @@ export default function RenderHibrido({ content, isStreaming, tenantSlug }: Prop
       })}
       {partial && isStreaming && (
         <div className="rounded-lg border px-4 py-3 text-sm">
-          <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>
+          <StreamingCursor />
         </div>
       )}
     </div>

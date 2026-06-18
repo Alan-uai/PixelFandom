@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, X, Sword, Shield, CircleDot, Skull, Crown, FlaskRound, ArrowUp, Globe, Code, BookOpen, Package, Wrench } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, createElement } from 'react';
+import { Search, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { GAME_TABLE_META } from '@/lib/game-table-labels';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ICON_MAP } from '@/lib/game-icons';
 
 interface GameItemSelectorProps {
   open: boolean;
@@ -24,21 +25,6 @@ interface SearchResult {
 }
 
 const TABLE_KEYS = Object.keys(GAME_TABLE_META);
-
-const ICON_MAP: Record<string, React.ReactNode> = {
-  Sword: <Sword className="h-4 w-4" />,
-  Shield: <Shield className="h-4 w-4" />,
-  CircleDot: <CircleDot className="h-4 w-4" />,
-  Skull: <Skull className="h-4 w-4" />,
-  Crown: <Crown className="h-4 w-4" />,
-  FlaskRound: <FlaskRound className="h-4 w-4" />,
-  ArrowUp: <ArrowUp className="h-4 w-4" />,
-  Globe: <Globe className="h-4 w-4" />,
-  Code: <Code className="h-4 w-4" />,
-  BookOpen: <BookOpen className="h-4 w-4" />,
-  Package: <Package className="h-4 w-4" />,
-  Wrench: <Wrench className="h-4 w-4" />,
-};
 
 function getSearchColumns(table: string): string[] {
   switch (table) {
@@ -196,7 +182,7 @@ export function GameItemSelector({ open, onClose, onSelect, tenantId: _tenantId 
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {ICON_MAP[GAME_TABLE_META[selectedTable].icon]}
+            {createElement(ICON_MAP[GAME_TABLE_META[selectedTable].icon], { className: 'h-4 w-4' })}
             <span>{GAME_TABLE_META[selectedTable].label}</span>
           </div>
 

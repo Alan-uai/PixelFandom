@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { processSlugLinks } from './streaming-accordion';
+import { StreamingCursor } from '@/components/ui/streaming-cursor';
 
 type Props = {
   content: string;
@@ -31,7 +32,7 @@ export default function RenderTextoPuro({ content, isStreaming, tenantSlug }: Pr
       ) : (
         <span className="text-muted-foreground italic">Processando...</span>
       )}
-      {isStreaming && <span className="inline-block animate-pulse text-primary ml-0.5">▍</span>}
+      {isStreaming && <StreamingCursor />}
     </div>
   );
 }

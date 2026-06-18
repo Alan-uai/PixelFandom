@@ -203,7 +203,7 @@ export function PageBuilderEditor({
         setSaveError(msg);
         setTimeout(() => setSaveError(null), 5000);
       }
-    } catch (_err) {
+    } catch {
       setSaveError('Erro de rede ao salvar layout');
       setTimeout(() => setSaveError(null), 5000);
     }

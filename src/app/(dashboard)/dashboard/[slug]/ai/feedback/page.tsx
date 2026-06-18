@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useCachedData } from '@/hooks/use-cached-data';
-import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';

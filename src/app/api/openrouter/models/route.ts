@@ -1,3 +1,4 @@
+import { OPENROUTER_FREE_MODELS } from '@/lib/models';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -62,14 +63,5 @@ export async function GET() {
 }
 
 function getFallbackModels() {
-  return [
-    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', context_length: 128000 },
-    { id: 'minimax/minimax-m2.5:free', name: 'MiniMax M2.5', context_length: 262144 },
-    { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', context_length: 1000000 },
-    { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', context_length: 200000 },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', context_length: 131072 },
-    { id: 'deepseek/deepseek-chat:free', name: 'DeepSeek Chat', context_length: 131072 },
-    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder', context_length: 1048576 },
-    { id: 'nousresearch/hermes-3-llama-3.1-405b:free', name: 'Hermes 3 405B', context_length: 131072 },
-  ];
+  return OPENROUTER_FREE_MODELS;
 }

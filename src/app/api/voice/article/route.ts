@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-function parseContentToJson(content: string | null): Record<string, unknown> | null {
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      return parsed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+import { parseContentToJson } from '@/lib/content-utils';
+import { getTenantBySlug } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,17 +12,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'slug and article required' }, { status: 400 });
     }
 
-    const { supabase } = await import('@/supabase');
-
-    const { data: tenant } = await supabase
-      .from('tenants')
-      .select('id')
-      .eq('slug', slug)
-      .single();
+    const tenant = await getTenantBySlug(slug);
 
     if (!tenant) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
     }
+
+    const { supabase } = await import('@/supabase');
 
     const { data: wikiArticle } = await supabase
       .from('wiki_articles')

@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare, Heart, Reply, Edit2, Trash2, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, Heart, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CommentForm } from './comment-form';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/supabase';
 import Link from 'next/link';
 
 type CommentUser = {
@@ -42,16 +40,6 @@ export function CommentThread({ comments, articleId, tenantId, tenantSlug, onRef
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const { toast } = useToast();
-
-  const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/comments/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      toast({ title: 'Comentário removido' });
-      onRefresh();
-    } else {
-      toast({ variant: 'destructive', title: 'Erro ao remover' });
-    }
-  };
 
   const handleEdit = async (id: string) => {
     const res = await fetch(`/api/comments/${id}`, {

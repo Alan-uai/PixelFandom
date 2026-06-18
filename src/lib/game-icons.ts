@@ -1,0 +1,30 @@
+import {
+  Sword,
+  Shield,
+  CircleDot,
+  Skull,
+  Crown,
+  FlaskConical,
+  ArrowUp,
+  Globe,
+  Code,
+  BookOpen,
+  Package,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
+
+export const ICON_MAP: Record<string, LucideIcon> = {
+  Sword,
+  Shield,
+  CircleDot,
+  Skull,
+  Crown,
+  Flask: FlaskConical,
+  ArrowUp,
+  Globe,
+  Code,
+  BookOpen,
+  Package,
+  Wrench,
+};

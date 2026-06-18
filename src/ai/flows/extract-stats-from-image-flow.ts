@@ -2,12 +2,12 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const ExtractStatsFromImageInputSchema = z.object({
+export const ExtractStatsFromImageInputSchema = z.object({
   image: z.string().describe("Um screenshot do jogo como um data URI."),
 });
 export type ExtractStatsFromImageInput = z.infer<typeof ExtractStatsFromImageInputSchema>;
 
-const ExtractStatsFromImageOutputSchema = z.object({
+export const ExtractStatsFromImageOutputSchema = z.object({
   currentWorld: z.string().optional().describe('O mundo atual do jogador (ex: "Mundo 10").'),
   rank: z.string().optional().describe('O rank do jogador (ex: "115").'),
   totalDamage: z.string().optional().describe('O dano total por segundo (DPS) do jogador (ex: "1.5sx").'),

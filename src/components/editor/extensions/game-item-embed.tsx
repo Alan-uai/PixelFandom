@@ -4,36 +4,7 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react'
 import { type GameItemEmbedAttrs } from '@/lib/game-data-types'
 import { GAME_TABLE_META } from '@/lib/game-table-labels'
-import {
-  Sword,
-  Shield,
-  CircleDot,
-  Skull,
-  Crown,
-  FlaskConical,
-  ArrowUp,
-  Globe,
-  Code,
-  BookOpen,
-  Package,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react'
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Sword,
-  Shield,
-  CircleDot,
-  Skull,
-  Crown,
-  Flask: FlaskConical,
-  ArrowUp,
-  Globe,
-  Code,
-  BookOpen,
-  Package,
-  Wrench,
-}
+import { ICON_MAP } from '@/lib/game-icons'
 
 function GameItemEmbedNodeView(props: ReactNodeViewProps) {
   const { node, deleteNode } = props

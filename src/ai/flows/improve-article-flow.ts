@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { chatStructured, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 
-const ImproveArticleInputSchema = z.object({
+export const ImproveArticleInputSchema = z.object({
   title: z.string().describe('O título atual do artigo.'),
   content: z.string().describe('JSON string do conteúdo atual no formato TipTap ProseMirror doc.'),
   summary: z.string().describe('O resumo atual do artigo.'),
@@ -13,7 +13,7 @@ const ImproveArticleInputSchema = z.object({
 });
 export type ImproveArticleInput = z.infer<typeof ImproveArticleInputSchema>;
 
-const ImproveArticleOutputSchema = z.object({
+export const ImproveArticleOutputSchema = z.object({
   title: z.string().describe('O título melhorado do artigo.'),
   summary: z.string().describe('O resumo melhorado do artigo (2-3 frases).'),
   content: z.string().describe('JSON string do conteúdo reestruturado no formato TipTap ProseMirror doc.'),
