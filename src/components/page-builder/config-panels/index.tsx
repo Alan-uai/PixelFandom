@@ -12,7 +12,7 @@ import { ParagraphPanel, RichTextPanel, DividerPanel, SpacerPanel, ListPanel } f
 import { ImagePanel, ImageGalleryPanel, VideoEmbedPanel, CoverPanel, MediaTextPanel } from './media-panels';
 
 // ── Dynamic ──
-import { ArticleGridPanel, ArticleCarouselPanel, NewsFeedPanel, FeaturedListPanel, CategoryListPanel, LatestArticlesPanel, ArticleFeedPanel } from './dynamic-panels';
+import { ArticleGridPanel, ArticleCarouselPanel, NewsFeedPanel, FeaturedListPanel, CategoryListPanel, LatestArticlesPanel, GameTableItemsPanel, ArticleFeedPanel } from './dynamic-panels';
 
 // ── Data ──
 import { RankingTablePanel, StatisticsPanel, ProgressBarPanel, TimelinePanel, FaqPanel, GameDataCardsPanel } from './data-panels';
@@ -66,6 +66,7 @@ export const configPanels: Record<string, PanelComponent | undefined> = {
   timeline: TimelinePanel,
   faq: FaqPanel,
   'game-data-cards': GameDataCardsPanel,
+  'game-table-items': GameTableItemsPanel,
 
   // ── Interactive ──
   'discord-embed': DiscordEmbedPanel,

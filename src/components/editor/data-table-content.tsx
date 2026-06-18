@@ -33,6 +33,7 @@ import {
   ImageIcon,
   CalendarIcon,
   Link2,
+  Eye,
 } from 'lucide-react';
 import { translateGameTerm } from '@/lib/translate';
 
@@ -683,10 +684,19 @@ export default function DataTableContent({
             )}
           </div>
         </div>
-        <Button onClick={() => setShowNewForm(true)} disabled={showNewForm}>
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar
-        </Button>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/dashboard/${slug}/editor?tab=${table}&view=viewer`}
+            className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Visualização
+          </a>
+          <Button onClick={() => setShowNewForm(true)} disabled={showNewForm}>
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar
+          </Button>
+        </div>
       </div>
 
       {savedFeedback && (

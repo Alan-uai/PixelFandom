@@ -37,6 +37,7 @@ export type BlockType =
   | 'category-list'
   | 'latest-articles'
   | 'game-data-cards'
+  | 'game-table-items'
   | 'article-feed'
   // Data
   | 'ranking-table'
@@ -425,6 +426,17 @@ export interface GameDataCardsConfig {
   tabsSubFormat?: 'list' | 'carousel' | 'grid';
 }
 
+export interface GameTableItemsConfig {
+  title?: string;
+  table?: string;
+  displayFormat?: 'grid' | 'cards' | 'list' | 'table';
+  columnsCount?: number;
+  itemsPerPage?: number;
+  showSearch?: boolean;
+  showFilters?: boolean;
+  showHeader?: boolean;
+}
+
 export type ArticleSortBy = 'recent' | 'most_voted' | 'most_commented' | 'popular';
 export type ArticleFeedLayout = 'grid' | 'list' | 'carousel';
 
@@ -796,6 +808,7 @@ export type BlockConfigMap = {
   'category-list': CategoryListConfig;
   'latest-articles': LatestArticlesConfig;
   'game-data-cards': GameDataCardsConfig;
+  'game-table-items': GameTableItemsConfig;
   'article-feed': ArticleFeedConfig;
   'ranking-table': RankingTableConfig;
   'pricing-table': PricingTableConfig;

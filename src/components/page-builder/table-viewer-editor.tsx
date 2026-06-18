@@ -496,3 +496,13 @@ function SwitchField({ label, checked, onChange, hint }: { label: string; checke
     </div>
   );
 }
+
+function Select({ value, onChange, options, className }: { value: string; onChange: (e: { target: { value: string } }) => void; options: { value: string; label: string }[]; className?: string }) {
+  return (
+    <select value={value} onChange={onChange} className={`w-full h-8 rounded-md border bg-background px-2 text-sm ${className || ''}`}>
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  );
+}

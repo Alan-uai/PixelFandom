@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown,
   Sword, Shield, Zap, Gem, Crosshair, Pickaxe, Sparkles, Star, Skull,
-  Search, X, Eye,
+  Search, X, Eye, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';

@@ -14,7 +14,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { SelectCard } from '@/components/ui/select-card';
-import { Loader2, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
+import { Loader2, Info, Image, ImageUp, MessageCircle, Gamepad2, LayoutGrid, List, Type, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database, Eye } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
@@ -63,6 +63,7 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
+  const [gameTableCatalog, setGameTableCatalog] = useState<{ table_name: string; display_label: string; icon?: string | null }[]>([]);
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
   const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
@@ -80,6 +81,14 @@ export default function WikiSettingsPage() {
   useEffect(() => {
     if (!tenant) return;
     setTenantState(tenant);
+    supabase
+      .from('tenant_game_tables')
+      .select('table_name, display_label, icon')
+      .eq('tenant_id', (tenant as any).id)
+      .order('created_at')
+      .then(({ data }) => {
+        if (data) setGameTableCatalog(data);
+      });
     setName(tenant.name);
     setDescription(tenant.description || '');
     setLogoUrl(tenant.logo_url || '');
@@ -611,6 +620,26 @@ export default function WikiSettingsPage() {
                 <p className="text-xs text-muted-foreground">Cronômetros, listas, carrosséis e mais</p>
               </div>
             </a>
+            {gameTableCatalog.length > 0 && (
+              <>
+                <p className="text-xs font-medium text-muted-foreground pt-2 pb-1">Tabelas da Wiki</p>
+                {gameTableCatalog.map((t) => (
+                  <a
+                    key={t.table_name}
+                    href={`/dashboard/${slug}/editor?tab=${t.table_name}&view=viewer`}
+                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{t.display_label}</p>
+                      <p className="text-xs text-muted-foreground">Personalizar visualização da tabela</p>
+                    </div>
+                  </a>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </CollapsibleSection>

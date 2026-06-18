@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
-import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion } from 'lucide-react';
+import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Database, ChevronDown, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { supabase } from '@/supabase';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 
 const PAGE_TYPES = [
@@ -37,6 +38,8 @@ function PageBuilderPageInner() {
   const pageType = (searchParams.get('type') as PageType) || 'landing';
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string } | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
+  const [tableCatalog, setTableCatalog] = useState<{ table_name: string; display_label: string }[]>([]);
+  const catalogFetched = useRef(false);
 
   const { data: tenant } = useCachedData<{ id: string }>(
     `tenant:${slug}`,
@@ -46,6 +49,20 @@ function PageBuilderPageInner() {
     }
   );
   const tenantId = tenant?.id ?? null;
+
+  useEffect(() => {
+    if (tenantId && !catalogFetched.current) {
+      catalogFetched.current = true;
+      supabase
+        .from('tenant_game_tables')
+        .select('table_name, display_label')
+        .eq('tenant_id', tenantId)
+        .order('created_at')
+        .then(({ data }) => {
+          if (data) setTableCatalog(data);
+        });
+    }
+  }, [tenantId]);
 
   const cacheKey = tenantId ? `page-layout:${tenantId}:${pageType}` : null;
   const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
@@ -106,6 +123,44 @@ function PageBuilderPageInner() {
             </button>
           );
         })}
+        <div className="w-px bg-border mx-1" />
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent transition-colors"
+            >
+              <Database className="h-3.5 w-3.5" />
+              Tabelas
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="z-50 min-w-[200px] rounded-lg border bg-card p-1 shadow-lg"
+              sideOffset={4}
+              align="start"
+            >
+              {tableCatalog.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                  Nenhuma tabela encontrada
+                </div>
+              ) : (
+                tableCatalog.map((t) => (
+                  <DropdownMenu.Item key={t.table_name} asChild>
+                    <a
+                      href={`/dashboard/${slug}/editor?tab=${t.table_name}&view=viewer`}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-accent cursor-pointer outline-none"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t.display_label}
+                    </a>
+                  </DropdownMenu.Item>
+                ))
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
       <div className="flex-1 overflow-hidden">
         {loading || loadedPageType !== pageType ? (

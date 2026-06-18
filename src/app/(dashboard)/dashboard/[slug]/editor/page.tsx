@@ -25,10 +25,12 @@ import {
   BookOpen, Clock,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
+import TableViewerConfig from '@/components/editor/table-viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { invalidateDataCache } from '@/lib/data-access';
 import { TableIconDisplay } from '@/lib/table-icons';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
+import { Eye, Database } from 'lucide-react';
 
 interface Article {
   id: string;
@@ -73,6 +75,8 @@ export default function EditorArticlesPage() {
   const [deleteTable, setDeleteTable] = useState<string | null>(null);
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletingTable, setDeletingTable] = useState(false);
+
+  const [viewerTab, setViewerTab] = useState<Record<string, 'dados' | 'visualizacao'>>({});
 
   const [showCreateArticleDialog, setShowCreateArticleDialog] = useState(false);
   const [createArticleTitle, setCreateArticleTitle] = useState('');
@@ -207,6 +211,22 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string; table: string };
       if (result.ok) {
+        await supabase
+          .from('tenant_game_tables')
+          .update({
+            viewer_config: {
+              displayFormat: 'grid',
+              columnsCount: 4,
+              itemsPerPage: 20,
+              enableSearch: true,
+              enableFilters: true,
+              showHeader: true,
+              cardStyle: 'default',
+              detailPanel: 'modal',
+            },
+          })
+          .eq('tenant_id', tenantId)
+          .eq('table_name', slug);
         invalidateDataCache(slug);
         useSiteCache.getState().invalidate(`catalog:${tenantId}`);
         const { data: cat } = await supabase
@@ -565,16 +585,51 @@ export default function EditorArticlesPage() {
 
         {allTabs.slice(1).map(({ key, label }) => {
           const tableInfo = catalog.find(t => t.table_name === key);
+          const subTab = viewerTab[key] || 'dados';
           return (
             <TabsContent key={key} value={key} className="mt-6">
-              <DataTableContent
-                slug={slug}
-                table={key}
-                displayLabel={label}
-                parentTable={tableInfo?.parent_table ?? null}
-                onRename={() => openRenameDialog(key, label, tableInfo?.icon || undefined)}
-                onDelete={() => openDeleteDialog(key, label)}
-              />
+              <div className="flex gap-1 border-b pb-1 mb-4 -mx-6 px-6 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'dados' }))}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    subTab === 'dados'
+                      ? 'bg-primary/10 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  }`}
+                >
+                  <Database className="h-3.5 w-3.5" />
+                  Dados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'visualizacao' }))}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    subTab === 'visualizacao'
+                      ? 'bg-primary/10 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                  }`}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Visualização
+                </button>
+              </div>
+              {subTab === 'dados' ? (
+                <DataTableContent
+                  slug={slug}
+                  table={key}
+                  displayLabel={label}
+                  parentTable={tableInfo?.parent_table ?? null}
+                  onRename={() => openRenameDialog(key, label, tableInfo?.icon || undefined)}
+                  onDelete={() => openDeleteDialog(key, label)}
+                />
+              ) : (
+                <TableViewerConfig
+                  slug={slug}
+                  table={key}
+                  displayLabel={label}
+                />
+              )}
             </TabsContent>
           );
         })}

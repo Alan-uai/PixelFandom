@@ -145,6 +145,32 @@ export function LatestArticlesPanel({ config, onChange }: PanelProps) {
   );
 }
 
+export function GameTableItemsPanel({ config, onChange }: PanelProps) {
+  return (
+    <>
+      <TextField label="Título" value={(config.title as string) || ''} onChange={(v) => onChange('title', v)} />
+      <TextField label="Nome da Tabela" value={(config.table as string) || ''} onChange={(v) => onChange('table', v)} />
+      <SelectField label="Formato" value={(config.displayFormat as string) || 'grid'} options={[
+        { label: 'Grade', value: 'grid' },
+        { label: 'Cartões', value: 'cards' },
+        { label: 'Lista', value: 'list' },
+        { label: 'Tabela', value: 'table' },
+      ]} onChange={(v) => onChange('displayFormat', v)} />
+      <SelectField label="Colunas" value={String((config.columnsCount as number) || 3)} options={[
+        { label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' },
+        { label: '4', value: '4' }, { label: '5', value: '5' }, { label: '6', value: '6' },
+      ]} onChange={(v) => onChange('columnsCount', Number(v))} />
+      <SelectField label="Itens por página" value={String((config.itemsPerPage as number) || 20)} options={[
+        { label: '4', value: '4' }, { label: '8', value: '8' }, { label: '12', value: '12' },
+        { label: '20', value: '20' }, { label: '40', value: '40' }, { label: '100', value: '100' },
+      ]} onChange={(v) => onChange('itemsPerPage', Number(v))} />
+      <CheckboxField label="Mostrar busca" checked={config.showSearch !== false} onChange={(v) => onChange('showSearch', v)} id="gti-search" />
+      <CheckboxField label="Mostrar filtros" checked={config.showFilters !== false} onChange={(v) => onChange('showFilters', v)} id="gti-filters" />
+      <CheckboxField label="Mostrar cabeçalho" checked={config.showHeader !== false} onChange={(v) => onChange('showHeader', v)} id="gti-header" />
+    </>
+  );
+}
+
 export function ArticleFeedPanel({ config, onChange }: PanelProps) {
   return (
     <>

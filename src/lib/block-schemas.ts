@@ -227,6 +227,17 @@ export const GameDataCardsConfigSchema = z.object({
   tabsSubFormat: z.enum(['list', 'carousel', 'grid']).optional(),
 });
 
+export const GameTableItemsConfigSchema = z.object({
+  title: z.string().max(200).optional(),
+  table: z.string().max(200).optional(),
+  displayFormat: z.enum(['grid', 'cards', 'list', 'table']).optional(),
+  columnsCount: z.number().int().min(1).max(6).optional(),
+  itemsPerPage: z.number().int().min(4).max(100).optional(),
+  showSearch: z.boolean().optional(),
+  showFilters: z.boolean().optional(),
+  showHeader: z.boolean().optional(),
+});
+
 export const ArticleSortBySchema = z.enum(['recent', 'most_voted', 'most_commented', 'popular']);
 export const ArticleFeedLayoutSchema = z.enum(['grid', 'list', 'carousel']);
 
@@ -650,6 +661,7 @@ export const BlockConfigSchemas = {
   'category-list': CategoryListConfigSchema,
   'latest-articles': LatestArticlesConfigSchema,
   'game-data-cards': GameDataCardsConfigSchema,
+  'game-table-items': GameTableItemsConfigSchema,
   'article-feed': ArticleFeedConfigSchema,
   'ranking-table': RankingTableConfigSchema,
   'pricing-table': PricingTableConfigSchema,

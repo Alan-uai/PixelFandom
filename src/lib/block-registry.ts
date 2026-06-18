@@ -43,6 +43,7 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
   { type: 'category-list', label: 'Categorias', icon: FolderOpen as LucideIcon, category: 'dynamic', description: 'Lista de categorias', defaultConfig: { title: 'Categorias', showCount: true, layout: 'list' } },
   { type: 'latest-articles', label: 'Artigos Recentes', icon: FileText as LucideIcon, category: 'dynamic', description: 'Artigos recentes automáticos', defaultConfig: { title: 'Recentes', count: 6, columns: 3, showImages: true, showSummaries: true } },
   { type: 'game-data-cards', label: 'Grid de Dados', icon: Database as LucideIcon, category: 'dynamic', description: 'Grid de tabelas do jogo da wiki', defaultConfig: { title: 'Dados do Jogo' } },
+  { type: 'game-table-items', label: 'Itens de Tabela', icon: Database as LucideIcon, category: 'dynamic', description: 'Itens de uma tabela do jogo com visualização configurável', defaultConfig: { title: '', displayFormat: 'grid', columnsCount: 3, itemsPerPage: 20, showSearch: true, showFilters: true, showHeader: true } },
   { type: 'article-feed', label: 'Lista de Artigos', icon: Grid3X3 as LucideIcon, category: 'dynamic', description: 'Artigos com filtro e ordenação (recentes, votados, comentados)', defaultConfig: { title: 'Artigos', sortBy: 'recent', layout: 'grid', columns: 3, count: 6, showImages: true, showSummaries: true } },
 
   // ── Data ──

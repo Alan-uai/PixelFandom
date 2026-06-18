@@ -157,6 +157,15 @@ const linkSections = [
       { label: 'Status', href: '/status' },
     ],
   },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Termos de Serviço', href: '/terms' },
+      { label: 'Privacidade', href: '/privacy' },
+      { label: 'Cookies', href: '/cookies' },
+      { label: 'Segurança', href: '/security' },
+    ],
+  },
 ];
 
 export default function Footer() {
@@ -195,9 +204,12 @@ export default function Footer() {
 
         <div className="mt-14 pt-6 w-full border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>&copy; {currentYear} PixelFandom. Feito para f&atilde;s.</span>
-          <Link href="/about" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">
-            Sobre
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">Termos</Link>
+            <Link href="/privacy" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">Privacidade</Link>
+            <Link href="/cookies" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">Cookies</Link>
+            <Link href="/security" className="hover:text-primary hover:drop-shadow-[0_0_6px_hsl(198,100%,65%,0.4)] transition-all duration-300">Segurança</Link>
+          </div>
         </div>
       </div>
     </footer>

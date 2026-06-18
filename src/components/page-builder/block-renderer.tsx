@@ -24,6 +24,7 @@ import { FeaturedListBlock } from './blocks/featured-list-block';
 import { CategoryListBlock } from './blocks/category-list-block';
 import { LatestArticlesBlock } from './blocks/latest-articles-block';
 import { GameDataCardsBlock } from './blocks/game-data-cards-block';
+import { GameTableItemsBlock } from './blocks/game-table-items-block';
 import { ArticleFeedBlock } from './blocks/article-feed-block';
 import { RankingTableBlock } from './blocks/ranking-table-block';
 import { PricingTableBlock } from './blocks/pricing-table-block';
@@ -121,6 +122,8 @@ export function BlockRenderer({ block, tenantId, preview, basePath }: BlockRende
         return <LatestArticlesBlock config={block.config as any} />;
       case 'game-data-cards':
         return <GameDataCardsBlock config={block.config as any} tenantId={tenantId} basePath={basePath} />;
+      case 'game-table-items':
+        return <GameTableItemsBlock config={block.config as any} tenantId={tenantId} basePath={basePath} />;
       case 'article-feed':
         return <ArticleFeedBlock config={block.config as any} tenantId={tenantId} basePath={basePath} />;
       case 'ranking-table':
