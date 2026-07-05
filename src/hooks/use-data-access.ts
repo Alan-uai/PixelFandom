@@ -24,7 +24,9 @@ function useDataAccess<T>(
   const depsRef = useRef<string>("");
   const mountedRef = useRef(true);
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
 
   const depsKey = JSON.stringify(deps);
   useEffect(() => {
