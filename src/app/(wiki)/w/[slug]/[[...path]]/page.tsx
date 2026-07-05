@@ -43,6 +43,7 @@ export default function WikiPage() {
   const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
+  const gameTableListingDisplay = (tenantTheme.game_table_listing_display as Record<string, unknown>) || {};
   const widgetConfig = (tenantTheme.widgets as Record<string, unknown>) || {};
   const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
   const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
@@ -185,8 +186,8 @@ export default function WikiPage() {
   // ── Game table listing ──
   if (articleSlug && !articleSlug.includes('/') && catalog?.some((t) => t.table_name === articleSlug)) {
     const tableEntry = catalog.find((t) => t.table_name === articleSlug);
-    const tableDisplayFormat = tableEntry?.display_format || (gameTablesDisplay.default_format as string) || 'grid';
-    const tableColumnsCount = tableEntry?.columns_count || (gameTablesDisplay.default_columns as number) || 4;
+    const tableDisplayFormat = tableEntry?.display_format || (gameTablesDisplay.default_format as string) || (gameTableListingDisplay.default_format as string) || 'grid';
+    const tableColumnsCount = tableEntry?.columns_count || (gameTablesDisplay.default_columns as number) || (gameTableListingDisplay.default_columns as number) || 4;
     return (
       <GameTableListing
         tenantSlug={slug}

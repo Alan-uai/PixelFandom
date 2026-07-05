@@ -76,7 +76,7 @@ export default function EditorArticlesPage() {
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletingTable, setDeletingTable] = useState(false);
 
-  const [viewerTab, setViewerTab] = useState<Record<string, 'dados' | 'visualizacao'>>({});
+  const [viewerTab, setViewerTab] = useState<Record<string, 'dados' | 'exibicao'>>({});
 
   const [showCreateArticleDialog, setShowCreateArticleDialog] = useState(false);
   const [createArticleTitle, setCreateArticleTitle] = useState('');
@@ -601,15 +601,15 @@ export default function EditorArticlesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'visualizacao' }))}
+                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'exibicao' }))}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    subTab === 'visualizacao'
+                    subTab === 'exibicao'
                       ? 'bg-primary/10 text-primary border border-primary/30'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                   }`}
                 >
                   <Eye className="h-3.5 w-3.5" />
-                  Visualização
+                  Exibição
                 </button>
               </div>
               {subTab === 'dados' ? (
@@ -745,13 +745,13 @@ export default function EditorArticlesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Table Dialog (rename + icon) */}
+      {/* Edit Table Dialog */}
       <Dialog open={!!renameTable} onOpenChange={(o) => !o && setRenameTable(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar Tabela</DialogTitle>
             <DialogDescription>
-              Altere o nome de exibição e o ícone da tabela.
+              Altere o nome de exibição da tabela (o ícone pode ser alterado na aba Exibição do editor).
             </DialogDescription>
           </DialogHeader>
 
@@ -763,10 +763,6 @@ export default function EditorArticlesPage() {
                 onChange={(e) => setRenameLabel(e.target.value)}
                 placeholder="Nome de exibição"
               />
-            </div>
-            <div className="space-y-1">
-              <Label>Ícone</Label>
-              <TableIconPicker value={renameIcon} onChange={setRenameIcon} slug={slug} />
             </div>
           </div>
 

@@ -70,7 +70,6 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
-  const [gameTableCatalog, setGameTableCatalog] = useState<{ table_name: string; display_label: string; icon?: string | null }[]>([]);
   // Game Cards config (game-data-cards block)
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
   const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
@@ -99,14 +98,6 @@ export default function WikiSettingsPage() {
   useEffect(() => {
     if (!tenant) return;
     setTenantState(tenant);
-    supabase
-      .from('tenant_game_tables')
-      .select('table_name, display_label, icon')
-      .eq('tenant_id', (tenant as any).id)
-      .order('created_at')
-      .then(({ data }) => {
-        if (data) setGameTableCatalog(data);
-      });
     setName(tenant.name);
     setDescription(tenant.description || '');
     setLogoUrl(tenant.logo_url || '');

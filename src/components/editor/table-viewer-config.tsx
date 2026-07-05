@@ -35,7 +35,25 @@ export default function TableViewerConfig({
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('header');
+  const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
   const configCache = useRef<ViewerConfig | null>(null);
+
+  const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
+    const merged: Record<string, any> = { ...local };
+    if (!merged.display) merged.display = {};
+    if (!merged.display.format && global.default_format) merged.display.format = global.default_format;
+    if (!merged.display.columnsCount && global.default_columns) merged.display.columnsCount = global.default_columns;
+    if (!merged.display.itemsPerPage && global.items_per_page) merged.display.itemsPerPage = global.items_per_page;
+    if (!merged.display.pagination && global.pagination) merged.display.pagination = global.pagination;
+    if (!merged.card) merged.card = {};
+    if (!merged.card.hoverEffect && global.hover_effect) merged.card.hoverEffect = global.hover_effect;
+    if (!merged.card.compactMode && global.card_style === 'compact') merged.card.compactMode = true;
+    if (!merged.search) merged.search = {};
+    if (merged.search.enabled === undefined && global.show_search !== undefined) merged.search.enabled = global.show_search;
+    if (!merged.filters) merged.filters = {};
+    if (merged.filters.enabled === undefined && global.show_filters !== undefined) merged.filters.enabled = global.show_filters;
+    return merged as ViewerConfig;
+  };
 
   const fetchConfig = useCallback(async (tid: string) => {
     if (configCache.current) {
@@ -43,17 +61,31 @@ export default function TableViewerConfig({
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from('tenant_game_tables')
-      .select('viewer_config')
-      .eq('tenant_id', tid)
-      .eq('table_name', table)
-      .maybeSingle();
-    if (data?.viewer_config) {
-      const parsed = ViewerConfigSchema.safeParse(data.viewer_config);
+    const [{ data: tableData }, { data: tenant }] = await Promise.all([
+      supabase
+        .from('tenant_game_tables')
+        .select('viewer_config')
+        .eq('tenant_id', tid)
+        .eq('table_name', table)
+        .maybeSingle(),
+      supabase
+        .from('tenants')
+        .select('theme')
+        .eq('id', tid)
+        .single(),
+    ]);
+
+    const globalListing = ((tenant?.theme as Record<string, any>)?.game_table_listing_display as Record<string, any>) || {};
+    setGlobalDefaults(globalListing);
+
+    if (tableData?.viewer_config) {
+      const parsed = ViewerConfigSchema.safeParse(tableData.viewer_config);
       if (parsed.success) {
-        configCache.current = parsed.data;
-        setConfig(parsed.data);
+        const merged = mergeWithGlobalDefaults(parsed.data, globalListing);
+        configCache.current = merged;
+        setConfig(merged);
+        setLoading(false);
+        return;
       }
     }
     setLoading(false);
@@ -144,7 +176,7 @@ export default function TableViewerConfig({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">{displayLabel || table} — Visualização</h1>
+          <h1 className="text-xl font-bold">{displayLabel || table} — Exibição</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Personalize como esta tabela é exibida na wiki.
           </p>
@@ -179,6 +211,12 @@ export default function TableViewerConfig({
         ))}
       </div>
 
+      {Object.keys(globalDefaults).length > 0 && (
+        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 bg-muted/30 rounded-md px-3 py-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          Valores não configurados usam os padrões globais definidos nas configurações da wiki. Salve valores específicos aqui para sobrescrever.
+        </div>
+      )}
       <div className="rounded-lg border p-4">
         {sections.map((s) => {
           if (s.id !== activeSection) return null;

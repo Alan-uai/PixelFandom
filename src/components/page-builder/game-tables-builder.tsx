@@ -12,7 +12,7 @@ import { useSiteCache } from '@/lib/site-cache';
 import { TableIconDisplay } from '@/lib/table-icons';
 import {
   Loader2, Save, Check, Database, LayoutGrid, List, Layers,
-  Eye, ChevronRight,
+  ChevronRight,
 } from 'lucide-react';
 
 interface TenantTable {
