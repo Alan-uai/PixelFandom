@@ -20,7 +20,7 @@ export default function ProfilePage() {
       }
       setChecking(false);
     });
-  }, []);
+  }, [router]);
 
   if (checking) {
     return (

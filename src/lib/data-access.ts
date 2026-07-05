@@ -1,4 +1,4 @@
-import type { ColumnInfo, GameSchema } from './game-schema';
+import type { GameSchema } from './game-schema';
 import { findLabelColumn } from './game-schema';
 
 export interface CatalogEntry {

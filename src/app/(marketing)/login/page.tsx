@@ -40,24 +40,24 @@ export default function LoginPage() {
   useEffect(() => {
     if (!redirectTo || hasRedirected.current) return;
 
+    function redirectWithTokens(session: any, target: string) {
+      const url = new URL(target);
+      if (url.origin === window.location.origin) {
+        router.push(target);
+      } else {
+        url.searchParams.set('sb_access_token', session.access_token);
+        url.searchParams.set('sb_refresh_token', session.refresh_token);
+        window.location.href = url.toString();
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && !hasRedirected.current) {
         hasRedirected.current = true;
         redirectWithTokens(session, redirectTo);
       }
     });
-  }, [redirectTo]);
-
-  function redirectWithTokens(session: any, target: string) {
-    const url = new URL(target);
-    if (url.origin === window.location.origin) {
-      router.push(target);
-    } else {
-      url.searchParams.set('sb_access_token', session.access_token);
-      url.searchParams.set('sb_refresh_token', session.refresh_token);
-      window.location.href = url.toString();
-    }
-  }
+  }, [redirectTo, router]);
 
   const buildOAuthCallbackUrl = () => {
     const cb = `${window.location.origin}/auth/callback`;

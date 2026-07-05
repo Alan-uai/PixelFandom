@@ -34,7 +34,10 @@ function useDataAccess<T>(
 
   const execute = useCallback(() => {
     if (cacheRef.current !== null) {
-      setState({ data: cacheRef.current, loading: false, error: null });
+      setState(prev => {
+        if (prev.data === cacheRef.current && !prev.loading) return prev;
+        return { data: cacheRef.current, loading: false, error: null };
+      });
       return;
     }
 
@@ -45,7 +48,10 @@ function useDataAccess<T>(
       .then((result) => {
         if (!cancelled && mountedRef.current) {
           cacheRef.current = result;
-          setState({ data: result, loading: false, error: null });
+          setState(prev => {
+            if (prev.data === result) return prev;
+            return { data: result, loading: false, error: null };
+          });
         }
       })
       .catch((err) => {

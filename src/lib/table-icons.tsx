@@ -1,4 +1,5 @@
 import * as LucideIcons from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import React from 'react'
 
@@ -39,7 +40,7 @@ export function isCustomIcon(value?: string | null): value is string {
 
 export function TableIconDisplay({ icon, className }: { icon?: string | null; className?: string }) {
   if (isCustomIcon(icon)) {
-    return <img src={icon} className={cn('rounded object-cover', className)} />;
+    return <Image src={icon} alt="" width={24} height={24} className={cn('rounded object-cover', className)} />;
   }
   return React.createElement(resolveTableIcon(icon), { className } as React.Attributes);
 }

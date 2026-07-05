@@ -181,7 +181,7 @@ export default function WikiAIConfigPage() {
       suggestedQuestions: (config.suggested_questions as string[]) || [],
       botBanner: (config.bot_banner as string) || '',
     });
-  }, [tenantData, aiConfig]);
+  }, [tenantData, aiConfig, freeModels, geminiFreeModels]);
 
   useEffect(() => {
     (async () => {
@@ -279,9 +279,9 @@ export default function WikiAIConfigPage() {
       toast({ variant: 'destructive', title: 'Erro', description: message });
     }
   }, [
-    tenantData, enabled, provider, primaryProvider, resolvedModel, modelSource,
-    customModel, customApiKey, fallbackChain, fallbackSource,
-    resolvedGeminiModel, geminiModelSource, geminiCustomModel,
+    tenantData, enabled, provider, primaryProvider, resolvedModel, model,
+    modelSource, customModel, customApiKey, fallbackChain, fallbackSource,
+    resolvedGeminiModel, geminiModel, geminiModelSource, geminiCustomModel,
     geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
     wakeWordText, chatName, botLogo, personalityId, responseStyle,
     suggestedQuestions, botBanner, toast,

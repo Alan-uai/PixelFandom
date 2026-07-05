@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
 import { supabase } from '@/supabase';
@@ -122,7 +123,7 @@ export default function DashboardPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             {tenant.logo_url && (
-                              <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
+                              <Image src={tenant.logo_url} alt="" width={24} height={24} className="h-6 w-6 rounded" />
                             )}
                             <div>
                               <CardTitle className="text-base text-white">{tenant.name}</CardTitle>

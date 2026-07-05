@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -123,7 +124,7 @@ export default function InvitePage() {
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
           {invite?.tenant.logo_url ? (
-            <img src={invite.tenant.logo_url} alt="" className="h-20 w-20 rounded-xl mx-auto mb-4 border" />
+            <Image src={invite.tenant.logo_url} alt="" width={80} height={80} className="h-20 w-20 rounded-xl mx-auto mb-4 border" />
           ) : (
             <div className="h-20 w-20 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Shield className="h-10 w-10 text-primary" />

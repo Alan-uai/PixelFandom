@@ -154,14 +154,15 @@
     --y: calc(var(--radius) * 1px * var(--sin-a) * cos(var(--inclination)));
     translate: var(--x) var(--y);
     z-index: calc(15 - 4 * clamp(0, (var(--sin-a) * 1000000), 1));
+    transition: --orbital-angle 1s ease-out;
   }
 
   .orbital-expand {
-    transition: translate 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: translate var(--expand-duration, 1s) var(--expand-ease, cubic-bezier(0.25, 0.1, 0.25, 1));
   }
 
   .orbital-collapse {
-    transition: translate 0.35s ease-in;
+    transition: translate var(--collapse-duration, 1s) var(--collapse-ease, ease-out);
   }
 
   /* ── Morph Progress (CSS-driven) ── */

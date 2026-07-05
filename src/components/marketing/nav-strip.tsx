@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState, useCallback, useEffect, useMemo, useId, useLayoutEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -246,16 +246,11 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [user, handleLogout, onLogin, unreadCount]);
 
   const items = useMemo(() => navItems(), [navItems]);
-  const { phase, overallMorph, setIconRef, setMorphRef, applyParams, expand, collapse } = useOrbitalAnimation(items.length);
+  const { params, phase, overallMorph, setIconRef, setMorphRef, expand, collapse } = useOrbitalAnimation(items.length);
 
   // Sync local expandedRef with phase for use in callbacks
   const isExpanded = phase === 'expanded';
   useEffect(() => { expandedRef.current = isExpanded; }, [isExpanded]);
-
-  // Apply CSS orbital params to each icon ref (synchronous, before paint)
-  useLayoutEffect(() => {
-    for (let i = 0; i < items.length; i++) applyParams(i);
-  }, [items.length, applyParams]);
 
   const expandedPositions = useRef(getExpandedPositions(items));
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
@@ -436,17 +431,19 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
               }}
             >
               {/* Orbital Icons */}
-              {items.map((item, i) => (
+              {items.map((item, i) => {
+                const p = params[i];
+                return (
                 <div
                   key={i}
                   ref={setIconRef(i)}
                   className="orbital-icon orbital-running absolute left-1/2 top-1/2"
                   style={{
-                    '--radius': 85,
-                    '--inclination': 0,
-                    '--orbit-duration': '12s',
-                    '--phase-delay': 0,
-                    '--direction': 'normal',
+                    '--radius': p?.radius ?? 85,
+                    '--inclination': p?.inclination ?? 0,
+                    '--orbit-duration': p ? `${p.orbitDuration}s` : '10s',
+                    '--phase-delay': p?.phaseDelay ?? 0,
+                    '--direction': p?.direction ?? 'normal',
                     marginLeft: -18,
                     marginTop: -18,
                     ...(isExpanded && item.isBadge ? { opacity: 0, pointerEvents: 'none' } : {}),
@@ -465,7 +462,8 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     glowFilterId={glowFilterId}
                   />
                 </div>
-              ))}
+              );
+            })}
 
 
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { MessageSquare, Heart, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -71,7 +72,7 @@ export function CommentThread({ comments, articleId, tenantId, tenantSlug, onRef
         <Link href={`/profile/${comment.user.id}`} className="shrink-0">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
             {comment.user.avatar_url ? (
-              <img src={comment.user.avatar_url} alt="" className="h-full w-full object-cover" />
+              <Image src={comment.user.avatar_url} alt="" fill className="object-cover" />
             ) : (
               (comment.user.display_name || comment.user.username || '?')[0].toUpperCase()
             )}

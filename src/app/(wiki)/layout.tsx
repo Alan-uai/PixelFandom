@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, usePathname } from 'next/navigation';
 import { Loader2, Search, X, House, MessageCircle, Gamepad2, SunMoon, PanelLeft } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
@@ -66,7 +67,6 @@ function WikiLayoutContent({
   const showTitleStrip = !isVoicePage;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const [errorIsExternal, setErrorIsExternal] = useState(false);
   const [footerLayout, setFooterLayout] = useState<any>(null);
   const footerCache = useRef<Record<string, any>>({});
@@ -138,14 +138,6 @@ function WikiLayoutContent({
     }
   }, []);
 
-  useEffect(() => {
-    if (!tenant?.custom_domain || typeof window === 'undefined') return;
-    const currentHost = window.location.hostname;
-    if (currentHost === tenant.custom_domain || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
-    setRedirecting(true);
-    window.location.href = `https://${tenant.custom_domain}${window.location.search}`;
-  }, [tenant?.custom_domain, slug, pathname]);
-
   const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
     updatePreference('theme_mode', mode);
   }, [updatePreference]);
@@ -170,14 +162,6 @@ function WikiLayoutContent({
     );
   }
 
-  if (redirecting) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <ThemeProvider
       tenantTheme={tenantTheme}
@@ -188,7 +172,7 @@ function WikiLayoutContent({
         <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background/80 px-4 backdrop-blur-sm">
           <HubLink className="flex items-center gap-2 font-semibold shrink-0" isExternal={!!tenant?.custom_domain}>
             {tenant.logo_url && (
-              <img src={tenant.logo_url} alt="" className="h-6 w-6 rounded" />
+              <Image src={tenant.logo_url} alt="" width={24} height={24} className="h-6 w-6 rounded" />
             )}
             <span className="text-sm">{tenant.name}</span>
           </HubLink>

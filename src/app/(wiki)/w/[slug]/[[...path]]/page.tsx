@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
@@ -265,9 +266,11 @@ export default function WikiPage() {
               <>
                 {article.image_url && (
                   <div className="rounded-xl overflow-hidden mb-8 border">
-                    <img
+                    <Image
                       src={article.image_url}
                       alt={article.title}
+                      width={800}
+                      height={300}
                       className="w-full max-h-72 object-cover"
                     />
                   </div>
@@ -372,9 +375,11 @@ export default function WikiPage() {
         {/* Cover Image */}
         {(tenant as any).cover_image && (
           <div className="rounded-xl overflow-hidden mb-8 border">
-            <img
+            <Image
               src={(tenant as any).cover_image}
               alt=""
+              width={1200}
+              height={300}
               className="w-full h-48 md:h-64 lg:h-72 object-cover"
             />
           </div>
@@ -385,7 +390,7 @@ export default function WikiPage() {
           <div className="flex items-center gap-4 mb-4">
             {tenant.logo_url && (
               <div className="h-14 w-14 rounded-xl overflow-hidden border shrink-0">
-                <img src={tenant.logo_url} alt="" className="w-full h-full object-cover" />
+                <Image src={tenant.logo_url} alt="" fill className="object-cover" />
               </div>
             )}
             <div>
@@ -447,7 +452,7 @@ export default function WikiPage() {
                             className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
                           >
                             {article.image_url ? (
-                              <img src={article.image_url} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                              <Image src={article.image_url} alt="" width={32} height={32} className="h-8 w-8 rounded object-cover shrink-0" />
                             ) : (
                               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             )}

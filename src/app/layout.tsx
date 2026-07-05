@@ -6,6 +6,14 @@ import { NextIntlClientProvider } from 'next-intl';
 import { AppProvider } from '@/context/app-provider';
 import { Toaster } from '@/components/ui/toaster';
 import ptMessages from '@/i18n/messages/pt.json';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 function PwaRegister() {
   useEffect(() => {
@@ -24,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR" className={`dark ${inter.variable}`}>
       <head>
         <title>PixelFandom</title>
         <meta name="description" content="Plataforma de wikis multi-tenant" />
@@ -35,11 +43,8 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
+      <body className={`font-body antialiased ${inter.className}`}>
         <NextIntlClientProvider locale="pt" messages={ptMessages}>
           <AppProvider>
             {children}

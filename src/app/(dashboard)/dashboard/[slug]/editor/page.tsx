@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { useSiteCache } from '@/lib/site-cache';
@@ -133,18 +133,16 @@ export default function EditorArticlesPage() {
     })),
   ];
 
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get('tab');
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('editor-active-tab');
-      if (stored) setActiveTab(stored);
-    } catch {/* noop */}
-  }, []);
+    if (urlTab) setActiveTab(urlTab);
+  }, [urlTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    try {
-      localStorage.setItem('editor-active-tab', value);
-    } catch {/* noop */}
+    router.replace(`?tab=${value}`, { scroll: false });
   };
 
   useEffect(() => {

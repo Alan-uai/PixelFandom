@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Trophy, Flame, FileText, MessageSquare, Heart, Calendar, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -87,7 +88,7 @@ export default function ProfilePage() {
 
       {profile.cover_image && (
         <div className="relative h-32 md:h-48 rounded-t-xl overflow-hidden -mt-6 -mx-6 mb-0">
-          <img src={profile.cover_image} alt="" className="w-full h-full object-cover" />
+          <Image src={profile.cover_image} alt="" fill className="object-cover" />
         </div>
       )}
       <Card className={profile.cover_image ? 'rounded-t-none' : ''}>
@@ -95,7 +96,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary overflow-hidden shrink-0">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                <Image src={profile.avatar_url} alt="" fill className="object-cover" />
               ) : (
                 (profile.display_name || profile.username || 'U')[0].toUpperCase()
               )}

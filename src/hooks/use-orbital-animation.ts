@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 
-interface OrbitParams {
+export interface OrbitParams {
   radius: number;
   inclination: number;
   orbitDuration: number;
@@ -34,19 +34,14 @@ function createParams(): OrbitParams {
 
 export function useOrbitalAnimation(count: number) {
   const [phase, setPhase] = useState<'orbiting' | 'expanded'>('orbiting');
-  const paramsRef = useRef<OrbitParams[]>([]);
-  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
   const morphRef = useRef<HTMLDivElement | null>(null);
   const [overallMorph, setOverallMorph] = useState(1);
 
-  useEffect(() => {
-    if (paramsRef.current.length !== count) {
-      paramsRef.current = Array.from({ length: count }, createParams);
-      iconRefs.current = Array.from({ length: count }, () => null);
-    }
-  }, [count]);
+  const params = useMemo(() => Array.from({ length: count }, createParams), [count]);
 
-  // Lightweight RAF to read --morph-progress from CSS transition (throttled to ~15fps)
+  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Lightweight RAF to read --morph-progress from CSS transition (~15fps)
   useEffect(() => {
     const el = morphRef.current;
     if (!el) return;
@@ -78,30 +73,22 @@ export function useOrbitalAnimation(count: number) {
     morphRef.current = el;
   }, []);
 
-  const applyParams = useCallback((i: number) => {
-    const el = iconRefs.current[i];
-    const p = paramsRef.current[i];
-    if (!el || !p) return;
-    el.style.setProperty('--radius', String(p.radius));
-    el.style.setProperty('--inclination', String(p.inclination));
-    el.style.setProperty('--orbit-duration', `${p.orbitDuration}s`);
-    el.style.setProperty('--phase-delay', String(p.phaseDelay));
-    el.style.setProperty('--direction', p.direction);
-  }, []);
-
-  const orbitalPositionAtAngle = useCallback((i: number, angleDeg: number) => {
-    const p = paramsRef.current[i];
-    if (!p) return { x: 0, y: 0 };
-    const a = angleDeg * DEG;
-    return {
-      x: p.radius * Math.cos(a),
-      y: p.radius * Math.sin(a) * Math.cos(p.inclination),
-    };
-  }, []);
+  const orbitalPositionAtAngle = useCallback(
+    (i: number, angleDeg: number) => {
+      const p = params[i];
+      if (!p) return { x: 0, y: 0 };
+      const a = angleDeg * DEG;
+      return {
+        x: p.radius * Math.cos(a),
+        y: p.radius * Math.sin(a) * Math.cos(p.inclination),
+      };
+    },
+    [params],
+  );
 
   const findClosestOrbitAngle = useCallback(
     (i: number, tx: number, ty: number): number => {
-      const p = paramsRef.current[i];
+      const p = params[i];
       if (!p) return 0;
       let bestAngle = 0;
       let bestDist = Infinity;
@@ -117,7 +104,7 @@ export function useOrbitalAnimation(count: number) {
       }
       return bestAngle;
     },
-    [],
+    [params],
   );
 
   const expand = useCallback(
@@ -173,7 +160,7 @@ export function useOrbitalAnimation(count: number) {
         el.removeEventListener('transitionend', onEnd);
         el.classList.remove('orbital-collapse', 'orbital-paused');
 
-        const p = paramsRef.current[i];
+        const p = params[i];
         if (p) {
           const syncDelay = (entryAngle / 360) * p.orbitDuration;
           el.style.setProperty('--phase-delay', String(-syncDelay));
@@ -194,14 +181,14 @@ export function useOrbitalAnimation(count: number) {
     }
 
     setPhase('orbiting');
-  }, [count, findClosestOrbitAngle, orbitalPositionAtAngle]);
+  }, [count, findClosestOrbitAngle, orbitalPositionAtAngle, params]);
 
   return {
+    params,
     phase,
     overallMorph,
     setIconRef,
     setMorphRef,
-    applyParams,
     expand,
     collapse,
   };
