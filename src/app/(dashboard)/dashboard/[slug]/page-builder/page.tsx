@@ -3,8 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
-import { GameTablesBuilder } from '@/components/page-builder/game-tables-builder';
-import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Database } from 'lucide-react';
+import { WidgetsPage } from '@/components/page-builder/widgets-page';
+import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { supabase } from '@/supabase';
@@ -13,7 +13,7 @@ const PAGE_TYPES = [
   { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
   { id: 'footer', label: 'Footer', icon: Footprints },
   { id: '404', label: 'Página 404', icon: FileQuestion },
-  { id: 'game-tables', label: 'Tabelas', icon: Database },
+  { id: 'widgets', label: 'Widgets', icon: Puzzle },
 ] as const;
 
 export type PageType = (typeof PAGE_TYPES)[number]['id'];
@@ -48,8 +48,8 @@ function PageBuilderPageInner() {
   );
   const tenantId = tenant?.id ?? null;
 
-  const isGameTables = pageType === 'game-tables';
-  const cacheKey = !isGameTables && tenantId ? `page-layout:${tenantId}:${pageType}` : null;
+  const isWidgets = pageType === 'widgets';
+  const cacheKey = !isWidgets && tenantId ? `page-layout:${tenantId}:${pageType}` : null;
   const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
     cacheKey,
     async () => {
@@ -110,8 +110,8 @@ function PageBuilderPageInner() {
         })}
       </div>
       <div className="flex-1 overflow-hidden">
-        {isGameTables ? (
-          <GameTablesBuilder tenantId={tenantId} slug={slug} />
+        {isWidgets ? (
+          <WidgetsPage tenantId={tenantId} slug={slug} />
         ) : loading || loadedPageType !== pageType ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -122,9 +122,6 @@ function PageBuilderPageInner() {
             tenantId={tenantId}
             slug={slug}
             initialLayout={layout ? { blocks: layout.blocks } : undefined}
-            initialFloatingIslands={layout?.floatingIslands || undefined}
-            initialSlotFlow={(layout?.slotFlow as any) || undefined}
-            initialClipStyle={(layout?.clipStyle as any) || undefined}
             pageType={pageType}
           />
         )}

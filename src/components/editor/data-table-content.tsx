@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { invalidateDataCache } from '@/lib/data-access';
@@ -26,8 +27,6 @@ import {
   Trash2,
   Save,
   X,
-  ChevronDown,
-  ChevronRight,
   Check,
   PlusCircle,
   ImageIcon,
@@ -91,7 +90,6 @@ export default function DataTableContent({
   const [showNewForm, setShowNewForm] = useState(false);
   const [newForm, setNewForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showAddField, setShowAddField] = useState(false);
@@ -187,7 +185,6 @@ export default function DataTableContent({
     setFetchError(null);
     setEditingId(null);
     setShowNewForm(false);
-    setExpandedId(null);
 
     supabase
       .from('tenants')
@@ -564,34 +561,56 @@ export default function DataTableContent({
     isBool: boolean,
     rowId?: string,
   ) => (
-    <div key={col} className="space-y-1 relative group">
+    <div key={col} className="space-y-1 relative">
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground capitalize flex items-center gap-1">
           {isImageColumn(col) && <ImageIcon className="h-3 w-3" />}
           {col.replace(/_/g, ' ')}
         </Label>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!isSystemColumn(col) && (
-            <button
-              type="button"
-              onClick={() => handleClearField(col, formSetter)}
-              className="text-muted-foreground hover:text-foreground p-0.5 rounded"
-              title="Limpar valor"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
-          {!isSystemColumn(col) && (
-            <button
-              type="button"
-              onClick={() => handleDropColumn(col)}
-              className="text-destructive/60 hover:text-destructive p-0.5 rounded"
-              title="Remover coluna"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
-        </div>
+      </div>
+      <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
+        {!isSystemColumn(col) && (
+          isImageColumn(col) || isIconColumn(col)
+            ? !value ? (
+                <button
+                  type="button"
+                  onClick={() => {/* library - handled by ImageUpload internally */}}
+                  className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+                  title="Biblioteca"
+                >
+                  <ImageIcon className="h-3 w-3" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleClearField(col, formSetter)}
+                  className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+                  title="Limpar valor"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )
+            : (
+              <button
+                type="button"
+                onClick={() => handleClearField(col, formSetter)}
+                className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+                title="Limpar valor"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )
+        )}
+        {!isSystemColumn(col) && (
+          <button
+            type="button"
+            onClick={() => handleDropColumn(col)}
+            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-destructive/60 hover:text-destructive transition-colors shadow-sm inset-shadow"
+            title="Remover coluna"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
       </div>
       {renderField(col, value, onChange, isBool, rowId)}
     </div>
@@ -774,66 +793,47 @@ export default function DataTableContent({
         <div className="space-y-2">
           {rows.map((row) => {
             const isEditing = editingId === row.id;
-            const isExpanded = expandedId === row.id;
+            const rowTitle = primary.map((col) => {
+              if (!(col in row)) return '';
+              return getPrimaryValue(row, col);
+            }).filter(Boolean).join(' ');
+            const rowDesc = primary.length > 1
+              ? primary.slice(1).map((col) => {
+                  if (!(col in row)) return '';
+                  return `${col.replace(/_/g, ' ')}: ${getPrimaryValue(row, col)}`;
+                }).join(', ')
+              : undefined;
+
             return (
-              <div key={row.id} className="rounded-lg border">
-                <div className="flex items-center justify-between p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      {primary.map((col) => {
-                        if (!(col in row)) return null;
-                        const val = getPrimaryValue(row, col);
-                        const isFirst = col === primary[0];
-                        return (
-                          <span
-                            key={col}
-                            className={isFirst ? 'font-medium text-sm' : 'text-xs text-muted-foreground'}
-                          >
-                            {isFirst ? val : `${col.replace(/_/g, ' ')}: ${val}`}
-                          </span>
-                        );
-                      })}
-                    </div>
+              <CollapsibleSection
+                key={row.id}
+                id={row.id}
+                title={rowTitle}
+                description={rowDesc}
+                open={isEditing || undefined}
+                corner={
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); startEdit(row); }}
+                      className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+                      title="Editar"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }}
+                      className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-destructive/60 hover:text-destructive transition-colors shadow-sm inset-shadow"
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 ml-3">
-                    {detailColumns.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                        title="Ver detalhes"
-                      >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => startEdit(row)} title="Editar">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(row.id)} title="Excluir">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-
-                {isExpanded && !isEditing && (
-                  <div className="border-t px-3 py-3 space-y-2">
-                    {detailColumns.map((col) => {
-                      const val = row[col];
-                      if (val === null || val === undefined) return null;
-                      return (
-                        <div key={col} className="text-xs">
-                          <span className="font-medium text-muted-foreground capitalize">{col.replace(/_/g, ' ')}:</span>
-                          <span className="text-foreground ml-1">
-                            {typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {isEditing && (
-                  <div className="border-t p-3 space-y-3">
+                }
+              >
+                {isEditing ? (
+                  <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {editableColumns.map((col) => {
                         const original = row[col];
@@ -933,8 +933,23 @@ export default function DataTableContent({
                       </Button>
                     </div>
                   </div>
-                )}
-              </div>
+                ) : detailColumns.length > 0 ? (
+                  <div className="space-y-2">
+                    {detailColumns.map((col) => {
+                      const val = row[col];
+                      if (val === null || val === undefined) return null;
+                      return (
+                        <div key={col} className="text-xs">
+                          <span className="font-medium text-muted-foreground capitalize">{col.replace(/_/g, ' ')}:</span>
+                          <span className="text-foreground ml-1">
+                            {typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </CollapsibleSection>
             );
           })}
         </div>

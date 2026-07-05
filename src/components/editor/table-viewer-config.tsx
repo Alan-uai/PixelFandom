@@ -36,6 +36,7 @@ export default function TableViewerConfig({
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('header');
   const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
+  const [tableIcon, setTableIcon] = useState<string | null>(null);
   const configCache = useRef<ViewerConfig | null>(null);
 
   const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
@@ -64,7 +65,7 @@ export default function TableViewerConfig({
     const [{ data: tableData }, { data: tenant }] = await Promise.all([
       supabase
         .from('tenant_game_tables')
-        .select('viewer_config')
+        .select('viewer_config, icon')
         .eq('tenant_id', tid)
         .eq('table_name', table)
         .maybeSingle(),
@@ -77,6 +78,8 @@ export default function TableViewerConfig({
 
     const globalListing = ((tenant?.theme as Record<string, any>)?.game_table_listing_display as Record<string, any>) || {};
     setGlobalDefaults(globalListing);
+
+    if (tableData?.icon) setTableIcon(tableData.icon);
 
     if (tableData?.viewer_config) {
       const parsed = ViewerConfigSchema.safeParse(tableData.viewer_config);
@@ -227,6 +230,7 @@ export default function TableViewerConfig({
               config={(config as any)[s.id]}
               columns={columns}
               slug={slug}
+              tableIcon={s.id === 'header' ? tableIcon : undefined}
               onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
             />
           );

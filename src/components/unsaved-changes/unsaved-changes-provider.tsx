@@ -3,6 +3,7 @@
 import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { UnsavedChangesBar } from './unsaved-changes-bar';
 import { UnsavedChangesDialog } from './unsaved-changes-dialog';
+import { SaveNotification } from './save-notification';
 
 interface Registration {
   onSave: () => Promise<void>;
@@ -28,6 +29,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirtyState] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
   const isDirtyRef = useRef(false);
 
   const register = useCallback((reg: Registration) => {
@@ -45,14 +47,18 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
 
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveStatus(null);
     try {
       await regRef.current.onSave();
+      setSaveStatus('success');
     } catch {
-      // Error already handled by the page — just prevent unhandled rejection
+      setSaveStatus('error');
     } finally {
       setSaving(false);
     }
   }, []);
+
+  const clearSaveStatus = useCallback(() => setSaveStatus(null), []);
 
   const handleDiscard = useCallback(() => {
     regRef.current.onDiscard();
@@ -127,6 +133,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
       {children}
       <UnsavedChangesBar show={isDirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} />
       <UnsavedChangesDialog open={showExitDialog} onContinue={continueNavigation} onCancel={cancelExit} />
+      <SaveNotification status={saveStatus} onComplete={clearSaveStatus} />
     </UnsavedChangesCtx.Provider>
   );
 }

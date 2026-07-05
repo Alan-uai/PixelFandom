@@ -10,11 +10,13 @@ export function HeaderConfig({
   config,
   onChange,
   slug,
+  tableIcon,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   columns?: string[];
   slug?: string;
+  tableIcon?: string | null;
 }) {
   const c: Record<string, any> = config || {};
   return (
@@ -39,7 +41,7 @@ export function HeaderConfig({
       </div>
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Ícone</Label>
-        <TableIconPicker value={c.icon || 'Database'} onChange={(v) => onChange({ ...c, icon: v })} slug={slug || ''} />
+        <TableIconPicker value={c.icon || tableIcon || 'Database'} onChange={(v) => onChange({ ...c, icon: v })} slug={slug || ''} />
       </div>
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Imagem de fundo</Label>

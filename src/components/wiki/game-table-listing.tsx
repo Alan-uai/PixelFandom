@@ -22,6 +22,7 @@ import {
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
 import type { ViewerConfig } from '@/lib/viewer-config';
+import { resolveTableIcon } from '@/lib/table-icons';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -448,7 +449,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const renderHeaderIcon = () => {
     const headerIcon = viewerConfig?.header?.icon;
     if (headerIcon) {
-      return <IconRenderer icon={headerIcon} size="md" />;
+      const Icon = resolveTableIcon(headerIcon);
+      return <Icon className="h-5 w-5" />;
     }
     return <Database className="h-5 w-5" />;
   };

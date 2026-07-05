@@ -17,13 +17,11 @@ import { nanoid } from 'nanoid';
 import { BlockToolbar } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
-import { FloatingIslandsEditor } from './floating-islands-editor';
-import { WidgetsEditor } from './widgets-editor';
 import {
   Save, Loader2, Check, Plus, X, PanelRightOpen,
-  LayoutList, Undo2, Redo2, Smartphone, BookTemplate, Settings2,
+  Undo2, Redo2, Smartphone, BookTemplate,
 } from 'lucide-react';
-import type { BlockConfig, BlockType, PageLayout, FloatingIslandConfig, SlotFlowId, ClipStyleId } from './types';
+import type { BlockConfig, BlockType, PageLayout } from './types';
 import { BLOCK_REGISTRY } from '@/lib/block-registry';
 import { TemplateLibrary } from './template-library';
 
@@ -33,9 +31,6 @@ interface PageBuilderEditorProps {
   tenantId: string;
   slug?: string;
   initialLayout?: PageLayout;
-  initialFloatingIslands?: FloatingIslandConfig[];
-  initialSlotFlow?: SlotFlowId;
-  initialClipStyle?: ClipStyleId;
   pageType?: string;
 }
 
@@ -62,18 +57,14 @@ function createBlock(type: BlockType): BlockConfig {
 }
 
 export function PageBuilderEditor({
-  tenantId, slug, initialLayout, initialFloatingIslands, initialSlotFlow, initialClipStyle, pageType = 'landing',
+  tenantId, slug, initialLayout, pageType = 'landing',
 }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
-  const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>(initialFloatingIslands || []);
-  const [slotFlow, setSlotFlow] = useState<SlotFlowId>(initialSlotFlow || 'current');
-  const [clipStyle, setClipStyle] = useState<ClipStyleId>(initialClipStyle || 'trapezoid');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'blocks' | 'islands' | 'widgets'>('blocks');
   const [mobilePreview, setMobilePreview] = useState(false);
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
@@ -192,7 +183,7 @@ export function PageBuilderEditor({
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocks, floatingIslands, slotFlow, clipStyle }),
+        body: JSON.stringify({ blocks }),
       });
       if (res.ok) {
         setSaved(true);
@@ -215,46 +206,9 @@ export function PageBuilderEditor({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tab bar */}
+      {/* Top bar */}
       <div className="flex items-center border-b shrink-0 px-4">
-        <button
-          onClick={() => setActiveTab('blocks')}
-          className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === 'blocks'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <LayoutList className="h-3.5 w-3.5" />
-          Blocos
-        </button>
-        {(pageType === 'landing' || pageType === '404') && (
-          <button
-            onClick={() => setActiveTab('islands')}
-            className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-              activeTab === 'islands'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <PanelRightOpen className="h-3.5 w-3.5" />
-            Ilhas Flutuantes
-          </button>
-        )}
-        <button
-          onClick={() => setActiveTab('widgets')}
-          className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === 'widgets'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Settings2 className="h-3.5 w-3.5" />
-          Widgets
-        </button>
-
         <div className="flex-1" />
-
         <div className="flex items-center gap-1">
           <button onClick={() => setShowTemplateLibrary(true)}
             className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -262,34 +216,31 @@ export function PageBuilderEditor({
           >
             <BookTemplate className="h-3.5 w-3.5" />
           </button>
-          {activeTab === 'blocks' && (
-            <>
-              <button onClick={handleUndo} disabled={!canUndo}
-                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Desfazer"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={handleRedo} disabled={!canRedo}
-                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Refazer"
-              >
-                <Redo2 className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setMobilePreview((v) => !v)}
-                className={`rounded-md p-1.5 transition-colors ${mobilePreview ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                title="Preview mobile"
-              >
-                <Smartphone className="h-3.5 w-3.5" />
-              </button>
-            </>
-          )}
+          <>
+            <button onClick={handleUndo} disabled={!canUndo}
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Desfazer"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={handleRedo} disabled={!canRedo}
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Refazer"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setMobilePreview((v) => !v)}
+              className={`rounded-md p-1.5 transition-colors ${mobilePreview ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              title="Preview mobile"
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </button>
+          </>
         </div>
       </div>
 
-      {/* Blocks tab */}
-      {activeTab === 'blocks' ? (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      {/* Editor content */}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex flex-1 relative">
             {/* Desktop toolbar */}
             <div className="hidden md:block w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
@@ -352,22 +303,6 @@ export function PageBuilderEditor({
             )}
           </div>
         </DndContext>
-      ) : activeTab === 'islands' ? (
-        <div className="flex-1 overflow-y-auto p-6">
-          <FloatingIslandsEditor
-            islands={floatingIslands}
-            onChange={setFloatingIslands}
-            slotFlow={slotFlow}
-            clipStyle={clipStyle}
-            onSlotFlowChange={setSlotFlow}
-            onClipStyleChange={setClipStyle}
-          />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-6">
-          <WidgetsEditor tenantId={tenantId} slug={slug || tenantId} />
-        </div>
-      )}
 
       {showTemplateLibrary && (
         <TemplateLibrary

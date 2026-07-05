@@ -110,46 +110,53 @@ export async function PUT(
     const pageType = getPageType(request);
     const body = await request.json();
 
-    if (!body.blocks || !Array.isArray(body.blocks)) {
-      return NextResponse.json({ error: 'layout.blocks required' }, { status: 400 });
+    if (!body.blocks && !body.floatingIslands) {
+      return NextResponse.json({ error: 'blocks or floatingIslands required' }, { status: 400 });
     }
 
-    for (const block of body.blocks) {
-      const type = (block as any)?.type;
-      if (!type || typeof type !== 'string') {
-        return NextResponse.json({ error: `Block missing type` }, { status: 400 });
+    let sanitizedBlocks: Record<string, unknown>[] | null = null;
+    if (body.blocks) {
+      if (!Array.isArray(body.blocks)) {
+        return NextResponse.json({ error: 'layout.blocks must be an array' }, { status: 400 });
       }
-      const config = (block as any)?.config;
-      if (config !== undefined) {
-        const result = safeParseBlockConfig(type as BlockSchemaKey, config);
-        if (!result.success) {
-          return NextResponse.json({
-            error: `Block "${type}" config validation failed`,
-            details: result.error.issues,
-          }, { status: 400 });
+      for (const block of body.blocks) {
+        const type = (block as any)?.type;
+        if (!type || typeof type !== 'string') {
+          return NextResponse.json({ error: `Block missing type` }, { status: 400 });
+        }
+        const config = (block as any)?.config;
+        if (config !== undefined) {
+          const result = safeParseBlockConfig(type as BlockSchemaKey, config);
+          if (!result.success) {
+            return NextResponse.json({
+              error: `Block "${type}" config validation failed`,
+              details: result.error.issues,
+            }, { status: 400 });
+          }
         }
       }
+      sanitizedBlocks = await Promise.all(
+        body.blocks.map((block: unknown) =>
+          sanitizeBlock(block as Record<string, unknown>)
+        )
+      );
     }
 
-    const sanitizedBlocks = await Promise.all(
-      body.blocks.map((block: unknown) =>
-        sanitizeBlock(block as Record<string, unknown>)
-      )
-    );
-
-    const rawIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
-    const sanitizedIslands = await Promise.all(
-      rawIslands.map(async (fi: any) => ({
-        ...fi,
-        config: fi.config ? (await sanitizeBlock({ config: fi.config })).config : {},
-      }))
-    );
-
-    const floatingIslandsPayload = {
-      islands: sanitizedIslands,
-      slotFlow: body.slotFlow || 'current',
-      clipStyle: body.clipStyle || 'trapezoid',
-    };
+    let floatingIslandsPayload: Record<string, unknown> | null = null;
+    if (body.floatingIslands !== undefined) {
+      const rawIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
+      const sanitizedIslands = await Promise.all(
+        rawIslands.map(async (fi: any) => ({
+          ...fi,
+          config: fi.config ? (await sanitizeBlock({ config: fi.config })).config : {},
+        }))
+      );
+      floatingIslandsPayload = {
+        islands: sanitizedIslands,
+        slotFlow: body.slotFlow || 'current',
+        clipStyle: body.clipStyle || 'trapezoid',
+      };
+    }
 
     // Manual upsert: try update first, then insert if no row exists
     const { data: existing } = await supabase
@@ -159,28 +166,31 @@ export async function PUT(
       .eq('page_type', pageType)
       .maybeSingle();
 
+    const updateFields: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (sanitizedBlocks) updateFields.layout = { blocks: sanitizedBlocks };
+    if (floatingIslandsPayload) updateFields.floating_islands = floatingIslandsPayload;
+
     let dbError: any = null;
 
     if (existing) {
       const { error } = await supabase
         .from('tenant_pages')
-        .update({
-          layout: { blocks: sanitizedBlocks },
-          floating_islands: floatingIslandsPayload,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateFields)
         .eq('id', existing.id);
       dbError = error;
     } else {
+      const insertFields: Record<string, unknown> = {
+        tenant_id: id,
+        page_type: pageType,
+        updated_at: new Date().toISOString(),
+      };
+      if (sanitizedBlocks) insertFields.layout = { blocks: sanitizedBlocks };
+      if (floatingIslandsPayload) insertFields.floating_islands = floatingIslandsPayload;
       const { error } = await supabase
         .from('tenant_pages')
-        .insert({
-          tenant_id: id,
-          page_type: pageType,
-          layout: { blocks: sanitizedBlocks },
-          floating_islands: floatingIslandsPayload,
-          updated_at: new Date().toISOString(),
-        });
+        .insert(insertFields);
       dbError = error;
     }
 

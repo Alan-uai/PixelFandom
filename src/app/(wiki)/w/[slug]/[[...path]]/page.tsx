@@ -43,7 +43,24 @@ export default function WikiPage() {
   const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
-  const gameTableListingDisplay = (tenantTheme.game_table_listing_display as Record<string, unknown>) || {};
+  const gameTableListingDisplay = useMemo(() => (tenantTheme.game_table_listing_display as Record<string, unknown>) || {}, [tenantTheme]);
+
+  const mergeListingDefaults = (vc: import('@/lib/viewer-config').ViewerConfig | null, global: Record<string, unknown>): import('@/lib/viewer-config').ViewerConfig => {
+    const merged: Record<string, any> = vc ? { ...vc } : {};
+    if (!merged.display) merged.display = {};
+    if (!merged.display.format && global.default_format) merged.display.format = global.default_format as string;
+    if (!merged.display.columnsCount && global.default_columns) merged.display.columnsCount = global.default_columns as number;
+    if (!merged.display.itemsPerPage && global.items_per_page) merged.display.itemsPerPage = global.items_per_page as number;
+    if (!merged.display.pagination && global.pagination) merged.display.pagination = global.pagination as string;
+    if (!merged.card) merged.card = {};
+    if (!merged.card.hoverEffect && global.hover_effect) merged.card.hoverEffect = global.hover_effect as string;
+    if (!merged.card.compactMode && global.card_style === 'compact') merged.card.compactMode = true;
+    if (!merged.search) merged.search = {};
+    if (merged.search.enabled === undefined && global.show_search !== undefined) merged.search.enabled = global.show_search as boolean;
+    if (!merged.filters) merged.filters = {};
+    if (merged.filters.enabled === undefined && global.show_filters !== undefined) merged.filters.enabled = global.show_filters as boolean;
+    return merged;
+  };
   const widgetConfig = (tenantTheme.widgets as Record<string, unknown>) || {};
   const cardPositions = (widgetConfig.cardPositions as Record<string, unknown>) || {};
   const articleCardVotePos = (cardPositions.article_card as { vote?: CardPosition } | undefined)?.vote;
@@ -152,6 +169,16 @@ export default function WikiPage() {
     setFetchingArticle(false);
   }, [articleSlug, slugResolved]);
 
+  const tableEntry = useMemo(() => {
+    if (!articleSlug || articleSlug.includes('/') || !catalog) return undefined;
+    return catalog.find((t) => t.table_name === articleSlug);
+  }, [articleSlug, catalog]);
+  const mergedViewerConfig = useMemo(() => {
+    if (!tableEntry) return null;
+    const raw = tableEntry?.viewer_config ? parseViewerConfig(tableEntry.viewer_config) : null;
+    return mergeListingDefaults(raw, gameTableListingDisplay);
+  }, [tableEntry, gameTableListingDisplay]);
+
   if (loading) {
     if (articleSlug) {
       return (
@@ -185,7 +212,6 @@ export default function WikiPage() {
 
   // ── Game table listing ──
   if (articleSlug && !articleSlug.includes('/') && catalog?.some((t) => t.table_name === articleSlug)) {
-    const tableEntry = catalog.find((t) => t.table_name === articleSlug);
     const tableDisplayFormat = tableEntry?.display_format || (gameTablesDisplay.default_format as string) || (gameTableListingDisplay.default_format as string) || 'grid';
     const tableColumnsCount = tableEntry?.columns_count || (gameTablesDisplay.default_columns as number) || (gameTableListingDisplay.default_columns as number) || 4;
     return (
@@ -195,7 +221,7 @@ export default function WikiPage() {
         tenantId={tenant.id}
         displayFormat={tableDisplayFormat}
         columnsCount={tableColumnsCount}
-        viewerConfig={tableEntry?.viewer_config ? parseViewerConfig(tableEntry.viewer_config) : null}
+        viewerConfig={mergedViewerConfig}
       />
     );
   }

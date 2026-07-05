@@ -131,16 +131,15 @@ export function ImageUpload({
 
       {/* Card (upload mode) */}
       <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
-        <div className="overflow-hidden" style={{ perspective: 600 }}>
+        <div className="overflow-hidden">
           <AnimatePresence initial={false} mode="wait">
             {showUpload && (
               <motion.div
                 key="upload"
-                initial={{ rotateX: -90, opacity: 0 }}
-                animate={{ rotateX: 0, opacity: 1 }}
-                exit={{ rotateX: 90, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                style={{ transformOrigin: 'center top', backfaceVisibility: 'hidden' }}
+                initial={{ y: 24, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -24, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               >
                 {value ? (
                   <div className={`relative ${previewSize} flex items-center justify-center`}>
@@ -181,16 +180,15 @@ export function ImageUpload({
 
       {/* URL input (URL mode) */}
       <div className={showUrl ? 'border rounded-lg' : 'border-t'}>
-        <div className="overflow-hidden" style={{ perspective: 600 }}>
+        <div className="overflow-hidden">
           <AnimatePresence initial={false} mode="wait">
             {showUrl && (
               <motion.div
                 key="url"
-                initial={{ rotateX: 90, opacity: 0 }}
-                animate={{ rotateX: 0, opacity: 1 }}
-                exit={{ rotateX: -90, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                style={{ transformOrigin: 'center top', backfaceVisibility: 'hidden' }}
+                initial={{ y: -24, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 24, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               >
                 <div className="p-3">
                   <FloatingLabelInput

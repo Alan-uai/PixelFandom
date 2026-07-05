@@ -10,8 +10,11 @@ interface CollapsibleSectionProps {
   title: string;
   description?: string;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
   className?: string;
+  corner?: ReactNode;
 }
 
 export function CollapsibleSection({
@@ -19,10 +22,15 @@ export function CollapsibleSection({
   title,
   description,
   defaultOpen = true,
+  open: controlledOpen,
+  onOpenChange,
   children,
   className,
+  corner,
 }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
 
@@ -33,7 +41,12 @@ export function CollapsibleSection({
   }, [open, children]);
 
   return (
-    <WeldingCard className={cn('', className)}>
+    <WeldingCard className={cn('relative', className)}>
+      {corner && (
+        <div className="absolute -top-2 -right-2 z-20 flex items-center gap-0.5">
+          {corner}
+        </div>
+      )}
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between gap-4 w-full px-6 py-4 text-left cursor-pointer select-none hover:bg-accent/50 transition-colors rounded-t-xl"
