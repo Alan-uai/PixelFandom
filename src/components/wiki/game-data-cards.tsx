@@ -6,6 +6,7 @@ import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableCatalog } from '@/hooks/use-data-access';
 import type { CatalogEntry } from '@/lib/data-access';
 import { TableIconDisplay } from '@/lib/table-icons';
+import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import {
   Database,
   Search, X, ChevronLeft, ChevronRight,
@@ -105,23 +106,11 @@ export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat
 
   const maxCarouselIndex = Math.max(0, filteredEntries.length - cols);
 
-  const goNext = () => {
-    if (fmt === 'carousel_infinite') {
-      setCarouselIndex(prev => (prev + 1) % filteredEntries.length);
-    } else {
-      setCarouselIndex(prev => Math.min(prev + 1, maxCarouselIndex));
-    }
-  };
+  const goNext = () => setCarouselIndex(prev => Math.min(prev + 1, maxCarouselIndex));
 
-  const goPrev = () => {
-    if (fmt === 'carousel_infinite') {
-      setCarouselIndex(prev => (prev - 1 + filteredEntries.length) % filteredEntries.length);
-    } else {
-      setCarouselIndex(prev => Math.max(prev - 1, 0));
-    }
-  };
+  const goPrev = () => setCarouselIndex(prev => Math.max(prev - 1, 0));
 
-  const visibleEntries = fmt.startsWith('carousel')
+  const visibleEntries = fmt === 'carousel'
     ? filteredEntries.slice(carouselIndex, carouselIndex + cols)
     : filteredEntries;
 
@@ -231,8 +220,19 @@ export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat
             />
           ))}
         </div>
-      ) : fmt.startsWith('carousel') ? (
-        /* ── Carousel / Carousel Infinite ── */
+      ) : fmt === 'carousel_infinite' ? (
+        <InfiniteCarousel
+          items={filteredEntries}
+          columnsCount={cols}
+          gap={12}
+          renderItem={(entry: CatalogEntry) => (
+            <CatalogCard
+              entry={entry}
+              href={`${homePath}${entry.table_name}`}
+            />
+          )}
+        />
+      ) : fmt === 'carousel' ? (
         <div>
           <div className="relative">
             <div className={`${gridColsClass} gap-3`}>
@@ -256,10 +256,7 @@ export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-xs text-muted-foreground">
-                {fmt === 'carousel_infinite'
-                  ? `${carouselIndex + 1}–${Math.min(carouselIndex + cols, filteredEntries.length)} de ${filteredEntries.length}`
-                  : `${carouselIndex + 1}–${Math.min(carouselIndex + cols, filteredEntries.length)} de ${filteredEntries.length}`
-                }
+                {carouselIndex + 1}–{Math.min(carouselIndex + cols, filteredEntries.length)} de {filteredEntries.length}
               </span>
               <button
                 onClick={goNext}

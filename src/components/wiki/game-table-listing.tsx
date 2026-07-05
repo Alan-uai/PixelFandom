@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableItems } from '@/hooks/use-data-access';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
+import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import ComparePopup from '@/components/wiki/compare-popup';
@@ -105,6 +106,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const [searchQuery, setSearchQuery] = useState('');
   const [compareStat, setCompareStat] = useState<string | null>(null);
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
+  const [scientificNotation, setScientificNotation] = useState(false);
 
   const urlItem = searchParams?.get('item') || null;
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
@@ -120,31 +122,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
   } as Record<number, string>)[cols] || 'grid-cols-2';
   
-  const carouselWrapperRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
-
-  const handleInfiniteScroll = useCallback(() => {
-    const wrapper = carouselWrapperRef.current;
-    if (!wrapper || isScrollingRef.current) return;
-    
-    const scrollLeft = wrapper.scrollLeft;
-    const itemWidth = wrapper.scrollWidth / (items.length + items.length); // First half + second half
-    const threshold = itemWidth * 0.25;
-
-    // Reached end of first copy, loop to second copy
-    if (scrollLeft > itemWidth - threshold) {
-      isScrollingRef.current = true;
-      wrapper.scrollLeft = scrollLeft - itemWidth;
-      setTimeout(() => { isScrollingRef.current = false; }, 50);
-    }
-    // Reached beginning of second copy, loop to first copy
-    else if (scrollLeft < threshold) {
-      isScrollingRef.current = true;
-      wrapper.scrollLeft = scrollLeft + itemWidth;
-      setTimeout(() => { isScrollingRef.current = false; }, 50);
-    }
-  }, [items.length]);
-
   useEffect(() => {
     setSelectedSlug(urlItem);
   }, [urlItem]);
@@ -391,6 +368,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               selectedSlug={selectedSlug}
               onSelect={selectItem}
               cardRefs={cardRefs}
+              scientificNotation={scientificNotation}
               onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           ))}
@@ -398,20 +376,36 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       );
     }
 
-    if (fmt.startsWith('carousel')) {
-      const isInfinite = fmt === 'carousel_infinite';
-      const displayItems = isInfinite ? [...items, ...items] : items;
-
+    if (fmt === 'carousel_infinite') {
       return (
-        <div
-          ref={isInfinite ? carouselWrapperRef : undefined}
-          className={`flex overflow-x-auto gap-3 pb-2 scrollbar-none ${isInfinite ? 'scroll-smooth' : 'snap-x snap-mandatory'}`}
-          onScroll={isInfinite ? handleInfiniteScroll : undefined}
-        >
-          {displayItems.map((item, i) => (
+        <InfiniteCarousel
+          items={items}
+          columnsCount={cols}
+          gap={12}
+          renderItem={(item: any) => (
+            <ItemCard
+              item={item}
+              tableName={tableName}
+              tenantSlug={tenantSlug}
+              tenantId={tenantId}
+              selectedSlug={selectedSlug}
+              onSelect={selectItem}
+              cardRefs={cardRefs}
+              scientificNotation={scientificNotation}
+              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
+            />
+          )}
+        />
+      );
+    }
+
+    if (fmt === 'carousel') {
+      return (
+        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
+          {items.map((item) => (
             <div
-              key={isInfinite ? `${item.id}-i${i}` : item.id}
-              className={isInfinite ? 'shrink-0' : 'snap-start shrink-0'}
+              key={item.id}
+              className="snap-start shrink-0"
               style={{ flex: `0 0 calc((100% - ${(cols - 1) * 12}px) / ${cols})` }}
             >
               <ItemCard
@@ -422,6 +416,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                 selectedSlug={selectedSlug}
                 onSelect={selectItem}
                 cardRefs={cardRefs}
+                scientificNotation={scientificNotation}
                 onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
               />
             </div>
@@ -442,6 +437,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             selectedSlug={selectedSlug}
             onSelect={selectItem}
             cardRefs={cardRefs}
+            scientificNotation={scientificNotation}
             onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
           />
         ))}
@@ -490,15 +486,28 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       </Link>
 
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            {renderHeaderIcon()}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              {renderHeaderIcon()}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{renderHeaderTitle()}</h1>
+              <p className="text-sm text-muted-foreground">
+                {filteredItems.length} de {items.length} ite{items.length === 1 ? 'm' : 'ns'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">{renderHeaderTitle()}</h1>
-            <p className="text-sm text-muted-foreground">
-              {filteredItems.length} de {items.length} ite{items.length === 1 ? 'm' : 'ns'}
-            </p>
+          <div className="relative z-20 shrink-0">
+            <button
+              type="button"
+              onClick={() => setScientificNotation(!scientificNotation)}
+              className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-mono font-bold leading-none text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+              aria-label={scientificNotation ? 'Alternar para notação normal' : 'Alternar para notação científica'}
+              title={scientificNotation ? 'Notação científica: ativada' : 'Notação científica: desativada'}
+            >
+              {scientificNotation ? '123' : '1e'}
+            </button>
           </div>
         </div>
       </div>
@@ -626,6 +635,7 @@ function ItemCard({
   onSelect,
   cardRefs,
   onCompareStatClick,
+  scientificNotation,
 }: {
   item: any;
   tableName: string;
@@ -635,6 +645,7 @@ function ItemCard({
   onSelect: (slug: string | null) => void;
   cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   onCompareStatClick?: (statKey: string) => void;
+  scientificNotation?: boolean;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
@@ -771,6 +782,7 @@ function ItemCard({
                 sourceTable={tableName}
                 comparisonMode="modal"
                 hideHeader
+                scientificNotation={scientificNotation}
                 onCompareStatClick={onCompareStatClick}
               />
             ) : (

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { ImageIcon, Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/supabase';
@@ -130,26 +131,39 @@ export function ImageUpload({
 
       {/* Card (upload mode) */}
       <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
-        <div className="overflow-hidden">
-          {value ? (
-            <div className={`relative ${previewSize} flex items-center justify-center`}>
-              <Image src={value} alt={label} fill className="object-cover" />
-            </div>
-          ) : (
-            <div
-              className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50 inset-shadow`}
-              onClick={() => inputRef.current?.click()}
-            >
-              {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
-                <Upload className="h-5 w-5 text-muted-foreground" />
-              )}
-              <span className="text-[11px] font-medium text-muted-foreground text-center leading-tight px-2">
-                {uploading ? 'Enviando...' : label}
-              </span>
-            </div>
-          )}
+        <div className="overflow-hidden" style={{ perspective: 600 }}>
+          <AnimatePresence initial={false} mode="wait">
+            {showUpload && (
+              <motion.div
+                key="upload"
+                initial={{ rotateX: -90, opacity: 0 }}
+                animate={{ rotateX: 0, opacity: 1 }}
+                exit={{ rotateX: 90, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: 'center top', backfaceVisibility: 'hidden' }}
+              >
+                {value ? (
+                  <div className={`relative ${previewSize} flex items-center justify-center`}>
+                    <Image src={value} alt={label} fill className="object-cover" />
+                  </div>
+                ) : (
+                  <div
+                    className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50 inset-shadow`}
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <span className="text-[11px] font-medium text-muted-foreground text-center leading-tight px-2">
+                      {uploading ? 'Enviando...' : label}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -167,16 +181,29 @@ export function ImageUpload({
 
       {/* URL input (URL mode) */}
       <div className={showUrl ? 'border rounded-lg' : 'border-t'}>
-        <div className="overflow-hidden">
-          <div className="p-3">
-            <FloatingLabelInput
-              label={`URL da ${label.toLowerCase()}`}
-              info="Cole o link direto da imagem"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="text-xs"
-            />
-          </div>
+        <div className="overflow-hidden" style={{ perspective: 600 }}>
+          <AnimatePresence initial={false} mode="wait">
+            {showUrl && (
+              <motion.div
+                key="url"
+                initial={{ rotateX: 90, opacity: 0 }}
+                animate={{ rotateX: 0, opacity: 1 }}
+                exit={{ rotateX: -90, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: 'center top', backfaceVisibility: 'hidden' }}
+              >
+                <div className="p-3">
+                  <FloatingLabelInput
+                    label={`URL da ${label.toLowerCase()}`}
+                    info="Cole o link direto da imagem"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

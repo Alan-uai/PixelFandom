@@ -60,12 +60,15 @@ function Accordion({ title, icon, defaultOpen, children }: { title: string; icon
 
 
 
-function fmt(v: unknown): string {
+function fmt(v: unknown, scientificNotation?: boolean): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   if (typeof v === 'object') {
     if (Array.isArray(v)) return v.map((i) => (typeof i === 'object' ? JSON.stringify(i) : String(i))).join(', ');
     return JSON.stringify(v);
+  }
+  if (scientificNotation && typeof v === 'number') {
+    return v.toExponential(2);
   }
   return String(v);
 }
@@ -477,6 +480,7 @@ function renderDynamicSections(
   comparisonMode_: 'modal' | 'page',
   onStatClick: ((statKey: string) => void) | undefined,
   rendered: Set<string>,
+  scientificNotation?: boolean,
 ) {
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
@@ -500,7 +504,7 @@ function renderDynamicSections(
             <StatCard
               key={c.column_name}
               label={meta?.label || fieldLabel(c.column_name)}
-              value={fmt(data[c.column_name])}
+              value={fmt(data[c.column_name], scientificNotation)}
               icon={meta?.icon || fieldIcon(c.column_name)}
               color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -638,7 +642,7 @@ function metaLabel(col: ColumnInfo, _data: Record<string, any>): string {
   return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function renderFallbackFields(data: Record<string, any>, rendered: Set<string>) {
+function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, scientificNotation?: boolean) {
   const extra = Object.entries(data).filter(
     ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v),
   );
@@ -662,7 +666,7 @@ function renderFallbackFields(data: Record<string, any>, rendered: Set<string>) 
                     <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
                   )
                 ) : (
-                  <ColoredText text={fmt(v)} />
+                  <ColoredText text={fmt(v, scientificNotation)} />
                 )}
               </div>
             </div>
@@ -685,6 +689,7 @@ type Props = {
   schema?: ColumnInfo[];
   hideHeader?: boolean;
   onCompareStatClick?: (statKey: string) => void;
+  scientificNotation?: boolean;
 };
 
 const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
@@ -706,7 +711,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -821,10 +826,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation)}
 
       {/* Fallback: any remaining unrendered fields */}
-      {renderFallbackFields(data, rendered)}
+      {renderFallbackFields(data, rendered, scientificNotation)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

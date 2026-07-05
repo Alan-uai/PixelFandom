@@ -34,6 +34,10 @@ export default function WikiSettingsPage() {
     sidebarWidth: 'narrow' | 'normal' | 'wide'; headerStyle: 'compact' | 'expanded' | 'minimal'; articlesPerRow: number;
     gameTableDisplayFormat: string; gameTableColumnsCount: number;
     gameTableTabsEnabled: boolean; gameTableTabsSubFormat: string;
+    listingDisplayFormat: string; listingColumnsCount: number;
+    listingItemsPerPage: number; listingPagination: string;
+    listingShowSearch: boolean; listingShowFilters: boolean; listingShowHeader: boolean;
+    listingCardStyle: string; listingHoverEffect: string;
   }>({
     name: '', description: '', logoUrl: '', coverImageUrl: '',
     discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '',
@@ -42,6 +46,10 @@ export default function WikiSettingsPage() {
     sidebarWidth: 'normal', headerStyle: 'compact', articlesPerRow: 3,
     gameTableDisplayFormat: 'grid', gameTableColumnsCount: 4,
     gameTableTabsEnabled: false, gameTableTabsSubFormat: 'list',
+    listingDisplayFormat: 'grid', listingColumnsCount: 4,
+    listingItemsPerPage: 20, listingPagination: 'paginated',
+    listingShowSearch: true, listingShowFilters: true, listingShowHeader: true,
+    listingCardStyle: 'default', listingHoverEffect: 'scale',
   });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -63,10 +71,21 @@ export default function WikiSettingsPage() {
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
   const [gameTableCatalog, setGameTableCatalog] = useState<{ table_name: string; display_label: string; icon?: string | null }[]>([]);
+  // Game Cards config (game-data-cards block)
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
   const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
   const [gameTableTabsSubFormat, setGameTableTabsSubFormat] = useState('list');
+  // Game Tables config (game-table-listing block)
+  const [listingDisplayFormat, setListingDisplayFormat] = useState('grid');
+  const [listingColumnsCount, setListingColumnsCount] = useState(4);
+  const [listingItemsPerPage, setListingItemsPerPage] = useState(20);
+  const [listingPagination, setListingPagination] = useState('paginated');
+  const [listingShowSearch, setListingShowSearch] = useState(true);
+  const [listingShowFilters, setListingShowFilters] = useState(true);
+  const [listingShowHeader, setListingShowHeader] = useState(true);
+  const [listingCardStyle, setListingCardStyle] = useState('default');
+  const [listingHoverEffect, setListingHoverEffect] = useState('scale');
 
   const cacheKey = `tenant:${slug}`;
   const { data: tenant, loading } = useCachedData<any>(
@@ -113,6 +132,16 @@ export default function WikiSettingsPage() {
     setGameTableColumnsCount(gtDisplay.default_columns || 4);
     setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
     setGameTableTabsSubFormat(gtDisplay.tabs_sub_format || 'list');
+    const listingDisplay = (theme.game_table_listing_display as Record<string, any>) || {};
+    setListingDisplayFormat(listingDisplay.default_format || 'grid');
+    setListingColumnsCount(listingDisplay.default_columns || 4);
+    setListingItemsPerPage(listingDisplay.items_per_page || 20);
+    setListingPagination(listingDisplay.pagination || 'paginated');
+    setListingShowSearch(listingDisplay.show_search ?? true);
+    setListingShowFilters(listingDisplay.show_filters ?? true);
+    setListingShowHeader(listingDisplay.show_header ?? true);
+    setListingCardStyle(listingDisplay.card_style || 'default');
+    setListingHoverEffect(listingDisplay.hover_effect || 'scale');
     setSavedConfig({
       name: tenant.name,
       description: tenant.description || '',
@@ -137,6 +166,15 @@ export default function WikiSettingsPage() {
       gameTableColumnsCount: gtDisplay.default_columns || 4,
       gameTableTabsEnabled: gtDisplay.tabs_enabled || false,
       gameTableTabsSubFormat: gtDisplay.tabs_sub_format || 'list',
+      listingDisplayFormat: listingDisplay.default_format || 'grid',
+      listingColumnsCount: listingDisplay.default_columns || 4,
+      listingItemsPerPage: listingDisplay.items_per_page || 20,
+      listingPagination: listingDisplay.pagination || 'paginated',
+      listingShowSearch: listingDisplay.show_search ?? true,
+      listingShowFilters: listingDisplay.show_filters ?? true,
+      listingShowHeader: listingDisplay.show_header ?? true,
+      listingCardStyle: listingDisplay.card_style || 'default',
+      listingHoverEffect: listingDisplay.hover_effect || 'scale',
     });
   }, [tenant]);
 
@@ -175,6 +213,17 @@ export default function WikiSettingsPage() {
               tabs_enabled: gameTableTabsEnabled,
               tabs_sub_format: gameTableTabsSubFormat,
             },
+            game_table_listing_display: {
+              default_format: listingDisplayFormat,
+              default_columns: listingColumnsCount,
+              items_per_page: listingItemsPerPage,
+              pagination: listingPagination,
+              show_search: listingShowSearch,
+              show_filters: listingShowFilters,
+              show_header: listingShowHeader,
+              card_style: listingCardStyle,
+              hover_effect: listingHoverEffect,
+            },
             widgets: {},
           },
         })
@@ -193,6 +242,9 @@ export default function WikiSettingsPage() {
         sidebarWidth, headerStyle, articlesPerRow,
         gameTableDisplayFormat, gameTableColumnsCount,
         gameTableTabsEnabled, gameTableTabsSubFormat,
+        listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+        listingShowSearch, listingShowFilters, listingShowHeader,
+        listingCardStyle, listingHoverEffect,
       });
 
       useSiteCache.getState().set(cacheKey, {
@@ -222,6 +274,17 @@ export default function WikiSettingsPage() {
             default_columns: gameTableColumnsCount,
             tabs_enabled: gameTableTabsEnabled,
             tabs_sub_format: gameTableTabsSubFormat,
+          },
+          game_table_listing_display: {
+            default_format: listingDisplayFormat,
+            default_columns: listingColumnsCount,
+            items_per_page: listingItemsPerPage,
+            pagination: listingPagination,
+            show_search: listingShowSearch,
+            show_filters: listingShowFilters,
+            show_header: listingShowHeader,
+            card_style: listingCardStyle,
+            hover_effect: listingHoverEffect,
           },
           widgets: {},
         },
@@ -255,7 +318,16 @@ export default function WikiSettingsPage() {
     gameTableDisplayFormat !== savedConfig.gameTableDisplayFormat ||
     gameTableColumnsCount !== savedConfig.gameTableColumnsCount ||
     gameTableTabsEnabled !== savedConfig.gameTableTabsEnabled ||
-    gameTableTabsSubFormat !== savedConfig.gameTableTabsSubFormat;
+    gameTableTabsSubFormat !== savedConfig.gameTableTabsSubFormat ||
+    listingDisplayFormat !== savedConfig.listingDisplayFormat ||
+    listingColumnsCount !== savedConfig.listingColumnsCount ||
+    listingItemsPerPage !== savedConfig.listingItemsPerPage ||
+    listingPagination !== savedConfig.listingPagination ||
+    listingShowSearch !== savedConfig.listingShowSearch ||
+    listingShowFilters !== savedConfig.listingShowFilters ||
+    listingShowHeader !== savedConfig.listingShowHeader ||
+    listingCardStyle !== savedConfig.listingCardStyle ||
+    listingHoverEffect !== savedConfig.listingHoverEffect;
 
   useRegisterUnsavedChanges({
     isDirty,
@@ -268,6 +340,9 @@ export default function WikiSettingsPage() {
       sidebarWidth, headerStyle, articlesPerRow,
       gameTableDisplayFormat, gameTableColumnsCount,
       gameTableTabsEnabled, gameTableTabsSubFormat,
+      listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+      listingShowSearch, listingShowFilters, listingShowHeader,
+      listingCardStyle, listingHoverEffect,
     }),
   });
 
@@ -450,11 +525,11 @@ export default function WikiSettingsPage() {
 
           <div className="border-t pt-4 mt-4">
             <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <Database className="h-4 w-4 text-primary" />
-              Game Tables
+              <LayoutGrid className="h-4 w-4 text-primary" />
+              Game Cards
             </h4>
             <p className="text-xs text-muted-foreground mb-3">
-              Configuração padrão de exibição das game tables. Cada tabela pode sobrescrever no editor.
+              Configuração padrão de exibição das game cards (cards de tabelas na página inicial). Cada tabela pode sobrescrever no editor.
             </p>
             <div className="space-y-3">
               <div className="space-y-2">
@@ -523,6 +598,151 @@ export default function WikiSettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <Database className="h-4 w-4 text-primary" />
+              Game Tables (Listagem)
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              Configuração padrão de exibição da listagem de itens dentro de cada tabela.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Formato de Exibição</Label>
+                <SelectCard
+                  options={[
+                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
+                    { value: 'list', label: 'Lista', icon: <List /> },
+                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
+                    { value: 'table', label: 'Tabela', icon: <Database /> },
+                  ]}
+                  value={listingDisplayFormat}
+                  onChange={(v) => setListingDisplayFormat(v as string)}
+                  layout="grid"
+                  columns={4}
+                  size="sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="listingColumns">Colunas ({listingColumnsCount})</Label>
+                <input
+                  id="listingColumns"
+                  type="range"
+                  min={2}
+                  max={6}
+                  value={listingColumnsCount}
+                  onChange={(e) => setListingColumnsCount(Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>2</span>
+                  <span>6</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="listingItemsPerPage">Itens por Página ({listingItemsPerPage})</Label>
+                <input
+                  id="listingItemsPerPage"
+                  type="range"
+                  min={5}
+                  max={100}
+                  step={5}
+                  value={listingItemsPerPage}
+                  onChange={(e) => setListingItemsPerPage(Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>5</span>
+                  <span>100</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Paginação</Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'paginated', l: 'Paginada' },
+                    { v: 'infinite-scroll', l: 'Scroll Infinito' },
+                    { v: 'none', l: 'Todos' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setListingPagination(opt.v)}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                        listingPagination === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="listingSearch" className="text-xs">Mostrar Busca</Label>
+                <Switch id="listingSearch" checked={listingShowSearch} onCheckedChange={setListingShowSearch} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="listingFilters" className="text-xs">Mostrar Filtros</Label>
+                <Switch id="listingFilters" checked={listingShowFilters} onCheckedChange={setListingShowFilters} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="listingHeader" className="text-xs">Mostrar Header</Label>
+                <Switch id="listingHeader" checked={listingShowHeader} onCheckedChange={setListingShowHeader} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Estilo dos Cards</Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'default', l: 'Padrão' },
+                    { v: 'compact', l: 'Compacto' },
+                    { v: 'detailed', l: 'Detalhado' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setListingCardStyle(opt.v)}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                        listingCardStyle === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Efeito Hover</Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'scale', l: 'Escala' },
+                    { v: 'glow', l: 'Brilho' },
+                    { v: 'shadow', l: 'Sombra' },
+                    { v: 'none', l: 'Nenhum' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setListingHoverEffect(opt.v)}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                        listingHoverEffect === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -608,26 +828,15 @@ export default function WikiSettingsPage() {
                 <p className="text-xs text-muted-foreground">Cronômetros, listas, carrosséis e mais</p>
               </div>
             </a>
-            {gameTableCatalog.length > 0 && (
-              <>
-                <p className="text-xs font-medium text-muted-foreground pt-2 pb-1">Tabelas da Wiki</p>
-                {gameTableCatalog.map((t) => (
-                  <a
-                    key={t.table_name}
-                    href={`/dashboard/${slug}/editor?tab=${t.table_name}&view=viewer`}
-                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Database className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{t.display_label}</p>
-                      <p className="text-xs text-muted-foreground">Personalizar visualização da tabela</p>
-                    </div>
-                  </a>
-                ))}
-              </>
-            )}
+            <a href={`/dashboard/${slug}/page-builder?type=game-tables`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Database className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Tabelas</p>
+                <p className="text-xs text-muted-foreground">Configurar exibição das game cards e tabelas da wiki</p>
+              </div>
+            </a>
           </div>
         </div>
       </CollapsibleSection>
