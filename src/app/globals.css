@@ -125,6 +125,65 @@
 }
 
 @layer utilities {
+  /* ── Orbital Animation (CSS-driven, zero JS) ── */
+  @property --orbital-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  @keyframes orbital-spin {
+    from { --orbital-angle: 0deg; }
+    to   { --orbital-angle: 360deg; }
+  }
+
+  .orbital-running {
+    animation: orbital-spin var(--orbit-duration) linear infinite;
+    animation-delay: calc(var(--phase-delay) * 1s);
+    animation-direction: var(--direction, normal);
+  }
+
+  .orbital-paused {
+    animation-play-state: paused;
+  }
+
+  .orbital-icon {
+    --cos-a: cos(var(--orbital-angle));
+    --sin-a: sin(var(--orbital-angle));
+    --x: calc(var(--radius) * 1px * var(--cos-a));
+    --y: calc(var(--radius) * 1px * var(--sin-a) * cos(var(--inclination)));
+    translate: var(--x) var(--y);
+    z-index: calc(15 - 4 * clamp(0, (var(--sin-a) * 1000000), 1));
+  }
+
+  .orbital-expand {
+    transition: translate 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .orbital-collapse {
+    transition: translate 0.35s ease-in;
+  }
+
+  /* ── Morph Progress (CSS-driven) ── */
+  @property --morph-progress {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1;
+  }
+
+  .morph-container {
+    --morph-progress: 1;
+    transition: --morph-progress 0.5s ease-out;
+  }
+
+  .morph-container.morph-star {
+    --morph-progress: 0;
+  }
+
+  .morph-container.morph-ring {
+    --morph-progress: 1;
+  }
+
   .snap-always {
     scroll-snap-stop: always;
   }

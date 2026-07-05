@@ -358,7 +358,7 @@ export default function WikiAIConfigPage() {
   if (tenantError) {
     return (
       <div className="flex justify-center py-12">
-        <p className="text-destructive">{tenantError}</p>
+        <p className="text-destructive">{tenantError?.message ?? 'Erro desconhecido'}</p>
       </div>
     );
   }

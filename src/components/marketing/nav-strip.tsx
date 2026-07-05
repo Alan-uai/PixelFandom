@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState, useCallback, useEffect, useMemo, useId } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo, useId, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -195,6 +195,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   const mouseInContainerRef = useRef(false);
 
   const manuallyExpanded = useRef(false);
+  const expandedRef = useRef(false);
   const [rings] = useState(() => generateRingConfig());
   const [starWaves] = useState(() => generateStarConfig());
   const glowFilterId = useId();
@@ -245,12 +246,19 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
   }, [user, handleLogout, onLogin, unreadCount]);
 
   const items = useMemo(() => navItems(), [navItems]);
-  const { phase, expandedRef, setIconRef, setTrailRef, expand, collapse, setHoverSpeedMultiplier, setHoverRadiusMultiplier, overallMorph } = useOrbitalAnimation(items.length);
+  const { phase, overallMorph, setIconRef, setMorphRef, applyParams, expand, collapse } = useOrbitalAnimation(items.length);
+
+  // Sync local expandedRef with phase for use in callbacks
+  const isExpanded = phase === 'expanded';
+  useEffect(() => { expandedRef.current = isExpanded; }, [isExpanded]);
+
+  // Apply CSS orbital params to each icon ref (synchronous, before paint)
+  useLayoutEffect(() => {
+    for (let i = 0; i < items.length; i++) applyParams(i);
+  }, [items.length, applyParams]);
 
   const expandedPositions = useRef(getExpandedPositions(items));
   useEffect(() => { expandedPositions.current = getExpandedPositions(items); }, [items]);
-
-  const isExpanded = phase === 'expanded';
 
   const doExpand = useCallback(() => {
     expand(expandedPositions.current);
@@ -277,7 +285,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     }
   }, []);
 
-  // Auto-collapse após 5s: inicia quando expandido e mouse fora do container
+  // Auto-collapse after 5s: start when expanded and mouse outside container
   useEffect(() => {
     if (!isExpanded) {
       cancelCollapse();
@@ -317,7 +325,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
       manuallyExpanded.current = true;
       if (isMobile) setMobileExpanded(true);
     }
-  }, [user, router, onLogin, isMobile, doExpand, doCollapse, cancelCollapse, expandedRef]);
+  }, [user, router, onLogin, isMobile, doExpand, doCollapse, cancelCollapse]);
 
   const handleIconClick = useCallback((item: NavItemDef) => {
     if (isMobile && mobileExpanded) {
@@ -327,30 +335,6 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     }
     triggerWave(item.side === 'left' ? 'left' : 'right');
   }, [isMobile, mobileExpanded, cancelCollapse, doCollapse, triggerWave]);
-
-  const handleAvatarMouseEnter = useCallback(() => {
-    if (isMobile) return;
-    setHoverSpeedMultiplier(3.5);
-    setHoverRadiusMultiplier(0.65);
-  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
-
-  const handleAvatarMouseLeave = useCallback(() => {
-    if (isMobile) return;
-    setHoverSpeedMultiplier(1.0);
-    setHoverRadiusMultiplier(1.0);
-  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
-
-  const handleAvatarTouchStart = useCallback(() => {
-    if (!isMobile) return;
-    setHoverSpeedMultiplier(3.5);
-    setHoverRadiusMultiplier(0.65);
-  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
-
-  const handleAvatarTouchEnd = useCallback(() => {
-    if (!isMobile) return;
-    setHoverSpeedMultiplier(1.0);
-    setHoverRadiusMultiplier(1.0);
-  }, [isMobile, setHoverSpeedMultiplier, setHoverRadiusMultiplier]);
 
   useEffect(() => {
     if (isExpanded) return;
@@ -419,17 +403,20 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
             </defs>
           </svg>
 
-          <GravitationalWave
-            morphProgress={overallMorph}
-            isExpanded={isExpanded}
-            ringOuterRadius={rings[0].outerRadius}
-            ringWobble={rings[0].wobble}
-            ringPhaseSeed={rings[0].phaseSeed}
-            starHr={STAR_INSTANCES[0].hr}
-            starVr={STAR_INSTANCES[0].vr}
-            ringWaves={rings}
-            starWaves={starWaves}
-          />
+          {/* ── Morph Container (CSS-driven morph progress) ── */}
+          <div ref={setMorphRef} className="morph-container absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible">
+            <GravitationalWave
+              morphProgress={overallMorph}
+              isExpanded={isExpanded}
+              ringOuterRadius={rings[0].outerRadius}
+              ringWobble={rings[0].wobble}
+              ringPhaseSeed={rings[0].phaseSeed}
+              starHr={STAR_INSTANCES[0].hr}
+              starVr={STAR_INSTANCES[0].vr}
+              ringWaves={rings}
+              starWaves={starWaves}
+            />
+          </div>
 
           {/* ── Orbital Icons Container ── */}
           <div className="relative flex items-center justify-center z-10">
@@ -448,38 +435,22 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                 }
               }}
             >
-              {/* Trail dots — always in DOM, visibility controlled by animation loop */}
-              {items.map((item, i) => (
-                Array.from({ length: 8 }).map((_, t) => (
-                  <div
-                    key={`trail-${i}-${t}`}
-                    ref={setTrailRef(i, t)}
-                    className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
-                    style={{
-                      backgroundColor: item.glowColor,
-                      width: 5,
-                      height: 5,
-                      marginLeft: -2.5,
-                      marginTop: -2.5,
-                      opacity: 0,
-                      zIndex: 0,
-                    }}
-                  />
-                ))
-              ))}
-
               {/* Orbital Icons */}
               {items.map((item, i) => (
                 <div
                   key={i}
                   ref={setIconRef(i)}
-                  className="absolute left-1/2 top-1/2"
+                  className="orbital-icon orbital-running absolute left-1/2 top-1/2"
                   style={{
+                    '--radius': 85,
+                    '--inclination': 0,
+                    '--orbit-duration': '12s',
+                    '--phase-delay': 0,
+                    '--direction': 'normal',
                     marginLeft: -18,
                     marginTop: -18,
-                    transition: 'none',
                     ...(isExpanded && item.isBadge ? { opacity: 0, pointerEvents: 'none' } : {}),
-                  }}
+                  } as React.CSSProperties}
                   onClick={() => handleIconClick(item)}
                 >
                   <OrbitalNavItem
@@ -507,10 +478,6 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
               <div
                 className="relative"
                 onClick={handleAvatarClick}
-                onMouseEnter={handleAvatarMouseEnter}
-                onMouseLeave={handleAvatarMouseLeave}
-                onTouchStart={handleAvatarTouchStart}
-                onTouchEnd={handleAvatarTouchEnd}
                 style={{ cursor: 'pointer' }}
               >
                 {/* Avatar */}
@@ -540,7 +507,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   </div>
                 </motion.div>
               </div>
-            {/* ── Badge sobreposto ao avatar ── */}
+            {/* ── Badge — only visible in expanded state ── */}
             <AnimatePresence>
               {isExpanded && user && (() => {
                 const badgeItem = items.find(i => i.isBadge);
@@ -578,5 +545,3 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
     </section>
   );
 }
-
-
