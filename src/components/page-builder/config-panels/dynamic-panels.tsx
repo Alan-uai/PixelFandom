@@ -38,9 +38,20 @@ export function ArticleGridPanel({ config, onChange }: PanelProps) {
 }
 
 export function ArticleCarouselPanel({ config, onChange }: PanelProps) {
+  const fmt = (config.displayFormat as string) || 'carousel';
   return (
     <>
       <TextField label="Título" value={(config.title as string) || ''} onChange={(v) => onChange('title', v)} />
+      <SelectField label="Formato" value={fmt} options={[
+        { label: 'Grade', value: 'grid' },
+        { label: 'Lista', value: 'list' },
+        { label: 'Carrossel', value: 'carousel' },
+        { label: 'Carrossel Infinito', value: 'carousel_infinite' },
+      ]} onChange={(v) => onChange('displayFormat', v)} />
+      <SelectField label="Colunas" value={String((config.columns as number) || 3)} options={[
+        { label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' },
+        { label: '4', value: '4' }, { label: '5', value: '5' }, { label: '6', value: '6' },
+      ]} onChange={(v) => onChange('columns', Number(v))} />
       <TextField label="Tag" value={(config.tag as string) || ''} onChange={(v) => onChange('tag', v)} />
       <ItemsListEditor
         label="Artigos"
@@ -53,11 +64,23 @@ export function ArticleCarouselPanel({ config, onChange }: PanelProps) {
         items={(config.articles as Record<string, unknown>[]) || []}
         onChange={(v) => onChange('articles', v)}
       />
-      <CheckboxField label="Reprodução automática" checked={!!config.autoplay} onChange={(v) => onChange('autoplay', v)} id="ac-autoplay" />
-      {config.autoplay && (
-        <SelectField label="Intervalo (seg)" value={String(((config.interval as number) || 5000) / 1000)} options={[
-          { label: '3s', value: '3' }, { label: '5s', value: '5' }, { label: '10s', value: '10' }, { label: '15s', value: '15' }, { label: '30s', value: '30' },
-        ]} onChange={(v) => onChange('interval', Number(v) * 1000)} />
+      {fmt === 'carousel' && (
+        <>
+          <CheckboxField label="Reprodução automática" checked={!!config.autoplay} onChange={(v) => onChange('autoplay', v)} id="ac-autoplay" />
+          {config.autoplay && (
+            <SelectField label="Intervalo (seg)" value={String(((config.interval as number) || 5000) / 1000)} options={[
+              { label: '3s', value: '3' }, { label: '5s', value: '5' }, { label: '10s', value: '10' }, { label: '15s', value: '15' }, { label: '30s', value: '30' },
+            ]} onChange={(v) => onChange('interval', Number(v) * 1000)} />
+          )}
+        </>
+      )}
+      <CheckboxField label="Ativar abas (categorias)" checked={!!config.tabsEnabled} onChange={(v) => onChange('tabsEnabled', v)} id="ac-tabs" />
+      {config.tabsEnabled && (
+        <SelectField label="Formato das abas" value={(config.tabsSubFormat as string) || 'list'} options={[
+          { label: 'Lista', value: 'list' },
+          { label: 'Carrossel', value: 'carousel' },
+          { label: 'Grade', value: 'grid' },
+        ]} onChange={(v) => onChange('tabsSubFormat', v)} />
       )}
     </>
   );
@@ -158,7 +181,7 @@ export function GameTableItemsPanel({ config, onChange }: PanelProps) {
       ]} onChange={(v) => onChange('displayFormat', v)} />
       <SelectField label="Colunas" value={String((config.columnsCount as number) || 3)} options={[
         { label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' },
-        { label: '4', value: '4' }, { label: '5', value: '5' }, { label: '6', value: '6' },
+        { label: '4', value: '4' }, { label: '5', value: '5' },
       ]} onChange={(v) => onChange('columnsCount', Number(v))} />
       <SelectField label="Itens por página" value={String((config.itemsPerPage as number) || 20)} options={[
         { label: '4', value: '4' }, { label: '8', value: '8' }, { label: '12', value: '12' },
@@ -186,6 +209,7 @@ export function ArticleFeedPanel({ config, onChange }: PanelProps) {
         { label: 'Grade', value: 'grid' },
         { label: 'Lista', value: 'list' },
         { label: 'Carrossel', value: 'carousel' },
+        { label: 'Carrossel Infinito', value: 'carousel_infinite' },
       ]} onChange={(v) => onChange('layout', v)} />
       <SelectField label="Colunas" value={String((config.columns as number) || 3)} options={[
         { label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' }, { label: '4', value: '4' },

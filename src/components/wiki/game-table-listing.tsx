@@ -115,8 +115,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const fmt = displayFormat || 'grid';
-  const cols = Math.max(2, Math.min(5, columnsCount || 2));
+  let cols: number;
+  if (fmt === 'list') {
+    cols = 1;
+  } else if (fmt === 'grid') {
+    cols = Math.max(2, Math.min(5, columnsCount || 3));
+  } else {
+    cols = Math.max(1, Math.min(5, columnsCount || 3));
+  }
+  const scaleFactor = Math.max(0.5, 1 - (cols - 1) * 0.125);
   const gridColsClass = ({
+    1: 'grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1',
     2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
     3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
     4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
@@ -370,6 +379,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               onSelect={selectItem}
               cardRefs={cardRefs}
               scientificNotation={scientificNotation}
+              scaleFactor={scaleFactor}
               onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           ))}
@@ -393,6 +403,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               onSelect={selectItem}
               cardRefs={cardRefs}
               scientificNotation={scientificNotation}
+              scaleFactor={scaleFactor}
               onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           )}
@@ -418,6 +429,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                 onSelect={selectItem}
                 cardRefs={cardRefs}
                 scientificNotation={scientificNotation}
+                scaleFactor={scaleFactor}
                 onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
               />
             </div>
@@ -439,6 +451,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             onSelect={selectItem}
             cardRefs={cardRefs}
             scientificNotation={scientificNotation}
+            scaleFactor={scaleFactor}
             onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
           />
         ))}
@@ -638,6 +651,7 @@ function ItemCard({
   cardRefs,
   onCompareStatClick,
   scientificNotation,
+  scaleFactor = 1,
 }: {
   item: any;
   tableName: string;
@@ -648,6 +662,7 @@ function ItemCard({
   cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   onCompareStatClick?: (statKey: string) => void;
   scientificNotation?: boolean;
+  scaleFactor?: number;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
@@ -657,9 +672,9 @@ function ItemCard({
 
   useEffect(() => {
     if (contentRef.current) {
-      setHeight(contentRef.current.scrollHeight);
+      setHeight(Math.ceil(contentRef.current.scrollHeight * scaleFactor));
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, scaleFactor]);
 
   const icon = getIcon(item);
   const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
@@ -775,21 +790,29 @@ function ItemCard({
         }}
       >
         <div ref={contentRef}>
-          <div className="px-4 pb-4 pt-3 border-t border-border/50">
-            {tenantId ? (
-              <CollectionItemView
-                data={item}
-                tenantId={tenantId}
-                tenantSlug={tenantSlug}
-                sourceTable={tableName}
-                comparisonMode="modal"
-                hideHeader
-                scientificNotation={scientificNotation}
-                onCompareStatClick={onCompareStatClick}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">{item.description || ''}</p>
-            )}
+          <div
+            style={{
+              transform: `scale(${scaleFactor})`,
+              transformOrigin: 'top left',
+              width: `${100 / scaleFactor}%`,
+            }}
+          >
+            <div className="px-4 pb-4 pt-3 border-t border-border/50">
+              {tenantId ? (
+                <CollectionItemView
+                  data={item}
+                  tenantId={tenantId}
+                  tenantSlug={tenantSlug}
+                  sourceTable={tableName}
+                  comparisonMode="modal"
+                  hideHeader
+                  scientificNotation={scientificNotation}
+                  onCompareStatClick={onCompareStatClick}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">{item.description || ''}</p>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

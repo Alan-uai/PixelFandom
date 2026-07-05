@@ -381,12 +381,19 @@ export interface ArticleGridConfig {
   showSummaries?: boolean;
 }
 
+export type ArticleDisplayFormat = 'grid' | 'list' | 'carousel' | 'carousel_infinite';
+export type ArticleTabsSubFormat = 'list' | 'carousel' | 'grid';
+
 export interface ArticleCarouselConfig {
   title?: string;
   tag?: string;
   articles?: Array<{ title: string; slug: string; summary?: string; imageUrl?: string }>;
   autoplay?: boolean;
   interval?: number;
+  displayFormat?: ArticleDisplayFormat;
+  columns?: number;
+  tabsEnabled?: boolean;
+  tabsSubFormat?: ArticleTabsSubFormat;
 }
 
 export interface NewsFeedConfig {
@@ -438,7 +445,7 @@ export interface GameTableItemsConfig {
 }
 
 export type ArticleSortBy = 'recent' | 'most_voted' | 'most_commented' | 'popular';
-export type ArticleFeedLayout = 'grid' | 'list' | 'carousel';
+export type ArticleFeedLayout = 'grid' | 'list' | 'carousel' | 'carousel_infinite';
 
 export interface ArticleFeedConfig {
   title?: string;

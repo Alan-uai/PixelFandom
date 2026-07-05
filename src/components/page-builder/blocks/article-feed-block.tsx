@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/supabase';
-import { FileText, Calendar, ArrowUp, MessageCircle, TrendingUp } from 'lucide-react';
+import { FileText, Calendar, ArrowUp, MessageCircle, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import type { ArticleFeedConfig, ArticleSortBy } from '../types';
 
 const sortLabels: Record<ArticleSortBy, { label: string; icon: React.ElementType }> = {
@@ -45,6 +46,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
   const cache = useRef<ArticleWithStats[] | null>(null);
   const [articles, setArticles] = useState<ArticleWithStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   const SortIcon = sortLabels[sortBy]?.icon || Calendar;
 
@@ -155,6 +157,14 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
     return () => { cancelled = true; };
   }, [tenantId, tag, sortBy, limit]);
 
+  const cols = Math.max(2, Math.min(5, columns));
+  const maxCarouselIndex = Math.max(0, articles.length - cols);
+  const goNext = () => setCarouselIndex(prev => Math.min(prev + 1, maxCarouselIndex));
+  const goPrev = () => setCarouselIndex(prev => Math.max(prev - 1, 0));
+  const visibleArticles = layout === 'carousel'
+    ? articles.slice(carouselIndex, carouselIndex + cols)
+    : articles;
+
   const renderArticleCard = (article: ArticleWithStats, index: number) => {
     const href = basePath ? `${basePath}/${article.slug}` : `/w/${article.slug}`;
     return (
@@ -259,6 +269,60 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
               </Link>
             );
           })}
+        </div>
+      </section>
+    );
+  }
+
+  if (layout === 'carousel_infinite') {
+    return (
+      <section className="mb-12">
+        <div className="flex items-center gap-2 mb-5">
+          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          <SortIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <InfiniteCarousel
+          items={articles}
+          columnsCount={cols}
+          gap={12}
+          renderItem={(article: ArticleWithStats, index: number) => renderArticleCard(article, index)}
+        />
+      </section>
+    );
+  }
+
+  if (layout === 'carousel') {
+    return (
+      <section className="mb-12">
+        <div className="flex items-center gap-2 mb-5">
+          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          <SortIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div>
+          <div className={`grid gap-3 ${gridClasses[cols]}`}>
+            {visibleArticles.map((article, i) => renderArticleCard(article, i))}
+          </div>
+          {articles.length > cols && (
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <button
+                onClick={goPrev}
+                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {carouselIndex + 1}–{Math.min(carouselIndex + cols, articles.length)} de {articles.length}
+              </span>
+              <button
+                onClick={goNext}
+                className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+                aria-label="Próximo"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </section>
     );

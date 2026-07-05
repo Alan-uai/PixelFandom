@@ -37,7 +37,7 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
 
   // ── Dynamic ──
   { type: 'article-grid', label: 'Grid Artigos', icon: Grid3X3 as LucideIcon, category: 'dynamic', description: 'Grade de artigos', defaultConfig: { title: 'Artigos', columns: 3, mode: 'tag', showImages: true, showSummaries: true } },
-  { type: 'article-carousel', label: 'Carrossel Artigos', icon: Newspaper as LucideIcon, category: 'dynamic', description: 'Carrossel de artigos', defaultConfig: { title: 'Artigos', autoplay: true, interval: 5000 } },
+  { type: 'article-carousel', label: 'Carrossel Artigos', icon: Newspaper as LucideIcon, category: 'dynamic', description: 'Carrossel de artigos', defaultConfig: { title: 'Artigos', autoplay: true, interval: 5000, displayFormat: 'carousel', columns: 3, tabsEnabled: false, tabsSubFormat: 'list' } },
   { type: 'news-feed', label: 'Feed Notícias', icon: Newspaper as LucideIcon, category: 'dynamic', description: 'Feed de notícias', defaultConfig: { title: 'Notícias', mode: 'manual', items: [], maxItems: 10 } },
   { type: 'featured-list', label: 'Lista Destaques', icon: Star as LucideIcon, category: 'dynamic', description: 'Itens em destaque', defaultConfig: { title: 'Destaques', layout: 'list', items: [] } },
   { type: 'category-list', label: 'Categorias', icon: FolderOpen as LucideIcon, category: 'dynamic', description: 'Lista de categorias', defaultConfig: { title: 'Categorias', showCount: true, layout: 'list' } },

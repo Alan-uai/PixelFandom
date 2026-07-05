@@ -167,12 +167,19 @@ export const ArticleCarouselArticleSchema = z.object({
   imageUrl: UrlSchema.optional(),
 });
 
+export const ArticleDisplayFormatSchema = z.enum(['grid', 'list', 'carousel', 'carousel_infinite']);
+export const ArticleTabsSubFormatSchema = z.enum(['list', 'carousel', 'grid']);
+
 export const ArticleCarouselConfigSchema = z.object({
   title: z.string().max(200).optional(),
   tag: z.string().max(200).optional(),
   articles: z.array(ArticleCarouselArticleSchema).max(100).default([]),
   autoplay: z.boolean().default(true),
   interval: z.number().int().min(1000).max(30000).default(5000),
+  displayFormat: ArticleDisplayFormatSchema.default('carousel'),
+  columns: z.number().int().min(1).max(6).default(3),
+  tabsEnabled: z.boolean().default(false),
+  tabsSubFormat: ArticleTabsSubFormatSchema.default('list'),
 });
 
 export const NewsFeedItemSchema = z.object({
@@ -231,7 +238,7 @@ export const GameTableItemsConfigSchema = z.object({
   title: z.string().max(200).optional(),
   table: z.string().max(200).optional(),
   displayFormat: z.enum(['grid', 'cards', 'list', 'table']).optional(),
-  columnsCount: z.number().int().min(1).max(6).optional(),
+  columnsCount: z.number().int().min(1).max(5).optional(),
   itemsPerPage: z.number().int().min(4).max(100).optional(),
   showSearch: z.boolean().optional(),
   showFilters: z.boolean().optional(),
@@ -239,7 +246,7 @@ export const GameTableItemsConfigSchema = z.object({
 });
 
 export const ArticleSortBySchema = z.enum(['recent', 'most_voted', 'most_commented', 'popular']);
-export const ArticleFeedLayoutSchema = z.enum(['grid', 'list', 'carousel']);
+export const ArticleFeedLayoutSchema = z.enum(['grid', 'list', 'carousel', 'carousel_infinite']);
 
 export const ArticleFeedConfigSchema = z.object({
   title: z.string().max(200).optional(),

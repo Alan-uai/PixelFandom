@@ -623,15 +623,15 @@ export default function WikiSettingsPage() {
                 <input
                   id="listingColumns"
                   type="range"
-                  min={2}
-                  max={6}
+                  min={1}
+                  max={5}
                   value={listingColumnsCount}
                   onChange={(e) => setListingColumnsCount(Number(e.target.value))}
                   className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>2</span>
-                  <span>6</span>
+                  <span>1</span>
+                  <span>5</span>
                 </div>
               </div>
 
