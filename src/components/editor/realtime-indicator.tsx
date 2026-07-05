@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@supabase/realtime-js';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi } from 'lucide-react';
 
 export function RealtimeIndicator({ articleId }: { articleId: string }) {
   const [connected, setConnected] = useState(false);
