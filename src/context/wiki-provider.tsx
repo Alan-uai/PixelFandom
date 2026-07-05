@@ -48,21 +48,33 @@ export function WikiDataProvider({
     setLoading(true);
     setError(null);
 
-    const { data: result, error: err } = await supabase.rpc('get_wiki', {
-      p_slug: slug,
-      p_article_slug: null,
-      p_search: null,
-    });
+    let lastError: string | null = null;
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      const { data: result, error: err } = await supabase.rpc('get_wiki', {
+        p_slug: slug,
+        p_article_slug: null,
+        p_search: null,
+      });
 
-    if (err) {
-      console.error('[WikiDataProvider] get_wiki RPC error:', err.message, err);
-      setError(err.message);
-      setData(null);
-    } else {
-      const wikiData = result as unknown as WikiData;
-      cacheRef.current = wikiData;
-      setData(wikiData);
+      if (!err) {
+        const wikiData = result as unknown as WikiData;
+        cacheRef.current = wikiData;
+        setData(wikiData);
+        setLoading(false);
+        return;
+      }
+
+      lastError = err.message;
+      if (err.message?.includes('Failed to fetch') && attempt < 2) {
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        continue;
+      }
+      break;
     }
+
+    console.error('[WikiDataProvider] get_wiki RPC error:', lastError);
+    setError(lastError || 'Falha ao carregar dados');
+    setData(null);
     setLoading(false);
   }, [slug]);
 

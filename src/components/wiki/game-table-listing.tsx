@@ -458,8 +458,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     return tableName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  const showBreadcrumb = viewerConfig?.header?.showBreadcrumb ?? true;
-
   return (
     <article className={`max-w-3xl mx-auto ${viewerConfig?.header?.backgroundImage ? 'relative' : ''}`}>
       {viewerConfig?.header?.backgroundImage && (
@@ -478,15 +476,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           onClose={() => { setCompareStat(null); setCompareItemId(null); }}
         />
       )}
-      {showBreadcrumb && (
-        <Link
-          href={homePath}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-        >
-          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-          Voltar para home
-        </Link>
-      )}
+      <Link
+        href={homePath}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+      >
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Voltar para home
+      </Link>
 
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

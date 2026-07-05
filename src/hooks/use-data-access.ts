@@ -23,6 +23,8 @@ function useDataAccess<T>(
   const cacheRef = useRef<T | null>(null);
   const depsRef = useRef<string>("");
   const mountedRef = useRef(true);
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
 
   const depsKey = JSON.stringify(deps);
   useEffect(() => {
@@ -44,7 +46,7 @@ function useDataAccess<T>(
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true }));
 
-    fetcher()
+    fetcherRef.current()
       .then((result) => {
         if (!cancelled && mountedRef.current) {
           cacheRef.current = result;
@@ -62,7 +64,7 @@ function useDataAccess<T>(
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher, depsKey]);
+  }, [depsKey]);
 
   useEffect(() => {
     mountedRef.current = true;
