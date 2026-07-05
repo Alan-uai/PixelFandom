@@ -183,11 +183,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       if (key.endsWith('_id') || key.endsWith('_url')) continue;
 
       const values = new Set<string>();
-      items.forEach(item => {
+      let allHaveValue = true;
+      for (const item of items) {
         const v = item[key];
-        if (v != null && v !== '' && v !== 'none') values.add(String(v));
-      });
-      if (values.size >= 2) {
+        if (v != null && v !== '' && v !== 'none') {
+          values.add(String(v));
+        } else {
+          allHaveValue = false;
+        }
+      }
+      if (allHaveValue && values.size >= 2) {
         columnValues[key] = Array.from(values).sort();
       }
     }
