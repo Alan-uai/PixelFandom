@@ -245,6 +245,65 @@
     30%, 70% { opacity: 1; transform: scale(1); }
   }
 
+  /* Scroll-Reveal: enter and exit */
+  @keyframes slide-reveal-down {
+    from { transform: translateY(180px); }
+    50% { transform: translateY(0); }
+    to { transform: translateY(-180px); }
+  }
+  @keyframes slide-reveal-down-left {
+    from { transform: translate(400px, 180px); }
+    50% { transform: translate(0, 0); }
+    to { transform: translate(-400px, -180px); }
+  }
+  @keyframes slide-reveal-down-right {
+    from { transform: translate(-400px, 180px); }
+    50% { transform: translate(0, 0); }
+    to { transform: translate(400px, -180px); }
+  }
+
+  /* Scroll-Reveal: enter only (noExit) */
+  @keyframes slide-enter-down {
+    from { transform: translateY(180px); }
+    to { transform: translateY(0); }
+  }
+  @keyframes slide-enter-left {
+    from { transform: translate(400px, 180px); }
+    to { transform: translate(0, 0); }
+  }
+  @keyframes slide-enter-right {
+    from { transform: translate(-400px, 180px); }
+    to { transform: translate(0, 0); }
+  }
+
+  /* Scroll-Reveal: exit only (exitOnly) */
+  @keyframes slide-exit-down {
+    from { transform: translateY(0); }
+    to { transform: translateY(-180px); }
+  }
+  @keyframes slide-exit-left {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-400px, -180px); }
+  }
+  @keyframes slide-exit-right {
+    from { transform: translate(0, 0); }
+    to { transform: translate(400px, -180px); }
+  }
+
+  /* Scroll-Reveal: animation utility classes */
+  .anim-timeline-view {
+    animation-timeline: view();
+  }
+  .anim-range-entry-exit {
+    animation-range: entry 0% exit 100%;
+  }
+  .anim-range-entry {
+    animation-range: entry 0% entry 100%;
+  }
+  .anim-range-exit {
+    animation-range: exit 0% exit 100%;
+  }
+
   .ai-card {
     position: relative;
   }

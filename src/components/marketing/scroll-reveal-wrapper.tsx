@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type ReactNode } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { useScroll, useSpring } from 'framer-motion';
 import { ScrollProgressProvider } from '@/context/scroll-progress-context';
 
 export type SlideDirection = 'down-left' | 'down-right' | 'down';
@@ -18,10 +18,28 @@ interface ScrollRevealWrapperProps {
 const dirs: SlideDirection[] = ['down-left', 'down-right', 'down'];
 const randomDir = () => dirs[Math.floor(Math.random() * dirs.length)];
 
-const xRange: Record<SlideDirection, [number, number, number]> = {
-  'down-left': [400, 0, -400],
-  'down-right': [-400, 0, 400],
-  down: [0, 0, 0],
+const animNames: Record<string, Record<SlideDirection, string>> = {
+  default: {
+    down: 'slide-reveal-down',
+    'down-left': 'slide-reveal-down-left',
+    'down-right': 'slide-reveal-down-right',
+  },
+  noExit: {
+    down: 'slide-enter-down',
+    'down-left': 'slide-enter-left',
+    'down-right': 'slide-enter-right',
+  },
+  exitOnly: {
+    down: 'slide-exit-down',
+    'down-left': 'slide-exit-left',
+    'down-right': 'slide-exit-right',
+  },
+};
+
+const rangeClass: Record<string, string> = {
+  default: 'anim-range-entry-exit',
+  noExit: 'anim-range-entry',
+  exitOnly: 'anim-range-exit',
 };
 
 export default function ScrollRevealWrapper({
@@ -37,6 +55,10 @@ export default function ScrollRevealWrapper({
   );
   const ref = useRef<HTMLDivElement>(null);
 
+  const mode = exitOnly ? 'exitOnly' : noExit ? 'noExit' : 'default';
+  const animName = animNames[mode][currentDirection];
+  const range = rangeClass[mode];
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start end', 'end start'],
@@ -48,39 +70,20 @@ export default function ScrollRevealWrapper({
     mass: 1.2,
   });
 
-  const xVals = xRange[currentDirection];
-
-  const yOffset = useTransform(
-    progressSpring,
-    exitOnly ? [0.5, 0.75, 1]
-      : noExit ? [0, 0.5, 1]
-      : [0, 0.5, 1],
-    exitOnly ? [0, 0, -180]
-      : noExit ? [180, 0, 0]
-      : [180, 0, -180],
-  );
-  const xOffset = useTransform(
-    progressSpring,
-    exitOnly ? [0.5, 0.75, 1]
-      : noExit ? [0, 0.5, 1]
-      : [0, 0.5, 1],
-    exitOnly ? [0, 0, xVals[2]]
-      : noExit ? [xVals[0], 0, 0]
-      : xVals,
-  );
-
   return (
     <div ref={ref} id={id} className={`relative snap-start snap-always ${className}`}>
       <ScrollProgressProvider value={progressSpring}>
-        <motion.div
+        <div
+          className={`anim-timeline-view ${range}`}
           style={{
-            y: yOffset,
-            x: xOffset,
+            animationName: animName,
+            animationDuration: '1ms',
+            animationFillMode: 'both',
             willChange: 'transform',
           }}
         >
           {children}
-        </motion.div>
+        </div>
       </ScrollProgressProvider>
     </div>
   );
