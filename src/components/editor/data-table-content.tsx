@@ -58,6 +58,7 @@ const tableLabels: Record<string, string> = {
 
 
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
+const newFormDefaultFields = ['name'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
 const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
 const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision', 'upload'];
@@ -288,7 +289,7 @@ export default function DataTableContent({
     setEditForm(form);
   };
 
-  const currentFormKeys = showNewForm ? Object.keys(newForm) : editingId ? Object.keys(editForm) : [];
+  const currentFormKeys = showNewForm ? [...newFormDefaultFields, ...Object.keys(newForm)] : editingId ? Object.keys(editForm) : [];
   const unusedColumns = availableColumns.filter(
     (c) => !currentFormKeys.includes(c.column_name) && !isSystemColumn(c.column_name),
   );
@@ -346,6 +347,11 @@ export default function DataTableContent({
 
   const handleNewSave = async () => {
     if (!tenantId) return;
+    const nameVal = newForm['name']?.trim();
+    if (!nameVal) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'O nome é obrigatório.' });
+      return;
+    }
     setSaving(true);
     const payload: Record<string, unknown> = { tenant_id: tenantId };
     Object.entries(newForm).forEach(([key, val]) => {
@@ -758,9 +764,16 @@ export default function DataTableContent({
         <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
           <p className="text-sm font-medium">Novo Registro</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {editableColumns.filter((col) => !removedFields.has(col)).map((col) =>
-              renderFieldItem(col, newForm[col] || '', newForm, setNewForm, (key, val) => setNewForm((prev) => ({ ...prev, [key]: val })), false, undefined)
-            )}
+            {newFormDefaultFields
+              .filter((col) => !removedFields.has(col) && tableColumns?.some((c) => c.column_name === col))
+              .map((col) =>
+                renderFieldItem(col, newForm[col] || '', newForm, setNewForm, (key, val) => setNewForm((prev) => ({ ...prev, [key]: val })), false, undefined)
+              )}
+            {Object.keys(newForm)
+              .filter((col) => !newFormDefaultFields.includes(col) && !removedFields.has(col))
+              .map((col) =>
+                renderFieldItem(col, newForm[col] || '', newForm, setNewForm, (key, val) => setNewForm((prev) => ({ ...prev, [key]: val })), false, undefined)
+              )}
           </div>
 
           <div className="border-t pt-3 mt-3">

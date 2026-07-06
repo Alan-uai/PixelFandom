@@ -83,6 +83,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
   const [inlineCompare, setInlineCompare] = useState<{ table: string; slug: string; column: string } | null>(null);
   const [chatUnavailable, setChatUnavailable] = useState<string | null>(null);
   const [checkingChat, setCheckingChat] = useState(true);
+  const [botLogo, setBotLogo] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sessionsCache = useRef<DBSession[] | null>(null);
@@ -147,6 +148,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
         } else if (tenant.ai_config) {
           const cfg = tenant.ai_config as Record<string, unknown>;
           const hasKey = !!(cfg.custom_api_key || cfg.gemini_custom_api_key);
+          if (cfg.bot_logo) setBotLogo(cfg.bot_logo as string);
           if (!hasKey && !tenant.ai_config) {
             setChatUnavailable('Chat indisponível ou desativado. Entre em contato com o dono da Wiki para mais informações.');
           }
@@ -460,8 +462,12 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
       {messages.map((msg) => (
         <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
           {msg.role === 'assistant' && (
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Bot className="h-4 w-4 text-primary" />
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+              {botLogo ? (
+                <img src={botLogo} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Bot className="h-4 w-4 text-primary" />
+              )}
             </div>
           )}
           <div className="flex flex-col gap-1 max-w-[85%]">
@@ -481,8 +487,12 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
             )}
           </div>
           {msg.role === 'user' && (
-            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-              <User className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+              {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
           )}
         </div>
@@ -574,7 +584,15 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           <div className="flex-1 overflow-y-auto scrollbar-none p-3 space-y-3 min-h-0">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                {msg.role === 'assistant' && <Bot className="h-6 w-6 shrink-0 mt-1 text-primary" />}
+                {msg.role === 'assistant' && (
+                  <div className="h-6 w-6 shrink-0 mt-1 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                    {botLogo ? (
+                      <img src={botLogo} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Bot className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-col gap-1 max-w-[85%]">
                   <div className={`rounded-lg px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                     {msg.role === 'assistant' ? (
@@ -591,7 +609,15 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
                     />
                   )}
                 </div>
-                {msg.role === 'user' && <User className="h-6 w-6 shrink-0 mt-1 text-muted-foreground" />}
+                {msg.role === 'user' && (
+                  <div className="h-6 w-6 shrink-0 mt-1 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                    {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                      <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {error && (

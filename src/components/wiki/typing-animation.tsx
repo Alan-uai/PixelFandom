@@ -109,27 +109,7 @@ export default function TypingAnimation({ color = 'var(--primary)', size = 'md' 
         </div>
       </motion.div>
 
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{ border: `2px solid ${color}` }}
-        animate={{
-          scale: [0.85, 1.1, 0.85],
-          opacity: [0.1, 0.3, 0.1],
-        }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      />
 
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${color}22, transparent 70%)`,
-        }}
-        animate={{
-          scale: [0.7, 1.2, 0.7],
-          opacity: [0.2, 0.5, 0.2],
-        }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-      />
     </div>
   );
 }

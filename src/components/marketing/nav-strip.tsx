@@ -490,8 +490,8 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                     style={{ transform: 'translateZ(20px)' }}
                   >
                     <div className="relative w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                      {user?.user_metadata?.avatar_url ? (
-                        <Image src={user.user_metadata.avatar_url} alt="" fill className="object-cover" />
+                      {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture) ? (
+                        <Image src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" fill className="object-cover" />
                       ) : (
                         <User className="h-8 w-8 text-primary" />
                       )}
