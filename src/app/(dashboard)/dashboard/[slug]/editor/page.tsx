@@ -729,7 +729,7 @@ export default function EditorArticlesPage() {
             </div>
             <div className="space-y-1">
               <Label>Ícone</Label>
-              <TableIconPicker value={createIcon} onChange={setCreateIcon} slug={slug} />
+              <TableIconPicker value={createIcon} onChange={setCreateIcon} slug={slug} tenantId={tenantId ?? undefined} />
             </div>
           </div>
 

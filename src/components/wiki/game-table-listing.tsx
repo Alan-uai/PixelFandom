@@ -9,6 +9,7 @@ import {
   Star,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
+import { isCustomIcon } from '@/lib/table-icons';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableItems } from '@/hooks/use-data-access';
@@ -94,9 +95,10 @@ type Props = {
   displayFormat?: string;
   columnsCount?: number;
   viewerConfig?: ViewerConfig | null;
+  icon?: string | null;
 };
 
-export default function GameTableListing({ tenantSlug, tableName, tenantId, displayFormat, columnsCount, viewerConfig }: Props) {
+export default function GameTableListing({ tenantSlug, tableName, tenantId, displayFormat, columnsCount, viewerConfig, icon }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
@@ -460,8 +462,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   }
 
   const renderHeaderIcon = () => {
-    const headerIcon = viewerConfig?.header?.icon;
+    const headerIcon = viewerConfig?.header?.icon || icon;
     if (headerIcon) {
+      if (isCustomIcon(headerIcon)) {
+        return (
+          <div className="relative h-5 w-5">
+            <Image src={headerIcon} alt="" fill className="object-contain rounded" />
+          </div>
+        );
+      }
       const Icon = resolveTableIcon(headerIcon);
       return <Icon className="h-5 w-5" />;
     }

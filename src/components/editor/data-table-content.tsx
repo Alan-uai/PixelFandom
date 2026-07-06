@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -27,12 +28,15 @@ import {
   Trash2,
   Save,
   X,
+  Minus,
   Check,
   PlusCircle,
   ImageIcon,
   CalendarIcon,
   Link2,
 } from 'lucide-react';
+import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
+import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 
 const tableLabels: Record<string, string> = {
@@ -56,7 +60,7 @@ const tableLabels: Record<string, string> = {
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
 const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
-const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision'];
+const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision', 'upload'];
 const dateColumnNames = ['verified_date', 'expired_date', 'release_date', 'event_date'];
 const systemDateColumns = ['created_at', 'updated_at'];
 
@@ -98,6 +102,7 @@ export default function DataTableContent({
   const [schemaBusy, setSchemaBusy] = useState(false);
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
+  const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [showParentDialog, setShowParentDialog] = useState(false);
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
@@ -147,9 +152,21 @@ export default function DataTableContent({
   const fetchColumns = useCallback(async () => {
     if (!tenantId) return;
     if (columnsCache.current) { setTableColumns(columnsCache.current); return; }
-    const { data, error } = await supabase.rpc('get_table_columns', { p_table: table });
-    if (!error && data) {
-      const result = data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
+
+    const [colResult, configResult] = await Promise.all([
+      supabase.rpc('get_table_columns', { p_table: table }),
+      supabase.from('tenant_game_tables').select('viewer_config').eq('tenant_id', tenantId).eq('slug', table).maybeSingle(),
+    ]);
+
+    if (configResult.data?.viewer_config) {
+      const parsed = parseViewerConfig(configResult.data.viewer_config);
+      if (parsed.uploadColumns?.length) {
+        setUploadColumns(new Set(parsed.uploadColumns));
+      }
+    }
+
+    if (!colResult.error && colResult.data) {
+      const result = colResult.data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
       if (result.ok) {
         columnsCache.current = result.columns;
         setTableColumns(result.columns);
@@ -395,10 +412,13 @@ export default function DataTableContent({
       return;
     }
 
+    const isUpload = newFieldType === 'upload';
+    const dbType = isUpload ? 'text' : newFieldType;
+
     const { data, error } = await supabase.rpc('add_game_column', {
       p_table: table,
       p_column: colSlug,
-      p_type: newFieldType,
+      p_type: dbType,
       p_tenant_id: tenantId,
     });
     if (error) {
@@ -406,6 +426,26 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
+        if (isUpload) {
+          const newSet = new Set(uploadColumns);
+          newSet.add(colSlug);
+          setUploadColumns(newSet);
+          const { data: existing } = await supabase
+            .from('tenant_game_tables')
+            .select('viewer_config')
+            .eq('tenant_id', tenantId)
+            .eq('slug', table)
+            .maybeSingle();
+          const current = parseViewerConfig(existing?.viewer_config);
+          const uploadCols = current.uploadColumns || [];
+          if (!uploadCols.includes(colSlug)) {
+            await supabase
+              .from('tenant_game_tables')
+              .update({ viewer_config: { ...current, uploadColumns: [...uploadCols, colSlug] } })
+              .eq('tenant_id', tenantId)
+              .eq('slug', table);
+          }
+        }
         invalidateDataCache(slug);
         toast({ title: `Campo "${colSlug}" adicionado!` });
         columnsCache.current = null;
@@ -464,12 +504,25 @@ export default function DataTableContent({
 
     if (isImageColumn(col)) {
       return (
-        <ImageUpload
+        <ImagePicker
           bucket="game-items"
           pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
           value={value}
           onChange={(url) => onChange(col, url)}
           label="Imagem"
+          tenantId={tenantId ?? undefined}
+        />
+      );
+    }
+
+    if (uploadColumns.has(col)) {
+      return (
+        <ImageUpload
+          bucket="game-items"
+          pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
+          value={value}
+          onChange={(url) => onChange(col, url)}
+          label="Upload"
         />
       );
     }
@@ -570,46 +623,34 @@ export default function DataTableContent({
       </div>
       <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
         {!isSystemColumn(col) && (
-          isImageColumn(col) || isIconColumn(col)
-            ? !value ? (
-                <button
-                  type="button"
-                  onClick={() => {/* library - handled by ImageUpload internally */}}
-                  className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                  title="Biblioteca"
-                >
-                  <ImageIcon className="h-3 w-3" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleClearField(col, formSetter)}
-                  className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                  title="Limpar valor"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )
-            : (
+          <>
+            {isImageColumn(col) || isIconColumn(col) ? (
               <button
                 type="button"
-                onClick={() => handleClearField(col, formSetter)}
+                onClick={() => {/* library - handled by ImageUpload/IconPicker internally */}}
                 className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                title="Limpar valor"
+                title="Biblioteca"
               >
-                <X className="h-3 w-3" />
+                <ImageIcon className="h-3 w-3" />
               </button>
-            )
-        )}
-        {!isSystemColumn(col) && (
-          <button
-            type="button"
-            onClick={() => handleDropColumn(col)}
-            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-destructive/60 hover:text-destructive transition-colors shadow-sm inset-shadow"
-            title="Remover coluna"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => handleClearField(col, formSetter)}
+              className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+              title="Limpar valor"
+            >
+              {value ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDropColumn(col)}
+              className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-destructive/60 hover:text-destructive transition-colors shadow-sm inset-shadow"
+              title="Remover coluna"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </>
         )}
       </div>
       {renderField(col, value, onChange, isBool, rowId)}
@@ -736,15 +777,11 @@ export default function DataTableContent({
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Tipo</Label>
-                    <select
+                    <FieldTypeSelect3D
                       value={newFieldType}
-                      onChange={(e) => setNewFieldType(e.target.value)}
-                      className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                      {newFieldTypes.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                      onChange={setNewFieldType}
+                      options={newFieldTypes}
+                    />
                   </div>
                   <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
                     {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
@@ -889,15 +926,11 @@ export default function DataTableContent({
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs text-muted-foreground">Tipo</Label>
-                              <select
+                              <FieldTypeSelect3D
                                 value={newFieldType}
-                                onChange={(e) => setNewFieldType(e.target.value)}
-                                className="h-8 rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                              >
-                                {newFieldTypes.map((t) => (
-                                  <option key={t} value={t}>{t}</option>
-                                ))}
-                              </select>
+                                onChange={setNewFieldType}
+                                options={newFieldTypes}
+                              />
                             </div>
                             <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
                               {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}

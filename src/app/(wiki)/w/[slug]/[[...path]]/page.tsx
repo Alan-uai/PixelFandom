@@ -4,13 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { ArrowLeft, FileText, Calendar, Tag, LayoutList, LayoutGrid, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Tag, Clock, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import WikiGrid from '@/components/wiki/wiki-grid';
 import GameDataCards from '@/components/wiki/game-data-cards';
+import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { useWikiData } from '@/context/wiki-provider';
 import { useWikiSearch } from '@/context/wiki-search-context';
 import HubLink from '@/components/hub-link';
@@ -30,9 +31,7 @@ export default function WikiPage() {
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const path = params?.path as string[] | undefined;
-  const view = searchParams?.get('view');
   const articleSlug = path?.join('/') || null;
-  const isGrid = view !== 'list';
   const { basePath, homePath, articlePath: wikiArticlePath } = useWikiPath(slug);
   const router = useRouter();
 
@@ -44,6 +43,9 @@ export default function WikiPage() {
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
   const gameTableListingDisplay = useMemo(() => (tenantTheme.game_table_listing_display as Record<string, unknown>) || {}, [tenantTheme]);
+  const articlesDisplay = useMemo(() => (tenantTheme.articles_display as Record<string, unknown>) || {}, [tenantTheme]);
+  const articleDisplayFormat = (articlesDisplay.default_format as string) || 'grid';
+  const articleColumns = Math.min(Math.max(((articlesDisplay.default_columns as number) || articlesPerRow), 1), 6);
 
   const mergeListingDefaults = (vc: import('@/lib/viewer-config').ViewerConfig | null, global: Record<string, unknown>): import('@/lib/viewer-config').ViewerConfig => {
     const merged: Record<string, any> = vc ? { ...vc } : {};
@@ -222,6 +224,7 @@ export default function WikiPage() {
         displayFormat={tableDisplayFormat}
         columnsCount={tableColumnsCount}
         viewerConfig={mergedViewerConfig}
+        icon={tableEntry?.icon}
       />
     );
   }
@@ -460,17 +463,10 @@ export default function WikiPage() {
                     <FileText className="h-5 w-5 text-primary" />
                     {searchQuery ? `Resultados (${displayArticles.length})` : 'Artigos Recentes'}
                   </h2>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <LayoutGrid className={`h-4 w-4 ${isGrid ? 'text-primary' : ''}`} />
-                    <span className="mx-1">|</span>
-                    <LayoutList className={`h-4 w-4 ${!isGrid ? 'text-primary' : ''}`} />
-                  </div>
                 </div>
 
                 {displayArticles.length > 0 ? (
-                  isGrid ? (
-                    <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articlesPerRow} votePosition={articleCardVotePos} />
-                  ) : (
+                  articleDisplayFormat === 'list' ? (
                     <div className="space-y-2">
                       {displayArticles.map((article: any) => (
                         <div key={article.id} className="relative pb-1">
@@ -478,7 +474,7 @@ export default function WikiPage() {
                             href={wikiArticlePath(article.slug || article.id)}
                             className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-primary/30 hover:bg-muted/50 transition-all group relative"
                           >
-                            {article.image_url ? (
+                            {(articlesDisplay.show_images !== false) && article.image_url ? (
                               <Image src={article.image_url} alt="" width={32} height={32} className="h-8 w-8 rounded object-cover shrink-0" />
                             ) : (
                               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -505,6 +501,49 @@ export default function WikiPage() {
                         </div>
                       ))}
                     </div>
+                  ) : articleDisplayFormat === 'carousel_infinite' ? (
+                    <div>
+                      <InfiniteCarousel
+                        items={displayArticles}
+                        columnsCount={articleColumns}
+                        gap={16}
+                        renderItem={(article: any) => (
+                          <Link
+                            href={wikiArticlePath(article.slug || article.id)}
+                            className="rounded-lg border bg-card overflow-hidden hover:border-primary/30 transition-colors group block h-full"
+                          >
+                            {(articlesDisplay.show_images !== false) && article.image_url && (
+                              <div className="relative w-full aspect-video overflow-hidden">
+                                <Image src={article.image_url} alt="" fill className="object-cover group-hover:scale-105 transition-transform" />
+                              </div>
+                            )}
+                            <div className="p-4">
+                              <div className="flex items-start gap-2">
+                                {(articlesDisplay.show_images === false || !article.image_url) && (
+                                  <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{article.title}</span>
+                                  {(articlesDisplay.show_summaries !== false) && article.summary && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{article.summary}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        )}
+                      />
+                    </div>
+                  ) : articleDisplayFormat === 'carousel' ? (
+                    <ArticleCarouselView
+                      articles={displayArticles}
+                      columns={articleColumns}
+                      wikiArticlePath={wikiArticlePath}
+                      showImages={articlesDisplay.show_images !== false}
+                      showSummaries={articlesDisplay.show_summaries !== false}
+                    />
+                  ) : (
+                    <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articleColumns} votePosition={articleCardVotePos} />
                   )
                 ) : (
                   <div className="text-center py-16 rounded-xl border bg-card">
@@ -525,6 +564,77 @@ export default function WikiPage() {
 
   // Unreachable fallback (all landing/article/table cases handled above)
   return null;
+}
+
+function ArticleCarouselView({ articles, columns, wikiArticlePath, showImages, showSummaries }: {
+  articles: any[]; columns: number;
+  wikiArticlePath: (slug: string) => string;
+  showImages: boolean; showSummaries: boolean;
+}) {
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const cols = Math.max(2, Math.min(5, columns));
+  const maxIndex = Math.max(0, articles.length - cols);
+  const visible = articles.slice(carouselIndex, carouselIndex + cols);
+  const gridCols = ({
+    2: 'grid-cols-2 sm:grid-cols-2',
+    3: 'grid-cols-2 sm:grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5',
+  } as Record<number, string>)[cols] || 'grid-cols-2 sm:grid-cols-3';
+
+  return (
+    <div>
+      <div className={`${gridCols} gap-3`}>
+        {visible.map((article: any) => (
+          <Link
+            key={article.id}
+            href={wikiArticlePath(article.slug || article.id)}
+            className="rounded-lg border bg-card overflow-hidden hover:border-primary/30 transition-colors group block"
+          >
+            {showImages && article.image_url && (
+              <div className="relative w-full aspect-video overflow-hidden">
+                <Image src={article.image_url} alt="" fill className="object-cover group-hover:scale-105 transition-transform" />
+              </div>
+            )}
+            <div className="p-4">
+              <div className="flex items-start gap-2">
+                {(!showImages || !article.image_url) && (
+                  <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{article.title}</span>
+                  {showSummaries && article.summary && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{article.summary}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      {articles.length > cols && (
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <button
+            onClick={() => setCarouselIndex(prev => Math.max(prev - 1, 0))}
+            className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+            aria-label="Anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {carouselIndex + 1}–{Math.min(carouselIndex + cols, articles.length)} de {articles.length}
+          </span>
+          <button
+            onClick={() => setCarouselIndex(prev => Math.min(prev + 1, maxIndex))}
+            className="p-2 rounded-full border bg-card hover:bg-accent transition-colors"
+            aria-label="Próximo"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function WikiPageSkeleton() {

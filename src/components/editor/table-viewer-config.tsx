@@ -231,6 +231,7 @@ export default function TableViewerConfig({
               columns={columns}
               slug={slug}
               tableIcon={s.id === 'header' ? tableIcon : undefined}
+              tenantId={s.id === 'header' ? (tenantId ?? undefined) : undefined}
               onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
             />
           );

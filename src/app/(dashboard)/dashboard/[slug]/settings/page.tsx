@@ -14,7 +14,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
 import { SelectCard } from '@/components/ui/select-card';
-import { Loader2, Image, LayoutGrid, List, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database } from 'lucide-react';
+import { Loader2, Image, LayoutGrid, List, FileText, Pipette, AlertTriangle, Trash2, Download, LayoutDashboard, Layers, Database, BookOpen } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
@@ -38,6 +38,8 @@ export default function WikiSettingsPage() {
     listingItemsPerPage: number; listingPagination: string;
     listingShowSearch: boolean; listingShowFilters: boolean; listingShowHeader: boolean;
     listingCardStyle: string; listingHoverEffect: string;
+    articleDisplayFormat: string; articleColumnsCount: number;
+    articleShowImages: boolean; articleShowSummaries: boolean;
   }>({
     name: '', description: '', logoUrl: '', coverImageUrl: '',
     discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '',
@@ -50,6 +52,8 @@ export default function WikiSettingsPage() {
     listingItemsPerPage: 20, listingPagination: 'paginated',
     listingShowSearch: true, listingShowFilters: true, listingShowHeader: true,
     listingCardStyle: 'default', listingHoverEffect: 'scale',
+    articleDisplayFormat: 'grid', articleColumnsCount: 3,
+    articleShowImages: true, articleShowSummaries: true,
   });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -85,6 +89,11 @@ export default function WikiSettingsPage() {
   const [listingShowHeader, setListingShowHeader] = useState(true);
   const [listingCardStyle, setListingCardStyle] = useState('default');
   const [listingHoverEffect, setListingHoverEffect] = useState('scale');
+  // Article display config
+  const [articleDisplayFormat, setArticleDisplayFormat] = useState('grid');
+  const [articleColumnsCount, setArticleColumnsCount] = useState(3);
+  const [articleShowImages, setArticleShowImages] = useState(true);
+  const [articleShowSummaries, setArticleShowSummaries] = useState(true);
 
   const cacheKey = `tenant:${slug}`;
   const { data: tenant, loading } = useCachedData<any>(
@@ -133,6 +142,11 @@ export default function WikiSettingsPage() {
     setListingShowHeader(listingDisplay.show_header ?? true);
     setListingCardStyle(listingDisplay.card_style || 'default');
     setListingHoverEffect(listingDisplay.hover_effect || 'scale');
+    const articlesDisplay = (theme.articles_display as Record<string, any>) || {};
+    setArticleDisplayFormat(articlesDisplay.default_format || 'grid');
+    setArticleColumnsCount(articlesDisplay.default_columns || 3);
+    setArticleShowImages(articlesDisplay.show_images ?? true);
+    setArticleShowSummaries(articlesDisplay.show_summaries ?? true);
     setSavedConfig({
       name: tenant.name,
       description: tenant.description || '',
@@ -166,6 +180,10 @@ export default function WikiSettingsPage() {
       listingShowHeader: listingDisplay.show_header ?? true,
       listingCardStyle: listingDisplay.card_style || 'default',
       listingHoverEffect: listingDisplay.hover_effect || 'scale',
+      articleDisplayFormat: articlesDisplay.default_format || 'grid',
+      articleColumnsCount: articlesDisplay.default_columns || 3,
+      articleShowImages: articlesDisplay.show_images ?? true,
+      articleShowSummaries: articlesDisplay.show_summaries ?? true,
     });
   }, [tenant]);
 
@@ -215,6 +233,12 @@ export default function WikiSettingsPage() {
               card_style: listingCardStyle,
               hover_effect: listingHoverEffect,
             },
+            articles_display: {
+              default_format: articleDisplayFormat,
+              default_columns: articleColumnsCount,
+              show_images: articleShowImages,
+              show_summaries: articleShowSummaries,
+            },
             widgets: {},
           },
         })
@@ -236,6 +260,7 @@ export default function WikiSettingsPage() {
         listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
         listingShowSearch, listingShowFilters, listingShowHeader,
         listingCardStyle, listingHoverEffect,
+        articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
       });
 
       useSiteCache.getState().set(cacheKey, {
@@ -276,6 +301,12 @@ export default function WikiSettingsPage() {
             show_header: listingShowHeader,
             card_style: listingCardStyle,
             hover_effect: listingHoverEffect,
+          },
+          articles_display: {
+            default_format: articleDisplayFormat,
+            default_columns: articleColumnsCount,
+            show_images: articleShowImages,
+            show_summaries: articleShowSummaries,
           },
           widgets: {},
         },
@@ -318,7 +349,11 @@ export default function WikiSettingsPage() {
     listingShowFilters !== savedConfig.listingShowFilters ||
     listingShowHeader !== savedConfig.listingShowHeader ||
     listingCardStyle !== savedConfig.listingCardStyle ||
-    listingHoverEffect !== savedConfig.listingHoverEffect;
+    listingHoverEffect !== savedConfig.listingHoverEffect ||
+    articleDisplayFormat !== savedConfig.articleDisplayFormat ||
+    articleColumnsCount !== savedConfig.articleColumnsCount ||
+    articleShowImages !== savedConfig.articleShowImages ||
+    articleShowSummaries !== savedConfig.articleShowSummaries;
 
   useRegisterUnsavedChanges({
     isDirty,
@@ -334,6 +369,7 @@ export default function WikiSettingsPage() {
       listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
       listingShowSearch, listingShowFilters, listingShowHeader,
       listingCardStyle, listingHoverEffect,
+      articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
     }),
   });
 
@@ -733,6 +769,61 @@ export default function WikiSettingsPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Artigos
+            </h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              Configuração padrão de exibição dos artigos na página inicial da wiki.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Formato de Exibição</Label>
+                <SelectCard
+                  options={[
+                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
+                    { value: 'list', label: 'Lista', icon: <List /> },
+                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
+                    { value: 'carousel_infinite', label: 'Carrossel Infinito', icon: <Layers /> },
+                  ]}
+                  value={articleDisplayFormat}
+                  onChange={(v) => setArticleDisplayFormat(v as string)}
+                  layout="grid"
+                  columns={4}
+                  size="sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="articleColumns">Colunas ({articleColumnsCount})</Label>
+                <input
+                  id="articleColumns"
+                  type="range"
+                  min={1}
+                  max={6}
+                  value={articleColumnsCount}
+                  onChange={(e) => setArticleColumnsCount(Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>1</span>
+                  <span>6</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="articleImages" className="text-xs">Mostrar Imagens</Label>
+                <Switch id="articleImages" checked={articleShowImages} onCheckedChange={setArticleShowImages} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="articleSummaries" className="text-xs">Mostrar Resumos</Label>
+                <Switch id="articleSummaries" checked={articleShowSummaries} onCheckedChange={setArticleShowSummaries} />
               </div>
             </div>
           </div>

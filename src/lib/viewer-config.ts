@@ -82,6 +82,7 @@ export const ViewerConfigSchema = z.object({
     skeleton: z.enum(['shimmer', 'pulse', 'spinner', 'none']).default('shimmer'),
     skeletonCount: z.number().int().min(1).max(12).default(6),
   }).optional(),
+  uploadColumns: z.array(z.string()).default([]).optional(),
 }).default({});
 
 export type ViewerConfig = z.infer<typeof ViewerConfigSchema>;

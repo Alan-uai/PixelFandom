@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import React, { useState, useRef, useEffect } from 'react';
 import { TABLE_ICONS, resolveTableIcon, isCustomIcon } from '@/lib/table-icons';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { ImagePicker } from '@/components/ui/image-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,13 +12,14 @@ interface TableIconPickerProps {
   value: string;
   onChange: (icon: string) => void;
   slug: string;
+  tenantId?: string;
 }
 
 function IconRender({ name, className }: { name?: string | null; className?: string }) {
   return React.createElement(resolveTableIcon(name), { className } as React.Attributes);
 }
 
-export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps) {
+export function TableIconPicker({ value, onChange, slug, tenantId }: TableIconPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,12 +52,13 @@ export function TableIconPicker({ value, onChange, slug }: TableIconPickerProps)
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-3">
-        <ImageUpload
+        <ImagePicker
           bucket="game-items"
           pathPrefix={`${slug}/table-icons/`}
           value={isCustomIcon(value) ? value : ''}
           onChange={(url) => onChange(url || 'Database')}
           previewSize="w-full h-20"
+          tenantId={tenantId}
         />
         <div className="flex items-center gap-2 my-3">
           <div className="flex-1 h-px bg-border" />
