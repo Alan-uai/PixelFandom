@@ -295,6 +295,10 @@ export async function POST(request: NextRequest) {
             responseStyle = chatSettings.response_style || responseStyle;
             displayMode = chatSettings.display_mode || displayMode;
           }
+          const VALID_DISPLAY_MODES = ['acordeao', 'texto_puro', 'tabela', 'cards', 'hibrido', 'auto'];
+          if (!VALID_DISPLAY_MODES.includes(displayMode)) {
+            displayMode = 'acordeao';
+          }
         }
       }
     } catch { /* ignore profile load errors */ }
@@ -386,7 +390,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         const responseMsg = choice?.message;
 
         if (!responseMsg || !responseMsg.tool_calls || responseMsg.tool_calls.length === 0) {
-          finalText = responseMsg?.content || '';
+          finalText = responseMsg?.content ?? null;
           break;
         }
 
@@ -423,7 +427,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
       let stream: ReadableStream;
 
-      if (finalText !== null && !hadToolCalls) {
+      if (finalText !== null) {
         stream = createTextStream(finalText);
       } else {
         stream = await streamOpenRouter(messages, modelsToTry, apiKey);

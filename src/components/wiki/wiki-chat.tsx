@@ -236,6 +236,11 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
         throw new Error(errData.error || 'Erro ao processar pergunta');
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/plain') && !contentType.includes('text/event-stream')) {
+        throw new Error('Resposta inesperada do servidor');
+      }
+
       if (!response.body) throw new Error('Sem resposta');
 
       const reader = response.body.getReader();
