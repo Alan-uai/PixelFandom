@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { ImageIcon, Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { ensureStorageBuckets } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
@@ -105,30 +105,6 @@ export function ImageUpload({
         accept={accept}
       />
 
-      {/* Corner */}
-      <div className="absolute -top-2 -right-2 z-20 flex items-center gap-0.5">
-        {!value && onOpenLibrary && (
-          <button
-            type="button"
-            onClick={onOpenLibrary}
-            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-            aria-label="Abrir biblioteca"
-          >
-            <ImageIcon className="h-3 w-3" />
-          </button>
-        )}
-        {value && (
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-            aria-label="Remover imagem"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-
       {/* Card (upload mode) */}
       <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
         <div className="overflow-hidden">
@@ -144,11 +120,25 @@ export function ImageUpload({
                 {value ? (
                   <div className={`relative ${previewSize} flex items-center justify-center`}>
                     <Image src={value} alt={label} fill className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => onChange('')}
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow z-10 flex items-center justify-center"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
                 ) : (
                   <div
                     className={`${previewSize} flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-accent/50 inset-shadow`}
-                    onClick={() => inputRef.current?.click()}
+                    onClick={() => {
+                      if (onOpenLibrary) {
+                        onOpenLibrary();
+                      } else {
+                        inputRef.current?.click();
+                      }
+                    }}
                   >
                     {uploading ? (
                       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

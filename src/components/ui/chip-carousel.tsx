@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export function ChipCarousel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function ChipCarousel({ children, className = '', wrap }: { children: React.ReactNode; className?: string; wrap?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollL, setCanScrollL] = useState(false);
   const [canScrollR, setCanScrollR] = useState(false);
@@ -33,7 +33,7 @@ export function ChipCarousel({ children, className = '' }: { children: React.Rea
 
   return (
     <div className={`relative group min-w-0 ${className}`}>
-      {canScrollL && (
+      {!wrap && canScrollL && (
         <button
           onClick={() => scroll(-1)}
           className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-full px-1 bg-gradient-to-r from-background via-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
@@ -43,11 +43,11 @@ export function ChipCarousel({ children, className = '' }: { children: React.Rea
       )}
       <div
         ref={ref}
-        className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-nowrap py-0.5 px-0.5"
+        className={`flex gap-1.5 py-0.5 px-0.5 ${wrap ? 'flex-wrap' : 'overflow-x-auto scrollbar-hide flex-nowrap'}`}
       >
         {children}
       </div>
-      {canScrollR && (
+      {!wrap && canScrollR && (
         <button
           onClick={() => scroll(1)}
           className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-full px-1 bg-gradient-to-l from-background via-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"

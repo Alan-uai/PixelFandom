@@ -194,6 +194,7 @@ function renderSpecials(
   handleStatClick: (key: string) => void,
   copiedCode: boolean,
   setCopiedCode: (v: boolean) => void,
+  chipWrap?: boolean,
 ): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
 
@@ -272,7 +273,7 @@ function renderSpecials(
     nodes.push(
       <div key="key-buffs" className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Bônus Principais</h3>
-        <ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>
           {data.key_buffs.map((b: string) => {
             const c = effectColor(b) || 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
             return <Tag key={b} className={`${c} border-current/30 bg-current/10`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
@@ -288,7 +289,7 @@ function renderSpecials(
     nodes.push(
       <div key="possible-stats" className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stats Possíveis</h3>
-        <ChipCarousel>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10">{s}</Tag>)}</ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10">{s}</Tag>)}</ChipCarousel>
       </div>,
     );
   }
@@ -338,7 +339,7 @@ function renderSpecials(
       nodes.push(
         <div key="weakness" className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fraquezas</h3>
-          <ChipCarousel>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)}`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
+          <ChipCarousel wrap={chipWrap}>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)}`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
         </div>,
       );
     }
@@ -366,7 +367,7 @@ function renderSpecials(
       nodes.push(
         <div key="attacks" className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ataques</h3>
-          <ChipCarousel>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10">{a}</Tag>)}</ChipCarousel>
+          <ChipCarousel wrap={chipWrap}>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10">{a}</Tag>)}</ChipCarousel>
         </div>,
       );
     }
@@ -381,7 +382,7 @@ function renderSpecials(
       nodes.push(
         <div key="drops" className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens Dropados</h3>
-          <ChipCarousel>{list.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10">{item}</Tag>)}</ChipCarousel>
+          <ChipCarousel wrap={chipWrap}>{list.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10">{item}</Tag>)}</ChipCarousel>
         </div>,
       );
     }
@@ -410,7 +411,7 @@ function renderSpecials(
       nodes.push(
         <div key="materials" className="mb-6">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Materiais</h3>
-          <ChipCarousel>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">{mat}</Tag>)}</ChipCarousel>
+          <ChipCarousel wrap={chipWrap}>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">{mat}</Tag>)}</ChipCarousel>
         </div>,
       );
     }
@@ -481,6 +482,7 @@ function renderDynamicSections(
   onStatClick: ((statKey: string) => void) | undefined,
   rendered: Set<string>,
   scientificNotation?: boolean,
+  chipWrap?: boolean,
 ) {
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
@@ -528,7 +530,7 @@ function renderDynamicSections(
     boolCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
       <div key="dyn-bools" className="mb-6">
-        <ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>
           {boolCols.map((c) => (
             <Tag key={c.column_name}
               className={data[c.column_name]
@@ -554,7 +556,7 @@ function renderDynamicSections(
     textCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
       <div key="dyn-tags" className="mb-6">
-        <ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>
           {textCols.map((c) => (
             <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
               {metaLabel(c, data)}: {String(data[c.column_name])}
@@ -593,7 +595,7 @@ function renderDynamicSections(
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>
           {data[c.column_name].map((item: unknown, i: number) => (
             <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
               {typeof item === 'object' ? JSON.stringify(item) : String(item)}
@@ -690,6 +692,7 @@ type Props = {
   hideHeader?: boolean;
   onCompareStatClick?: (statKey: string) => void;
   scientificNotation?: boolean;
+  chipWrap?: boolean;
 };
 
 const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
@@ -711,7 +714,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -805,7 +808,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
       {/* Data-driven tags */}
       <div className="mb-6">
-        <ChipCarousel>
+        <ChipCarousel wrap={chipWrap}>
           {Object.entries(TAG_FIELDS).map(([key, renderFn]) => {
             const v = data[key];
             if (!hasValue(v)) return null;
@@ -823,10 +826,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
 
       {/* Special field renderers (data-gated, no type detection) */}
-      {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode)}
+      {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode, chipWrap)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation, chipWrap)}
 
       {/* Fallback: any remaining unrendered fields */}
       {renderFallbackFields(data, rendered, scientificNotation)}

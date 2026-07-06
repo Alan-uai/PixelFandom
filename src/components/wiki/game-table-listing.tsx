@@ -632,16 +632,29 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       ) : groupedItems ? (
         <div className="space-y-8">
-          {groupedItems.map(([category, catItems]) => (
-            <div key={category}>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                {category}
-                <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
-              </h3>
-              {renderItems(catItems, category)}
-            </div>
-          ))}
+          {groupedItems.map(([category, catItems]) => {
+            const catIcon = viewerConfig?.categorization?.categoryIcons?.[category];
+            return (
+              <div key={category}>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                  {catIcon ? (
+                    catIcon.startsWith('http://') || catIcon.startsWith('https://') || catIcon.startsWith('data:') ? (
+                      <div className="relative w-4 h-4 shrink-0">
+                        <Image src={catIcon} alt="" fill className="object-contain" />
+                      </div>
+                    ) : (
+                      <IconRenderer icon={catIcon} size="sm" />
+                    )
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                  )}
+                  <span className="capitalize">{category}</span>
+                  <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
+                </h3>
+                {renderItems(catItems, category)}
+              </div>
+            );
+          })}
         </div>
       ) : (
         renderItems(filteredItems, '_all')
@@ -815,6 +828,7 @@ function ItemCard({
                   sourceTable={tableName}
                   comparisonMode="modal"
                   hideHeader
+                  chipWrap
                   scientificNotation={scientificNotation}
                   onCompareStatClick={onCompareStatClick}
                 />

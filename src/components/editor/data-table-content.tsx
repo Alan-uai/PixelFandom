@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
-import { IconPickerTrigger } from '@/components/ui/icon-picker';
+import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { invalidateDataCache } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
@@ -106,7 +106,21 @@ export default function DataTableContent({
   const [showParentDialog, setShowParentDialog] = useState(false);
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
+  const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
+  const [iconPickerState, setIconPickerState] = useState<{
+    col: string;
+    value: string;
+    onChange: (key: string, val: string) => void;
+  } | null>(null);
 
+  const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
+    formSetter((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setRemovedFields((prev) => new Set(prev).add(key));
+  };
 
   const getParentLabel = (t: string) => tableLabels[t] || t;
 
@@ -280,6 +294,7 @@ export default function DataTableContent({
   const cancelEdit = () => {
     setEditingId(null);
     setEditForm({});
+    setRemovedFields(new Set());
   };
 
   const handleEditSave = async (rowId: string) => {
@@ -605,6 +620,14 @@ export default function DataTableContent({
     );
   };
 
+  const handleOpenIconPicker = (
+    col: string,
+    currentValue: string,
+    onChange: (key: string, val: string) => void,
+  ) => {
+    setIconPickerState({ col, value: currentValue, onChange });
+  };
+
   const renderFieldItem = (
     col: string,
     value: string,
@@ -624,21 +647,21 @@ export default function DataTableContent({
       <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
         {!isSystemColumn(col) && (
           <>
-            {isImageColumn(col) || isIconColumn(col) ? (
+            {isIconColumn(col) ? (
               <button
                 type="button"
-                onClick={() => {/* library - handled by ImageUpload/IconPicker internally */}}
+                onClick={() => handleOpenIconPicker(col, value, onChange)}
                 className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                title="Biblioteca"
+                title="Selecionar ícone"
               >
                 <ImageIcon className="h-3 w-3" />
               </button>
             ) : null}
             <button
               type="button"
-              onClick={() => handleClearField(col, formSetter)}
+              onClick={() => value ? handleClearField(col, formSetter) : handleRemoveField(col, formSetter)}
               className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-              title="Limpar valor"
+              title={value ? "Limpar valor" : "Remover campo"}
             >
               {value ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
             </button>
@@ -733,7 +756,7 @@ export default function DataTableContent({
         <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
           <p className="text-sm font-medium">Novo Registro</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {editableColumns.map((col) =>
+            {editableColumns.filter((col) => !removedFields.has(col)).map((col) =>
               renderFieldItem(col, newForm[col] || '', newForm, setNewForm, (key, val) => setNewForm((prev) => ({ ...prev, [key]: val })), false, undefined)
             )}
           </div>
@@ -811,7 +834,7 @@ export default function DataTableContent({
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowNewForm(false); setNewForm({}); }}>
+            <Button size="sm" variant="outline" onClick={() => { setShowNewForm(false); setNewForm({}); setRemovedFields(new Set()); }}>
               <X className="h-4 w-4 mr-1" />
               Cancelar
             </Button>
@@ -872,7 +895,7 @@ export default function DataTableContent({
                 {isEditing ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {editableColumns.map((col) => {
+                      {editableColumns.filter((col) => !removedFields.has(col)).map((col) => {
                         const original = row[col];
                         const isBool = typeof original === 'boolean';
                         return renderFieldItem(
@@ -1046,6 +1069,17 @@ export default function DataTableContent({
           )}
         </DialogContent>
       </Dialog>
+
+      {iconPickerState && (
+        <IconPicker
+          value={iconPickerState.value?.includes(':') ? iconPickerState.value.split(':')[0] : iconPickerState.value}
+          onChange={(iconId) => {
+            iconPickerState.onChange(iconPickerState.col, iconId);
+            setIconPickerState(null);
+          }}
+          onClose={() => setIconPickerState(null)}
+        />
+      )}
     </div>
   );
 }

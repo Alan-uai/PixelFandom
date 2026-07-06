@@ -33,12 +33,22 @@ export function CollapsibleSection({
   const setOpen = onOpenChange || setInternalOpen;
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
+  const [overflowHidden, setOverflowHidden] = useState(true);
 
   useEffect(() => {
     if (contentRef.current) {
       setHeight(contentRef.current.scrollHeight);
     }
   }, [open, children]);
+
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => setOverflowHidden(false), 300);
+      return () => clearTimeout(timer);
+    } else {
+      setOverflowHidden(true);
+    }
+  }, [open]);
 
   return (
     <WeldingCard className={cn('relative', className)}>
@@ -65,8 +75,8 @@ export function CollapsibleSection({
       </button>
 
       <div
-        className="transition-all duration-300 overflow-hidden"
-        style={{ height: open ? height : 0, opacity: open ? 1 : 0 }}
+        className="transition-all duration-300"
+        style={{ height: open ? height : 0, opacity: open ? 1 : 0, overflow: overflowHidden ? 'hidden' : 'visible' }}
       >
         <div ref={contentRef} className="px-6 pb-4 pt-2">
           {children}
