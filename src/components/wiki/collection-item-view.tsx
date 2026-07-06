@@ -13,6 +13,8 @@ import { abbreviateNumber } from '@/lib/format-number';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
+import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { getTypeDef, type RenderType } from '@/lib/column-types/registry';
 import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, effectColor, COLL_ICON,
@@ -645,6 +647,28 @@ function metaLabel(col: ColumnInfo, _data: Record<string, any>): string {
   return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
+function RenderTypeFields({ data, columnTypes, rendered }: { data: Record<string, any>; columnTypes: Record<string, string>; rendered: Set<string> }) {
+  const entries = Object.entries(columnTypes).filter(([col]) => !rendered.has(col) && hasValue(data[col]));
+  if (entries.length === 0) return null;
+
+  const sections = entries.map(([col, renderType]) => {
+    const def = getTypeDef(renderType);
+    if (!def) return null;
+    rendered.add(col);
+    return (
+      <div key={`rt-${col}`} className="mb-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+        </h3>
+        <ColumnDisplay value={data[col]} column={col} renderType={renderType} />
+      </div>
+    );
+  }).filter(Boolean);
+
+  if (sections.length === 0) return null;
+  return <>{sections}</>;
+}
+
 function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, scientificNotation?: boolean) {
   const extra = Object.entries(data).filter(
     ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v),
@@ -694,6 +718,7 @@ type Props = {
   onCompareStatClick?: (statKey: string) => void;
   scientificNotation?: boolean;
   chipWrap?: boolean;
+  columnTypes?: Record<string, string>;
 };
 
 const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
@@ -715,7 +740,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap, columnTypes }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -831,6 +856,11 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
       {/* Dynamic schema-driven sections */}
       {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation, chipWrap)}
+
+      {/* Render-type-specific fields (color, rating, video, audio, etc.) */}
+      {columnTypes && Object.entries(columnTypes).length > 0 && (
+        <RenderTypeFields data={data} columnTypes={columnTypes} rendered={rendered} />
+      )}
 
       {/* Fallback: any remaining unrendered fields */}
       {renderFallbackFields(data, rendered, scientificNotation)}

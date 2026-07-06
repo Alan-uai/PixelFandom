@@ -84,6 +84,7 @@ export const ViewerConfigSchema = z.object({
     skeletonCount: z.number().int().min(1).max(12).default(6),
   }).optional(),
   uploadColumns: z.array(z.string()).default([]).optional(),
+  columnTypes: z.record(z.string(), z.string()).default({}).optional(),
 }).default({});
 
 export type ViewerConfig = z.infer<typeof ViewerConfigSchema>;

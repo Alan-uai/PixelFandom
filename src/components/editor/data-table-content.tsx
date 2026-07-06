@@ -39,6 +39,9 @@ import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { sanitizeUrl } from '@/lib/content-utils';
+import { COLUMN_TYPES, FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType, getDefaultColumn, type RenderType } from '@/lib/column-types/registry';
+import { ColumnEditor } from '@/lib/column-types/editor-factory';
+import { parseRenderType, validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -62,7 +65,7 @@ const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding
 const newFormDefaultFields = ['name'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
 const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
-const newFieldTypes = ['text', 'integer', 'numeric', 'boolean', 'jsonb', 'real', 'bigint', 'double precision', 'upload'];
+const newFieldTypes = FIELD_TYPE_NAMES;
 const dateColumnNames = ['verified_date', 'expired_date', 'release_date', 'event_date'];
 const systemDateColumns = ['created_at', 'updated_at'];
 
@@ -106,6 +109,8 @@ export default function DataTableContent({
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
+  const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
+  const [newFieldSubType, setNewFieldSubType] = useState('image');
   const [showParentDialog, setShowParentDialog] = useState(false);
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
@@ -170,6 +175,9 @@ export default function DataTableContent({
         const parsed = parseViewerConfig(configResult.data.viewer_config);
         if (parsed.uploadColumns?.length) {
           setUploadColumns(new Set(parsed.uploadColumns));
+        }
+        if (parsed.columnTypes) {
+          setColumnRenderTypes(parsed.columnTypes);
         }
       }
 
@@ -296,6 +304,14 @@ export default function DataTableContent({
   function isIconColumn(col: string) { return iconColumnNames.includes(col); }
   function isEditableColumn(col: string) { return !isSystemColumn(col) && col !== 'id'; }
 
+  function getColumnRenderType(col: string): string | undefined {
+    if (columnRenderTypes[col]) return columnRenderTypes[col];
+    if (imageColumnNames.includes(col)) return 'image';
+    if (iconColumnNames.includes(col)) return 'icon';
+    if (uploadColumns.has(col)) return 'image';
+    return undefined;
+  }
+
   function getColumnDataType(col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined {
     return columns?.find((c) => c.column_name === col)?.data_type;
   }
@@ -351,6 +367,10 @@ export default function DataTableContent({
 
   const sanitizeFieldValue = (key: string, val: string): string => {
     const trimmed = val.trim();
+    const renderType = getColumnRenderType(key);
+    if (renderType) {
+      return sanitizeColumnValue(renderType, trimmed);
+    }
     if (/url|src|link|href|image|icon/i.test(key)) {
       return sanitizeUrl(trimmed);
     }
@@ -360,6 +380,17 @@ export default function DataTableContent({
   const handleEditSave = async (rowId: string) => {
     setSaving(true);
     const payload: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(editForm)) {
+      const rt = getColumnRenderType(key);
+      if (rt) {
+        const validation = validateColumnValue(rt, val);
+        if (!validation.ok) {
+          toast({ variant: 'destructive', title: `Erro em "${key}"`, description: validation.error });
+          setSaving(false);
+          return;
+        }
+      }
+    }
     Object.entries(editForm).forEach(([key, val]) => {
       const original = rows.find((r) => r.id === rowId)?.[key];
       if (original !== null && original !== undefined && typeof original === 'object') {
@@ -408,6 +439,17 @@ export default function DataTableContent({
       return;
     }
     setSaving(true);
+    for (const [key, val] of Object.entries(newForm)) {
+      const rt = getColumnRenderType(key);
+      if (rt) {
+        const validation = validateColumnValue(rt, val);
+        if (!validation.ok) {
+          toast({ variant: 'destructive', title: `Erro em "${key}"`, description: validation.error });
+          setSaving(false);
+          return;
+        }
+      }
+    }
     const payload: Record<string, unknown> = { tenant_id: tenantId };
     Object.entries(newForm).forEach(([key, val]) => {
       payload[key] = sanitizeFieldValue(key, val);
@@ -489,8 +531,10 @@ export default function DataTableContent({
       return;
     }
 
-    const isUpload = newFieldType === 'upload';
-    const dbType = isUpload ? 'text' : newFieldType;
+    const renderType = newFieldType;
+    const typeDef = getTypeDef(renderType);
+    const dbType = typeDef ? typeDef.dbType : 'text';
+    const isMedia = getCategoryForType(renderType) === 'media';
 
     const { data, error } = await supabase.rpc('add_game_column', {
       p_table: table,
@@ -503,26 +547,36 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        if (isUpload) {
+        const { data: existingConfig } = await supabase
+          .from('tenant_game_tables')
+          .select('viewer_config')
+          .eq('tenant_id', tenantId)
+          .eq('slug', table)
+          .maybeSingle();
+        const current = parseViewerConfig(existingConfig?.viewer_config);
+        const updates: Record<string, unknown> = {};
+
+        if (isMedia) {
           const newSet = new Set(uploadColumns);
           newSet.add(colSlug);
           setUploadColumns(newSet);
-          const { data: existingConfig } = await supabase
-            .from('tenant_game_tables')
-            .select('viewer_config')
-            .eq('tenant_id', tenantId)
-            .eq('slug', table)
-            .maybeSingle();
-          const current = parseViewerConfig(existingConfig?.viewer_config);
           const uploadCols = current.uploadColumns || [];
           if (!uploadCols.includes(colSlug)) {
-            await supabase
-              .from('tenant_game_tables')
-              .update({ viewer_config: { ...current, uploadColumns: [...uploadCols, colSlug] } })
-              .eq('tenant_id', tenantId)
-              .eq('slug', table);
+            updates.uploadColumns = [...uploadCols, colSlug];
           }
         }
+
+        const existingTypes = current.columnTypes || {};
+        existingTypes[colSlug] = renderType;
+        updates.columnTypes = existingTypes;
+        setColumnRenderTypes((prev) => ({ ...prev, [colSlug]: renderType }));
+
+        await supabase
+          .from('tenant_game_tables')
+          .update({ viewer_config: { ...current, ...updates } })
+          .eq('tenant_id', tenantId)
+          .eq('slug', table);
+
         invalidateDataCache(slug);
         toast({ title: `Campo "${colSlug}" criado!` });
         setShowAddField(false);
@@ -553,7 +607,36 @@ export default function DataTableContent({
   ) => {
     if (col === 'embedding' || col.startsWith('embedding')) return null;
 
+    const renderType = getColumnRenderType(col);
     const dataType = getColumnDataType(col, tableColumns);
+
+    if (renderType) {
+      return (
+        <ColumnEditor
+          value={value}
+          onChange={(v) => onChange(col, v)}
+          column={col}
+          renderType={renderType}
+          tenantId={tenantId ?? undefined}
+          slug={slug}
+          table={table}
+          rowId={rowId}
+        />
+      );
+    }
+
+    if (isImageColumn(col)) {
+      return (
+        <ImageUpload
+          bucket="game-items"
+          pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
+          value={value}
+          onChange={(url) => onChange(col, url)}
+          label="Imagem"
+          previewSize="w-16 h-16"
+        />
+      );
+    }
 
     if (isIconColumn(col)) {
       return (
@@ -578,19 +661,6 @@ export default function DataTableContent({
             onChange={(iconId) => onChange(col, iconId)}
           />
         </div>
-      );
-    }
-
-    if (isImageColumn(col)) {
-      return (
-        <ImagePicker
-          bucket="game-items"
-          pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
-          value={value}
-          onChange={(url) => onChange(col, url)}
-          label="Imagem"
-          tenantId={tenantId ?? undefined}
-        />
       );
     }
 
@@ -862,22 +932,65 @@ export default function DataTableContent({
                 )}
 
                 <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <FloatingLabelInput
-                      label="Nome do campo"
-                      value={newFieldName}
-                      onChange={(e) => { setNewFieldName(e.target.value); }}
-                      className={`text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
-                    />
-                    {newFieldNameError && (
-                      <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
-                    )}
+                  <div className="flex-1 space-y-1">
+                    {(() => {
+                      const typeDef = getTypeDef(newFieldType);
+                      if (typeDef?.nameMode === 'selector' && typeDef.nameOptions) {
+                        return (
+                          <>
+                            <Label className="text-xs text-muted-foreground">Tipo de mídia</Label>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {typeDef.nameOptions.map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => {
+                                    setNewFieldName(opt.defaultColumn);
+                                    setNewFieldSubType(opt.value);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                    newFieldSubType === opt.value
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                      : 'bg-background text-muted-foreground border-input hover:border-muted-foreground/30'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        );
+                      }
+                      return (
+                        <>
+                          <FloatingLabelInput
+                            label="Nome do campo"
+                            value={newFieldName}
+                            onChange={(e) => { setNewFieldName(e.target.value); }}
+                            className={`text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
+                          />
+                          {newFieldNameError && (
+                            <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Tipo</Label>
                     <FieldTypeSelect3D
                       value={newFieldType}
-                      onChange={setNewFieldType}
+                      onChange={(t) => {
+                        setNewFieldType(t);
+                        const def = getTypeDef(t);
+                        if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
+                          setNewFieldName(def.nameOptions[0].defaultColumn);
+                          setNewFieldSubType(def.nameOptions[0].value);
+                        } else {
+                          setNewFieldName('');
+                          setNewFieldSubType('');
+                        }
+                      }}
                       options={newFieldTypes}
                     />
                   </div>
@@ -1032,11 +1145,39 @@ export default function DataTableContent({
                           <div className="flex items-end gap-2">
                             <div className="space-y-1 flex-1">
                               <Label className="text-xs text-muted-foreground">Nome do campo</Label>
-                              <Input
-                                value={newFieldName}
-                                onChange={(e) => setNewFieldName(e.target.value)}
-                                className={`h-8 text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
-                              />
+                              {(() => {
+                                const typeDef = getTypeDef(newFieldType);
+                                if (typeDef?.nameMode === 'selector' && typeDef.nameOptions) {
+                                  return (
+                                    <div className="flex gap-1.5 flex-wrap">
+                                      {typeDef.nameOptions.map((opt) => (
+                                        <button
+                                          key={opt.value}
+                                          type="button"
+                                          onClick={() => {
+                                            setNewFieldName(opt.defaultColumn);
+                                            setNewFieldSubType(opt.value);
+                                          }}
+                                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                            newFieldSubType === opt.value
+                                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                              : 'bg-background text-muted-foreground border-input hover:border-muted-foreground/30'
+                                          }`}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <Input
+                                    value={newFieldName}
+                                    onChange={(e) => setNewFieldName(e.target.value)}
+                                    className={`h-8 text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
+                                  />
+                                );
+                              })()}
                               {newFieldNameError && (
                                 <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
                               )}
@@ -1045,7 +1186,17 @@ export default function DataTableContent({
                               <Label className="text-xs text-muted-foreground">Tipo</Label>
                               <FieldTypeSelect3D
                                 value={newFieldType}
-                                onChange={setNewFieldType}
+                                onChange={(t) => {
+                                  setNewFieldType(t);
+                                  const def = getTypeDef(t);
+                                  if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
+                                    setNewFieldName(def.nameOptions[0].defaultColumn);
+                                    setNewFieldSubType(def.nameOptions[0].value);
+                                  } else {
+                                    setNewFieldName('');
+                                    setNewFieldSubType('');
+                                  }
+                                }}
                                 options={newFieldTypes}
                               />
                             </div>
