@@ -47,6 +47,7 @@ export const ViewerConfigSchema = z.object({
     autoDetect: z.boolean().default(true),
     manualGroups: z.array(ManualGroupSchema).default([]),
     secondaryColumn: z.string().nullable().default(null),
+    categoryIcons: z.record(z.string(), z.string()).default({}),
   }).optional(),
   card: z.object({
     size: z.enum(['sm', 'md', 'lg']).default('md'),

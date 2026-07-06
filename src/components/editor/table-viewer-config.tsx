@@ -37,6 +37,9 @@ export default function TableViewerConfig({
   const [activeSection, setActiveSection] = useState<string>('header');
   const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
   const [tableIcon, setTableIcon] = useState<string | null>(null);
+  const [items, setItems] = useState<Record<string, unknown>[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const itemsCache = useRef<Record<string, unknown>[] | null>(null);
   const configCache = useRef<ViewerConfig | null>(null);
 
   const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
@@ -104,6 +107,17 @@ export default function TableViewerConfig({
     }
   }, [table]);
 
+  const fetchItems = useCallback(async (tid: string) => {
+    if (itemsCache.current) { setItems(itemsCache.current); return; }
+    setItemsLoading(true);
+    const { data } = await supabase.from(table).select('*').eq('tenant_id', tid);
+    if (data) {
+      itemsCache.current = data as Record<string, unknown>[];
+      setItems(data as Record<string, unknown>[]);
+    }
+    setItemsLoading(false);
+  }, [table]);
+
   useEffect(() => {
     setLoading(true);
     configCache.current = null;
@@ -119,11 +133,12 @@ export default function TableViewerConfig({
           setTenantId(tenant.id);
           fetchConfig(tenant.id);
           fetchColumns(tenant.id);
+          fetchItems(tenant.id);
         } else {
           setLoading(false);
         }
       });
-  }, [slug, table, fetchConfig, fetchColumns]);
+  }, [slug, table, fetchConfig, fetchColumns, fetchItems]);
 
   const handleSave = async () => {
     if (!tenantId) return;
@@ -231,8 +246,9 @@ export default function TableViewerConfig({
               columns={columns}
               slug={slug}
               tableIcon={s.id === 'header' ? tableIcon : undefined}
-              tenantId={s.id === 'header' ? (tenantId ?? undefined) : undefined}
+              tenantId={tenantId ?? undefined}
               onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
+              {...(s.id === 'categorization' ? { items, itemsLoading } : {})}
             />
           );
         })}
