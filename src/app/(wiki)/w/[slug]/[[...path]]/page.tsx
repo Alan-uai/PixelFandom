@@ -39,7 +39,7 @@ export default function WikiPage() {
 
   const tenant = wiki?.tenant;
   const articles = wiki?.articles;
-  const tenantTheme = (tenant?.theme as Record<string, unknown>) || {};
+  const tenantTheme = useMemo(() => (tenant?.theme as Record<string, unknown>) || {}, [tenant?.theme]);
   const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
   const gameTableListingDisplay = useMemo(() => (tenantTheme.game_table_listing_display as Record<string, unknown>) || {}, [tenantTheme]);

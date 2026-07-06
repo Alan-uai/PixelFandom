@@ -7,6 +7,7 @@ import { supabase } from '@/supabase';
 import { FileText, Calendar, ArrowUp, MessageCircle, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import type { ArticleFeedConfig, ArticleSortBy } from '../types';
+import { renderMarkdown } from '@/lib/content-utils';
 
 const sortLabels: Record<ArticleSortBy, { label: string; icon: React.ElementType }> = {
   recent: { label: 'Recentes', icon: Calendar },
@@ -186,7 +187,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
             <div className="min-w-0 flex-1">
               <span className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{article.title}</span>
               {showSummaries && article.summary && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{article.summary}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 [&_*]:inline [&_br]:hidden" dangerouslySetInnerHTML={{ __html: renderMarkdown(article.summary) }} />
               )}
               <div className="flex items-center gap-3 mt-1.5">
                 {article.updated_at && (

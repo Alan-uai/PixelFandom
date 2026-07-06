@@ -38,6 +38,13 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error === 'auth_failed') {
+      toast({ variant: 'destructive', title: 'Falha na autenticação', description: 'Não foi possível fazer login. O provedor pode não estar configurado ou a permissão foi negada.' });
+    }
+  }, [toast]);
+
+  useEffect(() => {
     if (!redirectTo || hasRedirected.current) return;
 
     function redirectWithTokens(session: any, target: string) {

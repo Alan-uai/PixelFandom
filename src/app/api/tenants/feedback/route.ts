@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
     const total = totalRes.count || 0;
     const positive = positiveRes.count || 0;
     const negative = negativeRes.count || 0;
-    const positiveRate = total > 0 ? Math.round((positive / total) * 100) : 0;
-    const negativeRate = total > 0 ? Math.round((negative / total) * 100) : 0;
+    const withFeedback = positive + negative;
+    const positiveRate = withFeedback > 0 ? Math.round((positive / withFeedback) * 100) : 0;
+    const negativeRate = withFeedback > 0 ? Math.round((negative / withFeedback) * 100) : 0;
 
     const modelMap = new Map<string, { total: number; positive: number; negative: number }>();
     (byModelRes.data || []).forEach((row: any) => {

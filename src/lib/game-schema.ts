@@ -221,3 +221,46 @@ export function invalidateCache(): void {
   cachedSchema = null;
   cacheTime = 0;
 }
+
+export function invalidateSchemaCache(): void {
+  cachedSchema = null;
+  cacheTime = 0;
+}
+
+export function addColumnToCachedSchema(tableName: string, column: ColumnInfo): void {
+  if (!cachedSchema) return;
+  const table = cachedSchema.tables.find((t) => t.table_name === tableName);
+  if (table) {
+    const existing = table.columns.findIndex((c) => c.column_name === column.column_name);
+    if (existing >= 0) {
+      table.columns[existing] = column;
+    } else {
+      table.columns.push(column);
+    }
+  } else {
+    cachedSchema.tables.push({ table_name: tableName, columns: [column] });
+  }
+}
+
+export function dropColumnFromCachedSchema(tableName: string, columnName: string): void {
+  if (!cachedSchema) return;
+  const table = cachedSchema.tables.find((t) => t.table_name === tableName);
+  if (table) {
+    table.columns = table.columns.filter((c) => c.column_name !== columnName);
+  }
+}
+
+export function addTableToCachedSchema(tableName: string, columns: ColumnInfo[]): void {
+  if (!cachedSchema) return;
+  const existing = cachedSchema.tables.find((t) => t.table_name === tableName);
+  if (existing) {
+    existing.columns = columns;
+  } else {
+    cachedSchema.tables.push({ table_name: tableName, columns });
+  }
+}
+
+export function removeTableFromCachedSchema(tableName: string): void {
+  if (!cachedSchema) return;
+  cachedSchema.tables = cachedSchema.tables.filter((t) => t.table_name !== tableName);
+}

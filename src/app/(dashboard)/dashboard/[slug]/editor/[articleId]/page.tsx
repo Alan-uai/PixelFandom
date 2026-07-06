@@ -15,7 +15,7 @@ import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
-import { extractTextFromContent } from '@/lib/content-utils';
+import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,15 +33,22 @@ import { supabase } from '@/supabase';
 import { RealtimeCursors } from '@/components/editor/realtime-cursors';
 import { RealtimeIndicator } from '@/components/editor/realtime-indicator';
 
+const protocolRegex = /^(https?:\/\/|\/)/;
+const urlOrEmpty = z.string().max(2048).optional().or(z.literal(''));
+const urlSafe = (msg: string) => urlOrEmpty.refine(
+  (v) => !v || protocolRegex.test(v),
+  { message: msg }
+);
+
 const articleSchema = z.object({
-  title: z.string().min(3, 'O título é obrigatório.'),
-  summary: z.string().min(10, 'O resumo é obrigatório.'),
-  content: z.string().min(20, 'O conteúdo é obrigatório.'),
-  tags: z.string().min(1, 'Pelo menos uma tag é necessária.'),
-  imageUrl: z.string().optional(),
-  bannerImage: z.string().optional(),
-  ogImage: z.string().optional(),
-  tables: z.string().optional(),
+  title: z.string().min(3, 'O título é obrigatório.').max(500, 'Título muito longo.'),
+  summary: z.string().min(10, 'O resumo é obrigatório.').max(5000, 'Resumo muito longo.'),
+  content: z.string().min(20, 'O conteúdo é obrigatório.').max(500000, 'Conteúdo muito longo.'),
+  tags: z.string().min(1, 'Pelo menos uma tag é necessária.').max(2000, 'Tags muito longas.'),
+  imageUrl: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
+  bannerImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
+  ogImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
+  tables: z.string().max(500000, 'JSON muito grande.').optional(),
 });
 
 type ArticleFormData = z.infer<typeof articleSchema>;
@@ -377,8 +384,14 @@ function EditPageContent() {
     if (values.tables) {
       try {
         parsedTables = JSON.parse(values.tables);
+        if (typeof parsedTables !== 'object' || parsedTables === null) {
+          throw new Error('JSON deve ser um objeto ou array');
+        }
       } catch (e) {
-        toast({ variant: 'destructive', title: 'Erro de JSON', description: 'A estrutura JSON das tabelas é inválida.' });
+        const msg = e instanceof SyntaxError
+          ? 'O JSON das tabelas é inválido. Verifique a sintaxe.'
+          : 'A estrutura JSON das tabelas é inválida.';
+        toast({ variant: 'destructive', title: 'Erro de JSON', description: msg });
         throw e;
       }
     }
@@ -392,14 +405,14 @@ function EditPageContent() {
 
     const dataToSave = {
       id: articleId,
-      title: values.title,
+      title: values.title.trim(),
       slug,
-      summary: values.summary,
+      summary: values.summary.trim(),
       content: values.content,
-      tags: values.tags.split(',').map(tag => tag.trim()),
-      image_url: values.imageUrl || null,
-      banner_image: values.bannerImage || null,
-      og_image: values.ogImage || null,
+      tags: values.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      image_url: values.imageUrl ? sanitizeUrl(values.imageUrl.trim()) : null,
+      banner_image: values.bannerImage ? sanitizeUrl(values.bannerImage.trim()) : null,
+      og_image: values.ogImage ? sanitizeUrl(values.ogImage.trim()) : null,
       tables: parsedTables,
       tenant_id: tenantId,
       created_at: isNewArticle ? now : article?.created_at,
@@ -597,8 +610,8 @@ function EditPageContent() {
                     <FormControl>
                       <TiptapEditor
                         content={field.value}
-                        onChange={(html, json) => {
-                          field.onChange(json);
+                        onChange={(text) => {
+                          field.onChange(text);
                         }}
                         placeholder="Escreva o conteúdo do artigo..."
                         articleId={articleId}

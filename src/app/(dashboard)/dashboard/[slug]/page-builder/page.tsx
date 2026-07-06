@@ -54,7 +54,7 @@ function PageBuilderPageInner() {
 
   const isWidgets = pageType === 'widgets';
   const cacheKey = !isWidgets && tenantId ? `page-layout:${tenantId}:${pageType}` : null;
-  const { data: layoutData, loading } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
+  const { data: layoutData, loading, error: layoutError } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
     cacheKey,
     async () => {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
@@ -64,10 +64,12 @@ function PageBuilderPageInner() {
   );
 
   useEffect(() => {
-    if (!layoutData) return;
-    setLayout(layoutData);
+    if (!layoutData && loading) return;
+    if (layoutData) {
+      setLayout(layoutData);
+    }
     setLoadedPageType(pageType);
-  }, [layoutData, pageType]);
+  }, [layoutData, loading, pageType]);
 
   const handleTypeChange = (type: string) => {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);
@@ -140,6 +142,10 @@ function PageBuilderPageInner() {
             onRegisterSave={registerWidgetsSave}
             onDirtyChange={setIsDirty}
           />
+        ) : layoutError ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-destructive text-sm">Erro ao carregar layout: {layoutError.message}</p>
+          </div>
         ) : loading || loadedPageType !== pageType ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

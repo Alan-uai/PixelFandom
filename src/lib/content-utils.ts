@@ -1,3 +1,7 @@
+import { micromark } from 'micromark';
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
+import { sanitizeHtml } from './sanitize';
+
 export function extractTextFromContent(content: string | null | undefined): string {
   if (!content) return '';
 
@@ -54,4 +58,46 @@ export function parseContentToJson(content: string | null): Record<string, unkno
   } catch {
     return null;
   }
+}
+
+export function renderMarkdown(text: string): string {
+  if (!text) return '';
+  try {
+    const html = micromark(text, {
+      allowDangerousHtml: true,
+      extensions: [gfmTable()],
+      htmlExtensions: [gfmTableHtml()],
+    });
+    return sanitizeHtml(html);
+  } catch {
+    return escapeHtml(text);
+  }
+}
+
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+export function sanitizeJsonString(input: string): string {
+  if (!input) return input;
+  try {
+    const parsed = JSON.parse(input);
+    return JSON.stringify(parsed);
+  } catch {
+    return '';
+  }
+}
+
+export function sanitizeUrl(input: string): string {
+  if (!input) return input;
+  const trimmed = input.trim();
+  if (/^(javascript|data|vbscript):/i.test(trimmed)) {
+    return '#';
+  }
+  return trimmed;
 }

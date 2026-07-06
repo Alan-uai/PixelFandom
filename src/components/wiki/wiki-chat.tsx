@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
@@ -147,11 +148,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           setChatUnavailable('Chat indisponível ou desativado. Entre em contato com o dono da Wiki para mais informações.');
         } else if (tenant.ai_config) {
           const cfg = tenant.ai_config as Record<string, unknown>;
-          const hasKey = !!(cfg.custom_api_key || cfg.gemini_custom_api_key);
           if (cfg.bot_logo) setBotLogo(cfg.bot_logo as string);
-          if (!hasKey && !tenant.ai_config) {
-            setChatUnavailable('Chat indisponível ou desativado. Entre em contato com o dono da Wiki para mais informações.');
-          }
         }
       } catch {
         if (!cancelled) setChatUnavailable('Erro ao verificar disponibilidade do chat.');
@@ -464,7 +461,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           {msg.role === 'assistant' && (
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
               {botLogo ? (
-                <img src={botLogo} alt="" className="h-full w-full object-cover" />
+                <Image src={botLogo} alt="" width={32} height={32} className="h-full w-full object-cover" unoptimized />
               ) : (
                 <Bot className="h-4 w-4 text-primary" />
               )}
@@ -489,7 +486,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           {msg.role === 'user' && (
             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
               {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
-                <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" className="h-full w-full object-cover" />
+                <Image src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" width={32} height={32} className="h-full w-full object-cover" unoptimized />
               ) : (
                 <User className="h-4 w-4 text-muted-foreground" />
               )}
@@ -587,7 +584,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
                 {msg.role === 'assistant' && (
                   <div className="h-6 w-6 shrink-0 mt-1 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
                     {botLogo ? (
-                      <img src={botLogo} alt="" className="h-full w-full object-cover" />
+                      <Image src={botLogo} alt="" width={24} height={24} className="h-full w-full object-cover" unoptimized />
                     ) : (
                       <Bot className="h-4 w-4 text-primary" />
                     )}
@@ -612,7 +609,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
                 {msg.role === 'user' && (
                   <div className="h-6 w-6 shrink-0 mt-1 rounded-full overflow-hidden bg-muted flex items-center justify-center">
                     {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
-                      <img src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" className="h-full w-full object-cover" />
+                      <Image src={user.user_metadata.avatar_url || user.user_metadata.picture} alt="" width={24} height={24} className="h-full w-full object-cover" unoptimized />
                     ) : (
                       <User className="h-4 w-4 text-muted-foreground" />
                     )}

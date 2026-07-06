@@ -209,13 +209,11 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       }
     }
 
-    // Use viewerConfig categorization column if set
+    // Use viewerConfig categorization column if set — no data check needed for explicit choice
     let categoryColumn: string | null = null;
     const catConfig = viewerConfig?.categorization;
     if (catConfig?.enabled !== false && catConfig?.column && catConfig.column !== 'none') {
-      if (columnValues[catConfig.column]) {
-        categoryColumn = catConfig.column;
-      }
+      categoryColumn = catConfig.column;
     }
 
     // Auto-detect category column (priority order)

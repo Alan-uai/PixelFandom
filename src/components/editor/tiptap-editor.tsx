@@ -34,7 +34,7 @@ import { MediaLibrary } from '@/components/ui/media-library';
 
 type TiptapEditorProps = {
   content: string;
-  onChange: (html: string, json: string) => void;
+  onChange: (text: string) => void;
   placeholder?: string;
   articleId?: string;
   tenantId?: string;
@@ -55,9 +55,8 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
     ],
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      const json = JSON.stringify(editor.getJSON());
-      onChange(html, json);
+      const text = editor.getText();
+      onChange(text);
     },
     editorProps: {
       attributes: {

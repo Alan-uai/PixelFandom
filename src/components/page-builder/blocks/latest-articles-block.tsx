@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { FileText, Calendar } from 'lucide-react';
+import { renderMarkdown } from '@/lib/content-utils';
 
 const demoArticles = [
   { title: 'Introdução ao Next.js 15', slug: 'intro-nextjs-15', summary: 'Conheça as novidades da nova versão do framework React.', date: '15 maio 2026', imageUrl: '' },
@@ -87,7 +88,7 @@ export function LatestArticlesBlock({ config, tenantId }: { config: Record<strin
                   <div className="min-w-0">
                     <span className="font-medium text-sm line-clamp-2">{article.title}</span>
                     {showSummaries && article.summary && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{article.summary}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 [&_*]:inline [&_br]:hidden" dangerouslySetInnerHTML={{ __html: renderMarkdown(article.summary) }} />
                     )}
                     {article.date && (
                       <p className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">

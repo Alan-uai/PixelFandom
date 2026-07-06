@@ -32,7 +32,7 @@ export default function AiFeedbackPage() {
   const slug = params.slug as string;
   const { toast } = useToast();
 
-  const { data: stats, loading } = useCachedData<FeedbackStats>(
+  const { data: stats, loading, error: statsError } = useCachedData<FeedbackStats>(
     `ai-feedback:${slug}`,
     async () => {
       const res = await fetch(`/api/tenants/feedback?slug=${slug}`);
@@ -58,6 +58,15 @@ export default function AiFeedbackPage() {
       toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar.' });
     }
   };
+
+  if (statsError) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto text-center py-20">
+        <p className="text-destructive font-medium">Erro ao carregar feedback.</p>
+        <p className="text-sm text-muted-foreground mt-1">{statsError.message}</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

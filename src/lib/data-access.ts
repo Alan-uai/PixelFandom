@@ -1,5 +1,7 @@
-import type { GameSchema } from './game-schema';
-import { findLabelColumn } from './game-schema';
+import type { ColumnInfo } from './game-schema';
+import { findLabelColumn, invalidateSchemaCache, addColumnToCachedSchema, dropColumnFromCachedSchema, addTableToCachedSchema, removeTableFromCachedSchema } from './game-schema';
+import { cacheNotify, cacheNotifyAll, cacheSubscribe } from './cache-registry';
+export { cacheSubscribe };
 
 export interface CatalogEntry {
   table_name: string;
@@ -31,6 +33,12 @@ export interface SearchResult {
   match_type: string;
 }
 
+// ── Cache version counter ──
+let _cacheVersion = 0;
+export function getCacheVersion(): number { return _cacheVersion; }
+function bumpVersion() { _cacheVersion++; }
+
+// ── Global cache ──
 const cache = new Map<string, unknown>();
 
 function getCached<T>(key: string): T | undefined {
@@ -51,6 +59,7 @@ export function updateCachedCatalogEntry(
   if (cached) {
     const entry = cached.find(e => e.table_name === tableName);
     if (entry) Object.assign(entry, updates);
+    cacheNotify(cacheKey);
   }
 }
 
@@ -62,7 +71,89 @@ export function invalidateDataCache(pattern?: string): void {
   } else {
     cache.clear();
   }
-  cachedSchema = null;
+  invalidateSchemaCache();
+  bumpVersion();
+  cacheNotifyAll();
+}
+
+// ── Schema mutation helpers (update cache in-place, no invalidation) ──
+export async function cacheAddColumn(
+  tenantSlug: string,
+  tableName: string,
+  columnName: string,
+  dataType: string,
+): Promise<void> {
+  const colInfo: ColumnInfo = {
+    column_name: columnName,
+    data_type: dataType,
+    is_nullable: true,
+    column_default: null,
+    is_system: false,
+  };
+  addColumnToCachedSchema(tableName, colInfo);
+
+  const columnsKey = `columns:${tableName}`;
+  const cached = getCached<ColumnInfo[]>(columnsKey);
+  if (cached) {
+    cached.push(colInfo);
+    cacheNotify(columnsKey);
+  }
+
+  bumpVersion();
+}
+
+export async function cacheDropColumn(
+  tenantSlug: string,
+  tableName: string,
+  columnName: string,
+): Promise<void> {
+  dropColumnFromCachedSchema(tableName, columnName);
+
+  const columnsKey = `columns:${tableName}`;
+  const cached = getCached<ColumnInfo[]>(columnsKey);
+  if (cached) {
+    const idx = cached.findIndex((c) => c.column_name === columnName);
+    if (idx >= 0) cached.splice(idx, 1);
+    cacheNotify(columnsKey);
+  }
+
+  bumpVersion();
+}
+
+export async function cacheAddTable(
+  tableName: string,
+  _tenantId: string,
+): Promise<void> {
+  const supabase = await getSupabase();
+  const { data } = await supabase.rpc('get_table_columns', { p_table: tableName });
+  if (data && (data as any).ok) {
+    const cols = (data as any).columns as ColumnInfo[];
+    addTableToCachedSchema(tableName, cols);
+    const columnsKey = `columns:${tableName}`;
+    setCache(columnsKey, cols);
+    cacheNotify(columnsKey);
+    bumpVersion();
+  }
+}
+
+export async function cacheRemoveTable(
+  tenantSlug: string,
+  tableName: string,
+): Promise<void> {
+  removeTableFromCachedSchema(tableName);
+
+  const columnsKey = `columns:${tableName}`;
+  cache.delete(columnsKey);
+
+  const catKey = `catalog:${tenantSlug}:counts`;
+  const cat = getCached<CatalogEntry[]>(catKey);
+  if (cat) {
+    const idx = cat.findIndex((e) => e.table_name === tableName);
+    if (idx >= 0) cat.splice(idx, 1);
+    cacheNotify(catKey);
+  }
+
+  bumpVersion();
 }
 
 async function getSupabase() {
@@ -131,7 +222,7 @@ export async function getTableItems(
   if (!tenantId) return { items: [], labelCol: 'name' };
 
   const schema = await getSchema();
-  const t = schema.tables.find((t) => t.table_name === tableName);
+  const t = (schema.tables as any[]).find((t: any) => t.table_name === tableName);
   const columns = t?.columns ?? [];
   const labelCol = findLabelColumn(columns);
 
@@ -149,6 +240,7 @@ export async function getTableItems(
 
   const result = { items: (data ?? []) as TableItem[], labelCol };
   setCache(cacheKey, result);
+  cacheNotify(cacheKey);
   return result;
 }
 
@@ -165,9 +257,9 @@ export async function getTableItem(
   if (!tenantId) return null;
 
   const schema = await getSchema();
-  const t = schema.tables.find((t) => t.table_name === tableName);
+  const t = (schema.tables as any[]).find((t: any) => t.table_name === tableName);
   const columns = t?.columns ?? [];
-  const hasSlugCol = columns.some((c) => c.column_name === 'slug');
+  const hasSlugCol = columns.some((c: any) => c.column_name === 'slug');
   const labelCol = findLabelColumn(columns);
 
   const supabase = await getSupabase();
@@ -247,6 +339,7 @@ export async function getTableCatalog(
   }
 
   setCache(cacheKey, entries);
+  cacheNotify(cacheKey);
   return entries;
 }
 
@@ -281,7 +374,7 @@ export async function resolveSlug(
 
   for (const t of schema.tables) {
     const columns = t.columns;
-    const hasSlug = columns.some((c) => c.column_name === 'slug');
+    const hasSlug = columns.some((c: any) => c.column_name === 'slug');
     const labelCol = findLabelColumn(columns);
     const slugColName = hasSlug ? 'slug' : labelCol;
     const slugValue = hasSlug ? slug : searchName;
@@ -304,13 +397,13 @@ export async function resolveSlug(
   return null;
 }
 
-let cachedSchema: GameSchema | null = null;
+let _cachedSchema: any = null;
 
-async function getSchema(): Promise<GameSchema> {
-  if (cachedSchema) return cachedSchema;
+async function getSchema(): Promise<any> {
+  if (_cachedSchema) return _cachedSchema;
   const { getGameSchema } = await import('./game-schema');
-  cachedSchema = await getGameSchema();
-  return cachedSchema;
+  _cachedSchema = await getGameSchema();
+  return _cachedSchema;
 }
 
 

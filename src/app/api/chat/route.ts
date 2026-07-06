@@ -393,7 +393,6 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         messages = trimMessagesToBudget(messages as any, systemContent, contextWindow) as any;
       }
       let finalText: string | null = null;
-      let hadToolCalls = false;
       const MAX_TOOL_ROUNDS = 2;
 
       for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -405,8 +404,6 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
           finalText = responseMsg?.content ?? null;
           break;
         }
-
-        hadToolCalls = true;
 
         messages.push({
           role: 'assistant',

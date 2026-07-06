@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { inferPrimaryColumns } from '@/lib/game-schema';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { invalidateDataCache } from '@/lib/data-access';
+import { invalidateDataCache, cacheSubscribe } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -38,6 +38,7 @@ import {
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
+import { sanitizeUrl } from '@/lib/content-utils';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -99,6 +100,7 @@ export default function DataTableContent({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showAddField, setShowAddField] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldNameError, setNewFieldNameError] = useState<string | null>(null);
   const [newFieldType, setNewFieldType] = useState('text');
   const [schemaBusy, setSchemaBusy] = useState(false);
   const [tableColumns, setTableColumns] = useState<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
@@ -150,62 +152,76 @@ export default function DataTableContent({
     setParentLoading(false);
   };
 
-  const rowsCache = useRef<Row[] | null>(null);
-  const columnsCache = useRef<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
-
   const label = tableLabels[table] || table;
   const primary = useMemo(() => {
     if (!tableColumns) return [];
     return inferPrimaryColumns(tableColumns);
   }, [tableColumns]);
 
-  const fetchColumns = useCallback(async () => {
+  const fetchColumns = useCallback(async (retries = 3, delay = 500) => {
     if (!tenantId) return;
-    if (columnsCache.current) { setTableColumns(columnsCache.current); return; }
+    for (let attempt = 0; attempt < retries; attempt++) {
+      const [colResult, configResult] = await Promise.all([
+        supabase.rpc('get_table_columns', { p_table: table }),
+        supabase.from('tenant_game_tables').select('viewer_config').eq('tenant_id', tenantId).eq('slug', table).maybeSingle(),
+      ]);
 
-    const [colResult, configResult] = await Promise.all([
-      supabase.rpc('get_table_columns', { p_table: table }),
-      supabase.from('tenant_game_tables').select('viewer_config').eq('tenant_id', tenantId).eq('slug', table).maybeSingle(),
-    ]);
-
-    if (configResult.data?.viewer_config) {
-      const parsed = parseViewerConfig(configResult.data.viewer_config);
-      if (parsed.uploadColumns?.length) {
-        setUploadColumns(new Set(parsed.uploadColumns));
+      if (configResult.data?.viewer_config) {
+        const parsed = parseViewerConfig(configResult.data.viewer_config);
+        if (parsed.uploadColumns?.length) {
+          setUploadColumns(new Set(parsed.uploadColumns));
+        }
       }
-    }
 
-    if (!colResult.error && colResult.data) {
-      const result = colResult.data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
-      if (result.ok) {
-        columnsCache.current = result.columns;
-        setTableColumns(result.columns);
+      if (!colResult.error && colResult.data) {
+        const result = colResult.data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
+        if (result.ok) {
+          setTableColumns(result.columns);
+          return;
+        }
       }
-    }
-  }, [table, tenantId]);
 
-  const fetchRows = useCallback(async () => {
+      // Table not found in PostgREST schema cache — retry with backoff
+      if (colResult.error?.message?.includes('Could not find the table')) {
+        if (attempt < retries - 1) {
+          await new Promise((r) => setTimeout(r, delay * (attempt + 1)));
+          continue;
+        }
+        toast({ variant: 'destructive', title: 'Erro', description: `Tabela "${table}" não encontrada.` });
+        return;
+      }
+      break;
+    }
+  }, [table, tenantId, toast]);
+
+  const fetchRows = useCallback(async (retries = 3, delay = 500) => {
     if (!tenantId) return;
-    if (rowsCache.current) { setRows(rowsCache.current); setLoading(false); return; }
     setFetchError(null);
-    const { data, error } = await supabase
-      .from(table)
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('updated_at', { ascending: false });
-    if (error) {
-      setFetchError(error.message);
-      toast({ variant: 'destructive', title: 'Erro ao carregar', description: error.message });
-    } else if (data) {
-      rowsCache.current = data as Row[];
-      setRows(data as Row[]);
+    for (let attempt = 0; attempt < retries; attempt++) {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('updated_at', { ascending: false });
+      if (!error && data) {
+        setRows(data as Row[]);
+        setLoading(false);
+        return;
+      }
+      if (error?.message?.includes('Could not find the table')) {
+        if (attempt < retries - 1) {
+          await new Promise((r) => setTimeout(r, delay * (attempt + 1)));
+          continue;
+        }
+      }
+      setFetchError(error?.message ?? 'Erro desconhecido');
+      toast({ variant: 'destructive', title: 'Erro ao carregar', description: error?.message });
+      break;
     }
     setLoading(false);
   }, [table, tenantId, toast]);
 
   useEffect(() => {
-    rowsCache.current = null;
-    columnsCache.current = null;
     setRows([]);
     setTableColumns(null);
     setLoading(true);
@@ -238,6 +254,39 @@ export default function DataTableContent({
       fetchColumns();
     }
   }, [tenantId, fetchRows, fetchColumns]);
+
+  // Realtime: re-fetch columns when cache notifies a schema change
+  useEffect(() => {
+    const unsub = cacheSubscribe(`columns:${table}`, () => {
+      fetchColumns();
+    });
+    return unsub;
+  }, [table, fetchColumns]);
+
+  // Realtime: listen to DB changes on this table
+  useEffect(() => {
+    if (!tenantId) return;
+    const channel = supabase
+      .channel(`public:${table}:changes`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter: `tenant_id=eq.${tenantId}` },
+        () => { fetchRows(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tenantId, table, fetchRows]);
+
+  useEffect(() => {
+    if (!newFieldName.trim()) { setNewFieldNameError(null); return; }
+    const slug = newFieldName.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    const existing = availableColumns.find((c) => c.column_name === slug);
+    if (existing || tableColumns?.some((c) => c.column_name === slug)) {
+      setNewFieldNameError('Já existe um campo com esse nome.');
+    } else {
+      setNewFieldNameError(null);
+    }
+  }, [newFieldName, availableColumns, tableColumns]);
 
   function isSystemColumn(col: string) {
     return systemColumns.includes(col) || col.startsWith('embedding');
@@ -300,21 +349,29 @@ export default function DataTableContent({
     setRemovedFields(new Set());
   };
 
+  const sanitizeFieldValue = (key: string, val: string): string => {
+    const trimmed = val.trim();
+    if (/url|src|link|href|image|icon/i.test(key)) {
+      return sanitizeUrl(trimmed);
+    }
+    return trimmed;
+  };
+
   const handleEditSave = async (rowId: string) => {
     setSaving(true);
     const payload: Record<string, unknown> = {};
     Object.entries(editForm).forEach(([key, val]) => {
       const original = rows.find((r) => r.id === rowId)?.[key];
       if (original !== null && original !== undefined && typeof original === 'object') {
-        try { payload[key] = JSON.parse(val); } catch { payload[key] = val; }
+        try { payload[key] = JSON.parse(val); } catch { payload[key] = sanitizeFieldValue(key, val); }
       } else if (typeof original === 'boolean') {
         payload[key] = val === 'true';
       } else if (typeof original === 'number') {
         payload[key] = val === '' ? null : Number(val);
       } else if (typeof original === 'string' || original === null || original === undefined) {
-        payload[key] = val === '' ? null : val;
+        payload[key] = val === '' ? null : sanitizeFieldValue(key, val);
       } else {
-        payload[key] = val;
+        payload[key] = sanitizeFieldValue(key, val);
       }
     });
 
@@ -323,7 +380,6 @@ export default function DataTableContent({
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       invalidateDataCache(slug);
-      rowsCache.current = null;
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
       setEditingId(null);
@@ -339,7 +395,6 @@ export default function DataTableContent({
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       invalidateDataCache(slug);
-      rowsCache.current = null;
       setRows((prev) => prev.filter((r) => r.id !== rowId));
       toast({ title: 'Registro excluído.' });
     }
@@ -355,7 +410,7 @@ export default function DataTableContent({
     setSaving(true);
     const payload: Record<string, unknown> = { tenant_id: tenantId };
     Object.entries(newForm).forEach(([key, val]) => {
-      payload[key] = val;
+      payload[key] = sanitizeFieldValue(key, val);
     });
 
     const { error } = await supabase.from(table).insert(payload).select().single();
@@ -363,7 +418,6 @@ export default function DataTableContent({
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       invalidateDataCache(slug);
-      rowsCache.current = null;
       setShowNewForm(false);
       setNewForm({});
       setSavedFeedback(true);
@@ -400,7 +454,7 @@ export default function DataTableContent({
             return next;
           });
         }
-        columnsCache.current = null;
+        fetchColumns();
         fetchRows();
       } else {
         toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao remover coluna.' });
@@ -409,7 +463,7 @@ export default function DataTableContent({
     setSchemaBusy(false);
   };
 
-  const handleAddColumn = async () => {
+  const handleAddColumn = async (applyToAll = false) => {
     const rawName = newFieldName.trim();
     if (!rawName) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para o campo.' });
@@ -453,13 +507,13 @@ export default function DataTableContent({
           const newSet = new Set(uploadColumns);
           newSet.add(colSlug);
           setUploadColumns(newSet);
-          const { data: existing } = await supabase
+          const { data: existingConfig } = await supabase
             .from('tenant_game_tables')
             .select('viewer_config')
             .eq('tenant_id', tenantId)
             .eq('slug', table)
             .maybeSingle();
-          const current = parseViewerConfig(existing?.viewer_config);
+          const current = parseViewerConfig(existingConfig?.viewer_config);
           const uploadCols = current.uploadColumns || [];
           if (!uploadCols.includes(colSlug)) {
             await supabase
@@ -470,8 +524,7 @@ export default function DataTableContent({
           }
         }
         invalidateDataCache(slug);
-        toast({ title: `Campo "${colSlug}" adicionado!` });
-        columnsCache.current = null;
+        toast({ title: `Campo "${colSlug}" criado!` });
         setShowAddField(false);
         setNewFieldName('');
         if (showNewForm) {
@@ -480,7 +533,10 @@ export default function DataTableContent({
         if (editingId) {
           setEditForm((prev) => ({ ...prev, [colSlug]: '' }));
         }
-        fetchRows();
+        fetchColumns();
+        if (applyToAll) {
+          fetchRows();
+        }
       } else {
         toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao adicionar campo.' });
       }
@@ -780,16 +836,17 @@ export default function DataTableContent({
             {showAddField ? (
               <div className="space-y-3">
                 {unusedColumns.length > 0 && (
-                  <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                  <div className="border rounded-md p-2">
                     <span className="text-xs font-medium text-muted-foreground mb-1 block">
                       Sugestões ({unusedColumns.length} disponíveis)
                     </span>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
                       {unusedColumns.map((col) => (
                         <button
                           key={col.column_name}
                           type="button"
-                          className="px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono"
+                          className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
+                          title="Clique: usar neste item apenas"
                           onClick={() => {
                             setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
                             setShowAddField(false);
@@ -809,9 +866,12 @@ export default function DataTableContent({
                     <FloatingLabelInput
                       label="Nome do campo"
                       value={newFieldName}
-                      onChange={(e) => setNewFieldName(e.target.value)}
-                      className="text-sm"
+                      onChange={(e) => { setNewFieldName(e.target.value); }}
+                      className={`text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
                     />
+                    {newFieldNameError && (
+                      <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Tipo</Label>
@@ -821,10 +881,25 @@ export default function DataTableContent({
                       options={newFieldTypes}
                     />
                   </div>
-                  <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
-                    {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                    Criar
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAddColumn(false)}
+                      disabled={schemaBusy || !!newFieldNameError}
+                      title="Criar campo e usar apenas neste item"
+                    >
+                      {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddColumn(true)}
+                      disabled={schemaBusy || !!newFieldNameError}
+                      title="Criar campo e mostrar em todos os itens"
+                    >
+                      {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlusCircle className="h-3 w-3" />}
+                    </Button>
+                  </div>
                   <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
                     <X className="h-3 w-3" />
                   </Button>
@@ -929,16 +1004,17 @@ export default function DataTableContent({
                       {showAddField ? (
                         <div className="space-y-3">
                           {unusedColumns.length > 0 && (
-                            <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                            <div className="border rounded-md p-2">
                               <span className="text-xs font-medium text-muted-foreground mb-1 block">
                                 Sugestões ({unusedColumns.length} disponíveis)
                               </span>
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
                                 {unusedColumns.map((col) => (
                                   <button
                                     key={col.column_name}
                                     type="button"
-                                    className="px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono"
+                                    className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
+                                    title="Clique: usar neste item apenas"
                                     onClick={() => {
                                       setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
                                       setShowAddField(false);
@@ -959,8 +1035,11 @@ export default function DataTableContent({
                               <Input
                                 value={newFieldName}
                                 onChange={(e) => setNewFieldName(e.target.value)}
-                                className="h-8 text-sm"
+                                className={`h-8 text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
                               />
+                              {newFieldNameError && (
+                                <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs text-muted-foreground">Tipo</Label>
@@ -970,10 +1049,25 @@ export default function DataTableContent({
                                 options={newFieldTypes}
                               />
                             </div>
-                            <Button size="sm" onClick={handleAddColumn} disabled={schemaBusy}>
-                              {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                              Criar
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAddColumn(false)}
+                                disabled={schemaBusy || !!newFieldNameError}
+                                title="Criar campo e usar apenas neste item"
+                              >
+                                {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddColumn(true)}
+                                disabled={schemaBusy || !!newFieldNameError}
+                                title="Criar campo e mostrar em todos os itens"
+                              >
+                                {schemaBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlusCircle className="h-3 w-3" />}
+                              </Button>
+                            </div>
                             <Button size="sm" variant="ghost" onClick={() => { setShowAddField(false); setNewFieldName(''); }}>
                               <X className="h-3 w-3" />
                             </Button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { CatalogEntry, TableItem, SearchResult } from '@/lib/data-access';
+import { cacheSubscribe } from '@/lib/cache-registry';
 
 type AsyncState<T> = {
   data: T | null;
@@ -14,14 +15,13 @@ type AsyncStateWithData<T> = AsyncState<T> & { refetch: () => void };
 function useDataAccess<T>(
   fetcher: () => Promise<T>,
   deps: unknown[],
+  cacheKey?: string | null,
 ): AsyncStateWithData<T> {
   const [state, setState] = useState<AsyncState<T>>({
     data: null,
     loading: true,
     error: null,
   });
-  const cacheRef = useRef<T | null>(null);
-  const depsRef = useRef<string>("");
   const mountedRef = useRef(true);
   const fetcherRef = useRef(fetcher);
   useEffect(() => {
@@ -29,33 +29,15 @@ function useDataAccess<T>(
   });
 
   const depsKey = JSON.stringify(deps);
-  useEffect(() => {
-    if (depsKey !== depsRef.current) {
-      depsRef.current = depsKey;
-      cacheRef.current = null;
-    }
-  }, [depsKey]);
 
   const execute = useCallback(() => {
-    if (cacheRef.current !== null) {
-      setState(prev => {
-        if (prev.data === cacheRef.current && !prev.loading) return prev;
-        return { data: cacheRef.current, loading: false, error: null };
-      });
-      return;
-    }
-
     let cancelled = false;
     setState((prev) => ({ ...prev, loading: true }));
 
     fetcherRef.current()
       .then((result) => {
         if (!cancelled && mountedRef.current) {
-          cacheRef.current = result;
-          setState(prev => {
-            if (prev.data === result) return prev;
-            return { data: result, loading: false, error: null };
-          });
+          setState({ data: result, loading: false, error: null });
         }
       })
       .catch((err) => {
@@ -77,8 +59,24 @@ function useDataAccess<T>(
     };
   }, [execute]);
 
+  // Subscribe to cache changes for realtime updates
+  useEffect(() => {
+    if (!cacheKey) return;
+    const unsub = cacheSubscribe(cacheKey, () => {
+      execute();
+    });
+    return unsub;
+  }, [cacheKey, execute]);
+
+  // Also subscribe to global '*' notifications
+  useEffect(() => {
+    const unsub = cacheSubscribe('*', () => {
+      execute();
+    });
+    return unsub;
+  }, [execute]);
+
   const refetch = useCallback(() => {
-    cacheRef.current = null;
     execute();
   }, [execute]);
 
@@ -89,6 +87,7 @@ export function useTableCatalog(
   tenantSlug: string | null,
   includeCounts = true,
 ) {
+  const cacheKey = tenantSlug ? `catalog:${tenantSlug}:counts` : null;
   return useDataAccess<CatalogEntry[]>(
     async () => {
       const { getTableCatalog } = await import('@/lib/data-access');
@@ -96,6 +95,7 @@ export function useTableCatalog(
       return getTableCatalog(tenantSlug, includeCounts);
     },
     [tenantSlug, includeCounts],
+    cacheKey,
   );
 }
 
@@ -103,6 +103,7 @@ export function useTableItems(
   tenantSlug: string | null,
   tableName: string | null,
 ) {
+  const cacheKey = tenantSlug && tableName ? `items:${tenantSlug}:${tableName}` : null;
   return useDataAccess<{ items: TableItem[]; labelCol: string }>(
     async () => {
       const { getTableItems } = await import('@/lib/data-access');
@@ -110,6 +111,7 @@ export function useTableItems(
       return getTableItems(tenantSlug, tableName);
     },
     [tenantSlug, tableName],
+    cacheKey,
   );
 }
 
@@ -125,6 +127,7 @@ export function useTableItem(
       return getTableItem(tenantSlug, tableName, itemSlug);
     },
     [tenantSlug, tableName, itemSlug],
+    null,
   );
 }
 
@@ -139,6 +142,7 @@ export function useSlugResolution(
       return resolveSlug(tenantSlug, slug);
     },
     [tenantSlug, slug],
+    null,
   );
 }
 
@@ -154,5 +158,6 @@ export function useSearch(
       return searchTenant(tenantSlug, query, limit);
     },
     [tenantSlug, query, limit],
+    null,
   );
 }

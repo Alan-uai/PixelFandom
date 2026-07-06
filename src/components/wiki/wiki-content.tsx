@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
+import { sanitizeHtml } from '@/lib/sanitize';
+import { escapeHtml } from '@/lib/content-utils';
 
 type WikiContentProps = {
   content: string | null;
@@ -16,9 +18,9 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
 
     const trimmed = content.trim();
 
-    // Detect TipTap JSON
+    // Detect TipTap JSON (backward compat)
     if (trimmed.startsWith('{"type":"doc"') || trimmed.startsWith('{ "type": "doc"') || trimmed.startsWith('{"type":"doc')) {
-      return renderTipTapJSON(trimmed);
+      return sanitizeHtml(renderTipTapJSON(trimmed));
     }
 
     // Detect raw JSON (non-TipTap) — from seed collection items
@@ -26,7 +28,7 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
       try {
         const parsed = JSON.parse(trimmed);
         if (parsed && typeof parsed === 'object') {
-          return renderRawJson(parsed);
+          return sanitizeHtml(renderRawJson(parsed));
         }
       } catch {
         // not JSON, fall through
@@ -35,7 +37,8 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
 
     // Default: render as markdown
     try {
-      return micromark(content, { allowDangerousHtml: true, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+      const html = micromark(content, { allowDangerousHtml: true, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+      return sanitizeHtml(html);
     } catch {
       return `<p>${escapeHtml(content)}</p>`;
     }
@@ -291,11 +294,4 @@ function renderTierlistBlock(node: any): string {
   return parts.join('\n');
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+

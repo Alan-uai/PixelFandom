@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
   // Discord/Google OAuth error (user denied, etc.)
   if (errorDescription) {
     console.error('[Auth callback] OAuth error:', errorDescription);
-    return NextResponse.redirect(`${origin}?error=${encodeURIComponent(errorDescription)}`);
+    return NextResponse.redirect(`${origin}?error=auth_failed`);
   }
 
   if (code) {
     let redirectUrl: URL | null = null;
     if (redirectTo) {
-      try { redirectUrl = new URL(redirectTo); } catch {/* noop */}
+      try { redirectUrl = new URL(redirectTo); } catch {/* noop */ console.warn('[Auth callback] Invalid redirect_to:', redirectTo); }
     }
     const isExternal = redirectUrl !== null && redirectUrl.origin !== origin;
 
@@ -56,7 +56,9 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    console.error('[Auth callback] exchangeCodeForSession error:', error);
+    console.error('[Auth callback] exchangeCodeForSession error:', error.message, 'code:', error.status);
+  } else {
+    console.warn('[Auth callback] No code received. searchParams:', Object.fromEntries(searchParams.entries()));
   }
 
   return NextResponse.redirect(`${origin}?error=auth_failed`);

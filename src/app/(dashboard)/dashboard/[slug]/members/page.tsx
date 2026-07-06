@@ -36,7 +36,7 @@ export default function WikiMembersPage() {
   const slug = params.slug as string;
   const { user } = useUser();
   const { toast } = useToast();
-  const [members, setMembers] = useState<(TenantMember & { email?: string })[]>([]);
+  const [members, setMembers] = useState<(TenantMember & { display_name?: string; email?: string; avatar_url?: string })[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -57,7 +57,7 @@ export default function WikiMembersPage() {
 
   const cacheKey = tenantId ? `members:${tenantId}` : null;
   const { data: cacheData, loading, error: membersError } = useCachedData<{
-    members: (TenantMember & { email?: string })[];
+    members: (TenantMember & { display_name?: string; email?: string; avatar_url?: string })[];
     invites: InviteRow[];
   }>(
     cacheKey,
@@ -67,8 +67,25 @@ export default function WikiMembersPage() {
         fetch(`/api/invitations?tenant_id=${tenantId!}`),
       ]);
       const invitesData = invitesRes.ok ? await invitesRes.json() : [];
+      const rawMembers: (TenantMember & { display_name?: string; email?: string; avatar_url?: string })[] = membersRes.data || [];
+      const userIds = rawMembers.map((m) => m.user_id).filter(Boolean);
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, email, avatar_url')
+          .in('id', userIds);
+        const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+        for (const m of rawMembers) {
+          const p = profileMap.get(m.user_id);
+          if (p) {
+            m.display_name = p.display_name || undefined;
+            m.email = p.email || undefined;
+            m.avatar_url = p.avatar_url || undefined;
+          }
+        }
+      }
       return {
-        members: membersRes.data || [],
+        members: rawMembers,
         invites: invitesData || [],
       };
     }
@@ -236,7 +253,7 @@ export default function WikiMembersPage() {
                     <div className="flex items-center gap-3">
                       {isOwner ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Shield className="h-5 w-5 text-muted-foreground" />}
                       <div>
-                        <p className="text-sm font-medium">{isSelf ? 'Você' : member.user_id.slice(0, 8)}</p>
+                        <p className="text-sm font-medium">{isSelf ? 'Você' : member.display_name || member.email || member.user_id.slice(0, 8)}</p>
                         <p className="text-xs text-muted-foreground">{roleLabels[member.role] || member.role}</p>
                       </div>
                     </div>

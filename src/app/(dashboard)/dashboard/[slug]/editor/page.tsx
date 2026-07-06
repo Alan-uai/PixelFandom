@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/supabase';
-import { useCachedData } from '@/hooks/use-cached-data';
-import { useSiteCache } from '@/lib/site-cache';
+import { useTableCatalog } from '@/hooks/use-data-access';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -22,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Plus, Edit, Trash2, FileText,
-  BookOpen, Clock,
+  BookOpen, Clock, Eye, Database,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import TableViewerConfig from '@/components/editor/table-viewer-config';
@@ -30,7 +29,7 @@ import { translateGameTerm } from '@/lib/translate';
 import { invalidateDataCache } from '@/lib/data-access';
 import { TableIconDisplay } from '@/lib/table-icons';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
-import { Eye, Database } from 'lucide-react';
+import { renderMarkdown } from '@/lib/content-utils';
 
 interface Article {
   id: string;
@@ -85,44 +84,25 @@ export default function EditorArticlesPage() {
   const [creatingArticle, setCreatingArticle] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data: tenantData } = useCachedData<{ id: string }>(
-    `tenant-id:${slug}`,
-    async () => {
-      const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
-      return data!;
-    }
-  );
-  const editorTenantId = tenantData?.id ?? null;
+  useEffect(() => {
+    supabase.from('tenants').select('id').eq('slug', slug).single().then(({ data }) => {
+      if (data) setTenantId(data.id);
+    });
+  }, [slug]);
 
   useEffect(() => {
-    if (editorTenantId) setTenantId(editorTenantId);
-  }, [editorTenantId]);
+    if (!tenantId) return;
+    supabase
+      .from('wiki_articles')
+      .select('id, title, summary, tags, created_at, status, scheduled_at')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setArticles(data as Article[]);
+      });
+  }, [tenantId]);
 
-  const { data: cachedArticles, loading: articlesLoading } = useCachedData<Article[]>(
-    editorTenantId ? `articles:${editorTenantId}` : null,
-    async () => {
-      const { data } = await supabase
-        .from('wiki_articles')
-        .select('id, title, summary, tags, created_at, status, scheduled_at')
-        .eq('tenant_id', editorTenantId!)
-        .order('created_at', { ascending: false });
-      return data || [];
-    }
-  );
-  const articlesCache = useRef<Article[] | null>(null);
-
-  const { data: cachedCatalog, loading: catalogLoading } = useCachedData<TenantTable[]>(
-    editorTenantId ? `catalog:${editorTenantId}` : null,
-    async () => {
-      const { data } = await supabase
-        .from('tenant_game_tables')
-        .select('table_name, display_label, parent_table, icon')
-        .eq('tenant_id', editorTenantId!)
-        .order('created_at');
-      return data || [];
-    }
-  );
-  const catalogCache = useRef<TenantTable[] | null>(null);
+  const { data: catalogData, loading: catalogLoading } = useTableCatalog(slug);
 
   const allTabs = [
     { key: 'articles', label: 'Artigos', iconNode: <BookOpen className="h-3.5 w-3.5 shrink-0" /> },
@@ -146,20 +126,12 @@ export default function EditorArticlesPage() {
   };
 
   useEffect(() => {
-    if (cachedArticles) {
-      articlesCache.current = cachedArticles;
-      setArticles(cachedArticles);
+    if (catalogData) {
+      setCatalog(catalogData as TenantTable[]);
     }
-  }, [cachedArticles]);
+  }, [catalogData]);
 
-  useEffect(() => {
-    if (cachedCatalog) {
-      catalogCache.current = cachedCatalog;
-      setCatalog(cachedCatalog);
-    }
-  }, [cachedCatalog]);
-
-  const loading = !editorTenantId || articlesLoading || catalogLoading;
+  const loading = !tenantId || catalogLoading;
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este artigo?')) return;
@@ -169,8 +141,6 @@ export default function EditorArticlesPage() {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       invalidateDataCache(slug);
-      useSiteCache.getState().invalidate(`articles:${tenantId}`);
-      articlesCache.current = null;
       setArticles((prev) => prev.filter((a) => a.id !== id));
       toast({ title: 'Artigo excluído.' });
     }
@@ -226,13 +196,6 @@ export default function EditorArticlesPage() {
           .eq('tenant_id', tenantId)
           .eq('table_name', slug);
         invalidateDataCache(slug);
-        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
-        const { data: cat } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table, icon')
-          .eq('tenant_id', tenantId)
-          .order('created_at');
-        if (cat) setCatalog(cat);
         setShowCreateDialog(false);
         setActiveTab(slug);
         toast({ title: `Tabela "${label}" adicionada!` });
@@ -273,13 +236,6 @@ export default function EditorArticlesPage() {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
         invalidateDataCache(slug);
-        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
-        const { data: cat } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table, icon')
-          .eq('tenant_id', tenantId)
-          .order('created_at');
-        if (cat) setCatalog(cat);
         setRenameTable(null);
         toast({ title: 'Tabela atualizada!' });
       } else {
@@ -307,13 +263,6 @@ export default function EditorArticlesPage() {
       const result = data as { ok: boolean; error?: string; dropped_table?: boolean; dropped_columns?: string[] };
       if (result.ok) {
         invalidateDataCache(slug);
-        useSiteCache.getState().invalidate(`catalog:${tenantId}`);
-        const { data: cat } = await supabase
-          .from('tenant_game_tables')
-          .select('table_name, display_label, parent_table, icon')
-          .eq('tenant_id', tenantId)
-          .order('created_at');
-        if (cat) setCatalog(cat);
         if (activeTab === deleteTable) setActiveTab('articles');
 
         const msgs: string[] = [];
@@ -392,9 +341,6 @@ export default function EditorArticlesPage() {
     }
 
     invalidateDataCache(slug);
-    useSiteCache.getState().invalidate(`articles:${tenantId}`);
-    articlesCache.current = null;
-
     setShowCreateArticleDialog(false);
     setCreateArticleTitle('');
     setScheduleEnabled(false);
@@ -514,9 +460,10 @@ export default function EditorArticlesPage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{article.title}</p>
                             {article.summary && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {article.summary}
-                              </p>
+                              <p
+                                className="text-sm text-muted-foreground mt-1 line-clamp-2 [&_*]:inline [&_br]:hidden"
+                                dangerouslySetInnerHTML={{ __html: renderMarkdown(article.summary) }}
+                              />
                             )}
                             <div className="flex items-center gap-2 mt-2">
                               {article.tags && article.tags.length > 0 && (
