@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Plus, Edit, Trash2, FileText,
-  BookOpen, Clock, Eye, Database,
+  BookOpen, Clock, Eye, Database, Minus,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import TableViewerConfig from '@/components/editor/table-viewer-config';
@@ -558,6 +558,17 @@ export default function EditorArticlesPage() {
                   <Eye className="h-3.5 w-3.5" />
                   Exibição
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatalog((prev) => prev.filter((t) => t.table_name !== key));
+                    if (activeTab === key) setActiveTab('articles');
+                  }}
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent transition-colors"
+                  title="Remover esta aba do editor"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
               </div>
               {subTab === 'dados' ? (
                 <DataTableContent
@@ -567,6 +578,9 @@ export default function EditorArticlesPage() {
                   parentTable={tableInfo?.parent_table ?? null}
                   onRename={() => openRenameDialog(key, label, tableInfo?.icon || undefined)}
                   onDelete={() => openDeleteDialog(key, label)}
+                  onRecover={(newName) => {
+                    setActiveTab(newName);
+                  }}
                 />
               ) : (
                 <TableViewerConfig

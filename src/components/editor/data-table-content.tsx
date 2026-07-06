@@ -81,6 +81,7 @@ export default function DataTableContent({
   parentTable,
   onRename,
   onDelete,
+  onRecover,
 }: {
   slug: string;
   table: string;
@@ -88,6 +89,7 @@ export default function DataTableContent({
   parentTable?: string | null;
   onRename?: () => void;
   onDelete?: () => void;
+  onRecover?: (newTableName: string) => void;
 }) {
   const { toast } = useToast();
 
@@ -101,6 +103,9 @@ export default function DataTableContent({
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [tableNotFoundError, setTableNotFoundError] = useState(false);
+  const [availableDbTables, setAvailableDbTables] = useState<{ table_name: string; schema: string }[]>([]);
+  const [recovering, setRecovering] = useState(false);
   const [showAddField, setShowAddField] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldNameError, setNewFieldNameError] = useState<string | null>(null);
@@ -184,6 +189,7 @@ export default function DataTableContent({
       if (!colResult.error && colResult.data) {
         const result = colResult.data as { ok: boolean; columns: { column_name: string; data_type: string; is_nullable: boolean }[] };
         if (result.ok) {
+          setTableNotFoundError(false);
           setTableColumns(result.columns);
           return;
         }
@@ -195,7 +201,8 @@ export default function DataTableContent({
           await new Promise((r) => setTimeout(r, delay * (attempt + 1)));
           continue;
         }
-        toast({ variant: 'destructive', title: 'Erro', description: `Tabela "${table}" não encontrada.` });
+        setTableNotFoundError(true);
+        toast({ variant: 'destructive', title: 'Erro', description: `Tabela "${table}" não encontrada no banco.` });
         return;
       }
       break;
@@ -345,10 +352,8 @@ export default function DataTableContent({
     setEditingId(row.id as string);
     const form: Record<string, string> = {};
     Object.entries(row).forEach(([key, val]) => {
-      if (!isSystemColumn(key)) {
-        form[key] = val !== null && val !== undefined
-          ? typeof val === 'object' ? JSON.stringify(val) : String(val)
-          : '';
+      if (!isSystemColumn(key) && val != null && val !== '') {
+        form[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
       }
     });
     setEditForm(form);
@@ -406,6 +411,11 @@ export default function DataTableContent({
       }
     });
 
+    // Set removed fields to null so they clear from DB
+    for (const col of removedFields) {
+      payload[col] = null;
+    }
+
     const { error } = await supabase.from(table).update(payload).eq('id', rowId);
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
@@ -414,6 +424,7 @@ export default function DataTableContent({
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
       setEditingId(null);
+      setRemovedFields(new Set());
       fetchRows();
     }
     setSaving(false);
@@ -503,6 +514,49 @@ export default function DataTableContent({
       }
     }
     setSchemaBusy(false);
+  };
+
+  const handleFindTable = async () => {
+    if (!tenantId) return;
+    setRecovering(true);
+    setAvailableDbTables([]);
+    const { data, error } = await supabase.rpc('get_tenant_tables', { p_tenant_id: tenantId });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else if (data && (data as any).ok) {
+      setAvailableDbTables((data as any).tables || []);
+    } else {
+      // Fallback: list from information_schema
+      const { data: infoData } = await supabase
+        .from('information_schema.tables' as any)
+        .select('table_name' as any)
+        .eq('table_schema', 'public')
+        .neq('table_name', 'information_schema') as any;
+      if (infoData) {
+        setAvailableDbTables(infoData.map((r: any) => ({ table_name: r.table_name, schema: 'public' })));
+      }
+    }
+    setRecovering(false);
+  };
+
+  const handleRecoverTable = async (newTableName: string) => {
+    if (!tenantId || !slug) return;
+    setRecovering(true);
+    const { error } = await supabase
+      .from('tenant_game_tables')
+      .update({ table_name: newTableName, slug: newTableName })
+      .eq('tenant_id', tenantId)
+      .eq('slug', table);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      toast({ title: `Tabela recuperada como "${newTableName}".` });
+      setTableNotFoundError(false);
+      setAvailableDbTables([]);
+      // Switch to the new tab
+      if (onRecover) onRecover(newTableName);
+    }
+    setRecovering(false);
   };
 
   const handleAddColumn = async (applyToAll = false) => {
@@ -862,6 +916,42 @@ export default function DataTableContent({
           </Button>
         </div>
       </div>
+
+      {tableNotFoundError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-destructive">Tabela não encontrada</h2>
+          <p className="text-sm text-muted-foreground">
+            A tabela <strong className="text-foreground">{table}</strong> não existe mais no banco de dados.
+            Pode ter sido renomeada ou excluída fora do site.
+          </p>
+          <div className="space-y-3">
+            <Button variant="outline" size="sm" onClick={handleFindTable} disabled={recovering}>
+              {recovering ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Buscar tabelas disponíveis
+            </Button>
+            {availableDbTables.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Tabelas encontradas no banco:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {availableDbTables.map((tbl) => (
+                    <button
+                      key={tbl.table_name}
+                      type="button"
+                      className="px-3 py-1.5 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
+                      onClick={() => handleRecoverTable(tbl.table_name)}
+                    >
+                      {tbl.table_name}
+                      <span className="text-muted-foreground ml-1">({tbl.schema})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {savedFeedback && (
         <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
