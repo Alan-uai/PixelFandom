@@ -58,23 +58,23 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithDiscord = async () => {
+    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`;
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
+      provider: 'discord',
+      options: { redirectTo },
     });
+    if (error) console.error('[Auth] signInWithDiscord error:', error.message);
     return { error };
   };
 
-  const signInWithDiscord = async () => {
+  const signInWithGoogle = async () => {
+    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard`;
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
+      provider: 'google',
+      options: { redirectTo },
     });
+    if (error) console.error('[Auth] signInWithGoogle error:', error.message);
     return { error };
   };
 

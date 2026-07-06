@@ -558,6 +558,7 @@ export type Database = {
           name: string;
           slug: string;
           custom_domain: string | null;
+          vercel_domain: string | null;
           logo_url: string | null;
           cover_image: string | null;
           description: string | null;
@@ -576,6 +577,7 @@ export type Database = {
           name: string;
           slug: string;
           custom_domain?: string | null;
+          vercel_domain?: string | null;
           logo_url?: string | null;
           cover_image?: string | null;
           description?: string | null;
@@ -594,6 +596,7 @@ export type Database = {
           name?: string;
           slug?: string;
           custom_domain?: string | null;
+          vercel_domain?: string | null;
           logo_url?: string | null;
           cover_image?: string | null;
           description?: string | null;

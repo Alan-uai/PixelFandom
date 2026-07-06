@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Mic, Settings, ExternalLink, Loader2, Check, Save, ArrowUpDown } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { MessageCircle, Mic, Settings, ExternalLink, Loader2, ArrowUpDown } from 'lucide-react';
 import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
 import { CardPositionEditor } from './card-position-editor';
 
@@ -45,9 +45,11 @@ const CARD_TABS = [
 interface WidgetsEditorProps {
   tenantId: string;
   slug: string;
+  onSaveReady?: (fn: () => Promise<void>) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
+export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: WidgetsEditorProps) {
   const [chat, setChat] = useState<WidgetChatConfig>({
     enabled: true,
     position: 'bottom-right',
@@ -67,13 +69,34 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
   const [marketingCard, setMarketingCard] = useState<CardPositions>(DEFAULT_POSITIONS);
   const [cardTab, setCardTab] = useState<'article_card' | 'marketing_card'>('article_card');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const cacheRef = useRef<string | null>(null);
+  const initialSnapshot = useRef<string>('');
+
+  const handleSave = useCallback(async () => {
+    const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat,
+        voice,
+        cardPositions: {
+          article_card: articleCard,
+          marketing_card: marketingCard,
+        },
+      }),
+    });
+    if (!res.ok) throw new Error('Erro ao salvar configuração de widgets');
+    initialSnapshot.current = JSON.stringify({ chat, voice, articleCard, marketingCard });
+  }, [tenantId, chat, voice, articleCard, marketingCard]);
+
+  useEffect(() => {
+    onSaveReady?.(handleSave);
+  }, [onSaveReady, handleSave]);
 
   useEffect(() => {
     if (!tenantId) return;
     if (cacheRef.current === tenantId) {
+      initialSnapshot.current = JSON.stringify({ chat, voice, articleCard, marketingCard });
       setLoading(false);
       return;
     }
@@ -82,40 +105,35 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
       .then((r) => r.json())
       .then((data: WidgetLayout) => {
         cacheRef.current = tenantId;
-        if (data.chat) setChat((prev) => ({ ...prev, ...data.chat }));
-        if (data.voice) setVoice((prev) => ({ ...prev, ...data.voice }));
+        const nextChat = data.chat ? { ...chat, ...data.chat } : chat;
+        const nextVoice = data.voice ? { ...voice, ...data.voice } : voice;
+        const nextArticleCard = data.cardPositions?.article_card || articleCard;
+        const nextMarketingCard = data.cardPositions?.marketing_card || marketingCard;
+
+        initialSnapshot.current = JSON.stringify({
+          chat: nextChat,
+          voice: nextVoice,
+          articleCard: nextArticleCard,
+          marketingCard: nextMarketingCard,
+        });
+
+        if (data.chat) setChat(nextChat);
+        if (data.voice) setVoice(nextVoice);
         if (data.cardPositions) {
-          if (data.cardPositions.article_card) setArticleCard(data.cardPositions.article_card);
-          if (data.cardPositions.marketing_card) setMarketingCard(data.cardPositions.marketing_card);
+          if (data.cardPositions.article_card) setArticleCard(nextArticleCard);
+          if (data.cardPositions.marketing_card) setMarketingCard(nextMarketingCard);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    setSaved(false);
-    try {
-      const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat,
-          voice,
-          cardPositions: {
-            article_card: articleCard,
-            marketing_card: marketingCard,
-          },
-        }),
-      });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      }
-    } catch {/* noop */}
-    setSaving(false);
-  };
+  useEffect(() => {
+    if (!initialSnapshot.current) return;
+    const dirty = JSON.stringify({ chat, voice, articleCard, marketingCard }) !== initialSnapshot.current;
+    onDirtyChange?.(dirty);
+  }, [chat, voice, articleCard, marketingCard, onDirtyChange]);
 
   if (loading) {
     return (
@@ -380,17 +398,6 @@ export function WidgetsEditor({ tenantId, slug }: WidgetsEditorProps) {
         </div>
       </div>
 
-      {/* Save button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar Widgets'}
-        </button>
-      </div>
     </div>
   );
 }

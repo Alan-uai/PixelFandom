@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { PanelsTopLeft, Settings, Loader2, Check, Save, Globe } from 'lucide-react';
+import { PanelsTopLeft, Settings, Globe } from 'lucide-react';
 import { FloatingIslandsEditor } from './floating-islands-editor';
 import { WidgetsEditor } from './widgets-editor';
 import type { FloatingIslandConfig, SlotFlowId, ClipStyleId } from './types';
@@ -15,16 +15,16 @@ const PAGE_TYPE_OPTIONS = [
 
 type PageTypeId = (typeof PAGE_TYPE_OPTIONS)[number]['id'];
 
-export function WidgetsPage({ tenantId, slug }: { tenantId: string; slug: string }) {
+export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: { tenantId: string; slug: string; onRegisterSave?: (fn: () => Promise<void>) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const [activeTab, setActiveTab] = useState<'islands' | 'widgets'>('islands');
   const [selectedTypes, setSelectedTypes] = useState<Set<PageTypeId>>(new Set(['all']));
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const [slotFlow, setSlotFlow] = useState<SlotFlowId>('current');
   const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const islandCache = useRef<Record<string, any>>({});
+  const [widgetsSave, setWidgetsSave] = useState<(() => Promise<void>) | null>(null);
+  const [widgetsDirty, setWidgetsDirty] = useState(false);
+  const islandsSnapshot = useRef<string>('');
 
   const resolveTargetTypes = useCallback(() => {
     if (selectedTypes.has('all')) return ['landing', 'footer', '404'];
@@ -37,18 +37,22 @@ export function WidgetsPage({ tenantId, slug }: { tenantId: string; slug: string
       setFloatingIslands(cached.islands || []);
       if (cached.slotFlow) setSlotFlow(cached.slotFlow);
       if (cached.clipStyle) setClipStyle(cached.clipStyle);
+      islandsSnapshot.current = JSON.stringify(cached);
       return;
     }
     try {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
       const data = await res.json();
       const islands = data?.floatingIslands || [];
-      islandCache.current[type] = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };
+      const snapshot = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };
+      islandCache.current[type] = snapshot;
+      islandsSnapshot.current = JSON.stringify(snapshot);
       setFloatingIslands(islands);
       if (data.slotFlow) setSlotFlow(data.slotFlow);
       if (data.clipStyle) setClipStyle(data.clipStyle);
     } catch {
       setFloatingIslands([]);
+      islandsSnapshot.current = '';
     }
   }, [tenantId]);
 
@@ -77,10 +81,7 @@ export function WidgetsPage({ tenantId, slug }: { tenantId: string; slug: string
     setSelectedTypes(next);
   };
 
-  const handleSaveIslands = async () => {
-    setSaving(true);
-    setSaved(false);
-    setSaveError(null);
+  const handleSaveIslands = useCallback(async () => {
     const targets = resolveTargetTypes();
     let allOk = true;
     for (const type of targets) {
@@ -95,16 +96,27 @@ export function WidgetsPage({ tenantId, slug }: { tenantId: string; slug: string
         allOk = false;
       }
     }
-    if (allOk) {
-      islandCache.current = {};
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } else {
-      setSaveError('Erro ao salvar ilhas flutuantes');
-      setTimeout(() => setSaveError(null), 5000);
+    if (!allOk) {
+      throw new Error('Erro ao salvar ilhas flutuantes');
     }
-    setSaving(false);
-  };
+    islandCache.current = {};
+  }, [tenantId, floatingIslands, slotFlow, clipStyle, resolveTargetTypes]);
+
+  const handleSave = useCallback(async () => {
+    await handleSaveIslands();
+    await widgetsSave?.();
+  }, [handleSaveIslands, widgetsSave]);
+
+  useEffect(() => {
+    onRegisterSave?.(handleSave);
+  }, [onRegisterSave, handleSave]);
+
+  useEffect(() => {
+    const islandsDirty = islandsSnapshot.current
+      ? JSON.stringify({ floatingIslands, slotFlow, clipStyle }) !== islandsSnapshot.current
+      : false;
+    onDirtyChange?.(islandsDirty || widgetsDirty);
+  }, [floatingIslands, slotFlow, clipStyle, widgetsDirty, onDirtyChange]);
 
   return (
     <div className="flex flex-col h-full">
@@ -173,32 +185,7 @@ export function WidgetsPage({ tenantId, slug }: { tenantId: string; slug: string
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-6">
-          <WidgetsEditor tenantId={tenantId} slug={slug} />
-        </div>
-      )}
-
-      {saveError && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-sm rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg backdrop-blur-sm">
-          {saveError}
-        </div>
-      )}
-
-      {activeTab === 'islands' && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <button
-            onClick={handleSaveIslands}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : saved ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar Ilhas'}
-          </button>
+          <WidgetsEditor tenantId={tenantId} slug={slug} onSaveReady={setWidgetsSave} onDirtyChange={setWidgetsDirty} />
         </div>
       )}
     </div>

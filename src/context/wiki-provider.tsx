@@ -37,7 +37,11 @@ export function WikiDataProvider({
   const cacheRef = useRef<WikiData | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!slug) return;
+    if (!slug) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
 
     if (cacheRef.current) {
       setData(cacheRef.current);

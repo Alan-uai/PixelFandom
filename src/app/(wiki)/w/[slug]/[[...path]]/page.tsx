@@ -123,19 +123,28 @@ export default function WikiPage() {
     if (layoutCache.current[key]) {
       const cached = layoutCache.current[key];
       if (cached.blocks?.length > 0) setLandingLayout({ blocks: cached.blocks });
+      setLoadingLayout(false);
       return;
     }
     setLoadingLayout(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     (async () => {
       try {
-        const res = await fetch(`/api/tenants/${tenant.id}/page-layout`);
+        const res = await fetch(`/api/tenants/${tenant.id}/page-layout`, {
+          signal: controller.signal,
+        });
         const data = await res.json();
         layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) {
           setLandingLayout({ blocks: data.blocks });
         }
-      } catch {/* noop */}
-      setLoadingLayout(false);
+      } catch {
+        layoutCache.current[key] = null;
+      } finally {
+        clearTimeout(timeout);
+        setLoadingLayout(false);
+      }
     })();
   }, [articleSlug, tenant?.id]);
 
@@ -148,13 +157,18 @@ export default function WikiPage() {
       if (cached.blocks?.length > 0) setCustom404Layout({ blocks: cached.blocks });
       return;
     }
-    fetch(`/api/tenants/${tenant.id}/page-layout?type=404`)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=404`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });
       })
-      .catch(() => {});
+      .catch(() => {
+        layoutCache.current[key] = null;
+      })
+      .finally(() => clearTimeout(timeout));
   }, [tenant?.id]);
 
   // Slug resolution now uses useSlugResolution hook

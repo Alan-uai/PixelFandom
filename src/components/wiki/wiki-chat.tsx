@@ -81,6 +81,8 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
   const [streamStartTime, setStreamStartTime] = useState<number | null>(null);
   const [inlineItem, setInlineItem] = useState<{ table: string; slug: string } | null>(null);
   const [inlineCompare, setInlineCompare] = useState<{ table: string; slug: string; column: string } | null>(null);
+  const [chatUnavailable, setChatUnavailable] = useState<string | null>(null);
+  const [checkingChat, setCheckingChat] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sessionsCache = useRef<DBSession[] | null>(null);
@@ -125,6 +127,38 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
       delete (window as any).__onCompareClick;
     };
   }, []);
+
+  // Check if chat is available for this tenant
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCheckingChat(true);
+      try {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('ai_enabled, ai_config')
+          .eq('slug', tenantSlug)
+          .single();
+        if (cancelled) return;
+        if (!tenant) {
+          setChatUnavailable('Wiki não encontrada.');
+        } else if (!tenant.ai_enabled) {
+          setChatUnavailable('Chat indisponível ou desativado. Entre em contato com o dono da Wiki para mais informações.');
+        } else if (tenant.ai_config) {
+          const cfg = tenant.ai_config as Record<string, unknown>;
+          const hasKey = !!(cfg.custom_api_key || cfg.gemini_custom_api_key);
+          if (!hasKey && !tenant.ai_config) {
+            setChatUnavailable('Chat indisponível ou desativado. Entre em contato com o dono da Wiki para mais informações.');
+          }
+        }
+      } catch {
+        if (!cancelled) setChatUnavailable('Erro ao verificar disponibilidade do chat.');
+      } finally {
+        if (!cancelled) setCheckingChat(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tenantSlug]);
 
   const createSession = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
@@ -480,6 +514,24 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
       </div>
     </div>
   );
+
+  // Chat unavailable state
+  if (checkingChat) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (chatUnavailable) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-center min-h-0 px-6">
+        <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-sm font-medium text-muted-foreground">{chatUnavailable}</p>
+      </div>
+    );
+  }
 
   if (inlineItem || inlineCompare) {
     return (

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { MAIN_DOMAIN } from '@/lib/constants';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { Button } from '@/components/ui/button';
@@ -17,8 +16,9 @@ import {
   XCircle,
   RefreshCw,
   AlertTriangle,
-  ExternalLink,
   Clock,
+  Check,
+  Copy,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
 
@@ -38,11 +38,14 @@ export default function WikiDomainsPage() {
   const { toast } = useToast();
 
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [domain, setDomain] = useState('');
+  const [vercelPrefix, setVercelPrefix] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingVercel, setSavingVercel] = useState(false);
   const [checking, setChecking] = useState(false);
   const [verifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
+  const [copied, setCopied] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
   const dataLoadedRef = useRef(false);
 
@@ -54,13 +57,13 @@ export default function WikiDomainsPage() {
     }
   );
 
-  const checkDomain = useCallback(async (d: string) => {
+  const checkDomain = useCallback(async (d: string, type: 'vercel' | 'custom' = 'custom') => {
     setChecking(true);
     try {
       const res = await fetch('/api/domains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d }),
+        body: JSON.stringify({ action: 'verify', tenantSlug: slug, domain: d, type }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -82,7 +85,19 @@ export default function WikiDomainsPage() {
     if (!cachedTenant || dataLoadedRef.current) return;
     dataLoadedRef.current = true;
     setTenant(cachedTenant);
-    if (cachedTenant.custom_domain) {
+    if (cachedTenant.vercel_domain) {
+      const prefix = cachedTenant.vercel_domain.replace('.vercel.app', '');
+      setVercelPrefix(prefix);
+      setDomainInfo({
+        verified: true,
+        configured: true,
+        cname: null,
+        cnameResolves: true,
+        pending: false,
+        nameservers: [],
+      });
+    }
+    if (cachedTenant.custom_domain && !cachedTenant.vercel_domain) {
       if (cachedTenant.domain_verified) {
         setDomainInfo({
           verified: true,
@@ -101,7 +116,6 @@ export default function WikiDomainsPage() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  // Auto-refresh every 30s
   useEffect(() => {
     if (!tenant?.custom_domain) {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -115,19 +129,88 @@ export default function WikiDomainsPage() {
     };
   }, [tenant?.custom_domain, checkDomain]);
 
+  const handleProvisionVercel = async () => {
+    if (!tenant || !vercelPrefix) return;
+    setSavingVercel(true);
+    try {
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto',
+          tenantSlug: slug,
+          prefix: vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const fullDomain = `${vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '')}.vercel.app`;
+      setTenant({ ...tenant, vercel_domain: fullDomain } as Tenant);
+      setDomainInfo({
+        verified: true,
+        configured: true,
+        cname: null,
+        cnameResolves: true,
+        pending: false,
+        nameservers: [],
+      });
+      toast({ title: 'Domínio Vercel ativado!', description: `${fullDomain} está pronto para uso.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    }
+    setSavingVercel(false);
+  };
+
+  const handleUpdateVercel = async () => {
+    if (!tenant || !vercelPrefix) return;
+    setSavingVercel(true);
+    try {
+      const newDomain = `${vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '')}.vercel.app`;
+
+      if (tenant.vercel_domain) {
+        const removeRes = await fetch('/api/domains', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'remove', tenantSlug: slug, domain: tenant.vercel_domain, type: 'vercel' }),
+        });
+        const removeData = await removeRes.json();
+        if (removeData.error) throw new Error(removeData.error);
+      }
+
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto',
+          tenantSlug: slug,
+          prefix: vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setTenant({ ...tenant, vercel_domain: newDomain } as Tenant);
+      toast({ title: 'Domínio Vercel atualizado!', description: `${newDomain} está pronto para uso.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+    }
+    setSavingVercel(false);
+  };
+
   const handleAddDomain = async () => {
-    if (!domain || !tenant) return;
+    if (!customDomain || !tenant) return;
     setSaving(true);
     try {
       const res = await fetch('/api/domains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', tenantSlug: slug, domain: domain.toLowerCase() }),
+        body: JSON.stringify({ action: 'add', tenantSlug: slug, domain: customDomain.toLowerCase() }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const addedDomain = domain.toLowerCase();
+      const addedDomain = customDomain.toLowerCase();
       setTenant({ ...tenant, custom_domain: addedDomain } as Tenant);
       setDomainInfo(data);
       toast({ title: 'Domínio adicionado!', description: 'Verifique as instruções de DNS abaixo.' });
@@ -158,6 +241,16 @@ export default function WikiDomainsPage() {
     setSaving(false);
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
   const statusBadge = () => {
     if (verifying) return { label: 'Verificando...', icon: Loader2, color: 'text-primary', spin: true };
     if (!domainInfo || !tenant?.custom_domain) return null;
@@ -183,26 +276,90 @@ export default function WikiDomainsPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
 
-      <section id="default-url">
+      {/* Section 1: Vercel Domain */}
+      <section id="vercel-domain">
       <WeldingCard>
         <CardHeader>
-          <CardTitle>URL Padrão</CardTitle>
-          <CardDescription>Sua wiki já está disponível neste endereço.</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            Domínio Vercel
+          </CardTitle>
+          <CardDescription>
+            Endereço automático da sua wiki. Escolha um prefixo — o final <span className="font-mono text-foreground">.vercel.app</span> é fixo.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <a
-            href={`/w/${slug}`}
-            target="_blank"
-            className="inline-flex items-center gap-2 text-sm font-mono text-primary hover:underline" rel="noreferrer"
-          >
-            <Globe className="h-4 w-4" />
-            {MAIN_DOMAIN}/w/{slug}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+        <CardContent className="space-y-4">
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <FloatingLabelInput
+                label="Prefixo"
+                value={vercelPrefix}
+                onChange={(e) => setVercelPrefix(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-mono pointer-events-none select-none">
+                .vercel.app
+              </span>
+            </div>
+            {tenant?.vercel_domain ? (
+              <Button
+                onClick={handleUpdateVercel}
+                disabled={savingVercel || !vercelPrefix}
+                className="shrink-0"
+              >
+                {savingVercel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleProvisionVercel}
+                disabled={savingVercel || !vercelPrefix}
+                className="shrink-0"
+              >
+                {savingVercel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Provisionar'}
+              </Button>
+            )}
+          </div>
+
+          {tenant?.vercel_domain && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="font-mono text-sm font-medium">{tenant.vercel_domain}</p>
+                  <p className="text-xs text-green-500">Ativo</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(tenant.vercel_domain!)}
+                >
+                  {copied ? (
+                    <><Check className="h-3.5 w-3.5 mr-1" />Copiado</>
+                  ) : (
+                    <><Copy className="h-3.5 w-3.5 mr-1" />Copiar</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!tenant?.vercel_domain && (
+            <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground space-y-2">
+              <p className="font-medium text-foreground">Sobre o domínio Vercel:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Escolha um prefixo para sua wiki</li>
+                <li>Clique em Provisionar para verificar disponibilidade</li>
+                <li>O domínio fica ativo automaticamente, sem configuração de DNS</li>
+                <li>Você pode mudar o prefixo a qualquer momento</li>
+              </ol>
+            </div>
+          )}
         </CardContent>
       </WeldingCard>
       </section>
 
+      {/* Section 2: Custom Domain */}
       <section id="custom-domain">
       <WeldingCard>
         <CardHeader>
@@ -311,11 +468,11 @@ export default function WikiDomainsPage() {
                 <div className="flex-1">
                   <FloatingLabelInput
                     label="Domínio"
-                    value={domain}
-                    onChange={(e) => setDomain(e.target.value)}
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleAddDomain} disabled={saving || !domain}>
+                <Button onClick={handleAddDomain} disabled={saving || !customDomain}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Adicionar'}
                 </Button>
               </div>

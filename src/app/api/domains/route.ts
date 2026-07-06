@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { addDomain, removeDomain, getDomainConfig, listDomains, addDomainWithRetry } from '@/lib/vercel-domains';
+import { addDomain, removeDomain, getDomainConfig, listDomains } from '@/lib/vercel-domains';
 import { ROLE_HIERARCHY } from '@/lib/tenant';
 
 function domainRegex(d: string): boolean {
@@ -139,25 +139,37 @@ export async function POST(request: NextRequest) {
       }
 
       case 'auto': {
-        if (tenant.custom_domain) {
-          const res = NextResponse.json({ status: 'skipped', domain: tenant.custom_domain });
+        const prefix = body.prefix || tenantSlug;
+        const vercelDomain = `${prefix}.vercel.app`;
+
+        if (tenant.vercel_domain) {
+          const res = NextResponse.json({ status: 'skipped', domain: tenant.vercel_domain });
           cookieModifications.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
           return res;
         }
 
         try {
-          const { domain: foundDomain, status } = await addDomainWithRetry(tenantSlug);
+          const existing = await listDomains();
+          if (existing.includes(vercelDomain)) {
+            return NextResponse.json({ error: 'Este prefixo já está em uso' }, { status: 409 });
+          }
+        } catch {
+          // Vercel não configurado — pula verificação
+        }
+
+        try {
+          const status = await addDomain(vercelDomain);
 
           const { error: updateError } = await supabase
             .from('tenants')
-            .update({ custom_domain: foundDomain })
+            .update({ vercel_domain: vercelDomain })
             .eq('id', tenant.id);
 
           if (updateError) throw updateError;
 
           const res = NextResponse.json({
             status: 'auto_added',
-            domain: foundDomain,
+            domain: vercelDomain,
             ...status,
           });
           cookieModifications.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
@@ -176,23 +188,33 @@ export async function POST(request: NextRequest) {
       }
 
       case 'remove': {
+        const targetDomain = domain || tenant.custom_domain || '';
+        const type = body.type || 'custom';
+
         try {
-          await removeDomain(domain || tenant.custom_domain || '');
+          await removeDomain(targetDomain);
         } catch {
           // Vercel removal failed, still remove from DB
         }
 
-        const { error: updateError } = await supabase
-          .from('tenants')
-          .update({
-            custom_domain: null,
-            domain_verified: false,
-            domain_verified_at: null,
-            domain_last_checked_at: new Date().toISOString(),
-          })
-          .eq('id', tenant.id);
-
-        if (updateError) throw updateError;
+        if (type === 'vercel') {
+          const { error: updateError } = await supabase
+            .from('tenants')
+            .update({ vercel_domain: null })
+            .eq('id', tenant.id);
+          if (updateError) throw updateError;
+        } else {
+          const { error: updateError } = await supabase
+            .from('tenants')
+            .update({
+              custom_domain: null,
+              domain_verified: false,
+              domain_verified_at: null,
+              domain_last_checked_at: new Date().toISOString(),
+            })
+            .eq('id', tenant.id);
+          if (updateError) throw updateError;
+        }
 
         const res = NextResponse.json({ status: 'removed' });
         cookieModifications.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
@@ -200,21 +222,24 @@ export async function POST(request: NextRequest) {
       }
 
       case 'verify': {
-        const targetDomain = domain || tenant.custom_domain;
+        const type = body.type || 'custom';
+        const targetDomain = domain || (type === 'vercel' ? tenant.vercel_domain : tenant.custom_domain);
         if (!targetDomain) {
           return NextResponse.json({ error: 'Nenhum domínio configurado' }, { status: 400 });
         }
 
-        // Check if any other tenant already has this domain
-        const { data: dup } = await supabase
-          .from('tenants')
-          .select('id')
-          .eq('custom_domain', targetDomain)
-          .neq('id', tenant.id)
-          .maybeSingle();
+        if (type === 'custom') {
+          // Check if any other tenant already has this domain
+          const { data: dup } = await supabase
+            .from('tenants')
+            .select('id')
+            .eq('custom_domain', targetDomain)
+            .neq('id', tenant.id)
+            .maybeSingle();
 
-        if (dup) {
-          return NextResponse.json({ error: 'Este domínio já está em uso por outra wiki' }, { status: 409 });
+          if (dup) {
+            return NextResponse.json({ error: 'Este domínio já está em uso por outra wiki' }, { status: 409 });
+          }
         }
 
         // .vercel.app domains are auto-provisioned by Vercel

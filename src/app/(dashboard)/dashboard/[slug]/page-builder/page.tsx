@@ -4,10 +4,11 @@ import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { WidgetsPage } from '@/components/page-builder/widgets-page';
-import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Puzzle, Save, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Puzzle } from 'lucide-react';
 import Link from 'next/link';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { supabase } from '@/supabase';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 const PAGE_TYPES = [
   { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
@@ -38,10 +39,9 @@ function PageBuilderPageInner() {
   const pageType = (searchParams.get('type') as PageType) || 'landing';
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string } | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const saveHandlerRef = useRef<(() => Promise<void>) | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const saveBlocksRef = useRef<(() => Promise<void>) | null>(null);
+  const saveWidgetsRef = useRef<(() => Promise<void>) | null>(null);
 
   const { data: tenant } = useCachedData<{ id: string }>(
     `tenant:${slug}`,
@@ -73,24 +73,23 @@ function PageBuilderPageInner() {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);
   };
 
-  const handleSave = async () => {
-    if (!saveHandlerRef.current) return;
-    setSaving(true);
-    setSaved(false);
-    setSaveError(null);
-    try {
-      await saveHandlerRef.current();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e: any) {
-      setSaveError(e?.message || 'Erro ao salvar');
-      setTimeout(() => setSaveError(null), 5000);
-    }
-    setSaving(false);
-  };
+  const handleSave = useCallback(async () => {
+    if (saveBlocksRef.current) await saveBlocksRef.current();
+    if (saveWidgetsRef.current) await saveWidgetsRef.current();
+  }, []);
 
-  const registerSave = useCallback((fn: () => Promise<void>) => {
-    saveHandlerRef.current = fn;
+  const handleDiscard = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: handleDiscard });
+
+  const registerBlocksSave = useCallback((fn: () => Promise<void>) => {
+    saveBlocksRef.current = fn;
+  }, []);
+
+  const registerWidgetsSave = useCallback((fn: () => Promise<void>) => {
+    saveWidgetsRef.current = fn;
   }, []);
 
   if (!tenantId) {
@@ -135,7 +134,12 @@ function PageBuilderPageInner() {
       </div>
       <div className="flex-1 overflow-hidden">
         {isWidgets ? (
-          <WidgetsPage tenantId={tenantId} slug={slug} onRegisterSave={registerSave} />
+          <WidgetsPage
+            tenantId={tenantId}
+            slug={slug}
+            onRegisterSave={registerWidgetsSave}
+            onDirtyChange={setIsDirty}
+          />
         ) : loading || loadedPageType !== pageType ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -147,32 +151,10 @@ function PageBuilderPageInner() {
             slug={slug}
             initialLayout={layout ? { blocks: layout.blocks } : undefined}
             pageType={pageType}
-            onRegisterSave={registerSave}
+            onRegisterSave={registerBlocksSave}
+            onDirtyChange={setIsDirty}
           />
         )}
-      </div>
-
-      {saveError && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-sm rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg backdrop-blur-sm">
-          {saveError}
-        </div>
-      )}
-
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : saved ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar'}
-        </button>
       </div>
     </div>
   );

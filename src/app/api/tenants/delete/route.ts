@@ -104,12 +104,14 @@ export async function POST(request: NextRequest) {
       // bucket may not exist
     }
 
-    // Vercel custom domain
-    if (tenant.custom_domain) {
-      try {
-        await removeDomain(tenant.custom_domain);
-      } catch (e) {
-        errors.push(`vercel_domain(${tenant.custom_domain}): ${e}`);
+    // Vercel domains
+    for (const d of [tenant.vercel_domain, tenant.custom_domain]) {
+      if (d) {
+        try {
+          await removeDomain(d);
+        } catch (e) {
+          errors.push(`domain(${d}): ${e}`);
+        }
       }
     }
 

@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useCachedData } from '@/hooks/use-cached-data';
+import { useState } from 'react';
 import { CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,8 @@ export default function AiFeedbackPage() {
     }
   );
 
+  const [negativeList, setNegativeList] = useState<FeedbackStats['recentNegative'] | null>(null);
+
   const handleResolve = async (id: string, resolution: string) => {
     try {
       const res = await fetch(`/api/tenants/feedback/${id}`, {
@@ -48,6 +51,7 @@ export default function AiFeedbackPage() {
         body: JSON.stringify({ resolution, status: 'reviewed', reviewed_at: new Date().toISOString() }),
       });
       if (res.ok) {
+        setNegativeList((prev) => (prev || stats!.recentNegative).filter((item: { id: string }) => item.id !== id));
         toast({ title: 'Atualizado', description: 'Feedback marcado como revisado.' });
       }
     } catch {
@@ -70,6 +74,8 @@ export default function AiFeedbackPage() {
       </div>
     );
   }
+
+  const displayNegative = negativeList ?? stats.recentNegative;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -143,11 +149,11 @@ export default function AiFeedbackPage() {
         </TabsList>
 
         <TabsContent value="negative" className="mt-4">
-          {stats.recentNegative.length === 0 ? (
+          {displayNegative.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum feedback negativo pendente.</p>
           ) : (
             <div className="space-y-3">
-              {stats.recentNegative.map((item) => (
+              {displayNegative.map((item) => (
                 <WeldingCard key={item.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -195,7 +201,7 @@ export default function AiFeedbackPage() {
             <p className="text-center text-muted-foreground py-8">Nenhum dado por modelo.</p>
           ) : (
             <div className="space-y-2">
-              {stats.byModel.map((m) => (
+              {stats.byModel.map((m: { model: string; total: number; positive: number; negative: number }) => (
                 <div key={m.model} className="flex items-center gap-4 p-3 rounded-lg border bg-card">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{m.model}</p>

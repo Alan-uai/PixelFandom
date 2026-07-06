@@ -259,10 +259,10 @@ export async function POST(request: NextRequest) {
         userPrompt = (config.system_prompt as string) || '';
         provider = (config.provider as string) || 'openrouter';
         model = (config.model as string) || model;
-        customApiKey = decryptApiKey((config.custom_api_key as string) || '');
+        try { customApiKey = decryptApiKey((config.custom_api_key as string) || ''); } catch { customApiKey = ''; }
         fallbackChain = (config.fallback_chain as string[]) || [];
         geminiModel = (config.gemini_model as string) || geminiModel;
-        geminiCustomApiKey = decryptApiKey((config.gemini_custom_api_key as string) || '');
+        try { geminiCustomApiKey = decryptApiKey((config.gemini_custom_api_key as string) || ''); } catch { geminiCustomApiKey = ''; }
         geminiFallbackChain = (config.gemini_fallback_chain as string[]) || [];
         primaryProvider = (config.primary_provider as string) || 'openrouter';
         responseStyle = (config.response_style as string) || responseStyle; // Layer 3 (admin default)
@@ -305,6 +305,18 @@ export async function POST(request: NextRequest) {
 
     if (session_id) {
       await saveMessage(session_id, 'user', message);
+    }
+
+    // Check if any API key is available
+    const hasOpenRouterKey = !!(customApiKey || process.env.OPENROUTER_API_KEY);
+    const hasGeminiKey = !!(geminiCustomApiKey || process.env.GEMINI_API_KEY);
+
+    if (!hasOpenRouterKey && !hasGeminiKey) {
+      return NextResponse.json({
+        error: 'Chat indisponível',
+        details: 'Nenhuma chave de API configurada. Entre em contato com o administrador.',
+        code: 'NO_API_KEY',
+      }, { status: 503 });
     }
 
     if (provider === 'gemini') {

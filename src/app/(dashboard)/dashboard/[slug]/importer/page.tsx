@@ -2,12 +2,16 @@
 
 import { useParams } from 'next/navigation';
 import { ImportWizard } from '@/components/importer/import-wizard';
-import { Download, ArrowLeft } from 'lucide-react';
+import { ExportPanel } from '@/components/importer/export-panel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Download, Upload, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useTenantRole } from '@/hooks/use-tenant-role';
 
 export default function ImporterPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const { canManage } = useTenantRole(slug);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -24,14 +28,33 @@ export default function ImporterPage() {
           <Download className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Importar Conteúdo</h1>
+          <h1 className="text-2xl font-bold">Importar / Exportar</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Importe artigos de arquivos Markdown com frontmatter YAML.
+            Importe artigos de arquivos Markdown ou exporte sua wiki completa.
           </p>
         </div>
       </div>
 
-      <ImportWizard tenantSlug={slug} />
+      <Tabs defaultValue="import" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="import" className="flex items-center gap-1.5">
+            <Upload className="h-4 w-4" />Importar
+          </TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="export" className="flex items-center gap-1.5">
+              <Download className="h-4 w-4" />Exportar
+            </TabsTrigger>
+          )}
+        </TabsList>
+        <TabsContent value="import">
+          <ImportWizard tenantSlug={slug} />
+        </TabsContent>
+        {canManage && (
+          <TabsContent value="export">
+            <ExportPanel />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

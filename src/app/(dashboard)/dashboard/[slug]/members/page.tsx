@@ -46,7 +46,7 @@ export default function WikiMembersPage() {
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [sendingInvite, setSendingInvite] = useState(false);
 
-  const { data: tenantData } = useCachedData<{ id: string }>(
+  const { data: tenantData, error: tenantError } = useCachedData<{ id: string }>(
     `tenant-id:${slug}`,
     async () => {
       const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
@@ -56,7 +56,7 @@ export default function WikiMembersPage() {
   const tenantId = tenantData?.id ?? null;
 
   const cacheKey = tenantId ? `members:${tenantId}` : null;
-  const { data: cacheData, loading } = useCachedData<{
+  const { data: cacheData, loading, error: membersError } = useCachedData<{
     members: (TenantMember & { email?: string })[];
     invites: InviteRow[];
   }>(
@@ -188,7 +188,19 @@ export default function WikiMembersPage() {
     }
   };
 
-  if (loading) {
+  const displayLoading = loading || (tenantId !== null && cacheKey !== null && !cacheData);
+  const displayError = tenantError || membersError;
+
+  if (displayError) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto text-center text-muted-foreground py-12">
+        <p className="text-destructive font-medium">Erro ao carregar membros.</p>
+        <p className="text-sm mt-1">{displayError.message}</p>
+      </div>
+    );
+  }
+
+  if (displayLoading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

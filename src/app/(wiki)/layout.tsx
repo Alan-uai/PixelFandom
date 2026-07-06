@@ -82,14 +82,20 @@ function WikiLayoutContent({
       setFooterLayout(footerCache.current[tenant.id]);
       return;
     }
-    fetch(`/api/tenants/${tenant.id}/page-layout?type=footer`)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=footer`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         const layout = data?.blocks?.length ? { blocks: data.blocks } : null;
         footerCache.current[tenant.id] = layout;
         setFooterLayout(layout);
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.error('Footer layout fetch failed:', e);
+        footerCache.current[tenant.id] = null;
+      })
+      .finally(() => clearTimeout(timeout));
   }, [tenant?.id]);
 
   useEffect(() => {
@@ -101,7 +107,9 @@ function WikiLayoutContent({
       setClipStyle(cached.clipStyle || 'trapezoid');
       return;
     }
-    fetch(`/api/tenants/${tenant.id}/page-layout?type=landing`)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    fetch(`/api/tenants/${tenant.id}/page-layout?type=landing`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         const islands = data?.floatingIslands?.length > 0 ? data.floatingIslands : [];
@@ -110,7 +118,11 @@ function WikiLayoutContent({
         if (data.slotFlow) setSlotFlow(data.slotFlow);
         if (data.clipStyle) setClipStyle(data.clipStyle);
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.error('Islands layout fetch failed:', e);
+        islandsCache.current[tenant.id] = { islands: [] };
+      })
+      .finally(() => clearTimeout(timeout));
   }, [tenant?.id]);
 
   useEffect(() => {

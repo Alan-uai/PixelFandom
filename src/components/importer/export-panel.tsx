@@ -4,12 +4,10 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
-import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { WeldingCard } from '@/components/ui/welding-card';
 import { useToast } from '@/hooks/use-toast';
 import { Download, Loader2, FileArchive, Database, AlertTriangle } from 'lucide-react';
 
-export default function ExportSettingsPage() {
+export function ExportPanel() {
   const params = useParams();
   const slug = params.slug as string;
   const { toast } = useToast();
@@ -56,30 +54,21 @@ export default function ExportSettingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Download className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">Exportar Wiki</h1>
-          <p className="text-sm text-muted-foreground">
-            Exporte todos os dados da sua wiki em um arquivo JSON.
-          </p>
-        </div>
-      </div>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="rounded-lg border bg-card">
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Database className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Dados Exportados</h3>
+              <p className="text-sm text-muted-foreground">
+                O arquivo incluirá artigos, tabelas, membros e páginas da wiki.
+              </p>
+            </div>
+          </div>
 
-      <WeldingCard>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Database className="h-4 w-4" />
-            Dados Exportados
-          </CardTitle>
-          <CardDescription>
-            O arquivo incluirá artigos, tabelas, membros e páginas da wiki.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
             <div className="flex items-center gap-2">
               <FileArchive className="h-3.5 w-3.5" />
@@ -110,8 +99,8 @@ export default function ExportSettingsPage() {
               O arquivo exportado contém dados dos membros da wiki. Mantenha-o em local seguro e não o compartilhe publicamente.
             </p>
           </div>
-        </CardContent>
-      </WeldingCard>
+        </div>
+      </div>
     </div>
   );
 }

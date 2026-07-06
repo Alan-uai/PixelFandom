@@ -6,6 +6,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/dashboard';
   const redirectTo = searchParams.get('redirect_to');
+  const errorDescription = searchParams.get('error_description');
+
+  // Discord/Google OAuth error (user denied, etc.)
+  if (errorDescription) {
+    console.error('[Auth callback] OAuth error:', errorDescription);
+    return NextResponse.redirect(`${origin}?error=${encodeURIComponent(errorDescription)}`);
+  }
 
   if (code) {
     let redirectUrl: URL | null = null;
@@ -48,6 +55,8 @@ export async function GET(request: NextRequest) {
       }
       return response;
     }
+
+    console.error('[Auth callback] exchangeCodeForSession error:', error);
   }
 
   return NextResponse.redirect(`${origin}?error=auth_failed`);

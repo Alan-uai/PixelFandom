@@ -18,7 +18,7 @@ import { BlockToolbar } from './block-toolbar';
 import { BlockConfigPanel } from './block-config-panel';
 import { PagePreview } from './page-preview';
 import {
-  Save, Loader2, Check, Plus, X, PanelRightOpen,
+  Plus, X, PanelRightOpen,
   Undo2, Redo2, Smartphone, BookTemplate,
 } from 'lucide-react';
 import type { BlockConfig, BlockType, PageLayout } from './types';
@@ -32,6 +32,8 @@ interface PageBuilderEditorProps {
   slug?: string;
   initialLayout?: PageLayout;
   pageType?: string;
+  onRegisterSave?: (fn: () => Promise<void>) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function createBlock(type: BlockType): BlockConfig {
@@ -57,14 +59,11 @@ function createBlock(type: BlockType): BlockConfig {
 }
 
 export function PageBuilderEditor({
-  tenantId, slug, initialLayout, pageType = 'landing',
+  tenantId, slug, initialLayout, pageType = 'landing', onRegisterSave, onDirtyChange,
 }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
@@ -75,6 +74,7 @@ export function PageBuilderEditor({
   const [history, setHistory] = useState<BlockConfig[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const historyIndexRef = useRef(historyIndex);
+  const initialBlocksRef = useRef(JSON.stringify(initialLayout?.blocks || []));
 
   useEffect(() => { historyIndexRef.current = historyIndex; }, [historyIndex]);
 
@@ -175,31 +175,27 @@ export function PageBuilderEditor({
     setBlocks(JSON.parse(JSON.stringify(history[newIndex])));
   }, [historyIndex, history]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    setSaved(false);
-    setSaveError(null);
-    try {
-      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocks }),
-      });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      } else {
-        const body = await res.json().catch(() => null);
-        const msg = body?.error || `Erro ao salvar (${res.status})`;
-        setSaveError(msg);
-        setTimeout(() => setSaveError(null), 5000);
-      }
-    } catch {
-      setSaveError('Erro de rede ao salvar layout');
-      setTimeout(() => setSaveError(null), 5000);
+  const handleSave = useCallback(async () => {
+    const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blocks }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error || `Erro ao salvar (${res.status})`);
     }
-    setSaving(false);
-  };
+    initialBlocksRef.current = JSON.stringify(blocks);
+  }, [tenantId, pageType, blocks]);
+
+  useEffect(() => {
+    onRegisterSave?.(handleSave);
+  }, [onRegisterSave, handleSave]);
+
+  useEffect(() => {
+    const dirty = JSON.stringify(blocks) !== initialBlocksRef.current;
+    onDirtyChange?.(dirty);
+  }, [blocks, onDirtyChange]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -356,26 +352,13 @@ export function PageBuilderEditor({
         </div>
       )}
 
-      {/* Error toast */}
-      {saveError && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-sm rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg backdrop-blur-sm">
-          {saveError}
-        </div>
-      )}
-
-      {/* Save buttons */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2">
+      {/* Template save button only */}
+      <div className="fixed bottom-6 right-6 z-50">
         <button onClick={() => setShowSaveTemplate(true)}
           className="flex items-center gap-2 rounded-full border bg-background px-4 py-3 text-sm font-medium text-foreground shadow-lg hover:bg-muted transition-colors"
         >
           <BookTemplate className="h-4 w-4" />
           Salvar Template
-        </button>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {saving ? 'Salvando...' : saved ? 'Salvo!' : 'Salvar Layout'}
         </button>
       </div>
     </div>

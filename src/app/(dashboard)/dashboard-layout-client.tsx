@@ -70,7 +70,6 @@ export default function DashboardLayoutClient({
   const navItems = canManage
     ? [
         { href: 'settings', label: 'Configurações', icon: Settings },
-        { href: 'settings/export', label: 'Exportar', icon: Download },
         { href: 'domains', label: 'Domínios', icon: Globe },
         { href: 'members', label: 'Membros', icon: Users },
         { href: 'ai', label: 'IA', icon: Cpu },
@@ -83,7 +82,7 @@ export default function DashboardLayoutClient({
     : canEdit
     ? [
         { href: 'editor', label: 'Conteúdo', icon: BookOpen },
-        { href: 'importer', label: 'Importar', icon: Download },
+        { href: 'importer', label: 'Importar/Exportar', icon: Download },
       ]
     : [];
 
@@ -91,7 +90,10 @@ export default function DashboardLayoutClient({
   if (isWikiPage && navItems.length > 0) {
     const found = navItems.find(item => {
       const href = `/dashboard/${wikiSlug}/${item.href}`;
-      return pathname === href || pathname.startsWith(`${href}/`);
+      return pathname === href;
+    }) || navItems.find(item => {
+      const href = `/dashboard/${wikiSlug}/${item.href}`;
+      return pathname.startsWith(`${href}/`);
     });
     if (found) {
       activeValue = `/dashboard/${wikiSlug}/${found.href}`;

@@ -4,7 +4,16 @@ import { useState, useEffect, useCallback } from 'react';
 
 const globalCache = new Map<string, unknown>();
 
-export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>): {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>, timeoutMs = 30_000): {
   data: T | null;
   loading: boolean;
   error: Error | null;
@@ -15,11 +24,14 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>):
   const [error, setError] = useState<Error | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!key) return;
+    if (!key) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const result = await fetcher();
+      const result = await withTimeout(fetcher(), timeoutMs);
       globalCache.set(key, result);
       setData(result);
     } catch (err) {
@@ -27,10 +39,14 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>):
     } finally {
       setLoading(false);
     }
-  }, [key, fetcher]);
+  }, [key, fetcher, timeoutMs]);
 
   useEffect(() => {
-    if (!key) return;
+    if (!key) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     if (globalCache.has(key)) {
       setData(globalCache.get(key) as T);
       return;
