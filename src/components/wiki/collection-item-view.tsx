@@ -9,6 +9,7 @@ import {
   Coins, Pickaxe, Sparkles, Crown,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { abbreviateNumber } from '@/lib/format-number';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
@@ -68,7 +69,7 @@ function fmt(v: unknown, scientificNotation?: boolean): string {
     return JSON.stringify(v);
   }
   if (scientificNotation && typeof v === 'number') {
-    return v.toExponential(2);
+    return abbreviateNumber(v);
   }
   return String(v);
 }
