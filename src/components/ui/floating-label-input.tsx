@@ -41,7 +41,7 @@ const FloatingLabelInput = React.forwardRef<
       <div className={cn("relative", containerClassName)}>
         <div
           className={cn(
-            "relative rounded-md border transition-colors inset-shadow",
+            "relative rounded-md border transition-colors inset-embed",
             error
               ? "border-destructive"
               : "border-input focus-within:border-primary",

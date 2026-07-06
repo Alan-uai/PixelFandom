@@ -214,7 +214,13 @@ export default {
     require('tailwindcss/plugin')(function({ addUtilities }) {
       addUtilities({
         '.inset-shadow': {
-          boxShadow: '2px 2px 2px rgba(0, 0, 0, 0.5) inset, -2px -2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(255, 255, 255, 0.1), 2px 2px 2px rgba(0, 0, 0, 0.5)',
+          boxShadow: '2px 2px 2px rgba(0, 0, 0, 0.5) inset, -2px -2px -2px rgba(255, 255, 255, 0.1) inset, -2px -2px -2px rgba(255, 255, 255, 0.1), 2px 2px 2px rgba(0, 0, 0, 0.5)',
+        },
+        '.inset-embed': {
+          boxShadow: '2px 2px 2px rgba(0, 0, 0, 0.5) inset, -2px -2px 2px rgba(255, 255, 255, 0.1) inset',
+        },
+        '.inset-bold': {
+          boxShadow: '16px 16px 16px rgba(0, 0, 0, 0.5) inset, -16px -16px -16px rgba(255, 255, 255, 0.1) inset, -16px -16px -16px rgba(255, 255, 255, 0.5), 16px 16px 16px rgba(0, 0, 0, 0.5)',
         },
       });
     }),

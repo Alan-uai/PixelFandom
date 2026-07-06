@@ -152,11 +152,6 @@ export default function DataTableContent({
   const rowsCache = useRef<Row[] | null>(null);
   const columnsCache = useRef<{ column_name: string; data_type: string; is_nullable: boolean }[] | null>(null);
 
-  const currentFormKeys = showNewForm ? Object.keys(newForm) : editingId ? Object.keys(editForm) : [];
-  const unusedColumns = availableColumns.filter(
-    (c) => !currentFormKeys.includes(c.column_name) && !isSystemColumn(c.column_name),
-  );
-
   const label = tableLabels[table] || table;
   const primary = useMemo(() => {
     if (!tableColumns) return [];
@@ -243,15 +238,17 @@ export default function DataTableContent({
     }
   }, [tenantId, fetchRows, fetchColumns]);
 
-  const isSystemColumn = (col: string) =>
-    systemColumns.includes(col) || col.startsWith('embedding');
+  function isSystemColumn(col: string) {
+    return systemColumns.includes(col) || col.startsWith('embedding');
+  }
 
-  const isImageColumn = (col: string) => imageColumnNames.includes(col);
-  const isIconColumn = (col: string) => iconColumnNames.includes(col);
-  const isEditableColumn = (col: string) => !isSystemColumn(col) && col !== 'id';
+  function isImageColumn(col: string) { return imageColumnNames.includes(col); }
+  function isIconColumn(col: string) { return iconColumnNames.includes(col); }
+  function isEditableColumn(col: string) { return !isSystemColumn(col) && col !== 'id'; }
 
-  const getColumnDataType = (col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined =>
-    columns?.find((c) => c.column_name === col)?.data_type;
+  function getColumnDataType(col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined {
+    return columns?.find((c) => c.column_name === col)?.data_type;
+  }
 
   const isDateColumn = (col: string, dataType?: string): boolean => {
     if (systemDateColumns.includes(col)) return false;
@@ -290,6 +287,11 @@ export default function DataTableContent({
     });
     setEditForm(form);
   };
+
+  const currentFormKeys = showNewForm ? Object.keys(newForm) : editingId ? Object.keys(editForm) : [];
+  const unusedColumns = availableColumns.filter(
+    (c) => !currentFormKeys.includes(c.column_name) && !isSystemColumn(c.column_name),
+  );
 
   const cancelEdit = () => {
     setEditingId(null);
