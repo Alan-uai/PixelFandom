@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
+import { z } from 'zod';
+import { detectSqlInjection } from '@/lib/sql-injection-detect';
+
+const mediaInsertSchema = z.object({
+  public_url: z.string().url().max(2048),
+  storage_path: z.string().min(1).max(512),
+  file_name: z.string().min(1).max(255),
+  file_size: z.number().int().positive().optional().nullable(),
+  mime_type: z.string().max(128).optional().default('image/png'),
+  alt_text: z.string().max(500).optional().default(''),
+  width: z.number().int().positive().optional().nullable(),
+  height: z.number().int().positive().optional().nullable(),
+  uploaded_by: z.string().uuid().optional().nullable(),
+  scan_status: z.enum(['pending', 'scanning', 'clean', 'infected', 'error']).optional(),
+  file_hash: z.string().max(128).optional().nullable(),
+});
+
+const mediaDeleteSchema = z.object({
+  id: z.string().uuid(),
+});
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +32,10 @@ export async function GET(
     const search = searchParams.get('search') || '';
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 100);
     const offset = Number(searchParams.get('offset')) || 0;
+
+    if (detectSqlInjection(search).detected) {
+      return NextResponse.json({ media: [], total: 0 });
+    }
 
     let query = supabase
       .from('wiki_media')
@@ -51,9 +75,10 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
 
-    if (!body.public_url || !body.storage_path || !body.file_name) {
+    const parsed = mediaInsertSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'public_url, storage_path, and file_name required' },
+        { error: 'Invalid input', details: parsed.error.flatten() },
         { status: 400 }
       );
     }
@@ -62,15 +87,17 @@ export async function POST(
       .from('wiki_media')
       .insert({
         tenant_id: id,
-        uploaded_by: body.uploaded_by,
-        file_name: body.file_name,
-        file_size: body.file_size || null,
-        mime_type: body.mime_type || 'image/png',
-        storage_path: body.storage_path,
-        public_url: body.public_url,
-        alt_text: body.alt_text || '',
-        width: body.width || null,
-        height: body.height || null,
+        uploaded_by: parsed.data.uploaded_by,
+        file_name: parsed.data.file_name,
+        file_size: parsed.data.file_size || null,
+        mime_type: parsed.data.mime_type,
+        storage_path: parsed.data.storage_path,
+        public_url: parsed.data.public_url,
+        alt_text: parsed.data.alt_text,
+        width: parsed.data.width || null,
+        height: parsed.data.height || null,
+        scan_status: parsed.data.scan_status || 'pending',
+        file_hash: parsed.data.file_hash || null,
       })
       .select('id, file_name, public_url, alt_text, created_at')
       .single();
@@ -95,14 +122,15 @@ export async function DELETE(
     const { id } = await params;
     const body = await request.json();
 
-    if (!body.id) {
-      return NextResponse.json({ error: 'media id required' }, { status: 400 });
+    const parsed = mediaDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
     const { error } = await supabase
       .from('wiki_media')
       .delete()
-      .eq('id', body.id)
+      .eq('id', parsed.data.id)
       .eq('tenant_id', id);
 
     if (error) {

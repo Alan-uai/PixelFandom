@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTenantBySlug } from '@/lib/tenant'
+import { createClient } from '@/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,14 +17,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    const { supabase } = await import('@/supabase')
+    const { supabase: anon } = await import('@/supabase')
 
     const [{ count: articleCount }, { data: rawTags }] = await Promise.all([
-      supabase
+      anon
         .from('wiki_articles')
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id),
-      supabase
+      anon
         .from('wiki_articles')
         .select('tags')
         .eq('tenant_id', tenant.id)

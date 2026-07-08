@@ -4,9 +4,8 @@ import Image from 'next/image';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Trash2, Upload } from 'lucide-react';
-import { supabase } from '@/supabase';
-import { ensureStorageBuckets } from '@/lib/storage';
+import { sanitizeUrl } from '@/lib/sanitize';
+import { Loader2, Search, Trash2, Upload, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
@@ -43,6 +42,7 @@ export function MediaLibrary({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -93,46 +93,51 @@ export function MediaLibrary({
     }
 
     setUploading(true);
+    setScanError(null);
+
     try {
-      await ensureStorageBuckets();
-      const filePath = `${pathPrefix}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file, { upsert: true });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', bucket);
+      formData.append('path_prefix', pathPrefix);
+      formData.append('tenant_id', tenantId);
 
-      if (uploadError) throw uploadError;
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+        if (res.status === 422 && err.virusName) {
+          setScanError(`Malware detectado: ${err.virusName}`);
+        }
+        throw new Error(err.error || 'Upload failed');
+      }
 
-      const img = new window.Image();
-      img.onload = async () => {
-        await fetch(`/api/tenants/${tenantId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            file_name: file.name,
-            file_size: file.size,
-            mime_type: file.type,
-            storage_path: filePath,
-            public_url: publicUrl,
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-          }),
-        });
+      const data = await res.json();
+
+      if (data.url) {
+        const img = new window.Image();
+        img.onload = () => {
+          fetchMedia();
+          toast({ title: 'Imagem enviada', description: 'Verificada e adicionada à biblioteca.' });
+          setUploading(false);
+        };
+        img.onerror = () => {
+          setUploading(false);
+          fetchMedia();
+        };
+        img.src = data.url;
+      } else {
         setUploading(false);
         fetchMedia();
-        toast({ title: 'Imagem enviada', description: 'Adicionada à biblioteca.' });
-      };
-      img.src = publicUrl;
-    } catch {
-      setUploading(false);
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro no upload';
       toast({
         variant: 'destructive',
         title: 'Erro no upload',
-        description: 'Não foi possível enviar a imagem.',
+        description: msg,
       });
+      setUploading(false);
     }
   };
 
@@ -153,6 +158,11 @@ export function MediaLibrary({
         description: 'Não foi possível remover a imagem.',
       });
     }
+  };
+
+  const handleSelect = (url: string) => {
+    onSelect(sanitizeUrl(url));
+    onOpenChange(false);
   };
 
   return (
@@ -190,12 +200,18 @@ export function MediaLibrary({
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : scanError ? (
+              <ShieldAlert className="h-4 w-4 text-destructive" />
             ) : (
               <Upload className="h-4 w-4" />
             )}
-            Upload
+            {uploading ? 'Verificando...' : 'Upload'}
           </button>
         </div>
+
+        {scanError && (
+          <div className="text-xs text-destructive text-center mb-2">{scanError}</div>
+        )}
 
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading ? (
@@ -213,10 +229,7 @@ export function MediaLibrary({
                 <div
                   key={item.id}
                   className="group relative rounded-lg border overflow-hidden bg-muted/30 hover:border-primary/50 transition-colors cursor-pointer"
-                  onClick={() => {
-                    onSelect(item.public_url);
-                    onOpenChange(false);
-                  }}
+                  onClick={() => handleSelect(item.public_url)}
                 >
                   <div className="relative aspect-square">
                     <Image

@@ -2,9 +2,8 @@
 
 import Image from 'next/image';
 import { useRef, useState } from 'react';
-import { Loader2, Upload, X } from 'lucide-react';
-import { supabase } from '@/supabase';
-import { ensureStorageBuckets } from '@/lib/storage';
+import { Loader2, Upload, X, ShieldAlert } from 'lucide-react';
+import { sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 
@@ -27,9 +26,11 @@ export function MediaUpload({
   onChange,
   mediaType,
   label,
+  tenantId,
 }: MediaUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const acceptMap: Record<MediaType, string> = {
@@ -62,32 +63,43 @@ export function MediaUpload({
     }
 
     setUploading(true);
+    setScanError(null);
+
     try {
-      await ensureStorageBuckets();
-      const filePath = `${pathPrefix}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file, { upsert: true });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', bucket);
+      formData.append('path_prefix', pathPrefix);
+      if (tenantId) formData.append('tenant_id', tenantId);
 
-      if (uploadError) throw uploadError;
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+        if (res.status === 422 && err.virusName) {
+          setScanError(`Malware detectado: ${err.virusName}`);
+        }
+        throw new Error(err.error || 'Upload failed');
+      }
 
-      onChange(publicUrl);
-      toast({ title: 'Arquivo enviado', description: 'O arquivo foi enviado com sucesso.' });
+      const data = await res.json();
+      onChange(data.url);
+      toast({ title: 'Arquivo enviado', description: 'Verificado e aprovado pelo sistema de segurança.' });
     } catch (error) {
-      console.error('Upload error:', error);
+      const msg = error instanceof Error ? error.message : 'Erro no upload';
       toast({
         variant: 'destructive',
         title: 'Erro no upload',
-        description: 'Não foi possível enviar o arquivo.',
+        description: msg,
       });
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
     }
+  };
+
+  const handleUrlChange = (url: string) => {
+    onChange(sanitizeUrl(url));
   };
 
   const labelText = label || labelMap[mediaType];
@@ -165,12 +177,17 @@ export function MediaUpload({
         >
           {uploading ? (
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : scanError ? (
+            <ShieldAlert className="h-5 w-5 text-destructive" />
           ) : (
             <Upload className="h-5 w-5 text-muted-foreground" />
           )}
           <span className="text-[11px] font-medium text-muted-foreground text-center px-4">
-            {uploading ? 'Enviando...' : `Clique para fazer upload de ${labelText.toLowerCase()}`}
+            {uploading ? 'Verificando...' : scanError ? 'Arquivo rejeitado' : `Clique para fazer upload de ${labelText.toLowerCase()}`}
           </span>
+          {scanError && (
+            <span className="text-[10px] text-destructive text-center px-4">{scanError}</span>
+          )}
         </div>
       )}
 
@@ -178,7 +195,7 @@ export function MediaUpload({
         label={`URL da ${labelText.toLowerCase()}`}
         info={mediaType === 'video' ? 'YouTube, Vimeo ou URL direta' : 'Cole o link direto'}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleUrlChange(e.target.value)}
         className="text-xs"
       />
     </div>

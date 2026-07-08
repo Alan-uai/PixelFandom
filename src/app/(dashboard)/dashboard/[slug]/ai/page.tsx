@@ -208,6 +208,10 @@ export default function WikiAIConfigPage() {
   const resolvedModel = modelSource === 'custom' ? customModel : model;
   const resolvedGeminiModel = geminiModelSource === 'custom' ? geminiCustomModel : geminiModel;
 
+  function isMasked(val: string, saved: string): boolean {
+    return val !== '' && val === saved && val.includes('...');
+  }
+
   const handleSave = useCallback(async () => {
     const tid = tenantData?.id;
     if (!tid) {
@@ -215,8 +219,10 @@ export default function WikiAIConfigPage() {
       return;
     }
 
-    const effectiveApiKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
-    const effectiveGeminiApiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
+    const rawKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
+    const rawGeminiKey = geminiModelSource === 'custom' || geminiFallbackSource === 'custom' ? geminiCustomApiKey : '';
+    const effectiveApiKey = isMasked(rawKey, savedConfig.customApiKey) ? '__MASKED__' : rawKey;
+    const effectiveGeminiApiKey = isMasked(rawGeminiKey, savedConfig.geminiCustomApiKey) ? '__MASKED__' : rawGeminiKey;
 
     try {
       const res = await fetch(`/api/tenants/${tid}/ai-config`, {
@@ -253,6 +259,8 @@ export default function WikiAIConfigPage() {
       }
 
       const result = await res.json();
+      const responseKey = result?.ai_config?.custom_api_key || '';
+      const responseGeminiKey = result?.ai_config?.gemini_custom_api_key || '';
       setSavedConfig({
         enabled,
         provider,
@@ -260,13 +268,13 @@ export default function WikiAIConfigPage() {
         model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
         modelSource,
         customModel,
-        customApiKey: effectiveApiKey,
+        customApiKey: responseKey,
         fallbackChain,
         fallbackSource,
         geminiModel: geminiModelSource === 'custom' ? 'gemini-2.0-flash' : geminiModel,
         geminiModelSource,
         geminiCustomModel,
-        geminiCustomApiKey: effectiveGeminiApiKey,
+        geminiCustomApiKey: responseGeminiKey,
         geminiFallbackChain,
         geminiFallbackSource,
         wakeWordText,

@@ -3,6 +3,7 @@ import { searchAll, type SearchAllResult } from '@/lib/search';
 import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
 import { parseContentToJson } from '@/lib/content-utils';
+import { getTableCatalog } from '@/lib/data-access';
 
 export interface ToolContext {
   slug: string;
@@ -1874,6 +1875,43 @@ const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<un
   ['batchGetItems', handleBatchGetItems],
 ]);
 
+async function getValidTenantTableNames(slug: string): Promise<Set<string>> {
+  try {
+    const catalog = await getTableCatalog(slug, false);
+    return new Set(catalog.map((e) => e.table_name));
+  } catch {
+    return new Set();
+  }
+}
+
+function extractTableNames(args: Record<string, unknown>): string[] {
+  const tables: string[] = [];
+  if (typeof args.table === 'string') tables.push(args.table);
+  if (typeof args.tableA === 'string') tables.push(args.tableA);
+  if (typeof args.tableB === 'string') tables.push(args.tableB);
+  if (typeof args.tableC === 'string') tables.push(args.tableC);
+  if (Array.isArray(args.tables)) {
+    for (const t of args.tables) {
+      if (typeof t === 'string') tables.push(t);
+    }
+  }
+  return tables;
+}
+
+function isSystemTable(name: string): boolean {
+  const denied = new Set([
+    'pg_statistics', 'pg_authid', 'pg_user_mapping',
+    'auth.users', 'auth.sessions', 'auth.mfa_factors',
+    'auth.identities', 'auth.refresh_tokens',
+    'pgbouncer', 'storage.buckets', 'storage.objects',
+    'secrets', 'pg_catalog', 'information_schema',
+  ]);
+  if (denied.has(name)) return true;
+  if (name.startsWith('pg_')) return true;
+  if (name.startsWith('_')) return true;
+  return false;
+}
+
 export async function executeTextChatTool(
   name: string,
   args: Record<string, unknown>,
@@ -1881,5 +1919,41 @@ export async function executeTextChatTool(
 ): Promise<unknown> {
   const handler = toolHandlers.get(name);
   if (!handler) return { error: `Unknown tool: ${name}. Available: ${[...toolHandlers.keys()].join(', ')}` };
+
+  const tableNames = extractTableNames(args);
+
+  for (const tName of tableNames) {
+    if (isSystemTable(tName)) {
+      return { error: `Acesso negado à tabela "${tName}".` };
+    }
+    if (ctx.slug) {
+      const validTables = await getValidTenantTableNames(ctx.slug);
+      if (validTables.size > 0 && !validTables.has(tName)) {
+        return { error: `Tabela "${tName}" não encontrada neste tenant.` };
+      }
+    }
+  }
+
+  // Validate column names against table schema
+  const primaryTable = typeof args.table === 'string' ? args.table : null;
+  if (primaryTable && ctx.slug) {
+    const validTables = await getValidTenantTableNames(ctx.slug);
+    if (validTables.has(primaryTable)) {
+      const schema = await getTableSchema(primaryTable);
+      const validCols = new Set(schema.map((c) => c.column_name));
+      const colCandidates = [
+        args.stat, args.column, args.sortBy, args.categoryColumn,
+        ...(Array.isArray(args.statColumns) ? args.statColumns : []),
+        ...(Array.isArray(args.matchColumns) ? args.matchColumns : []),
+        ...(args.filters && typeof args.filters === 'object' ? Object.keys(args.filters as Record<string, unknown>) : []),
+      ].filter(Boolean) as string[];
+      for (const col of colCandidates) {
+        if (!validCols.has(col)) {
+          return { error: `Coluna "${col}" não encontrada na tabela "${primaryTable}".` };
+        }
+      }
+    }
+  }
+
   return handler(args, ctx);
 }
