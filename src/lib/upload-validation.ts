@@ -34,7 +34,8 @@ const MAX_FILE_SIZES: Record<string, number> = {
 };
 
 const PATH_TRAVERSAL = /\.\.(\/|\\)/;
-const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\0-\x1f]/g;
+// eslint-disable-next-line no-control-regex
+const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/g;
 
 function detectMimeType(buffer: Buffer): string | null {
   const hex = buffer.toString('hex').toLowerCase();
