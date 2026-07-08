@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -41,9 +40,9 @@ import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { sanitizeUrl } from '@/lib/content-utils';
-import { COLUMN_TYPES, FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType, getDefaultColumn, type RenderType } from '@/lib/column-types/registry';
+import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType } from '@/lib/column-types/registry';
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
-import { parseRenderType, validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
+import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',

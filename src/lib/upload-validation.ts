@@ -70,7 +70,7 @@ export function getMaxFileSize(mime: string): number {
 export function validateFile(
   buffer: Buffer,
   filename: string,
-  declaredType: string,
+  _declaredType: string,
 ): FileValidationResult {
   const sanitizedFilename = sanitizeFilename(filename);
 

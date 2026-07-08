@@ -9,7 +9,6 @@ import {
   getTypesByCategory,
   getTypeDef,
   type CategoryId,
-  type RenderType,
 } from '@/lib/column-types/registry';
 
 interface FieldTypeSelect3DProps {

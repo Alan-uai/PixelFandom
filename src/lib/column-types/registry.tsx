@@ -20,7 +20,6 @@ import {
   Palette,
   Star,
   SlidersHorizontal,
-  Clock,
   ListChecks,
   Tags,
   Link2,

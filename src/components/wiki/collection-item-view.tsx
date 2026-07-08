@@ -14,7 +14,7 @@ import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
-import { getTypeDef, type RenderType } from '@/lib/column-types/registry';
+import { getTypeDef } from '@/lib/column-types/registry';
 import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, effectColor, COLL_ICON,

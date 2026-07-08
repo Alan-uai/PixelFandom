@@ -30,7 +30,7 @@ export interface EditorProps {
   rowId?: string;
 }
 
-export function ColumnEditor({ value, onChange, column, renderType, tenantId, slug, table, rowId }: EditorProps) {
+export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId }: EditorProps) {
   const def = COLUMN_TYPES[renderType as RenderType];
 
   if (!def) {
@@ -233,8 +233,6 @@ function IconInlineEditor({ value, onChange }: { value: string; onChange: (v: st
       <button
         type="button"
         onClick={async () => {
-          const { IconPicker } = await import('@/components/ui/icon-picker');
-          // Simplified: just toggle between empty and a default icon for inline editing
           onChange(value ? '' : 'mdi:sword');
         }}
         className="text-xs text-primary hover:text-primary/80"

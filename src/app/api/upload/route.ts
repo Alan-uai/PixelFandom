@@ -4,7 +4,7 @@ import { validateFile, validateExtension, sanitizeFilename } from '@/lib/upload-
 import { virusScanner } from '@/lib/virus-scan';
 import { stripImageMetadata } from '@/lib/metadata-strip';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
-import { getClientIp, getFingerprint, checkRequestForThreats, handleThreatDetection } from '@/lib/threat-detection';
+import { getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';
 import { getMediaCategory } from '@/lib/upload-validation';
 
 export const config = {

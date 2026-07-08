@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { cn } from '@/lib/utils';
 
 const PRESET_COLORS = [
@@ -24,9 +23,6 @@ export function ColorEditor({ value, onChange }: ColorEditorProps) {
   useEffect(() => {
     if (custom) inputRef.current?.focus();
   }, [custom]);
-
-  const isHsl = value.startsWith('hsl');
-  const displayColor = value || 'transparent';
 
   return (
     <div className="space-y-2">

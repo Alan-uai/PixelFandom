@@ -293,7 +293,7 @@ export default function WikiAIConfigPage() {
       toast({ variant: 'destructive', title: t('toast.error.title'), description: message });
     }
   }, [
-    tenantData, enabled, provider, primaryProvider, resolvedModel, model,
+    tenantData, savedConfig, enabled, provider, primaryProvider, resolvedModel, model,
     modelSource, customModel, customApiKey, fallbackChain, fallbackSource,
     resolvedGeminiModel, geminiModel, geminiModelSource, geminiCustomModel,
     geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,

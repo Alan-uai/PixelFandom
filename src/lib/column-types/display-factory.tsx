@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { COLUMN_TYPES, type RenderType } from './registry';
+import { COLUMN_TYPES } from './registry';
 
 export interface DisplayProps {
   value: unknown;
@@ -13,12 +13,13 @@ export interface DisplayProps {
 export function ColumnDisplay({ value, column, renderType }: DisplayProps): ReactNode {
   if (value === null || value === undefined || value === '') return null;
 
-  const def = COLUMN_TYPES[renderType as RenderType];
+  const def = COLUMN_TYPES[renderType as keyof typeof COLUMN_TYPES];
 
   switch (renderType) {
     case 'image':
       return (
         <div className="rounded-lg overflow-hidden border bg-muted/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={String(value)} alt={column} className="w-full h-auto max-h-48 object-contain" loading="lazy" />
         </div>
       );
@@ -29,6 +30,7 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
       }
       return (
         <div className="rounded-lg overflow-hidden border bg-muted/30 w-12 h-12">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={String(value)} alt={column} className="w-full h-full object-contain" loading="lazy" />
         </div>
       );

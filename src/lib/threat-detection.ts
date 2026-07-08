@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { supabase } from '@/supabase';
 import { detectSqlInjection } from './sql-injection-detect';
-import { virusScanner } from './virus-scan';
 
 export interface ThreatContext {
   ip: string;

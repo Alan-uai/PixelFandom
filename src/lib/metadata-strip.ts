@@ -17,8 +17,6 @@ export async function stripImageMetadata(buffer: Buffer, mimeType: string): Prom
   try {
     const image = sharp(buffer);
 
-    const metadata = await image.metadata();
-
     let cleaned: Sharp;
 
     if (mimeType === 'image/png') {
@@ -55,7 +53,6 @@ export async function stripImageMetadata(buffer: Buffer, mimeType: string): Prom
  */
 export async function sanitizeImage(buffer: Buffer): Promise<StripResult> {
   const image = sharp(buffer);
-  const meta = await image.metadata();
 
   const sanitized = image
     .rotate()
