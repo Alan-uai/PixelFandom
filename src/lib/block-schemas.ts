@@ -377,6 +377,14 @@ export const ContactFormConfigSchema = z.object({
   notificationEmail: z.string().email().max(500).optional(),
 });
 
+export const PopoverConfigSchema = z.object({
+  trigger: z.enum(['hover', 'click']).default('hover'),
+  position: z.enum(['top', 'bottom', 'left', 'right']).default('top'),
+  title: z.string().max(200).default(''),
+  content: z.string().max(2000).default('Conteúdo do popover'),
+  triggerText: z.string().max(100).default('Saiba mais'),
+});
+
 // ── Special ──
 
 export const SearchConfigSchema = z.object({
@@ -680,6 +688,7 @@ export const BlockConfigSchemas = {
   'social-links': SocialLinksConfigSchema,
   'countdown': CountdownConfigSchema,
   'contact-form': ContactFormConfigSchema,
+  'popover': PopoverConfigSchema,
   'search': SearchConfigSchema,
   'tabs': TabsConfigSchema,
   'template-part': TemplatePartConfigSchema,

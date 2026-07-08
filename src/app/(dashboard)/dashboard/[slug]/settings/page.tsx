@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { useSiteCache } from '@/lib/site-cache';
@@ -23,6 +24,8 @@ import { THEME_PRESETS } from '@/lib/theme-presets';
 export default function WikiSettingsPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
   const { toast } = useToast();
   const [tenantState, setTenantState] = useState<any>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -74,12 +77,10 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [articlesPerRow, setArticlesPerRow] = useState(3);
-  // Game Cards config (game-data-cards block)
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
   const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
   const [gameTableTabsSubFormat, setGameTableTabsSubFormat] = useState('list');
-  // Game Tables config (game-table-listing block)
   const [listingDisplayFormat, setListingDisplayFormat] = useState('grid');
   const [listingColumnsCount, setListingColumnsCount] = useState(4);
   const [listingItemsPerPage, setListingItemsPerPage] = useState(20);
@@ -89,7 +90,6 @@ export default function WikiSettingsPage() {
   const [listingShowHeader, setListingShowHeader] = useState(true);
   const [listingCardStyle, setListingCardStyle] = useState('default');
   const [listingHoverEffect, setListingHoverEffect] = useState('scale');
-  // Article display config
   const [articleDisplayFormat, setArticleDisplayFormat] = useState('grid');
   const [articleColumnsCount, setArticleColumnsCount] = useState(3);
   const [articleShowImages, setArticleShowImages] = useState(true);
@@ -245,7 +245,7 @@ export default function WikiSettingsPage() {
         .eq('slug', slug);
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Erro', description: error.message });
+        toast({ variant: 'destructive', title: tc('error'), description: error.message });
         throw error;
       }
 
@@ -312,7 +312,7 @@ export default function WikiSettingsPage() {
         },
       });
     } catch (err) {
-      if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: 'Erro inesperado', description: 'Não foi possível salvar.' });
+      if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: tc('unexpected_error'), description: t('save_failed') });
       throw err;
     }
   };
@@ -382,23 +382,23 @@ export default function WikiSettingsPage() {
   }
 
   if (!tenantState) {
-    return <p className="text-muted-foreground">Wiki não encontrada.</p>;
+    return <p className="text-muted-foreground">{t('wiki_not_found')}</p>;
   }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
 
-      <CollapsibleSection id="basic-info" title="Informações Básicas" description="Nome e descrição da sua wiki.">
+      <CollapsibleSection id="basic-info" title={t('basic_info.title')} description={t('basic_info.description')}>
         <div className="space-y-4">
           <FloatingLabelInput
-            label="Nome"
-            info="Nome público da sua wiki"
+            label={t('basic_info.name_label')}
+            info={t('basic_info.name_info')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <FloatingLabelTextarea
-            label="Descrição"
-            info="Uma breve descrição da sua wiki"
+            label={t('basic_info.description_label')}
+            info={t('basic_info.description_info')}
             value={description}
             ref={descriptionRef}
             onChange={(e) => {
@@ -412,39 +412,39 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="media" title="Mídia" description="Logo, capa, favicon e OG Image da sua wiki." defaultOpen={false}>
+      <CollapsibleSection id="media" title={t('media.title')} description={t('media.description')} defaultOpen={false}>
         <div className="space-y-6">
           <div>
-            <h4 className="text-sm font-medium mb-2">Logo da Wiki</h4>
-            <p className="text-xs text-muted-foreground mb-2">Imagem de perfil da sua wiki.</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label="Logo da Wiki" previewSize="w-20 h-20" />
-            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 256x256.</p>
+            <h4 className="text-sm font-medium mb-2">{t('media.logo_label')}</h4>
+            <p className="text-xs text-muted-foreground mb-2">{t('media.logo_hint')}</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label={t('media.logo_upload')} previewSize="w-20 h-20" />
+            <p className="text-xs text-muted-foreground mt-2">{t('media.logo_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-2">Capa da Wiki</h4>
-            <p className="text-xs text-muted-foreground mb-2">Imagem de capa da sua wiki.</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label="Capa da Wiki" previewSize="w-40 h-24" />
-            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.</p>
+            <h4 className="text-sm font-medium mb-2">{t('media.cover_label')}</h4>
+            <p className="text-xs text-muted-foreground mb-2">{t('media.cover_hint')}</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label={t('media.cover_upload')} previewSize="w-40 h-24" />
+            <p className="text-xs text-muted-foreground mt-2">{t('media.cover_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-2">Favicon</h4>
-            <p className="text-xs text-muted-foreground mb-2">Ícone de aba do navegador para sua wiki.</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label="Favicon" previewSize="w-10 h-10" />
-            <p className="text-xs text-muted-foreground mt-2">PNG ou SVG. Tamanho recomendado: 32x32.</p>
+            <h4 className="text-sm font-medium mb-2">{t('media.favicon_label')}</h4>
+            <p className="text-xs text-muted-foreground mb-2">{t('media.favicon_hint')}</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label={t('media.favicon_upload')} previewSize="w-10 h-10" />
+            <p className="text-xs text-muted-foreground mt-2">{t('media.favicon_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-2">OG Image</h4>
-            <p className="text-xs text-muted-foreground mb-2">Imagem de preview para compartilhamento em redes sociais.</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label="OG Image" previewSize="w-40 h-24" />
-            <p className="text-xs text-muted-foreground mt-2">Tamanho recomendado: 1200x630.</p>
+            <h4 className="text-sm font-medium mb-2">{t('media.og_label')}</h4>
+            <p className="text-xs text-muted-foreground mb-2">{t('media.og_hint')}</p>
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label={t('media.og_upload')} previewSize="w-40 h-24" />
+            <p className="text-xs text-muted-foreground mt-2">{t('media.og_recommendation')}</p>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="theme" title="Cores do Tema" description="Personalize as cores da sua wiki (formato HSL).">
+      <CollapsibleSection id="theme" title={t('theme.title')} description={t('theme.description')}>
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-medium mb-2">Presets de Tema</p>
+            <p className="text-xs font-medium mb-2">{t('theme.presets_label')}</p>
             <div className="grid grid-cols-3 gap-2">
               {THEME_PRESETS.map((preset) => (
                 <button
@@ -471,23 +471,23 @@ export default function WikiSettingsPage() {
               ))}
             </div>
           </div>
-          <ColorField id="primaryColor" label="Cor Primária" value={primaryColor} onChange={setPrimaryColor} placeholder="198 100% 65%" />
-          <ColorField id="backgroundColor" label="Cor de Fundo" value={backgroundColor} onChange={setBackgroundColor} placeholder="0 0% 13%" />
-          <ColorField id="cardColor" label="Cor dos Cards" value={cardColor} onChange={setCardColor} placeholder="0 0% 15%" />
-          <ColorField id="sidebarColor" label="Cor da Sidebar" value={sidebarColor} onChange={setSidebarColor} placeholder="0 0% 13.3%" />
-          <ColorField id="accentColor" label="Cor de Destaque" value={accentColor} onChange={setAccentColor} placeholder="0 100% 65%" />
+          <ColorField id="primaryColor" label={t('theme.primary_color')} value={primaryColor} onChange={setPrimaryColor} placeholder="198 100% 65%" />
+          <ColorField id="backgroundColor" label={t('theme.background_color')} value={backgroundColor} onChange={setBackgroundColor} placeholder="0 0% 13%" />
+          <ColorField id="cardColor" label={t('theme.card_color')} value={cardColor} onChange={setCardColor} placeholder="0 0% 15%" />
+          <ColorField id="sidebarColor" label={t('theme.sidebar_color')} value={sidebarColor} onChange={setSidebarColor} placeholder="0 0% 13.3%" />
+          <ColorField id="accentColor" label={t('theme.accent_color')} value={accentColor} onChange={setAccentColor} placeholder="0 100% 65%" />
           <p className="text-xs text-muted-foreground">
-            Formato: <code>hue saturation% lightness%</code>. Deixe vazio para usar o valor padrão.
+            {t.rich('theme.hsl_format_hint', { code: (chunks) => <code>{chunks}</code> })}
           </p>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="layout" title="Layout da Wiki" description="Configure a aparência estrutural da sua wiki.">
+      <CollapsibleSection id="layout" title={t('layout.title')} description={t('layout.description')}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Largura da Sidebar</Label>
+            <Label>{t('layout.sidebar_width')}</Label>
             <div className="flex gap-2">
-              {([{ v: 'narrow', l: 'Estreita' }, { v: 'normal', l: 'Normal' }, { v: 'wide', l: 'Larga' }] as const).map((opt) => (
+              {([{ v: 'narrow', l: t('layout.sidebar_width_narrow') }, { v: 'normal', l: t('layout.sidebar_width_normal') }, { v: 'wide', l: t('layout.sidebar_width_wide') }] as const).map((opt) => (
                 <button
                   key={opt.v}
                   type="button"
@@ -502,9 +502,9 @@ export default function WikiSettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Estilo do Header</Label>
+            <Label>{t('layout.header_style')}</Label>
             <div className="flex gap-2">
-              {([{ v: 'compact', l: 'Compacto' }, { v: 'expanded', l: 'Expandido' }, { v: 'minimal', l: 'Mínimo' }] as const).map((opt) => (
+              {([{ v: 'compact', l: t('layout.header_style_compact') }, { v: 'expanded', l: t('layout.header_style_expanded') }, { v: 'minimal', l: t('layout.header_style_minimal') }] as const).map((opt) => (
                 <button
                   key={opt.v}
                   type="button"
@@ -519,7 +519,7 @@ export default function WikiSettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="articlesPerRow">Artigos por Linha ({articlesPerRow})</Label>
+            <Label htmlFor="articlesPerRow">{t('layout.articles_per_row')} ({articlesPerRow})</Label>
             <input
               id="articlesPerRow"
               type="range"
@@ -535,38 +535,38 @@ export default function WikiSettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="borderRadius">Arredondamento (border-radius)</Label>
+            <Label htmlFor="borderRadius">{t('layout.border_radius')}</Label>
             <select
               id="borderRadius"
               value={borderRadius}
               onChange={(e) => setBorderRadius(e.target.value)}
               className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <option value="">Padrão (0.5rem)</option>
-              <option value="0.25rem">Pequeno (0.25rem)</option>
-              <option value="0.5rem">Médio (0.5rem)</option>
-              <option value="0.75rem">Grande (0.75rem)</option>
-              <option value="1rem">Extra (1rem)</option>
+              <option value="">{t('layout.border_radius_default')}</option>
+              <option value="0.25rem">{t('layout.border_radius_small')}</option>
+              <option value="0.5rem">{t('layout.border_radius_medium')}</option>
+              <option value="0.75rem">{t('layout.border_radius_large')}</option>
+              <option value="1rem">{t('layout.border_radius_extra')}</option>
             </select>
           </div>
 
           <div className="border-t pt-4 mt-4">
             <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
               <LayoutGrid className="h-4 w-4 text-primary" />
-              Game Cards
+              {t('layout.game_cards_title')}
             </h4>
             <p className="text-xs text-muted-foreground mb-3">
-              Configuração padrão de exibição das game cards (cards de tabelas na página inicial). Cada tabela pode sobrescrever no editor.
+              {t('layout.game_cards_description')}
             </p>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label>Formato de Exibição</Label>
+                <Label>{t('layout.format_label')}</Label>
                 <SelectCard
                   options={[
-                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
-                    { value: 'list', label: 'Lista', icon: <List /> },
-                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
-                    { value: 'carousel_infinite', label: 'Carrossel Infinito', icon: <Layers /> },
+                    { value: 'grid', label: t('layout.format_grid'), icon: <LayoutGrid /> },
+                    { value: 'list', label: t('layout.format_list'), icon: <List /> },
+                    { value: 'carousel', label: t('layout.format_carousel'), icon: <Layers /> },
+                    { value: 'carousel_infinite', label: t('layout.format_carousel_infinite'), icon: <Layers /> },
                   ]}
                   value={gameTableDisplayFormat}
                   onChange={(v) => setGameTableDisplayFormat(v as string)}
@@ -577,7 +577,7 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="gameTableColumns">Colunas ({gameTableColumnsCount})</Label>
+                <Label htmlFor="gameTableColumns">{t('layout.columns_label')} ({gameTableColumnsCount})</Label>
                 <input
                   id="gameTableColumns"
                   type="range"
@@ -594,7 +594,7 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Label htmlFor="gameTableTabs" className="shrink-0">Modo Abas (Tabs)</Label>
+                <Label htmlFor="gameTableTabs" className="shrink-0">{t('layout.tabs_mode')}</Label>
                 <Switch
                   id="gameTableTabs"
                   checked={gameTableTabsEnabled}
@@ -604,12 +604,12 @@ export default function WikiSettingsPage() {
 
               {gameTableTabsEnabled && (
                 <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-                  <Label>Sub-formato das Abas</Label>
+                  <Label>{t('layout.tabs_subformat')}</Label>
                   <div className="flex gap-2">
                     {[
-                      { v: 'list', l: 'Lista' },
-                      { v: 'carousel', l: 'Carrossel' },
-                      { v: 'grid', l: 'Grid' },
+                      { v: 'list', l: t('layout.tabs_subformat_list') },
+                      { v: 'carousel', l: t('layout.tabs_subformat_carousel') },
+                      { v: 'grid', l: t('layout.tabs_subformat_grid') },
                     ].map((opt) => (
                       <button
                         key={opt.v}
@@ -631,20 +631,20 @@ export default function WikiSettingsPage() {
           <div className="border-t pt-4 mt-4">
             <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
-              Game Tables (Listagem)
+              {t('layout.game_tables_title')}
             </h4>
             <p className="text-xs text-muted-foreground mb-3">
-              Configuração padrão de exibição da listagem de itens dentro de cada tabela.
+              {t('layout.game_tables_description')}
             </p>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label>Formato de Exibição</Label>
+                <Label>{t('layout.format_label')}</Label>
                 <SelectCard
                   options={[
-                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
-                    { value: 'list', label: 'Lista', icon: <List /> },
-                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
-                    { value: 'table', label: 'Tabela', icon: <Database /> },
+                    { value: 'grid', label: t('layout.format_grid'), icon: <LayoutGrid /> },
+                    { value: 'list', label: t('layout.format_list'), icon: <List /> },
+                    { value: 'carousel', label: t('layout.format_carousel'), icon: <Layers /> },
+                    { value: 'table', label: t('layout.format_table'), icon: <Database /> },
                   ]}
                   value={listingDisplayFormat}
                   onChange={(v) => setListingDisplayFormat(v as string)}
@@ -655,7 +655,7 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="listingColumns">Colunas ({listingColumnsCount})</Label>
+                <Label htmlFor="listingColumns">{t('layout.columns_label')} ({listingColumnsCount})</Label>
                 <input
                   id="listingColumns"
                   type="range"
@@ -672,7 +672,7 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="listingItemsPerPage">Itens por Página ({listingItemsPerPage})</Label>
+                <Label htmlFor="listingItemsPerPage">{t('layout.items_per_page')} ({listingItemsPerPage})</Label>
                 <input
                   id="listingItemsPerPage"
                   type="range"
@@ -690,12 +690,12 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Paginação</Label>
+                <Label>{t('layout.pagination')}</Label>
                 <div className="flex gap-2">
                   {[
-                    { v: 'paginated', l: 'Paginada' },
-                    { v: 'infinite-scroll', l: 'Scroll Infinito' },
-                    { v: 'none', l: 'Todos' },
+                    { v: 'paginated', l: t('layout.pagination_paginated') },
+                    { v: 'infinite-scroll', l: t('layout.pagination_infinite_scroll') },
+                    { v: 'none', l: t('layout.pagination_none') },
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -712,27 +712,27 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="listingSearch" className="text-xs">Mostrar Busca</Label>
+                <Label htmlFor="listingSearch" className="text-xs">{t('layout.show_search')}</Label>
                 <Switch id="listingSearch" checked={listingShowSearch} onCheckedChange={setListingShowSearch} />
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="listingFilters" className="text-xs">Mostrar Filtros</Label>
+                <Label htmlFor="listingFilters" className="text-xs">{t('layout.show_filters')}</Label>
                 <Switch id="listingFilters" checked={listingShowFilters} onCheckedChange={setListingShowFilters} />
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="listingHeader" className="text-xs">Mostrar Header</Label>
+                <Label htmlFor="listingHeader" className="text-xs">{t('layout.show_header')}</Label>
                 <Switch id="listingHeader" checked={listingShowHeader} onCheckedChange={setListingShowHeader} />
               </div>
 
               <div className="space-y-2">
-                <Label>Estilo dos Cards</Label>
+                <Label>{t('layout.card_style')}</Label>
                 <div className="flex gap-2">
                   {[
-                    { v: 'default', l: 'Padrão' },
-                    { v: 'compact', l: 'Compacto' },
-                    { v: 'detailed', l: 'Detalhado' },
+                    { v: 'default', l: t('layout.card_style_default') },
+                    { v: 'compact', l: t('layout.card_style_compact') },
+                    { v: 'detailed', l: t('layout.card_style_detailed') },
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -749,13 +749,13 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Efeito Hover</Label>
+                <Label>{t('layout.hover_effect')}</Label>
                 <div className="flex gap-2">
                   {[
-                    { v: 'scale', l: 'Escala' },
-                    { v: 'glow', l: 'Brilho' },
-                    { v: 'shadow', l: 'Sombra' },
-                    { v: 'none', l: 'Nenhum' },
+                    { v: 'scale', l: t('layout.hover_effect_scale') },
+                    { v: 'glow', l: t('layout.hover_effect_glow') },
+                    { v: 'shadow', l: t('layout.hover_effect_shadow') },
+                    { v: 'none', l: t('layout.hover_effect_none') },
                   ].map((opt) => (
                     <button
                       key={opt.v}
@@ -776,20 +776,20 @@ export default function WikiSettingsPage() {
           <div className="border-t pt-4 mt-4">
             <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary" />
-              Artigos
+              {t('layout.articles_title')}
             </h4>
             <p className="text-xs text-muted-foreground mb-3">
-              Configuração padrão de exibição dos artigos na página inicial da wiki.
+              {t('layout.articles_description')}
             </p>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label>Formato de Exibição</Label>
+                <Label>{t('layout.format_label')}</Label>
                 <SelectCard
                   options={[
-                    { value: 'grid', label: 'Grid', icon: <LayoutGrid /> },
-                    { value: 'list', label: 'Lista', icon: <List /> },
-                    { value: 'carousel', label: 'Carrossel', icon: <Layers /> },
-                    { value: 'carousel_infinite', label: 'Carrossel Infinito', icon: <Layers /> },
+                    { value: 'grid', label: t('layout.article_format_grid'), icon: <LayoutGrid /> },
+                    { value: 'list', label: t('layout.article_format_list'), icon: <List /> },
+                    { value: 'carousel', label: t('layout.article_format_carousel'), icon: <Layers /> },
+                    { value: 'carousel_infinite', label: t('layout.article_format_carousel_infinite'), icon: <Layers /> },
                   ]}
                   value={articleDisplayFormat}
                   onChange={(v) => setArticleDisplayFormat(v as string)}
@@ -800,7 +800,7 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="articleColumns">Colunas ({articleColumnsCount})</Label>
+                <Label htmlFor="articleColumns">{t('layout.columns_label')} ({articleColumnsCount})</Label>
                 <input
                   id="articleColumns"
                   type="range"
@@ -817,12 +817,12 @@ export default function WikiSettingsPage() {
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="articleImages" className="text-xs">Mostrar Imagens</Label>
+                <Label htmlFor="articleImages" className="text-xs">{t('layout.show_images')}</Label>
                 <Switch id="articleImages" checked={articleShowImages} onCheckedChange={setArticleShowImages} />
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="articleSummaries" className="text-xs">Mostrar Resumos</Label>
+                <Label htmlFor="articleSummaries" className="text-xs">{t('layout.show_summaries')}</Label>
                 <Switch id="articleSummaries" checked={articleShowSummaries} onCheckedChange={setArticleShowSummaries} />
               </div>
             </div>
@@ -830,48 +830,48 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="fonts" title="Fontes" description="Escolha as fontes da sua wiki.">
+      <CollapsibleSection id="fonts" title={t('fonts.title')} description={t('fonts.description')}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="fontFamily">Fonte Principal</Label>
+            <Label htmlFor="fontFamily">{t('fonts.primary')}</Label>
             <select
               id="fontFamily"
               value={fontFamily}
               onChange={(e) => setFontFamily(e.target.value)}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <option value="">Inter (padrão)</option>
-              <option value="Inter, ui-sans-serif, system-ui, sans-serif">Inter</option>
-              <option value="ui-serif, Georgia, serif">Serif</option>
-              <option value="ui-monospace, SFMono-Regular, monospace">Mono</option>
-              <option value="'Poppins', sans-serif">Poppins</option>
-              <option value="'Open Sans', sans-serif">Open Sans</option>
-              <option value="'Roboto', sans-serif">Roboto</option>
+              <option value="">{t('fonts.primary_default_option')}</option>
+              <option value="Inter, ui-sans-serif, system-ui, sans-serif">{t('fonts.options.inter')}</option>
+              <option value="ui-serif, Georgia, serif">{t('fonts.options.serif')}</option>
+              <option value="ui-monospace, SFMono-Regular, monospace">{t('fonts.options.mono')}</option>
+              <option value="'Poppins', sans-serif">{t('fonts.options.poppins')}</option>
+              <option value="'Open Sans', sans-serif">{t('fonts.options.open_sans')}</option>
+              <option value="'Roboto', sans-serif">{t('fonts.options.roboto')}</option>
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="headingFont">Fonte de Títulos</Label>
+            <Label htmlFor="headingFont">{t('fonts.heading')}</Label>
             <select
               id="headingFont"
               value={headingFont}
               onChange={(e) => setHeadingFont(e.target.value)}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <option value="">Mesma da principal (padrão)</option>
-              <option value="Inter, ui-sans-serif, system-ui, sans-serif">Inter</option>
-              <option value="ui-serif, Georgia, serif">Serif</option>
-              <option value="'Poppins', sans-serif">Poppins</option>
-              <option value="'Roboto', sans-serif">Roboto</option>
-              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="">{t('fonts.heading_default_option')}</option>
+              <option value="Inter, ui-sans-serif, system-ui, sans-serif">{t('fonts.options.inter')}</option>
+              <option value="ui-serif, Georgia, serif">{t('fonts.options.serif')}</option>
+              <option value="'Poppins', sans-serif">{t('fonts.options.poppins')}</option>
+              <option value="'Roboto', sans-serif">{t('fonts.options.roboto')}</option>
+              <option value="'Montserrat', sans-serif">{t('fonts.options.montserrat')}</option>
             </select>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="pages" title="Páginas" description="Edite visualmente as páginas da sua wiki.">
+      <CollapsibleSection id="pages" title={t('pages.title')} description={t('pages.description')}>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Use o editor visual de blocos (drag & drop) para personalizar essas páginas.
+            {t('pages.editor_hint')}
           </p>
           <div className="flex flex-col gap-2">
             <a href={`/dashboard/${slug}/page-builder?type=footer`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
@@ -879,8 +879,8 @@ export default function WikiSettingsPage() {
                 <Image className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Footer</p>
-                <p className="text-xs text-muted-foreground">Rodapé da wiki</p>
+                <p className="text-sm font-medium">{t('pages.footer')}</p>
+                <p className="text-xs text-muted-foreground">{t('pages.footer_desc')}</p>
               </div>
             </a>
             <a href={`/dashboard/${slug}/page-builder?type=404`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
@@ -888,8 +888,8 @@ export default function WikiSettingsPage() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Página 404</p>
-                <p className="text-xs text-muted-foreground">Página de erro personalizada</p>
+                <p className="text-sm font-medium">{t('pages.page_404')}</p>
+                <p className="text-xs text-muted-foreground">{t('pages.page_404_desc')}</p>
               </div>
             </a>
             <a href={`/dashboard/${slug}/page-builder?type=landing`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
@@ -897,8 +897,8 @@ export default function WikiSettingsPage() {
                 <LayoutDashboard className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Landing Page</p>
-                <p className="text-xs text-muted-foreground">Página inicial da wiki</p>
+                <p className="text-sm font-medium">{t('pages.landing')}</p>
+                <p className="text-xs text-muted-foreground">{t('pages.landing_desc')}</p>
               </div>
             </a>
             <a href={`/dashboard/${slug}/page-builder?type=landing`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
@@ -906,8 +906,8 @@ export default function WikiSettingsPage() {
                 <Layers className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Ilhas Flutuantes</p>
-                <p className="text-xs text-muted-foreground">Cronômetros, listas, carrosséis e mais</p>
+                <p className="text-sm font-medium">{t('pages.floating_islands')}</p>
+                <p className="text-xs text-muted-foreground">{t('pages.floating_islands_desc')}</p>
               </div>
             </a>
             <a href={`/dashboard/${slug}/page-builder?type=game-tables`} className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors">
@@ -915,53 +915,40 @@ export default function WikiSettingsPage() {
                 <Database className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium">Tabelas</p>
-                <p className="text-xs text-muted-foreground">Configurar exibição das game cards e tabelas da wiki</p>
+                <p className="text-sm font-medium">{t('pages.tables')}</p>
+                <p className="text-xs text-muted-foreground">{t('pages.tables_desc')}</p>
               </div>
             </a>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="links" title="Links Sociais" description="Links para o Discord e página do jogo (Roblox).">
+      <CollapsibleSection id="links" title={t('links.title')} description={t('links.description')}>
         <div className="space-y-4">
           <FloatingLabelInput
-            label="Link do Discord"
+            label={t('links.discord')}
             type="url"
-            info="Convite do seu servidor Discord"
+            info={t('links.discord_info')}
             value={discordUrl}
             onChange={(e) => setDiscordUrl(e.target.value)}
           />
           <FloatingLabelInput
-            label="Link do Jogo (Roblox)"
+            label={t('links.game')}
             type="url"
-            info="URL do seu jogo no Roblox"
+            info={t('links.game_info')}
             value={gameUrl}
             onChange={(e) => setGameUrl(e.target.value)}
           />
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="danger-zone" title="Zona Perigosa" description="Ações destrutivas que afetam toda a wiki." className="border-destructive/50">
+      <CollapsibleSection id="danger-zone" title={t('danger_zone.title')} description={t('danger_zone.description')} className="border-destructive/50">
         <DeleteWikiSection slug={slug} tenantName={name} />
       </CollapsibleSection>
 
     </div>
   );
 }
-
-const PRESET_COLORS = [
-  { label: 'Ciano (padrão)', hsl: '198 100% 65%' },
-  { label: 'Azul', hsl: '217 100% 65%' },
-  { label: 'Roxo', hsl: '270 100% 65%' },
-  { label: 'Rosa', hsl: '330 100% 65%' },
-  { label: 'Vermelho', hsl: '0 100% 65%' },
-  { label: 'Laranja', hsl: '25 100% 60%' },
-  { label: 'Amarelo', hsl: '50 100% 55%' },
-  { label: 'Verde', hsl: '140 100% 50%' },
-  { label: 'Verde Limão', hsl: '80 100% 50%' },
-  { label: 'Cinza', hsl: '0 0% 60%' },
-];
 
 function hslToHex(hsl: string): string {
   if (!hsl) return '#000000';
@@ -1003,6 +990,8 @@ function hexToHsl(hex: string): string {
 }
 
 function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: string }) {
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
   const router = useRouter();
   const { toast } = useToast();
   const { isOwner, isLoading: roleLoading } = useTenantRole(slug);
@@ -1030,7 +1019,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
         URL.revokeObjectURL(url);
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao gerar backup.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('danger_zone.backup_failed') });
     }
   };
 
@@ -1046,14 +1035,14 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
       const data = await res.json();
 
       if (!res.ok) {
-        toast({ variant: 'destructive', title: 'Erro', description: data.error || 'Falha ao excluir wiki.' });
+        toast({ variant: 'destructive', title: tc('error'), description: data.error || t('danger_zone.delete_failed') });
         setDeleting(false);
         return;
       }
 
       router.push('/dashboard');
     } catch {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao excluir wiki.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('danger_zone.delete_failed') });
       setDeleting(false);
     }
   };
@@ -1063,7 +1052,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <AlertTriangle className="h-4 w-4" />
-        Apenas o owner pode excluir a wiki.
+        {t('danger_zone.owner_only')}
       </div>
     );
   }
@@ -1073,25 +1062,25 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
       {step === 'hidden' && (
         <Button variant="destructive" onClick={() => setStep('warning')}>
           <Trash2 className="h-4 w-4 mr-2" />
-          Excluir Wiki
+          {t('danger_zone.delete_button')}
         </Button>
       )}
 
       {step === 'warning' && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Você está prestes a excluir permanentemente a wiki <strong>{tenantName}</strong>.
-            Esta ação não pode ser desfeita.
+            {t.rich('danger_zone.warning_text', { name: tenantName, strong: (chunks) => <strong>{chunks}</strong> })}
+            {t('danger_zone.irreversible')}
           </p>
           <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-            <li>Todos os artigos serão removidos</li>
-            <li>Todas as coleções e dados serão perdidos</li>
-            <li>O domínio personalizado será desassociado</li>
-            <li>Os membros perderão acesso à wiki</li>
+            <li>{t('danger_zone.consequence_articles')}</li>
+            <li>{t('danger_zone.consequence_collections')}</li>
+            <li>{t('danger_zone.consequence_domain')}</li>
+            <li>{t('danger_zone.consequence_members')}</li>
           </ul>
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={() => setStep('hidden')}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => setStep('backup')}>Continuar</Button>
+            <Button variant="outline" onClick={() => setStep('hidden')}>{tc('cancel')}</Button>
+            <Button variant="destructive" onClick={() => setStep('backup')}>{tc('continue')}</Button>
           </div>
         </div>
       )}
@@ -1099,22 +1088,22 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
       {step === 'backup' && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Faça um backup dos dados da wiki antes de excluir.
+            {t('danger_zone.backup_hint')}
           </p>
           <Button variant="outline" onClick={handleBackup}>
             <Download className="h-4 w-4 mr-2" />
-            {backupData ? 'Baixar novamente' : 'Baixar Backup (.json)'}
+            {backupData ? t('danger_zone.download_again') : t('danger_zone.download_backup')}
           </Button>
           {backupData && (
-            <p className="text-xs text-green-500">Backup baixado!</p>
+            <p className="text-xs text-green-500">{t('danger_zone.backup_downloaded')}</p>
           )}
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" onClick={() => setStep('warning')}>Voltar</Button>
+            <Button variant="outline" onClick={() => setStep('warning')}>{tc('back')}</Button>
             <Button
               variant="destructive"
               onClick={() => setStep('confirm')}
             >
-              {backupData ? 'Continuar para exclusão' : 'Pular backup e excluir'}
+              {backupData ? t('danger_zone.proceed_to_delete') : t('danger_zone.skip_backup_and_delete')}
             </Button>
           </div>
         </div>
@@ -1123,7 +1112,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
       {step === 'confirm' && (
         <div className="space-y-3">
           <p className="text-sm font-semibold text-destructive">
-            Digite o identificador da wiki (<strong>{slug}</strong>) para confirmar.
+            {t.rich('danger_zone.confirm_instruction', { slug, strong: (chunks) => <strong>{chunks}</strong> })}
           </p>
           <input
             type="text"
@@ -1134,7 +1123,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
           />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setStep('hidden'); setConfirmText(''); }}>
-              Cancelar
+              {tc('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -1146,7 +1135,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
-              {deleting ? 'Excluindo...' : 'Excluir Wiki'}
+              {deleting ? t('danger_zone.deleting') : t('danger_zone.confirm_delete')}
             </Button>
           </div>
         </div>
@@ -1154,6 +1143,19 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
     </div>
   );
 }
+
+const PRESET_COLORS: { key: string; hsl: string }[] = [
+  { key: 'cyan', hsl: '198 100% 65%' },
+  { key: 'blue', hsl: '217 100% 65%' },
+  { key: 'purple', hsl: '270 100% 65%' },
+  { key: 'pink', hsl: '330 100% 65%' },
+  { key: 'red', hsl: '0 100% 65%' },
+  { key: 'orange', hsl: '25 100% 60%' },
+  { key: 'yellow', hsl: '50 100% 55%' },
+  { key: 'green', hsl: '140 100% 50%' },
+  { key: 'lime', hsl: '80 100% 50%' },
+  { key: 'gray', hsl: '0 0% 60%' },
+];
 
 function ColorField({
   id, label, value, onChange, placeholder,
@@ -1164,6 +1166,7 @@ function ColorField({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const t = useTranslations('settings');
   const hexValue = hslToHex(value || '');
   void id;
 
@@ -1195,10 +1198,10 @@ function ColorField({
                     onChange={(e) => onChange(hexToHsl(e.target.value))}
                     className="h-8 w-8 rounded cursor-pointer border bg-transparent p-0.5"
                   />
-                  <span className="text-xs text-muted-foreground">Seletor de cor</span>
+                  <span className="text-xs text-muted-foreground">{t('theme.color_picker')}</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Predefinidas</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('theme.preset_colors')}</p>
                   <div className="grid grid-cols-5 gap-1.5">
                     {PRESET_COLORS.map((preset) => (
                       <button
@@ -1207,7 +1210,7 @@ function ColorField({
                         onClick={() => onChange(preset.hsl)}
                         className="h-7 w-full rounded border hover:ring-2 hover:ring-primary/50 transition-shadow"
                         style={{ backgroundColor: `hsl(${preset.hsl})` }}
-                        title={preset.label}
+                        title={t(`theme.presets.${preset.key}`)}
                       />
                     ))}
                   </div>

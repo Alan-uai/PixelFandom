@@ -9,13 +9,39 @@
     "settings": "Configurações",
     "notifications": "Notificações"
   },
+  "layout": {
+    "restricted_access": "Acesso Restrito",
+    "login_required": "Faça login para acessar o dashboard.",
+    "back": "Voltar",
+    "view_wiki": "Ver Wiki",
+    "brand": "PixelFandom",
+    "home_tooltip": "Página Inicial",
+    "nav": {
+      "settings": "Configurações",
+      "domains": "Domínios",
+      "members": "Membros",
+      "ai": "IA",
+      "feedback": "Feedback",
+      "discord": "Discord",
+      "content": "Conteúdo",
+      "import": "Importar",
+      "homepage": "Página Inicial",
+      "import_export": "Importar/Exportar"
+    }
+  },
   "dashboard": {
     "title": "Minhas Wikis",
     "subtitle": "Gerencie suas wikis ou crie uma nova.",
+    "my_wikis": "Minhas Wikis",
+    "my_wikis_title": "Minhas Wikis",
+    "my_wikis_description": "Gerencie suas wikis ou crie uma nova.",
     "new_wiki": "Nova Wiki",
     "no_wikis": "Nenhuma wiki encontrada",
+    "no_description": "Sem descrição",
     "articles": "artigos",
+    "articles_count": "artigos",
     "members": "membros",
+    "members_count": "membros",
     "configure": "Configurar",
     "new_article": "Novo Artigo",
     "view": "Ver",
@@ -23,36 +49,55 @@
     "overview": "Visão Geral",
     "views": "visualizações",
     "chats": "chats",
+    "domain": "Domínio",
+    "no_data": "Nenhum dado disponível.",
     "period_7d": "7 dias",
     "period_30d": "30 dias",
-    "period_90d": "90 dias"
+    "period_90d": "90 dias",
+    "stats": {
+      "wikis": "Wikis",
+      "articles": "Artigos",
+      "views_30d": "Visualizações (30d)",
+      "chats_30d": "Chats (30d)",
+      "top_wikis": "Top Wikis por Visualizações",
+      "views_label": "visualizações",
+      "chats_label": "chats"
+    }
   },
-  "editor": {
-    "title": "Editor",
-    "new_article": "Novo Artigo",
-    "edit_article": "Editar Artigo",
-    "sandbox": "Sandbox",
-    "preview": "Visualizar",
-    "save_draft": "Salvar Rascunho",
-    "publish_now": "Publicar Agora",
-    "schedule": "Agendar",
-    "schedule_for": "Agendar para",
-    "unsaved_changes": "Você tem alterações não salvas",
-    "confirm_delete": "Tem certeza que deseja excluir?",
-    "search_articles": "Pesquisar artigos..."
+  "wiki_new": {
+    "title": "Criar Nova Wiki",
+    "description": "Dê um nome à sua wiki e defina um identificador único.",
+    "name_label": "Nome da Wiki",
+    "slug_label": "Identificador (slug)",
+    "slug_hint": "Será usado na URL:",
+    "description_label": "Descrição (opcional)",
+    "submit": "Criar Wiki",
+    "domain_created": "Domínio criado",
+    "domain_created_desc": "configurado para sua wiki.",
+    "created": "Wiki criada!",
+    "created_desc": "Sua wiki foi criada com sucesso."
   },
-  "chat": {
-    "title": "Chat",
-    "placeholder": "Digite sua mensagem...",
-    "send": "Enviar",
-    "suggested": "Perguntas sugeridas",
-    "feedback_positive": "Útil",
-    "feedback_negative": "Não útil",
-    "voice": "Voz",
-    "connecting": "Conectando...",
-    "error": "Erro ao enviar mensagem",
-    "new_conversation": "Nova conversa",
-    "history": "Histórico"
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "confirm": "Confirmar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "done": "Concluído",
+    "close": "Fechar",
+    "search": "Pesquisar",
+    "no_results": "Nenhum resultado encontrado",
+    "optional": "opcional",
+    "required": "obrigatório",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "continue": "Continuar",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "unexpected_error": "Erro inesperado"
   },
   "settings": {
     "title": "Configurações",
@@ -69,7 +114,876 @@
     "discord": "Discord",
     "save": "Salvar Configurações",
     "saved": "Configurações salvas com sucesso",
-    "error": "Erro ao salvar configurações"
+    "error": "Erro ao salvar configurações",
+    "wiki_not_found": "Wiki não encontrada.",
+    "save_failed": "Não foi possível salvar.",
+    "basic_info": {
+      "title": "Informações Básicas",
+      "description": "Nome e descrição da sua wiki.",
+      "name_label": "Nome",
+      "name_info": "Nome público da sua wiki",
+      "description_label": "Descrição",
+      "description_info": "Uma breve descrição da sua wiki"
+    },
+    "media": {
+      "title": "Mídia",
+      "description": "Logo, capa, favicon e OG Image da sua wiki.",
+      "logo_label": "Logo da Wiki",
+      "logo_hint": "Imagem de perfil da sua wiki.",
+      "logo_upload": "Logo da Wiki",
+      "logo_recommendation": "JPEG, PNG ou GIF. Tamanho recomendado: 256x256.",
+      "cover_label": "Capa da Wiki",
+      "cover_hint": "Imagem de capa da sua wiki.",
+      "cover_upload": "Capa da Wiki",
+      "cover_recommendation": "JPEG, PNG ou GIF. Tamanho recomendado: 1200x300.",
+      "favicon_label": "Favicon",
+      "favicon_hint": "Ícone de aba do navegador para sua wiki.",
+      "favicon_upload": "Favicon",
+      "favicon_recommendation": "PNG ou SVG. Tamanho recomendado: 32x32.",
+      "og_label": "OG Image",
+      "og_hint": "Imagem de preview para compartilhamento em redes sociais.",
+      "og_upload": "OG Image",
+      "og_recommendation": "Tamanho recomendado: 1200x630."
+    },
+    "theme": {
+      "title": "Cores do Tema",
+      "description": "Personalize as cores da sua wiki (formato HSL).",
+      "presets_label": "Presets de Tema",
+      "primary_color": "Cor Primária",
+      "background_color": "Cor de Fundo",
+      "card_color": "Cor dos Cards",
+      "sidebar_color": "Cor da Sidebar",
+      "accent_color": "Cor de Destaque",
+      "hsl_format_hint": "Formato: `hue saturation% lightness%`. Deixe vazio para usar o valor padrão.",
+      "color_picker": "Seletor de cor",
+      "preset_colors": "Predefinidas",
+      "presets": {
+        "cyan": "Ciano (padrão)",
+        "blue": "Azul",
+        "purple": "Roxo",
+        "pink": "Rosa",
+        "red": "Vermelho",
+        "orange": "Laranja",
+        "yellow": "Amarelo",
+        "green": "Verde",
+        "lime": "Verde Limão",
+        "gray": "Cinza"
+      }
+    },
+    "layout": {
+      "title": "Layout da Wiki",
+      "description": "Configure a aparência estrutural da sua wiki.",
+      "sidebar_width": "Largura da Sidebar",
+      "sidebar_width_narrow": "Estreita",
+      "sidebar_width_normal": "Normal",
+      "sidebar_width_wide": "Larga",
+      "header_style": "Estilo do Header",
+      "header_style_compact": "Compacto",
+      "header_style_expanded": "Expandido",
+      "header_style_minimal": "Mínimo",
+      "articles_per_row": "Artigos por Linha",
+      "border_radius": "Arredondamento (border-radius)",
+      "border_radius_default": "Padrão (0.5rem)",
+      "border_radius_small": "Pequeno (0.25rem)",
+      "border_radius_medium": "Médio (0.5rem)",
+      "border_radius_large": "Grande (0.75rem)",
+      "border_radius_extra": "Extra (1rem)",
+      "game_cards_title": "Game Cards",
+      "game_cards_description": "Configuração padrão de exibição das game cards e tabelas da wiki.",
+      "format_label": "Formato de Exibição",
+      "format_grid": "Grid",
+      "format_list": "Lista",
+      "format_carousel": "Carrossel",
+      "format_carousel_infinite": "Carrossel Infinito",
+      "format_table": "Tabela",
+      "columns_label": "Colunas",
+      "tabs_mode": "Modo Abas (Tabs)",
+      "tabs_subformat": "Sub-formato das Abas",
+      "tabs_subformat_list": "Lista",
+      "tabs_subformat_carousel": "Carrossel",
+      "tabs_subformat_grid": "Grid",
+      "game_tables_title": "Game Tables (Listagem)",
+      "game_tables_description": "Configuração padrão de exibição da listagem de itens dentro de cada tabela.",
+      "items_per_page": "Itens por Página",
+      "pagination": "Paginação",
+      "pagination_paginated": "Paginada",
+      "pagination_infinite_scroll": "Scroll Infinito",
+      "pagination_none": "Todos",
+      "show_search": "Mostrar Busca",
+      "show_filters": "Mostrar Filtros",
+      "show_header": "Mostrar Header",
+      "card_style": "Estilo dos Cards",
+      "card_style_default": "Padrão",
+      "card_style_compact": "Compacto",
+      "card_style_detailed": "Detalhado",
+      "hover_effect": "Efeito Hover",
+      "hover_effect_scale": "Escala",
+      "hover_effect_glow": "Brilho",
+      "hover_effect_shadow": "Sombra",
+      "hover_effect_none": "Nenhum",
+      "articles_title": "Artigos",
+      "articles_description": "Configuração padrão de exibição dos artigos na página inicial da wiki.",
+      "article_format_grid": "Grid",
+      "article_format_list": "Lista",
+      "article_format_carousel": "Carrossel",
+      "article_format_carousel_infinite": "Carrossel Infinito",
+      "show_images": "Mostrar Imagens",
+      "show_summaries": "Mostrar Resumos"
+    },
+    "fonts": {
+      "title": "Fontes",
+      "description": "Escolha as fontes da sua wiki.",
+      "primary": "Fonte Principal",
+      "primary_default_option": "Inter (padrão)",
+      "heading": "Fonte de Títulos",
+      "heading_default_option": "Mesma da principal (padrão)",
+      "options": {
+        "inter": "Inter",
+        "serif": "Serif",
+        "mono": "Mono",
+        "poppins": "Poppins",
+        "open_sans": "Open Sans",
+        "roboto": "Roboto",
+        "montserrat": "Montserrat"
+      }
+    },
+    "pages": {
+      "title": "Páginas",
+      "description": "Edite visualmente as páginas da sua wiki.",
+      "editor_hint": "Use o editor visual de blocos (drag & drop) para personalizar essas páginas.",
+      "footer": "Footer",
+      "footer_desc": "Rodapé da wiki",
+      "page_404": "Página 404",
+      "page_404_desc": "Página de erro personalizada",
+      "landing": "Landing Page",
+      "landing_desc": "Página inicial da wiki",
+      "floating_islands": "Ilhas Flutuantes",
+      "floating_islands_desc": "Cronômetros, listas, carrosséis e mais",
+      "tables": "Tabelas",
+      "tables_desc": "Configurar exibição das game cards e tabelas da wiki"
+    },
+    "links": {
+      "title": "Links Sociais",
+      "description": "Links para o Discord e página do jogo (Roblox).",
+      "discord": "Link do Discord",
+      "discord_info": "Convite do seu servidor Discord",
+      "game": "Link do Jogo (Roblox)",
+      "game_info": "URL do seu jogo no Roblox"
+    },
+    "danger_zone": {
+      "title": "Zona Perigosa",
+      "description": "Ações destrutivas que afetam toda a wiki.",
+      "owner_only": "Apenas o owner pode excluir a wiki.",
+      "delete_button": "Excluir Wiki",
+    "warning_text": "Você está prestes a excluir permanentemente a wiki <strong>{name}</strong>.",
+    "irreversible": "Esta ação não pode ser desfeita.",
+    "consequence_articles": "Todos os artigos serão removidos",
+    "consequence_collections": "Todas as coleções e dados serão perdidos",
+    "consequence_domain": "O domínio personalizado será desassociado",
+    "consequence_members": "Os membros perderão acesso à wiki",
+    "backup_hint": "Faça um backup dos dados da wiki antes de excluir.",
+    "download_backup": "Baixar Backup (.json)",
+    "download_again": "Baixar novamente",
+    "backup_downloaded": "Backup baixado!",
+    "backup_failed": "Falha ao gerar backup.",
+    "proceed_to_delete": "Continuar para exclusão",
+    "skip_backup_and_delete": "Pular backup e excluir",
+    "confirm_instruction": "Digite o identificador da wiki (<strong>{slug}</strong>) para confirmar.",
+      "deleting": "Excluindo...",
+      "confirm_delete": "Excluir Wiki",
+      "delete_failed": "Falha ao excluir wiki."
+    }
+  },
+  "discord": {
+    "wiki_not_found": "Wiki não encontrada.",
+    "tab": {
+      "general": "Geral",
+      "settings": "Configurações",
+      "automation": "Automação"
+    },
+    "status": {
+      "title": "Status do Bot",
+      "description": "Ligue ou desligue o bot do Discord.",
+      "active": "Bot Ativo",
+      "active_hint": "Quando ativo, o bot responde a comandos no Discord."
+    },
+    "identity": {
+      "title": "Identidade do Bot",
+      "description": "Nome e avatar do bot no Discord.",
+      "bot_name": "Nome do Bot",
+      "avatar_title": "Avatar do Bot",
+      "avatar_description": "Imagem de perfil do bot no Discord.",
+      "avatar_label": "Avatar do Bot",
+      "avatar_recommendation": "JPEG, PNG ou GIF. Tamanho recomendado: 512x512.",
+      "status_label": "Status",
+      "status_online": "Online",
+      "status_idle": "Ausente",
+      "status_dnd": "Não Perturbe",
+      "status_invisible": "Invisível"
+    },
+    "prefix": {
+      "title": "Prefixo de Comandos",
+      "description": "Configure o prefixo dos comandos do bot.",
+      "label": "Prefixo de Comandos"
+    },
+    "commands": {
+      "title": "Comandos Personalizados",
+      "description": "Ative/desative comandos existentes ou crie novos comandos personalizados.",
+      "empty": "Nenhum comando personalizado ainda.",
+      "create_first": "Criar Primeiro Comando",
+      "unnamed": "Comando sem nome",
+      "actions_suffix": "ão",
+      "actions_plural_suffix": "ões",
+      "sequential": "sequencial",
+      "parallel": "paralelo",
+      "mention": "@menção",
+      "trigger": "trigger",
+      "triggers": "triggers",
+      "edit": "Editar",
+      "new": "Novo Comando"
+    },
+    "servers": {
+      "title": "Servidores Conectados",
+      "description": "Servidores onde o bot está presente.",
+      "channel": "Canal:",
+      "active": "Ativo",
+      "inactive": "Inativo"
+    },
+    "channels": {
+      "title": "Canais",
+      "description": "Configure os canais que o bot utiliza no Discord.",
+      "text_chat": "Chat de Texto do Jogo",
+      "text_chat_desc": "Canal onde o chat de texto do jogo opera.",
+      "curation": "Curadoria de Respostas",
+      "curation_desc": "Canal onde respostas com reação negativa são enviadas para revisão."
+    },
+    "roles": {
+      "title": "Cargos",
+      "description": "Configure os cargos do Discord sincronizados com a wiki.",
+      "support": "Suporte",
+      "support_desc": "Cargo mencionado quando o bot não souber responder.",
+      "member": "Membro",
+      "member_desc": "Cargo base de membro da wiki no Discord.",
+      "editor": "Editor",
+      "editor_desc": "Cargo de editor da wiki no Discord.",
+      "admin": "Administrador",
+      "admin_desc": "Cargo de administrador da wiki no Discord."
+    },
+    "auto_post": {
+      "title": "Auto-Post",
+      "description": "Publique automaticamente conteúdo da wiki no Discord.",
+      "codes": "Códigos Promocionais",
+      "codes_desc": "Publique automaticamente novos códigos no Discord.",
+      "codes_channel": "Canal de Códigos",
+      "codes_channel_desc": "Canal onde os códigos serão publicados.",
+      "articles": "Artigos da Wiki",
+      "articles_desc": "Publique automaticamente novos artigos no Discord.",
+      "articles_channel": "Canal de Artigos",
+      "articles_channel_desc": "Canal onde os artigos serão publicados.",
+      "updates": "Update Log do Jogo",
+      "updates_desc": "Publique automaticamente atualizações do jogo no Discord.",
+      "updates_channel": "Canal de Updates",
+      "updates_channel_desc": "Canal onde os updates serão publicados."
+    },
+    "auto_ingest": {
+      "title": "Auto-Ingest",
+      "description": "Configure canais do Discord para ingerir dados automaticamente nas tabelas da wiki.",
+      "add": "Adicionar Auto-Ingest"
+    }
+  },
+  "domains": {
+    "vercel": {
+      "title": "Domínio Vercel",
+      "description": "Endereço automático da sua wiki no formato .vercel.app.",
+      "prefix_label": "Prefixo",
+      "save": "Salvar",
+      "provision": "Provisionar",
+      "active": "Ativo",
+      "about_title": "Sobre o domínio Vercel:",
+      "step1": "Escolha um prefixo para sua wiki",
+      "step2": "Clique em Provisionar para verificar disponibilidade",
+      "step3": "O domínio fica ativo automaticamente, sem configuração de DNS",
+      "step4": "Você pode mudar o prefixo a qualquer momento"
+    },
+    "custom": {
+      "title": "Domínio Personalizado",
+      "description": "Use seu próprio domínio (ex: minhawiki.com).",
+      "last_check": "Última verificação:",
+      "verify": "Verificar",
+      "remove": "Remover",
+      "dns_title": "Configuração de DNS",
+      "configured_active": "Domínio configurado e ativo!",
+      "cname_record": "Registro CNAME:",
+      "type": "Tipo:",
+      "name": "Nome:",
+      "value": "Valor:",
+      "ttl": "TTL:",
+      "default": "padrão",
+      "nameservers": "Nameservers:",
+      "cname_instruction": "Crie um registro CNAME apontando seu domínio para",
+      "verified_not_configured": "Domínio verificado, mas o DNS ainda não está apontando para a Vercel. Verifique as configurações de DNS.",
+      "domain_label": "Domínio",
+      "add": "Adicionar",
+      "how_to_title": "Como configurar:",
+      "how_to_step1": "Digite seu domínio e clique em Adicionar",
+      "how_to_step2": "Acesse o painel DNS do seu domínio",
+      "how_to_step3": "Crie um registro CNAME apontando para cname.vercel-dns.com",
+      "how_to_step4": "Clique em Verificar após configurar o DNS"
+    },
+    "status": {
+      "verifying": "Verificando...",
+      "active": "Ativo",
+      "verified_pending_dns": "Verificado, aguardando DNS",
+      "pending": "Pendente"
+    },
+    "time": {
+      "seconds_ago": "s atrás",
+      "minutes_ago": "min atrás"
+    },
+    "vercel_activated": "Domínio Vercel ativado!",
+    "vercel_activated_desc": "está pronto para uso.",
+    "vercel_updated": "Domínio Vercel atualizado!",
+    "custom_added": "Domínio adicionado!",
+    "custom_added_desc": "Verifique as instruções de DNS abaixo.",
+    "custom_removed": "Domínio removido."
+  },
+  "activity": {
+    "title": "Activity Feed",
+    "description": "Histórico de alterações e eventos da wiki.",
+    "empty": "Nenhuma atividade registrada ainda.",
+    "time": {
+      "now": "agora mesmo",
+      "minutes_ago": "min atrás",
+      "hours_ago": "h atrás",
+      "days_ago": "d atrás"
+    }
+  },
+  "sandbox": {
+    "title": "Sandbox",
+    "description": "Ambiente isolado para testar conteúdo sem afetar artigos reais.",
+    "saved": "Salvo",
+    "saved_desc": "Rascunho salvo no sandbox.",
+    "save_failed": "Falha ao salvar rascunho.",
+    "discarded": "Descartado",
+    "discarded_desc": "Sandbox limpo.",
+    "title_required": "O título é obrigatório.",
+    "article_created": "Artigo criado",
+    "article_created_desc": "Rascunho promovido para artigo.",
+    "article_create_failed": "Falha ao criar artigo.",
+    "save": "Salvar",
+    "discard": "Descartar",
+    "promote": "Promover para Artigo",
+    "edit_tab": "Editar",
+    "preview_tab": "Visualizar",
+    "title_label": "Título",
+    "title_placeholder": "Título do artigo...",
+    "content_label": "Conteúdo (Markdown)",
+    "content_placeholder": "Escreva seu conteúdo aqui...",
+    "untitled": "Sem título",
+    "no_content": "Nenhum conteúdo para visualizar."
+  },
+  "editor": {
+    "title": "Editor",
+    "new_article": "Novo Artigo",
+    "edit_article": "Editar Artigo",
+    "sandbox": "Sandbox",
+    "preview": "Visualizar",
+    "save_draft": "Salvar Rascunho",
+    "publish_now": "Publicar Agora",
+    "schedule": "Agendar",
+    "schedule_for": "Agendar para",
+    "unsaved_changes": "Você tem alterações não salvas",
+    "confirm_delete": "Tem certeza que deseja excluir?",
+    "search_articles": "Pesquisar artigos...",
+    "access_denied": "Acesso Negado",
+    "access_denied_desc": "Você não tem permissão para acessar esta página.",
+    "review_ai_article": "Revisar Artigo Gerado pela IA",
+    "create_new_article": "Criar Novo Artigo",
+    "editing_prefix": "Editando:",
+    "edit_hint": "Faça as alterações abaixo e clique em salvar.",
+    "success": "Sucesso!",
+    "article_created": "O artigo foi criado.",
+    "tabs": {
+      "articles": "Artigos",
+      "add_table": "Adicionar tabela"
+    },
+    "tableTabs": {
+      "data": "Dados",
+      "display": "Exibição",
+      "remove_tab": "Remover esta aba do editor"
+    },
+    "articles_section": {
+      "title": "Artigos",
+      "description": "Gerencie os artigos da sua wiki.",
+      "new_article": "Novo Artigo"
+    },
+    "filters": {
+      "all": "Todos",
+      "published": "Publicados",
+      "draft": "Rascunhos",
+      "scheduled": "Agendados"
+    },
+    "empty": {
+      "no_articles": "Nenhum artigo ainda",
+      "no_published": "Nenhum artigo publicado",
+      "no_drafts": "Nenhum rascunho",
+      "no_scheduled": "Nenhum artigo agendado",
+      "scheduled_will_appear": "Artigos agendados aparecerão aqui.",
+      "create_first": "Crie seu primeiro artigo para começar.",
+      "create_article": "Criar Artigo"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Excluir"
+    },
+    "delete": {
+      "confirm_message": "Tem certeza que deseja excluir este artigo?"
+    },
+    "createArticleDialog": {
+      "title": "Novo Artigo",
+      "description": "Crie um novo artigo para sua wiki. Você poderá editar o conteúdo depois.",
+      "article_title": "Título do artigo",
+      "article_title_placeholder": "Digite o título do artigo",
+      "schedule_label": "Agendar publicação",
+      "schedule_future": "Agendar para data futura",
+      "schedule": "Agendar",
+      "create": "Criar"
+    },
+    "createTableDialog": {
+      "title": "Adicionar Tabela",
+      "description": "Digite o nome da tabela. O sistema traduz automaticamente para o formato interno.",
+      "available_tables": "Tabelas disponíveis",
+      "table_name": "Nome da tabela",
+      "table_name_placeholder": "ex: Armas de longo alcance",
+      "display_name": "Nome de exibição (opcional)",
+      "display_name_placeholder": "Igual ao nome digitado",
+      "icon": "Ícone",
+      "add": "Adicionar"
+    },
+    "editTableDialog": {
+      "title": "Editar Tabela",
+      "description": "Altere o nome de exibição da tabela (o ícone pode ser alterado na aba Exibição do editor).",
+      "display_name": "Nome de exibição",
+      "display_name_placeholder": "Nome de exibição"
+    },
+    "deleteTableDialog": {
+      "title": "Excluir Tabela",
+      "confirm_message": "Tem certeza que deseja remover a tabela **{label}** da sua wiki?",
+      "your_data_deleted": "Seus dados nesta tabela serão excluídos permanentemente.",
+      "other_tenants_keep": "Se outros tenants também usarem esta tabela, ela continuará existindo para eles.",
+      "only_you": "Se você for o único a usar, a tabela será removida do banco de dados.",
+      "delete": "Excluir"
+    },
+    "toast": {
+      "article_deleted": "Artigo excluído.",
+      "enter_table_name": "Digite um nome para a tabela.",
+      "table_added": "Tabela \"{label}\" adicionada!",
+      "table_already_exists": "Você já usa esta tabela.",
+      "display_name_empty": "O nome de exibição não pode ficar vazio.",
+      "table_updated": "Tabela atualizada!",
+      "table_removed_permanent": "Tabela removida permanentemente (ninguém mais usava).",
+      "orphan_columns_removed": "{count} coluna(s) órfã(s) removida(s).",
+      "table_removed": "Tabela \"{label}\" removida.",
+      "failed_to_remove": "Falha ao remover tabela.",
+      "enter_article_title": "Digite um título para o artigo.",
+      "article_scheduled": "Artigo agendado!",
+      "article_created": "Artigo criado!"
+    },
+    "ai": {
+      "load_failed": "Não foi possível carregar o artigo gerado pela IA.",
+      "tags_generated": "Tags Geradas!",
+      "tags_generated_desc": "As tags foram preenchidas com sugestões da IA.",
+      "tags_empty": "A IA não retornou tags.",
+      "tags_error": "Erro ao Gerar Tags",
+      "tags_error_desc": "Não foi possível gerar as tags.",
+      "summary_generated": "Resumo Gerado!",
+      "summary_generated_desc": "O resumo foi preenchido com uma sugestão da IA.",
+      "summary_empty": "A IA não retornou um resumo.",
+      "summary_error": "Erro ao Gerar Resumo",
+      "summary_error_desc": "Não foi possível gerar o resumo.",
+      "processing_file": "Processando arquivo...",
+      "processing_file_desc": "A IA está extraindo o texto. Isso pode levar um momento.",
+      "text_extracted": "Texto Extraído!",
+      "text_extracted_desc": "O campo de conteúdo/tabelas foi preenchido.",
+      "extraction_error": "Erro na Extração",
+      "extraction_error_desc": "Não foi possível extrair o texto do arquivo.",
+      "empty_field": "Campo Vazio",
+      "empty_field_desc": "Por favor, insira o texto a ser formatado no campo de tabelas.",
+      "text_formatted": "Texto Formatado!",
+      "text_formatted_desc": "O texto foi convertido para JSON com sucesso.",
+      "format_failed": "A IA não conseguiu formatar o texto.",
+      "format_error": "Erro na Formatação",
+      "format_error_desc": "Não foi possível formatar o texto para JSON.",
+      "guide_generated": "Guia Gerado!",
+      "guide_generated_desc": "O guia foi gerado pela IA. Revise e salve.",
+      "guide_error": "Não foi possível gerar o guia.",
+      "article_improved": "Artigo Melhorado!",
+      "article_improved_desc": "O artigo foi reestruturado. Revise e salve.",
+      "article_improve_error": "Não foi possível melhorar o artigo."
+    },
+    "validation": {
+      "title_required": "O título é obrigatório.",
+      "title_too_long": "Título muito longo.",
+      "summary_required": "O resumo é obrigatório.",
+      "summary_too_long": "Resumo muito longo.",
+      "content_required": "O conteúdo é obrigatório.",
+      "content_too_long": "Conteúdo muito longo.",
+      "tags_required": "Pelo menos uma tag é necessária.",
+      "tags_too_long": "Tags muito longas.",
+      "invalid_url": "URL inválida. Apenas HTTP(S) ou caminho relativo.",
+      "tables_too_large": "JSON muito grande.",
+      "invalid_json_syntax": "O JSON das tabelas é inválido. Verifique a sintaxe.",
+      "invalid_json_structure": "A estrutura JSON das tabelas é inválida.",
+      "json_error": "Erro de JSON"
+    },
+    "title_label": "Título",
+    "summary_label": "Resumo",
+    "generate": "Gerar",
+    "article_image_label": "Imagem do Artigo",
+    "article_image_upload": "Imagem do Artigo",
+    "banner_label": "Imagem de Banner (largura total)",
+    "banner_upload": "Banner",
+    "og_label": "OG Image (compartilhamento social)",
+    "og_upload": "OG Image",
+    "content_label": "Conteúdo",
+    "content_placeholder": "Escreva o conteúdo do artigo...",
+    "tables_label": "Tabelas (JSON)",
+    "format_text": "Formatar Texto",
+    "extract_from_file": "Extrair de Arquivo",
+    "tables_hint": "Cole o texto bruto e clique em \"Formatar Texto\" para converter em JSON de tabelas.",
+    "tags_label": "Tags (separadas por vírgula)",
+    "generate_tags": "Gerar Tags",
+    "change_summary_label": "Resumo da Alteração (opcional)",
+    "history": "Histórico",
+    "ai_assistant": "Assistente IA",
+    "ai_assistant_title": "Assistente de Guias",
+    "generate_guide_title": "Gerar Guia Completo",
+    "guide_topic_placeholder": "Ex: Melhores armas para iniciantes, Como derrotar o Goblin Rei...",
+    "guide_tone_guide": "Guia Prático",
+    "guide_tone_tutorial": "Tutorial Passo-a-Passo",
+    "guide_tone_analise": "Análise Detalhada",
+    "generating": "Gerando...",
+    "generate_guide": "Gerar Guia",
+    "improve_article_title": "Melhorar Artigo Atual",
+    "improve_article_desc": "Reestrutura o artigo existente com nova organização e seções.",
+    "improving": "Melhorando...",
+    "improve_article": "Melhorar Artigo",
+    "what_are_guides": "O que são Guias?",
+    "guide_explanation_intro": "Guias são artigos que **não duplicam stats** do jogo — eles ensinam estratégias, builds e dicas.",
+    "guide_explanation_obtain": "Explicam **como obter** itens",
+    "guide_explanation_builds": "Mostram **melhores builds** e estratégias",
+    "guide_explanation_tierlists": "Criam **tierlists** comparativas",
+    "guide_explanation_progression": "Dão **dicas de progressão** por mundo",
+    "guide_explanation_stats": "Os stats dos itens são puxados automaticamente das tabelas do jogo."
+  },
+  "pageBuilder": {
+    "title": "Editor de Páginas",
+    "description": "Personalize as páginas da sua wiki",
+    "wiki_not_found": "Wiki não encontrada.",
+    "layout_error": "Erro ao carregar layout: {message}",
+    "types": {
+      "landing": "Landing Page",
+      "footer": "Footer",
+      "not_found": "Página 404",
+      "widgets": "Widgets"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "description": "Métricas de visualizações e uso do chat.",
+    "periods": {
+      "7d": "7 dias",
+      "30d": "30 dias",
+      "90d": "90 dias"
+    },
+    "metrics": {
+      "views": "Visualizações",
+      "chats": "Chats",
+      "daily_average": "Média Diária",
+      "period": "Período"
+    },
+    "charts": {
+      "views_per_day": "Visualizações por Dia",
+      "chats_per_day": "Chats por Dia",
+      "no_data": "Nenhum dado no período."
+    },
+    "top_pages": {
+      "title": "Páginas Mais Visitadas",
+      "unique_visitors": "{count} únicos",
+      "no_data": "Nenhuma página visitada no período."
+    }
+  },
+  "ai": {
+    "toast": {
+      "error": {
+        "title": "Erro"
+      },
+      "tenant_not_found": "Tenant não encontrado.",
+      "saved": {
+        "title": "Salvo",
+        "description": "Configurações salvas com sucesso."
+      },
+      "save_error": "Erro ao salvar configurações"
+    },
+    "loading": {
+      "unknown_error": "Erro desconhecido"
+    },
+    "activation": {
+      "title": "Ativação",
+      "description": "Ligue ou desligue o assistente IA.",
+      "label": "Assistente IA",
+      "help_text": "Quando ativo, usuários podem conversar com a IA sobre o conteúdo da wiki."
+    },
+    "modelConfig": {
+      "title": "Configuração do Modelo",
+      "description": "Escolha o provedor de IA, modelo e personalize o comportamento.",
+      "provider": {
+        "label": "Provedor",
+        "openrouter": {
+          "label": "OpenRouter",
+          "description": "Fallback entre modelos",
+          "help_text": "Usa OpenRouter com fallback entre modelos."
+        },
+        "gemini": {
+          "label": "Gemini Nativo",
+          "description": "API direta do Google",
+          "help_text": "Usa diretamente a API Gemini do Google."
+        },
+        "hybrid": {
+          "label": "Híbrido",
+          "description": "Tenta um, fallback no outro",
+          "help_text": "Tenta o provedor primário; se falhar, usa o outro como fallback."
+        }
+      },
+      "primary_provider": {
+        "label": "Provedor Primário (Híbrido)",
+        "openrouter": {
+          "label": "OpenRouter",
+          "help_text": "Tenta OpenRouter primeiro; se falhar, usa Gemini."
+        },
+        "gemini": {
+          "label": "Gemini",
+          "help_text": "Tenta Gemini primeiro; se falhar, usa OpenRouter."
+        }
+      },
+      "chat_name": {
+        "label": "Nome do Chat",
+        "help_text": "Nome exibido na interface do chat (texto e voz)."
+      },
+      "openrouter": {
+        "heading": "OpenRouter",
+        "api_key": {
+          "label": "Chave de API Própria (opcional)",
+          "placeholder": "sk-or-...",
+          "help_text": "Sua chave OpenRouter. Necessária para modelos pagos. Se vazia, usamos a chave padrão do sistema."
+        },
+        "model": {
+          "label": "Modelo",
+          "loading": "Carregando modelos...",
+          "custom_placeholder": "openai/gpt-4o",
+          "free_help_text": "Modelos gratuitos disponíveis via OpenRouter.",
+          "custom_help_text": "Digite o ID completo do modelo (ex: openai/gpt-4o). Requer chave de API própria."
+        },
+        "fallback_chain": {
+          "label": "Chain de Fallback (OpenRouter)",
+          "help_text": "Modelos extras para tentar caso o principal falhe.",
+          "custom_placeholder": "modelo1, modelo2, modelo3",
+          "custom_help_text": "Digite os IDs separados por vírgula. Requer chave de API própria."
+        }
+      },
+      "gemini": {
+        "heading": "Gemini (Google)",
+        "api_key": {
+          "label": "Chave de API Própria (opcional)",
+          "placeholder": "AIza...",
+          "help_text": "Sua chave Gemini API. Se vazia, usamos a chave padrão do sistema."
+        },
+        "model": {
+          "label": "Modelo",
+          "custom_placeholder": "gemini-2.0-flash",
+          "free_help_text": "Modelos gratuitos disponíveis via API Gemini.",
+          "custom_help_text": "Digite o ID do modelo Gemini (ex: gemini-2.0-flash). Requer chave de API própria."
+        },
+        "fallback_chain": {
+          "label": "Chain de Fallback (Gemini)",
+          "help_text": "Modelos extras para tentar caso o principal falhe.",
+          "custom_placeholder": "modelo1, modelo2, modelo3",
+          "custom_help_text": "Digite os IDs separados por vírgula. Requer chave de API própria."
+        }
+      },
+      "model_source": {
+        "free": "Gratuito (padrão)",
+        "custom": "Custom (minha chave)"
+      },
+      "context": {
+        "million_suffix": "M ctx",
+        "thousand_suffix": "K ctx",
+        "byte_suffix": " ctx"
+      }
+    },
+    "personality": {
+      "title": "Personalidade",
+      "description": "Escolha o estilo de resposta do assistente IA.",
+      "response_style": {
+        "label": "Formato de Resposta Padrão da Wiki",
+        "help_text": "Usado quando o usuário não define uma preferência própria."
+      },
+      "system_prompt": {
+        "label": "Prompt da personalidade:"
+      },
+      "suggested_questions": {
+        "help_text": "Perguntas Sugeridas — uma por linha. Aparecem como sugestão no chat.",
+        "placeholder": "O que é este jogo?\nComo faço para começar?\nQuais são as melhores armas?"
+      },
+      "bot_logo": {
+        "card_title": "Logo do Bot",
+        "card_description": "Imagem de perfil do assistente IA.",
+        "upload_label": "Logo do Bot",
+        "help_text": "JPEG, PNG ou GIF. Recomendado: 256x256."
+      },
+      "chat_banner": {
+        "card_title": "Banner do Chat",
+        "card_description": "Imagem de fundo do cabeçalho do chat.",
+        "upload_label": "Banner do Chat",
+        "help_text": "Imagem de fundo do cabeçalho do chat."
+      }
+    },
+    "voice": {
+      "title": "Agente de Voz",
+      "description": "Configure a palavra de ativação do assistente de voz.",
+      "wake_word": {
+        "label": "Nome do Agente (Palavra de Ativação)",
+        "help_text": "Nome usado para ativar o assistente de voz por comando de voz."
+      }
+    },
+    "voiceTest": {
+      "title": "Testar Assistente de Voz",
+      "description": "Teste a palavra de ativação do agente de voz.",
+      "start_test": "Iniciar Teste",
+      "start_test_help": "Clique para testar a palavra de ativação. Será solicitada permissão para usar o microfone.",
+      "requesting_permission": "Solicitando permissão do microfone...",
+      "listening": "Ouvindo...",
+      "say": "Diga:",
+      "stop": "Parar",
+      "detected": "Palavra de ativação detectada!",
+      "detected_help": "O assistente de voz está funcionando corretamente.",
+      "test_again": "Testar Novamente"
+    },
+    "feedback": {
+      "title": "Feedback do AI Chat",
+      "description": "Acompanhe métricas de satisfação e revise feedbacks negativos.",
+      "empty": "Nenhum dado de feedback disponível.",
+      "error": {
+        "title": "Erro ao carregar feedback."
+      },
+      "toast": {
+        "updated": {
+          "title": "Atualizado",
+          "description": "Feedback marcado como revisado."
+        },
+        "error": {
+          "title": "Erro",
+          "description": "Falha ao atualizar."
+        }
+      },
+      "stats": {
+        "total": "Total",
+        "positive": "Positivos",
+        "negative": "Negativos",
+        "satisfaction": "Satisfação"
+      },
+      "tabs": {
+        "negative": "Feedbacks Negativos",
+        "by_model": "Por Modelo"
+      },
+      "negative": {
+        "empty": "Nenhum feedback negativo pendente.",
+        "question_label": "Pergunta:",
+        "response_label": "Resposta negativa:",
+        "suggestion_label": "Sugestão da IA:",
+        "accept_suggestion": "Aceitar Sugestão",
+        "dismiss": "Dispensar",
+        "status": {
+          "pending": "Pendente",
+          "reviewed": "Revisado"
+        }
+      },
+      "byModel": {
+        "empty": "Nenhum dado por modelo.",
+        "responses_suffix": "respostas"
+      }
+    }
+  },
+  "members": {
+    "error": {
+      "title": "Erro ao carregar membros."
+    },
+    "roles": {
+      "owner": "Proprietário",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Leitor"
+    },
+    "toast": {
+      "error": {
+        "title": "Erro"
+      },
+      "role_updated": "Permissão atualizada.",
+      "member_removed": "Membro removido.",
+      "invite_created": "Convite criado!",
+      "invite_link_prefix": "Link: ",
+      "invite_revoked": "Convite revogado.",
+      "revoke_error": "Erro ao revogar",
+      "link_copied": "Link copiado!",
+      "qr_error": "Erro ao gerar QR Code"
+    },
+    "tabs": {
+      "members": "Membros",
+      "invites": "Convites"
+    },
+    "members_list": {
+      "card_title": "Membros",
+      "card_description": "Usuários com acesso a esta wiki.",
+      "self_label": "Você"
+    },
+    "invites": {
+      "create_card": {
+        "title": "Convidar Membro",
+        "description": "Envie um convite para acessar esta wiki.",
+        "email_label": "Email",
+        "role_label": "Papel",
+        "expiry_label": "Expiração",
+        "expiry_1hour": "1 hora",
+        "expiry_24hours": "24 horas",
+        "expiry_7days": "7 dias",
+        "expiry_30days": "30 dias",
+        "expiry_never": "Nunca expira",
+        "sending": "Enviando...",
+        "submit": "Criar Convite"
+      },
+      "pending_list": {
+        "card_title": "Convites Pendentes",
+        "expires_prefix": "Expira ",
+        "no_expiry": "Sem expiração",
+        "copy_link": "Copiar link",
+        "qr_code": "QR Code",
+        "revoke": "Revogar",
+        "qr_filename_prefix": "convite-"
+      }
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Digite sua mensagem...",
+    "send": "Enviar",
+    "suggested": "Perguntas sugeridas",
+    "feedback_positive": "Útil",
+    "feedback_negative": "Não útil",
+    "voice": "Voz",
+    "connecting": "Conectando...",
+    "error": "Erro ao enviar mensagem",
+    "new_conversation": "Nova conversa",
+    "history": "Histórico"
   },
   "badges": {
     "title": "Conquistas",
@@ -98,23 +1012,5 @@
     "content": "Conteúdo",
     "no_results": "Nenhum resultado encontrado",
     "loading": "Carregando..."
-  },
-  "common": {
-    "loading": "Carregando...",
-    "error": "Erro",
-    "success": "Sucesso",
-    "confirm": "Confirmar",
-    "back": "Voltar",
-    "next": "Próximo",
-    "done": "Concluído",
-    "close": "Fechar",
-    "search": "Pesquisar",
-    "no_results": "Nenhum resultado encontrado",
-    "optional": "opcional",
-    "required": "obrigatório",
-    "save": "Salvar",
-    "cancel": "Cancelar",
-    "delete": "Excluir",
-    "edit": "Editar"
   }
 }

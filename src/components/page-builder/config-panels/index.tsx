@@ -18,7 +18,7 @@ import { ArticleGridPanel, ArticleCarouselPanel, NewsFeedPanel, FeaturedListPane
 import { RankingTablePanel, StatisticsPanel, ProgressBarPanel, TimelinePanel, FaqPanel, GameDataCardsPanel } from './data-panels';
 
 // ── Interactive ──
-import { DiscordEmbedPanel, SocialLinksPanel, SearchPanel, TabsPanel } from './interactive-panels';
+import { DiscordEmbedPanel, SocialLinksPanel, SearchPanel, TabsPanel, PopoverPanel } from './interactive-panels';
 
 // ── Footer ──
 import { FooterCreditsPanel, NewsletterPanel, AppBadgesPanel, BackToTopPanel, PaymentIconsPanel, FooterBrandPanel, LanguageSwitcherPanel, FooterMenuPanel } from './footer-panels';
@@ -73,6 +73,7 @@ export const configPanels: Record<string, PanelComponent | undefined> = {
   'social-links': SocialLinksPanel,
   countdown: CountdownPanel,
   'contact-form': ContactFormPanel,
+  popover: PopoverPanel,
   search: SearchPanel,
   tabs: TabsPanel,
 

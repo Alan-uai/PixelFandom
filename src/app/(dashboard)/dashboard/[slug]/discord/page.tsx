@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { useCachedData } from '@/hooks/use-cached-data';
@@ -26,6 +27,8 @@ import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 export default function WikiDiscordPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const t = useTranslations('discord');
+  const tc = useTranslations('common');
   const router = useRouter();
   const { toast } = useToast();
 
@@ -224,7 +227,7 @@ export default function WikiDiscordPage() {
       .eq('id', tenant!.id);
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
       throw error;
     }
 
@@ -304,7 +307,7 @@ export default function WikiDiscordPage() {
   }
 
   if (!tenant) {
-    return <p className="text-muted-foreground">Wiki não encontrada.</p>;
+    return <p className="text-muted-foreground">{t('wiki_not_found')}</p>;
   }
 
   return (
@@ -318,24 +321,24 @@ export default function WikiDiscordPage() {
         <SliderTabs defaultValue="geral">
           <SliderTabsList className="w-full">
             <SliderTabsTrigger value="geral" icon={Bot}>
-              Geral
+              {t('tab.general')}
             </SliderTabsTrigger>
             <SliderTabsTrigger value="configuracoes" icon={Settings2}>
-              Configurações
+              {t('tab.settings')}
             </SliderTabsTrigger>
             <SliderTabsTrigger value="automacao" icon={Webhook}>
-              Automação
+              {t('tab.automation')}
             </SliderTabsTrigger>
           </SliderTabsList>
 
           <SliderTabsContentGroup>
             <SliderTabsContent value="geral" className="space-y-6">
-            <CollapsibleSection id="status" title="Status do Bot" description="Ligue ou desligue o bot do Discord.">
+            <CollapsibleSection id="status" title={t('status.title')} description={t('status.description')}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Bot Ativo</p>
+                  <p className="font-medium">{t('status.active')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Quando ativo, o bot responde a comandos no Discord.
+                    {t('status.active_hint')}
                   </p>
                 </div>
                 <input
@@ -347,10 +350,10 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="identity" title="Identidade do Bot" description="Nome e avatar do bot no Discord.">
+            <CollapsibleSection id="identity" title={t('identity.title')} description={t('identity.description')}>
               <div className="space-y-4">
                 <FloatingLabelInput
-                  label="Nome do Bot"
+                  label={t('identity.bot_name')}
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                 />
@@ -359,9 +362,9 @@ export default function WikiDiscordPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Bot className="h-4 w-4" />
-                      Avatar do Bot
+                      {t('identity.avatar_title')}
                     </CardTitle>
-                    <CardDescription>Imagem de perfil do bot no Discord.</CardDescription>
+                    <CardDescription>{t('identity.avatar_description')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ImageUpload
@@ -369,34 +372,34 @@ export default function WikiDiscordPage() {
                       pathPrefix={`discord-avatars/${slug}`}
                       value={botAvatar || ''}
                       onChange={(url) => setBotAvatar(url || null)}
-                      label="Avatar do Bot"
+                      label={t('identity.avatar_label')}
                       previewSize="w-16 h-16 rounded-full"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Tamanho recomendado: 512x512.</p>
+                    <p className="text-xs text-muted-foreground mt-2">{t('identity.avatar_recommendation')}</p>
                   </CardContent>
                 </WeldingCard>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">{t('identity.status_label')}</Label>
                   <select
                     id="status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
                     className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
-                    <option value="online">Online</option>
-                    <option value="idle">Ausente</option>
-                    <option value="dnd">Não Perturbe</option>
-                    <option value="invisible">Invisível</option>
+                    <option value="online">{t('identity.status_online')}</option>
+                    <option value="idle">{t('identity.status_idle')}</option>
+                    <option value="dnd">{t('identity.status_dnd')}</option>
+                    <option value="invisible">{t('identity.status_invisible')}</option>
                   </select>
                 </div>
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="messages" title="Prefixo de Comandos" description="Configure o prefixo dos comandos do bot.">
+            <CollapsibleSection id="messages" title={t('prefix.title')} description={t('prefix.description')}>
               <div className="space-y-4">
                 <FloatingLabelInput
-                  label="Prefixo de Comandos"
+                  label={t('prefix.label')}
                   value={prefix}
                   onChange={(e) => setPrefix(e.target.value)}
                   maxLength={5}
@@ -405,17 +408,17 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="commands" title="Comandos Personalizados" description='Ative/desative comandos existentes. Clique em "Editar" para configurar triggers, ações e embeds.'>
+            <CollapsibleSection id="commands" title={t('commands.title')} description={t('commands.description')}>
               <div className="space-y-3">
                 {commands.length === 0 ? (
                   <div className="text-center py-6 space-y-3">
-                    <p className="text-sm text-muted-foreground">Nenhum comando personalizado ainda.</p>
+                    <p className="text-sm text-muted-foreground">{t('commands.empty')}</p>
                     <Button
                       variant="default"
                       onClick={() => router.push(`/dashboard/${slug}/discord/commands/new`)}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Criar Primeiro Comando
+                      {t('commands.create_first')}
                     </Button>
                   </div>
                 ) : (
@@ -434,16 +437,16 @@ export default function WikiDiscordPage() {
                           />
                         </label>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{cmd.name || 'Comando sem nome'}</p>
+                          <p className="text-sm font-medium truncate">{cmd.name || t('commands.unnamed')}</p>
                           {cmd.description && (
                             <p className="text-[11px] text-muted-foreground truncate">{cmd.description}</p>
                           )}
                           <p className="text-[10px] text-muted-foreground">
-                            {cmd.actions.length} aç{cmd.actions.length === 1 ? 'ão' : 'ões'}
+                            {cmd.actions.length} {cmd.actions.length === 1 ? t('commands.actions_suffix') : t('commands.actions_plural_suffix')}
                             {' · '}
-                            {cmd.executionMode === 'sequential' ? 'sequencial' : 'paralelo'}
+                            {cmd.executionMode === 'sequential' ? t('commands.sequential') : t('commands.parallel')}
                             {' · '}
-                            {cmd.triggerType === 'mention' ? '@menção' : `${cmd.trigger.filter(Boolean).length} trigger${cmd.trigger.filter(Boolean).length !== 1 ? 's' : ''}`}
+                            {cmd.triggerType === 'mention' ? t('commands.mention') : `${cmd.trigger.filter(Boolean).length} ${cmd.trigger.filter(Boolean).length !== 1 ? t('commands.triggers') : t('commands.trigger')}`}
                           </p>
                         </div>
                         <Button
@@ -452,7 +455,7 @@ export default function WikiDiscordPage() {
                           onClick={() => router.push(`/dashboard/${slug}/discord/commands/${cmd.id}`)}
                           className="shrink-0 h-8 gap-1"
                         >
-                          <Pencil className="h-3 w-3" /> Editar
+                          <Pencil className="h-3 w-3" /> {t('commands.edit')}
                         </Button>
                       </div>
                     ))}
@@ -465,13 +468,13 @@ export default function WikiDiscordPage() {
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Novo Comando
+                    {t('commands.new')}
                   </Button>
                 )}
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="servers" title="Servidores Conectados" description="Servidores onde o bot está presente.">
+            <CollapsibleSection id="servers" title={t('servers.title')} description={t('servers.description')}>
               {dbGuilds.length > 0 ? (
                 <div className="space-y-3">
                   {dbGuilds.map((guild) => (
@@ -479,12 +482,12 @@ export default function WikiDiscordPage() {
                       <div>
                         <p className="text-sm font-mono font-medium">{guild.guild_id}</p>
                         {guild.channel_id && (
-                          <p className="text-xs text-muted-foreground">Canal: {guild.channel_id}</p>
+                          <p className="text-xs text-muted-foreground">{t('servers.channel')} {guild.channel_id}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full ${guild.bot_enabled ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                        <span className="text-xs text-muted-foreground">{guild.bot_enabled ? 'Ativo' : 'Inativo'}</span>
+                        <span className="text-xs text-muted-foreground">{guild.bot_enabled ? t('servers.active') : t('servers.inactive')}</span>
                       </div>
                     </div>
                   ))}
@@ -496,20 +499,20 @@ export default function WikiDiscordPage() {
           <SliderTabsContent value="configuracoes" className="space-y-6">
             <CollapsibleSection
               id="channels"
-              title="Canais"
-              description="Configure os canais que o bot utiliza no Discord."
+              title={t('channels.title')}
+              description={t('channels.description')}
             >
               <div className="space-y-4">
                 <ChannelSelect
-                  label="Chat de Texto do Jogo"
-                  description="Canal onde o chat de texto do jogo opera."
+                  label={t('channels.text_chat')}
+                  description={t('channels.text_chat_desc')}
                   channelId={textChatChannelId}
                   channelName={textChatChannelName}
                   onChange={(id, name) => { setTextChatChannelId(id); setTextChatChannelName(name); }}
                 />
                 <ChannelSelect
-                  label="Curadoria de Respostas"
-                  description="Canal onde respostas com reação negativa são enviadas para revisão."
+                  label={t('channels.curation')}
+                  description={t('channels.curation_desc')}
                   channelId={curationChannelId}
                   channelName={curationChannelName}
                   onChange={(id, name) => { setCurationChannelId(id); setCurationChannelName(name); }}
@@ -519,34 +522,34 @@ export default function WikiDiscordPage() {
 
             <CollapsibleSection
               id="roles"
-              title="Cargos"
-              description="Configure os cargos do Discord sincronizados com a wiki."
+              title={t('roles.title')}
+              description={t('roles.description')}
             >
               <div className="space-y-4">
                 <RoleSelect
-                  label="Suporte"
-                  description="Cargo mencionado quando o bot não souber responder."
+                  label={t('roles.support')}
+                  description={t('roles.support_desc')}
                   roleId={supportRoleId}
                   roleName={supportRoleName}
                   onChange={(id, name) => { setSupportRoleId(id); setSupportRoleName(name); }}
                 />
                 <RoleSelect
-                  label="Membro"
-                  description="Cargo base de membro da wiki no Discord."
+                  label={t('roles.member')}
+                  description={t('roles.member_desc')}
                   roleId={memberRoleId}
                   roleName={memberRoleName}
                   onChange={(id, name) => { setMemberRoleId(id); setMemberRoleName(name); }}
                 />
                 <RoleSelect
-                  label="Editor"
-                  description="Cargo de editor da wiki no Discord."
+                  label={t('roles.editor')}
+                  description={t('roles.editor_desc')}
                   roleId={editorRoleId}
                   roleName={editorRoleName}
                   onChange={(id, name) => { setEditorRoleId(id); setEditorRoleName(name); }}
                 />
                 <RoleSelect
-                  label="Administrador"
-                  description="Cargo de administrador da wiki no Discord."
+                  label={t('roles.admin')}
+                  description={t('roles.admin_desc')}
                   roleId={adminRoleId}
                   roleName={adminRoleName}
                   onChange={(id, name) => { setAdminRoleId(id); setAdminRoleName(name); }}
@@ -558,16 +561,16 @@ export default function WikiDiscordPage() {
           <SliderTabsContent value="automacao" className="space-y-6">
             <CollapsibleSection
               id="auto-post"
-              title="Auto-Post"
-              description="Publique automaticamente conteúdo da wiki no Discord."
+              title={t('auto_post.title')}
+              description={t('auto_post.description')}
             >
               <div className="space-y-6">
                 <div className="space-y-3 rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">Códigos Promocionais</p>
+                      <p className="text-sm font-medium">{t('auto_post.codes')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Publique automaticamente novos códigos no Discord.
+                        {t('auto_post.codes_desc')}
                       </p>
                     </div>
                     <input
@@ -579,8 +582,8 @@ export default function WikiDiscordPage() {
                   </div>
                   {autoPostCodesEnabled && (
                     <ChannelSelect
-                      label="Canal de Códigos"
-                      description="Canal onde os códigos serão publicados."
+                      label={t('auto_post.codes_channel')}
+                      description={t('auto_post.codes_channel_desc')}
                       channelId={autoPostCodesChannelId}
                       channelName={autoPostCodesChannelName}
                       onChange={(id, name) => { setAutoPostCodesChannelId(id); setAutoPostCodesChannelName(name); }}
@@ -591,9 +594,9 @@ export default function WikiDiscordPage() {
                 <div className="space-y-3 rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">Artigos da Wiki</p>
+                      <p className="text-sm font-medium">{t('auto_post.articles')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Publique automaticamente novos artigos no Discord.
+                        {t('auto_post.articles_desc')}
                       </p>
                     </div>
                     <input
@@ -605,8 +608,8 @@ export default function WikiDiscordPage() {
                   </div>
                   {autoPostArticlesEnabled && (
                     <ChannelSelect
-                      label="Canal de Artigos"
-                      description="Canal onde os artigos serão publicados."
+                      label={t('auto_post.articles_channel')}
+                      description={t('auto_post.articles_channel_desc')}
                       channelId={autoPostArticlesChannelId}
                       channelName={autoPostArticlesChannelName}
                       onChange={(id, name) => { setAutoPostArticlesChannelId(id); setAutoPostArticlesChannelName(name); }}
@@ -617,9 +620,9 @@ export default function WikiDiscordPage() {
                 <div className="space-y-3 rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">Update Log do Jogo</p>
+                      <p className="text-sm font-medium">{t('auto_post.updates')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Publique automaticamente atualizações do jogo no Discord.
+                        {t('auto_post.updates_desc')}
                       </p>
                     </div>
                     <input
@@ -631,8 +634,8 @@ export default function WikiDiscordPage() {
                   </div>
                   {autoPostUpdatesEnabled && (
                     <ChannelSelect
-                      label="Canal de Updates"
-                      description="Canal onde os updates serão publicados."
+                      label={t('auto_post.updates_channel')}
+                      description={t('auto_post.updates_channel_desc')}
                       channelId={autoPostUpdatesChannelId}
                       channelName={autoPostUpdatesChannelName}
                       onChange={(id, name) => { setAutoPostUpdatesChannelId(id); setAutoPostUpdatesChannelName(name); }}
@@ -644,8 +647,8 @@ export default function WikiDiscordPage() {
 
             <CollapsibleSection
               id="auto-ingest"
-              title="Auto-Ingest"
-              description="Configure canais do Discord para ingerir dados automaticamente nas tabelas da wiki."
+              title={t('auto_ingest.title')}
+              description={t('auto_ingest.description')}
             >
               <div className="space-y-4">
                 {autoIngest.map((entry, i) => (
@@ -672,7 +675,7 @@ export default function WikiDiscordPage() {
                   className="w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Auto-Ingest
+                  {t('auto_ingest.add')}
                 </Button>
               </div>
             </CollapsibleSection>

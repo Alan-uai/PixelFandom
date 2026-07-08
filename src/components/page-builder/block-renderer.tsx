@@ -38,6 +38,7 @@ import { CountdownBlock } from './blocks/countdown-block';
 import { ContactFormBlock } from './blocks/contact-form-block';
 import { SearchBlock } from './blocks/search-block';
 import { TabsBlock } from './blocks/tabs-block';
+import { PopoverBlock } from './blocks/popover-block';
 import { SectionBlock } from './blocks/section-block';
 import { FooterCreditsBlock } from './blocks/footer-credits-block';
 import { NewsletterBlock } from './blocks/newsletter-block';
@@ -150,6 +151,8 @@ export function BlockRenderer({ block, tenantId, preview, basePath }: BlockRende
         return <SearchBlock config={block.config as any} />;
       case 'tabs':
         return <TabsBlock config={block.config as any} />;
+      case 'popover':
+        return <PopoverBlock config={block.config as any} />;
       case 'footer-credits':
         return <FooterCreditsBlock config={block.config as any} />;
       case 'newsletter':

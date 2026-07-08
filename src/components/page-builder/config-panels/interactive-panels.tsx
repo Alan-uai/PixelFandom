@@ -69,3 +69,20 @@ export function TabsPanel({ config, onChange }: PanelProps) {
     </>
   );
 }
+
+export function PopoverPanel({ config, onChange }: PanelProps) {
+  return (
+    <>
+      <TextField label="Texto do gatilho" value={(config.triggerText as string) || 'Saiba mais'} onChange={(v) => onChange('triggerText', v)} />
+      <TextField label="Título" value={(config.title as string) || ''} onChange={(v) => onChange('title', v)} />
+      <TextField label="Conteúdo" value={(config.content as string) || ''} onChange={(v) => onChange('content', v)} multiline />
+      <SelectField label="Ativar por" value={(config.trigger as string) || 'hover'} options={[
+        { label: 'Passar mouse', value: 'hover' }, { label: 'Clicar', value: 'click' },
+      ]} onChange={(v) => onChange('trigger', v)} />
+      <SelectField label="Posição" value={(config.position as string) || 'top'} options={[
+        { label: 'Topo', value: 'top' }, { label: 'Baixo', value: 'bottom' },
+        { label: 'Esquerda', value: 'left' }, { label: 'Direita', value: 'right' },
+      ]} onChange={(v) => onChange('position', v)} />
+    </>
+  );
+}

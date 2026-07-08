@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
 import { supabase } from '@/supabase';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Tenant } from '@/supabase/client';
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
   const { user } = useUser();
   const router = useRouter();
   const [tenants, setTenants] = useState<(Tenant & { role: string })[]>([]);
@@ -77,11 +79,11 @@ export default function DashboardPage() {
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="wikis" className="flex items-center gap-2">
             <LayoutDashboard className="h-4 w-4" />
-            Minhas Wikis
+            {t('my_wikis')}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Analytics
+            {t('analytics')}
           </TabsTrigger>
         </TabsList>
 
@@ -89,15 +91,15 @@ export default function DashboardPage() {
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold">Minhas Wikis</h1>
+                <h1 className="text-2xl font-bold">{t('my_wikis_title')}</h1>
                 <p className="text-muted-foreground mt-1">
-                  Gerencie suas wikis ou crie uma nova.
+                  {t('my_wikis_description')}
                 </p>
               </div>
               <Button asChild>
                 <Link href="/dashboard/new">
                   <Plus className="h-4 w-4 mr-2" />
-                  Nova Wiki
+                  {t('new_wiki')}
                 </Link>
               </Button>
             </div>
@@ -136,7 +138,7 @@ export default function DashboardPage() {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-white/80 line-clamp-2 mb-4 min-h-[2.5rem]">
-                          {tenant.description || 'Sem descrição'}
+                          {tenant.description || t('no_description')}
                         </p>
 
                         <div className="flex items-center gap-4 text-sm text-white/60 mb-4">
@@ -144,18 +146,18 @@ export default function DashboardPage() {
                             <>
                               <span className="flex items-center gap-1">
                                 <FileText className="h-3.5 w-3.5" />
-                                {s.articles} artigos
+                                {s.articles} {t('articles_count')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Users className="h-3.5 w-3.5" />
-                                {s.members} membros
+                                {s.members} {t('members_count')}
                               </span>
                             </>
                           )}
                           {tenant.custom_domain && (
                             <span className="flex items-center gap-1">
                               <Globe className="h-3.5 w-3.5" />
-                              Domínio
+                              {t('domain')}
                             </span>
                           )}
                         </div>
@@ -164,19 +166,19 @@ export default function DashboardPage() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/dashboard/${tenant.slug}/settings`}>
                               <Settings className="h-3.5 w-3.5 mr-1.5" />
-                              Configurar
+                              {t('configure')}
                             </Link>
                           </Button>
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/dashboard/${tenant.slug}/editor/new`}>
                               <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                              Novo Artigo
+                              {t('new_article')}
                             </Link>
                           </Button>
                           <Button variant="ghost" size="sm" asChild>
                             <Link href={tenant.custom_domain ? `https://${tenant.custom_domain}` : `/w/${tenant.slug}`} target={tenant.custom_domain ? '_blank' : undefined}>
                               <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                              Ver
+                              {t('view')}
                             </Link>
                           </Button>
                         </div>
@@ -198,6 +200,7 @@ export default function DashboardPage() {
 }
 
 function AnalyticsDashboard({ userId }: { userId?: string }) {
+  const t = useTranslations('dashboard');
   const [stats, setStats] = useState<{
     totalWikis: number;
     totalArticles: number;
@@ -249,7 +252,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
   if (!stats) {
     return (
       <p className="text-center text-muted-foreground py-12">
-        Nenhum dado disponível.
+        {t('no_data')}
       </p>
     );
   }
@@ -259,7 +262,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Wikis</CardDescription>
+            <CardDescription className="text-xs">{t('stats.wikis')}</CardDescription>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{stats.totalWikis}</span>
@@ -267,7 +270,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Artigos</CardDescription>
+            <CardDescription className="text-xs">{t('stats.articles')}</CardDescription>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{stats.totalArticles}</span>
@@ -275,7 +278,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Visualizações (30d)</CardDescription>
+            <CardDescription className="text-xs">{t('stats.views_30d')}</CardDescription>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{stats.totalViews30d}</span>
@@ -283,7 +286,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Chats (30d)</CardDescription>
+            <CardDescription className="text-xs">{t('stats.chats_30d')}</CardDescription>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{stats.totalChats30d}</span>
@@ -294,7 +297,7 @@ function AnalyticsDashboard({ userId }: { userId?: string }) {
       {stats.topWikis.length > 0 && (
         <WeldingCard>
           <CardHeader>
-            <CardTitle className="text-sm">Top Wikis por Visualizações</CardTitle>
+            <CardTitle className="text-sm">{t('stats.top_wikis')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">

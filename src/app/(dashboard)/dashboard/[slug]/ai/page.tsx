@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { useSiteCache } from '@/lib/site-cache';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
@@ -37,6 +38,7 @@ export default function WikiAIConfigPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { toast } = useToast();
+  const t = useTranslations('ai');
   const [savedConfig, setSavedConfig] = useState({
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
@@ -105,6 +107,10 @@ export default function WikiAIConfigPage() {
     cacheKey,
     async () => {
       const r = await fetch(`/api/tenants/${tenantData!.id}/ai-config`);
+      if (!r.ok) {
+        const text = await r.text().catch(() => 'Unknown error');
+        throw new Error(`API error ${r.status}: ${text}`);
+      }
       return r.json();
     }
   );
@@ -205,7 +211,7 @@ export default function WikiAIConfigPage() {
   const handleSave = useCallback(async () => {
     const tid = tenantData?.id;
     if (!tid) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Tenant não encontrado.' });
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: t('toast.tenant_not_found') });
       return;
     }
 
@@ -242,7 +248,7 @@ export default function WikiAIConfigPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Save failed' }));
-        toast({ variant: 'destructive', title: 'Erro', description: errData.error });
+        toast({ variant: 'destructive', title: t('toast.error.title'), description: errData.error });
         return;
       }
 
@@ -273,10 +279,10 @@ export default function WikiAIConfigPage() {
       });
 
       useSiteCache.getState().set(`ai-config:${tid}`, result);
-      toast({ title: 'Salvo', description: 'Configurações salvas com sucesso.' });
+      toast({ title: t('toast.saved.title'), description: t('toast.saved.description') });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao salvar configurações';
-      toast({ variant: 'destructive', title: 'Erro', description: message });
+      const message = err instanceof Error ? err.message : t('toast.save_error');
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: message });
     }
   }, [
     tenantData, enabled, provider, primaryProvider, resolvedModel, model,
@@ -284,7 +290,7 @@ export default function WikiAIConfigPage() {
     resolvedGeminiModel, geminiModel, geminiModelSource, geminiCustomModel,
     geminiCustomApiKey, geminiFallbackChain, geminiFallbackSource,
     wakeWordText, chatName, botLogo, personalityId, responseStyle,
-    suggestedQuestions, botBanner, toast,
+    suggestedQuestions, botBanner, toast, t,
   ]);
 
   const isDirty = useMemo(() =>
@@ -358,7 +364,7 @@ export default function WikiAIConfigPage() {
   if (tenantError) {
     return (
       <div className="flex justify-center py-12">
-        <p className="text-destructive">{tenantError?.message ?? 'Erro desconhecido'}</p>
+        <p className="text-destructive">{tenantError?.message ?? t('loading.unknown_error')}</p>
       </div>
     );
   }
@@ -369,12 +375,12 @@ export default function WikiAIConfigPage() {
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
 
-      <CollapsibleSection id="activation" title="Ativação" description="Ligue ou desligue o assistente IA.">
+      <CollapsibleSection id="activation" title={t('activation.title')} description={t('activation.description')}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium">Assistente IA</p>
+            <p className="font-medium">{t('activation.label')}</p>
             <p className="text-sm text-muted-foreground">
-              Quando ativo, usuários podem conversar com a IA sobre o conteúdo da wiki.
+              {t('activation.help_text')}
             </p>
           </div>
           <input
@@ -386,15 +392,15 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="model" title="Configuração do Modelo" description="Escolha o provedor de IA, modelo e personalize o comportamento.">
+      <CollapsibleSection id="model" title={t('modelConfig.title')} description={t('modelConfig.description')}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Provedor</Label>
+            <Label>{t('modelConfig.provider.label')}</Label>
             <SelectCard
               options={[
-                { value: 'openrouter', label: 'OpenRouter', icon: <Globe />, description: 'Fallback entre modelos' },
-                { value: 'gemini', label: 'Gemini Nativo', icon: <Cpu />, description: 'API direta do Google' },
-                { value: 'hybrid', label: 'Híbrido', icon: <Layers />, description: 'Tenta um, fallback no outro' },
+                { value: 'openrouter', label: t('modelConfig.provider.openrouter.label'), icon: <Globe />, description: t('modelConfig.provider.openrouter.description') },
+                { value: 'gemini', label: t('modelConfig.provider.gemini.label'), icon: <Cpu />, description: t('modelConfig.provider.gemini.description') },
+                { value: 'hybrid', label: t('modelConfig.provider.hybrid.label'), icon: <Layers />, description: t('modelConfig.provider.hybrid.description') },
               ]}
               value={provider}
               onChange={(v) => setProvider(v as 'openrouter' | 'gemini' | 'hybrid')}
@@ -402,19 +408,19 @@ export default function WikiAIConfigPage() {
               className="flex-nowrap"
             />
             <p className="text-xs text-muted-foreground">
-              {provider === 'openrouter' && 'Usa OpenRouter com fallback entre modelos.'}
-              {provider === 'gemini' && 'Usa diretamente a API Gemini do Google.'}
-              {provider === 'hybrid' && 'Tenta o provedor primário; se falhar, usa o outro como fallback.'}
+              {provider === 'openrouter' && t('modelConfig.provider.openrouter.help_text')}
+              {provider === 'gemini' && t('modelConfig.provider.gemini.help_text')}
+              {provider === 'hybrid' && t('modelConfig.provider.hybrid.help_text')}
             </p>
           </div>
 
           {provider === 'hybrid' && (
             <div className="space-y-2">
-              <Label>Provedor Primário (Híbrido)</Label>
+              <Label>{t('modelConfig.primary_provider.label')}</Label>
               <SelectCard
                 options={[
-                  { value: 'openrouter', label: 'OpenRouter', icon: <Globe /> },
-                  { value: 'gemini', label: 'Gemini', icon: <Cpu /> },
+                  { value: 'openrouter', label: t('modelConfig.primary_provider.openrouter.label'), icon: <Globe /> },
+                  { value: 'gemini', label: t('modelConfig.primary_provider.gemini.label'), icon: <Cpu /> },
                 ]}
                 value={primaryProvider}
                 onChange={(v) => setPrimaryProvider(v as 'openrouter' | 'gemini')}
@@ -422,8 +428,8 @@ export default function WikiAIConfigPage() {
               />
               <p className="text-xs text-muted-foreground">
                 {primaryProvider === 'openrouter'
-                  ? 'Tenta OpenRouter primeiro; se falhar, usa Gemini.'
-                  : 'Tenta Gemini primeiro; se falhar, usa OpenRouter.'}
+                  ? t('modelConfig.primary_provider.openrouter.help_text')
+                  : t('modelConfig.primary_provider.gemini.help_text')}
               </p>
             </div>
           )}
@@ -433,33 +439,33 @@ export default function WikiAIConfigPage() {
             <div className="border-t pt-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                OpenRouter
+                {t('modelConfig.openrouter.heading')}
               </h4>
 
               <div className="space-y-2">
-                <Label>Chave de API Própria (opcional)</Label>
+                <Label>{t('modelConfig.openrouter.api_key.label')}</Label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
                     value={customApiKey}
                     onChange={(e) => setCustomApiKey(e.target.value)}
-                    placeholder="sk-or-..."
+                    placeholder={t('modelConfig.openrouter.api_key.placeholder')}
                     className="pl-10 h-8 text-xs font-mono"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Sua chave OpenRouter. Necessária para modelos pagos. Se vazia, usamos a chave padrão do sistema.
+                  {t('modelConfig.openrouter.api_key.help_text')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Modelo</Label>
+                <Label>{t('modelConfig.openrouter.model.label')}</Label>
                 <div className="mb-2">
                   <SelectCard
                     options={[
-                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
-                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                      { value: 'free', label: t('modelConfig.model_source.free'), icon: <Globe /> },
+                      { value: 'custom', label: t('modelConfig.model_source.custom'), icon: <Key /> },
                     ]}
                     value={modelSource}
                     onChange={(v) => setModelSource(v as 'free' | 'custom')}
@@ -474,18 +480,18 @@ export default function WikiAIConfigPage() {
                     className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     {loadingModels && freeModels.length === 0 ? (
-                      <option value="">Carregando modelos...</option>
+                      <option value="">{t('modelConfig.openrouter.model.loading')}</option>
                     ) : (
                       freeModels.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.name} ({m.id}) — {formatContext(m.context_length)}
+                          {m.name} ({m.id}) — {formatContext(m.context_length, t)}
                         </option>
                       ))
                     )}
                   </select>
                 ) : (
                   <FloatingLabelInput
-                    label="openai/gpt-4o"
+                    label={t('modelConfig.openrouter.model.custom_placeholder')}
                     value={customModel}
                     onChange={(e) => setCustomModel(e.target.value)}
                     className="text-xs"
@@ -493,25 +499,25 @@ export default function WikiAIConfigPage() {
                 )}
                 <p className="text-xs text-muted-foreground">
                   {modelSource === 'free'
-                    ? 'Modelos gratuitos disponíveis via OpenRouter.'
-                    : 'Digite o ID completo do modelo (ex: openai/gpt-4o). Requer chave de API própria.'}
+                    ? t('modelConfig.openrouter.model.free_help_text')
+                    : t('modelConfig.openrouter.model.custom_help_text')}
                 </p>
               </div>
 
               <div className="border-t pt-4 space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Layers className="h-4 w-4 text-muted-foreground" />
-                  Chain de Fallback (OpenRouter)
+                  {t('modelConfig.openrouter.fallback_chain.label')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Modelos extras para tentar caso o principal falhe.
+                  {t('modelConfig.openrouter.fallback_chain.help_text')}
                 </p>
 
                 <div className="mb-2">
                   <SelectCard
                     options={[
-                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
-                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                      { value: 'free', label: t('modelConfig.model_source.free'), icon: <Globe /> },
+                      { value: 'custom', label: t('modelConfig.model_source.custom'), icon: <Key /> },
                     ]}
                     value={fallbackSource}
                     onChange={(v) => setFallbackSource(v as 'free' | 'custom')}
@@ -539,14 +545,14 @@ export default function WikiAIConfigPage() {
                           className="h-3.5 w-3.5 rounded border-gray-300"
                         />
                         <span className="flex-1 truncate">{m.name}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length)}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length, t)}</span>
                       </label>
                     ))}
                   </div>
                 ) : (
                   <div>
                     <FloatingLabelInput
-                      label="modelo1, modelo2, modelo3"
+                      label={t('modelConfig.openrouter.fallback_chain.custom_placeholder')}
                       value={fallbackChain.join(', ')}
                       onChange={(e) => {
                         const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
@@ -555,7 +561,7 @@ export default function WikiAIConfigPage() {
                       className="text-xs"
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Digite os IDs separados por vírgula. Requer chave de API própria.
+                      {t('modelConfig.openrouter.fallback_chain.custom_help_text')}
                     </p>
                   </div>
                 )}
@@ -569,33 +575,33 @@ export default function WikiAIConfigPage() {
             <div className="border-t pt-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Cpu className="h-4 w-4" />
-                Gemini (Google)
+                {t('modelConfig.gemini.heading')}
               </h4>
 
               <div className="space-y-2">
-                <Label>Chave de API Própria (opcional)</Label>
+                <Label>{t('modelConfig.gemini.api_key.label')}</Label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="password"
                     value={geminiCustomApiKey}
                     onChange={(e) => setGeminiCustomApiKey(e.target.value)}
-                    placeholder="AIza..."
+                    placeholder={t('modelConfig.gemini.api_key.placeholder')}
                     className="pl-10 h-8 text-xs font-mono"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Sua chave Gemini API. Se vazia, usamos a chave padrão do sistema.
+                  {t('modelConfig.gemini.api_key.help_text')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Modelo</Label>
+                <Label>{t('modelConfig.gemini.model.label')}</Label>
                 <div className="mb-2">
                   <SelectCard
                     options={[
-                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
-                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                      { value: 'free', label: t('modelConfig.model_source.free'), icon: <Globe /> },
+                      { value: 'custom', label: t('modelConfig.model_source.custom'), icon: <Key /> },
                     ]}
                     value={geminiModelSource}
                     onChange={(v) => setGeminiModelSource(v as 'free' | 'custom')}
@@ -611,13 +617,13 @@ export default function WikiAIConfigPage() {
                   >
                     {(geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS).map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({m.id}) — {formatContext(m.context_length)}
+                        {m.name} ({m.id}) — {formatContext(m.context_length, t)}
                       </option>
                     ))}
                   </select>
                 ) : (
                   <FloatingLabelInput
-                    label="gemini-2.0-flash"
+                    label={t('modelConfig.gemini.model.custom_placeholder')}
                     value={geminiCustomModel}
                     onChange={(e) => setGeminiCustomModel(e.target.value)}
                     className="text-xs"
@@ -625,25 +631,25 @@ export default function WikiAIConfigPage() {
                 )}
                 <p className="text-xs text-muted-foreground">
                   {geminiModelSource === 'free'
-                    ? 'Modelos gratuitos disponíveis via API Gemini.'
-                    : 'Digite o ID do modelo Gemini (ex: gemini-2.0-flash). Requer chave de API própria.'}
+                    ? t('modelConfig.gemini.model.free_help_text')
+                    : t('modelConfig.gemini.model.custom_help_text')}
                 </p>
               </div>
 
               <div className="border-t pt-4 space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Layers className="h-4 w-4 text-muted-foreground" />
-                  Chain de Fallback (Gemini)
+                  {t('modelConfig.gemini.fallback_chain.label')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Modelos extras para tentar caso o principal falhe.
+                  {t('modelConfig.gemini.fallback_chain.help_text')}
                 </p>
 
                 <div className="mb-2">
                   <SelectCard
                     options={[
-                      { value: 'free', label: 'Gratuito (padrão)', icon: <Globe /> },
-                      { value: 'custom', label: 'Custom (minha chave)', icon: <Key /> },
+                      { value: 'free', label: t('modelConfig.model_source.free'), icon: <Globe /> },
+                      { value: 'custom', label: t('modelConfig.model_source.custom'), icon: <Key /> },
                     ]}
                     value={geminiFallbackSource}
                     onChange={(v) => setGeminiFallbackSource(v as 'free' | 'custom')}
@@ -671,14 +677,14 @@ export default function WikiAIConfigPage() {
                           className="h-3.5 w-3.5 rounded border-gray-300"
                         />
                         <span className="flex-1 truncate">{m.name}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length)}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length, t)}</span>
                       </label>
                     ))}
                   </div>
                 ) : (
                   <div>
                     <FloatingLabelInput
-                      label="modelo1, modelo2, modelo3"
+                      label={t('modelConfig.gemini.fallback_chain.custom_placeholder')}
                       value={geminiFallbackChain.join(', ')}
                       onChange={(e) => {
                         const models = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
@@ -687,7 +693,7 @@ export default function WikiAIConfigPage() {
                       className="text-xs"
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Digite os IDs separados por vírgula. Requer chave de API própria.
+                      {t('modelConfig.gemini.fallback_chain.custom_help_text')}
                     </p>
                   </div>
                 )}
@@ -698,19 +704,19 @@ export default function WikiAIConfigPage() {
 
           <div className="border-t pt-4">
             <FloatingLabelInput
-              label="Nome do Chat"
+              label={t('modelConfig.chat_name.label')}
               value={chatName}
               onChange={(e) => setChatName(e.target.value)}
               className="text-xs"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Nome exibido na interface do chat (texto e voz).
+              {t('modelConfig.chat_name.help_text')}
             </p>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="personality" title="Personalidade" description="Escolha o estilo de resposta do assistente IA.">
+      <CollapsibleSection id="personality" title={t('personality.title')} description={t('personality.description')}>
         <div className="space-y-4">
           <SelectCard
             options={AI_PERSONALITIES.map((p) => ({
@@ -726,8 +732,8 @@ export default function WikiAIConfigPage() {
             size="md"
           />
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">Formato de Resposta Padrão da Wiki</Label>
-            <p className="text-xs text-muted-foreground mb-2">Usado quando o usuário não define uma preferência própria.</p>
+            <Label className="text-xs font-medium text-muted-foreground">{t('personality.response_style.label')}</Label>
+            <p className="text-xs text-muted-foreground mb-2">{t('personality.response_style.help_text')}</p>
             {responseStyleGroups.map(group => (
               <div key={group.label}>
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
@@ -745,16 +751,14 @@ export default function WikiAIConfigPage() {
           </div>
           <div className="rounded-lg bg-muted/50 border p-3">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Prompt da personalidade:</span>{' '}
+              <span className="font-medium text-foreground">{t('personality.system_prompt.label')}</span>{' '}
               {getPersonality(personalityId).systemPrompt}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Perguntas Sugeridas — uma por linha. Aparecem como sugestão no chat.</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('personality.suggested_questions.help_text')}</p>
             <FloatingLabelTextarea
-              label="O que é este jogo?
-Como faço para começar?
-Quais são as melhores armas?"
+              label={t('personality.suggested_questions.placeholder')}
               value={suggestedQuestions.join('\n')}
               onChange={(e) => setSuggestedQuestions(e.target.value.split('\n').filter(Boolean))}
               className="text-xs min-h-[80px]"
@@ -764,9 +768,9 @@ Quais são as melhores armas?"
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Bot className="h-4 w-4" />
-                Logo do Bot
+                {t('personality.bot_logo.card_title')}
               </CardTitle>
-              <CardDescription>Imagem de perfil do assistente IA.</CardDescription>
+              <CardDescription>{t('personality.bot_logo.card_description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ImageUpload
@@ -774,19 +778,19 @@ Quais são as melhores armas?"
                 pathPrefix={`bot-logos/${slug}`}
                 value={botLogo}
                 onChange={setBotLogo}
-                label="Logo do Bot"
+                label={t('personality.bot_logo.upload_label')}
                 previewSize="w-16 h-16 rounded-full"
               />
-              <p className="text-xs text-muted-foreground mt-2">JPEG, PNG ou GIF. Recomendado: 256x256.</p>
+              <p className="text-xs text-muted-foreground mt-2">{t('personality.bot_logo.help_text')}</p>
             </CardContent>
           </WeldingCard>
           <WeldingCard>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <MessageSquare className="h-4 w-4" />
-                Banner do Chat
+                {t('personality.chat_banner.card_title')}
               </CardTitle>
-              <CardDescription>Imagem de fundo do cabeçalho do chat.</CardDescription>
+              <CardDescription>{t('personality.chat_banner.card_description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ImageUpload
@@ -794,45 +798,46 @@ Quais são as melhores armas?"
                 pathPrefix={`bot-banners/${slug}`}
                 value={botBanner}
                 onChange={setBotBanner}
-                label="Banner do Chat"
+                label={t('personality.chat_banner.upload_label')}
                 previewSize="w-full h-20"
               />
-              <p className="text-xs text-muted-foreground mt-2">Imagem de fundo do cabeçalho do chat.</p>
+              <p className="text-xs text-muted-foreground mt-2">{t('personality.chat_banner.help_text')}</p>
             </CardContent>
           </WeldingCard>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="voice" title="Agente de Voz" description="Configure a palavra de ativação do assistente de voz.">
+      <CollapsibleSection id="voice" title={t('voice.title')} description={t('voice.description')}>
         <div className="space-y-4">
           <div>
             <FloatingLabelInput
-              label="Nome do Agente (Palavra de Ativação)"
+              label={t('voice.wake_word.label')}
               value={wakeWordText}
               onChange={(e) => setWakeWordText(e.target.value)}
               className="text-xs"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Nome usado para ativar o assistente de voz por comando de voz.
+              {t('voice.wake_word.help_text')}
             </p>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="test" title="Testar Assistente de Voz" description="Teste a palavra de ativação do agente de voz.">
+      <CollapsibleSection id="test" title={t('voiceTest.title')} description={t('voiceTest.description')}>
         {enabled && <WakeWordTest wakeWordText={wakeWordText} />}
       </CollapsibleSection>
     </div>
   );
 }
 
-function formatContext(bytes: number): string {
-  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(0)}M ctx`;
-  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)}K ctx`;
-  return `${bytes} ctx`;
+function formatContext(bytes: number, t: (key: string) => string): string {
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(0)}${t('modelConfig.context.million_suffix')}`;
+  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)}${t('modelConfig.context.thousand_suffix')}`;
+  return `${bytes}${t('modelConfig.context.byte_suffix')}`;
 }
 
 function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
+  const t = useTranslations('ai');
   const [state, setState] = useState<'idle' | 'requesting' | 'listening' | 'detected'>('idle');
   const detectorRef = useRef<WakeWordDetector | null>(null);
 
@@ -866,10 +871,10 @@ function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
         <div className="flex flex-col items-center gap-3 py-4">
           <Button onClick={startTest} className="gap-2">
             <Mic className="h-4 w-4" />
-            Iniciar Teste
+            {t('voiceTest.start_test')}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
-            Clique para testar a palavra de ativação. Será solicitada permissão para usar o microfone.
+            {t('voiceTest.start_test_help')}
           </p>
         </div>
       )}
@@ -877,7 +882,7 @@ function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
       {state === 'requesting' && (
         <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Solicitando permissão do microfone...</span>
+          <span className="text-sm">{t('voiceTest.requesting_permission')}</span>
         </div>
       )}
 
@@ -885,15 +890,15 @@ function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
         <div className="space-y-4 py-2">
           <div className="flex flex-col items-center gap-2">
             <Mic className="h-8 w-8 text-primary animate-pulse" />
-            <p className="text-sm font-medium">Ouvindo...</p>
+            <p className="text-sm font-medium">{t('voiceTest.listening')}</p>
             <p className="text-sm text-muted-foreground">
-              Diga: <span className="font-semibold text-foreground">&ldquo;{wakeWordText}&rdquo;</span>
+              {t('voiceTest.say')} <span className="font-semibold text-foreground">&ldquo;{wakeWordText}&rdquo;</span>
             </p>
           </div>
           <div className="flex justify-center">
             <Button variant="outline" size="sm" onClick={cleanup} className="gap-2">
               <MicOff className="h-4 w-4" />
-              Parar
+              {t('voiceTest.stop')}
             </Button>
           </div>
         </div>
@@ -903,19 +908,19 @@ function WakeWordTest({ wakeWordText }: { wakeWordText: string }) {
         <div className="flex flex-col items-center gap-3 py-4">
           <div className="flex items-center gap-2 text-green-500">
             <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
-            <span className="font-medium">Palavra de ativação detectada!</span>
+            <span className="font-medium">{t('voiceTest.detected')}</span>
           </div>
           <p className="text-sm text-muted-foreground text-center">
-            O assistente de voz está funcionando corretamente.
+            {t('voiceTest.detected_help')}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={cleanup} className="gap-2">
               <MicOff className="h-4 w-4" />
-              Parar
+              {t('voiceTest.stop')}
             </Button>
             <Button size="sm" onClick={startTest} className="gap-2">
               <Mic className="h-4 w-4" />
-              Testar Novamente
+              {t('voiceTest.test_again')}
             </Button>
           </div>
         </div>

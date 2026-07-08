@@ -15,6 +15,7 @@ import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
+import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -58,6 +59,7 @@ function EditPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations('editor');
 
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -438,7 +440,7 @@ function EditPageContent() {
     }
 
     if (isNewArticle) {
-      toast({ title: 'Sucesso!', description: 'O artigo foi criado.' });
+      toast({ title: t('success'), description: t('article_created') });
       router.push('/admin-chat');
     } else {
       const valuesToReset = {
@@ -487,8 +489,8 @@ function EditPageContent() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <ShieldAlert className="h-16 w-16 mb-4 text-destructive" />
-        <h1 className="text-2xl font-bold">Acesso Negado</h1>
-        <p className="text-muted-foreground mt-2">Você não tem permissão para acessar esta página.</p>
+        <h1 className="text-2xl font-bold">{t('access_denied')}</h1>
+        <p className="text-muted-foreground mt-2">{t('access_denied_desc')}</p>
       </div>
     );
   }
@@ -499,8 +501,8 @@ function EditPageContent() {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle>{isNewArticle ? (fromGeneration ? 'Revisar Artigo Gerado pela IA' : 'Criar Novo Artigo') : `Editando: ${article?.title || 'Carregando...'}`}</CardTitle>
-              <CardDescription>Faça as alterações abaixo e clique em salvar.</CardDescription>
+              <CardTitle>{isNewArticle ? (fromGeneration ? t('review_ai_article') : t('create_new_article')) : `${t('editing_prefix')} ${article?.title || 'Carregando...'}`}</CardTitle>
+              <CardDescription>{t('edit_hint')}</CardDescription>
             </div>
             {tenantId && articleId && (
               <>
@@ -519,7 +521,7 @@ function EditPageContent() {
                 control={form.control}
                 name="title"
                 render={({ field, fieldState }) => (
-                  <FloatingLabelInput label="Título" error={fieldState.error?.message} {...field} />
+                  <FloatingLabelInput label={t('title')} error={fieldState.error?.message} {...field} />
                 )}
               />
 
@@ -528,10 +530,10 @@ function EditPageContent() {
                 name="summary"
                 render={({ field, fieldState }) => (
                   <div className="flex gap-2 items-start">
-                    <FloatingLabelTextarea label="Resumo" error={fieldState.error?.message} className="min-h-[100px]" {...field} />
+                    <FloatingLabelTextarea label={t('summary_label')} error={fieldState.error?.message} className="min-h-[100px]" {...field} />
                     <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary} className="mt-1 shrink-0">
                       {isGeneratingSummary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Gerar
+                      {t('generate')}
                     </Button>
                   </div>
                 )}
@@ -542,14 +544,14 @@ function EditPageContent() {
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Imagem do Artigo</FormLabel>
+                    <FormLabel>{t('article_image_label')}</FormLabel>
                     <FormControl>
                       <ImageUpload
                           bucket="wiki-assets"
                           pathPrefix={`${slug}/covers/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
-                        label="Imagem do Artigo"
+                        label={t('article_image_upload')}
                       />
                     </FormControl>
                     <FormMessage />
@@ -562,14 +564,14 @@ function EditPageContent() {
                 name="bannerImage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Imagem de Banner (largura total)</FormLabel>
+                    <FormLabel>{t('banner_label')}</FormLabel>
                     <FormControl>
                       <ImageUpload
                         bucket="wiki-assets"
                         pathPrefix={`${slug}/banners/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
-                        label="Banner"
+                        label={t('banner_upload')}
                         previewSize="w-full h-24"
                       />
                     </FormControl>
@@ -583,14 +585,14 @@ function EditPageContent() {
                 name="ogImage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>OG Image (compartilhamento social)</FormLabel>
+                    <FormLabel>{t('og_label')}</FormLabel>
                     <FormControl>
                       <ImageUpload
                         bucket="wiki-assets"
                         pathPrefix={`${slug}/og/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
-                        label="OG Image"
+                        label={t('og_upload')}
                         previewSize="w-40 h-24"
                       />
                     </FormControl>
@@ -606,14 +608,14 @@ function EditPageContent() {
                 name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Conteúdo</FormLabel>
+                    <FormLabel>{t('content_label')}</FormLabel>
                     <FormControl>
                       <TiptapEditor
                         content={field.value}
                         onChange={(text) => {
                           field.onChange(text);
                         }}
-                        placeholder="Escreva o conteúdo do artigo..."
+                        placeholder={t('content_placeholder')}
                         articleId={articleId}
                         tenantId={params.slug as string}
                       />
@@ -628,7 +630,7 @@ function EditPageContent() {
                 name="tables"
                 render={({ field, fieldState }) => (
                   <div>
-                    <FloatingLabelTextarea label="Tabelas (JSON)" error={fieldState.error?.message} className="min-h-[250px] font-mono text-xs" {...field} />
+                    <FloatingLabelTextarea label={t('tables_label')} error={fieldState.error?.message} className="min-h-[250px] font-mono text-xs" {...field} />
                     <div className="flex gap-2 mt-2">
                       <Button
                         type="button"
@@ -638,7 +640,7 @@ function EditPageContent() {
                         onClick={handleFormatText}
                       >
                         {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                        Formatar Texto
+                        {t('format_text')}
                       </Button>
                       <Button
                         type="button"
@@ -655,10 +657,10 @@ function EditPageContent() {
                         }}
                       >
                         {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                        Extrair de Arquivo
+                        {t('extract_from_file')}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Cole o texto bruto e clique em &ldquo;Formatar Texto&rdquo;, extraia de um arquivo, ou edite o JSON diretamente.</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('tables_hint')}</p>
                   </div>
                 )}
               />
@@ -668,10 +670,10 @@ function EditPageContent() {
                 name="tags"
                 render={({ field, fieldState }) => (
                   <div className="flex gap-2">
-                    <FloatingLabelInput label="Tags (separadas por vírgula)" error={fieldState.error?.message} {...field} />
+                    <FloatingLabelInput label={t('tags_label')} error={fieldState.error?.message} {...field} />
                     <Button type="button" variant="outline" onClick={handleGenerateTags} disabled={isGeneratingTags} className="mt-1 shrink-0">
                       {isGeneratingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                      Gerar Tags
+                      {t('generate_tags')}
                     </Button>
                   </div>
                 )}
@@ -679,7 +681,7 @@ function EditPageContent() {
 
               <div className="border-t pt-4">
                 <FloatingLabelTextarea
-                  label="Resumo da Alteração (opcional)"
+                  label={t('change_summary_label')}
                   value={changeSummary}
                   onChange={(e) => setChangeSummary(e.target.value)}
                   className="text-xs resize-none h-16"
@@ -690,7 +692,7 @@ function EditPageContent() {
                 {!isNewArticle && versions.length > 0 && (
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowVersions(!showVersions)} className="gap-2">
                     <History className="h-4 w-4" />
-                    Histórico ({versions.length})
+                    {t('history')} ({versions.length})
                   </Button>
                 )}
 
@@ -698,12 +700,12 @@ function EditPageContent() {
                     <SheetTrigger asChild>
                       <Button type="button" variant="outline" className="gap-2">
                         <Wand2 className="h-4 w-4" />
-                        Assistente IA
+                        {t('ai_assistant')}
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="right" className="w-[400px] sm:w-[540px]">
                       <SheetHeader>
-                        <SheetTitle>Assistente de Guias</SheetTitle>
+                        <SheetTitle>{t('ai_assistant_title')}</SheetTitle>
                       </SheetHeader>
                       <ScrollArea className="h-full pr-4 mt-6">
                         <div className="space-y-6">
@@ -711,12 +713,12 @@ function EditPageContent() {
                           <div>
                             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
                               <Sparkles className="h-4 w-4 text-primary" />
-                              Gerar Guia Completo
+                              {t('generate_guide_title')}
                             </h3>
                             <div className="space-y-3">
                               <input
                                 type="text"
-                                placeholder="Ex: Melhores armas para iniciantes, Como derrotar o Goblin Rei..."
+                                placeholder={t('guide_topic_placeholder')}
                                 value={guideTopic}
                                 onChange={(e) => setGuideTopic(e.target.value)}
                                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -726,9 +728,9 @@ function EditPageContent() {
                                 onChange={(e) => setGuideTone(e.target.value as any)}
                                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                               >
-                                <option value="guia">Guia Prático</option>
-                                <option value="tutorial">Tutorial Passo-a-Passo</option>
-                                <option value="analise">Análise Detalhada</option>
+                                <option value="guia">{t('guide_tone_guide')}</option>
+                                <option value="tutorial">{t('guide_tone_tutorial')}</option>
+                                <option value="analise">{t('guide_tone_analise')}</option>
                               </select>
                               <Button
                                 type="button"
@@ -741,7 +743,7 @@ function EditPageContent() {
                                 ) : (
                                   <Sparkles className="h-4 w-4" />
                                 )}
-                                {isGeneratingGuide ? 'Gerando...' : 'Gerar Guia'}
+                                {isGeneratingGuide ? t('generating') : t('generate_guide')}
                               </Button>
                             </div>
                           </div>
@@ -749,10 +751,10 @@ function EditPageContent() {
                           <div className="border-t pt-6">
                             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
                               <Wand2 className="h-4 w-4 text-primary" />
-                              Melhorar Artigo Atual
+                              {t('improve_article_title')}
                             </h3>
                             <p className="text-xs text-muted-foreground mb-3">
-                              Reestrutura o artigo existente para o formato de guia, removendo duplicações e adicionando referências a dados do jogo.
+                              {t('improve_article_desc')}
                             </p>
                             <select
                               value={guideTone}
@@ -775,24 +777,24 @@ function EditPageContent() {
                               ) : (
                                 <Wand2 className="h-4 w-4" />
                               )}
-                              {isImproving ? 'Melhorando...' : 'Melhorar Artigo'}
+                              {isImproving ? t('improving') : t('improve_article')}
                             </Button>
                           </div>
 
                           <div className="border-t pt-6">
                             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
                               <FileText className="h-4 w-4 text-primary" />
-                              O que são Guias?
+                              {t('what_are_guides')}
                             </h3>
                             <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
-                              <p>Guias são artigos que <strong>não duplicam stats</strong> do jogo. Em vez disso, eles:</p>
+                              <p>{t.rich('guide_explanation_intro', { strong: (chunks) => <strong>{chunks}</strong> })}</p>
                               <ul className="list-disc pl-4 space-y-1">
-                                <li>Explicam <strong>como obter</strong> itens</li>
-                                <li>Mostram <strong>melhores builds</strong> e estratégias</li>
-                                <li>Criam <strong>tierlists</strong> comparativas</li>
-                                <li>Dão <strong>dicas de progressão</strong> por mundo</li>
+                                <li>{t.rich('guide_explanation_obtain', { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+                                <li>{t.rich('guide_explanation_builds', { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+                                <li>{t.rich('guide_explanation_tierlists', { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+                                <li>{t.rich('guide_explanation_progression', { strong: (chunks) => <strong>{chunks}</strong> })}</li>
                               </ul>
-                              <p className="mt-2">Os stats dos itens são puxados automaticamente das tabelas do jogo — você só linka eles via o campo &ldquo;Tabelas (JSON)&rdquo;.</p>
+                              <p className="mt-2">{t('guide_explanation_stats')}</p>
                             </div>
                           </div>
                         </div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useUser, supabase } from '@/supabase';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
@@ -29,6 +30,7 @@ export default function DashboardLayoutClient({
   children: React.ReactNode;
   isZadminBypass: boolean;
 }>) {
+  const t = useTranslations('layout');
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading } = useUser();
@@ -56,12 +58,12 @@ export default function DashboardLayoutClient({
   if (!user && !isZadminBypass) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <h1 className="text-2xl font-bold">Acesso Restrito</h1>
+        <h1 className="text-2xl font-bold">{t('restricted_access')}</h1>
         <p className="text-muted-foreground mt-2">
-          Faça login para acessar o dashboard.
+          {t('login_required')}
         </p>
         <Link href="/" className="mt-4 text-primary hover:underline">
-          Voltar
+          {t('back')}
         </Link>
       </div>
     );
@@ -69,20 +71,20 @@ export default function DashboardLayoutClient({
 
   const navItems = canManage
     ? [
-        { href: 'settings', label: 'Configurações', icon: Settings },
-        { href: 'domains', label: 'Domínios', icon: Globe },
-        { href: 'members', label: 'Membros', icon: Users },
-        { href: 'ai', label: 'IA', icon: Cpu },
-        { href: 'ai/feedback', label: 'Feedback', icon: MessageSquare },
-        { href: 'discord', label: 'Discord', icon: Headphones },
+        { href: 'settings', label: t('nav.settings'), icon: Settings },
+        { href: 'domains', label: t('nav.domains'), icon: Globe },
+        { href: 'members', label: t('nav.members'), icon: Users },
+        { href: 'ai', label: t('nav.ai'), icon: Cpu },
+        { href: 'ai/feedback', label: t('nav.feedback'), icon: MessageSquare },
+        { href: 'discord', label: t('nav.discord'), icon: Headphones },
         { href: 'editor', label: 'Conteúdo', icon: BookOpen },
         { href: 'importer', label: 'Importar', icon: Download },
         { href: 'page-builder', label: 'Página Inicial', icon: FileText },
       ]
     : canEdit
     ? [
-        { href: 'editor', label: 'Conteúdo', icon: BookOpen },
-        { href: 'importer', label: 'Importar/Exportar', icon: Download },
+        { href: 'editor', label: t('nav.content'), icon: BookOpen },
+        { href: 'importer', label: t('nav.import_export'), icon: Download },
       ]
     : [];
 
@@ -109,11 +111,11 @@ export default function DashboardLayoutClient({
         <Link
           href="/"
           className="rounded-md p-2 text-primary hover:text-primary/80 hover:bg-muted transition-colors shrink-0"
-          title="Página Inicial"
+          title={t('home_tooltip')}
         >
           <LayoutDashboard className="h-4 w-4" />
         </Link>
-        <span className="hidden sm:inline text-sm font-semibold shrink-0">PixelFandom</span>
+        <span className="hidden sm:inline text-sm font-semibold shrink-0">{t('brand')}</span>
 
         <div className="mx-2 h-5 w-px bg-border" />
 
@@ -145,7 +147,7 @@ export default function DashboardLayoutClient({
                 href={wikiCustomDomain ? `https://${wikiCustomDomain}` : `/w/${wikiSlug}`}
                 target={wikiCustomDomain ? '_blank' : undefined}
                 className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-                title="Ver Wiki"
+                title={t('view_wiki')}
               >
                 <ExternalLink className="h-4 w-4" />
               </Link>

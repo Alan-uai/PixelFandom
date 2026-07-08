@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -13,13 +14,6 @@ import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, Slide
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserMinus, Shield, ShieldCheck, UserPlus, Copy, Download, Clock, X } from 'lucide-react';
 import type { TenantMember } from '@/supabase/client';
-
-const roleLabels: Record<string, string> = {
-  owner: 'Proprietário',
-  admin: 'Admin',
-  editor: 'Editor',
-  viewer: 'Leitor',
-};
 
 type InviteRow = {
   id: string;
@@ -36,6 +30,15 @@ export default function WikiMembersPage() {
   const slug = params.slug as string;
   const { user } = useUser();
   const { toast } = useToast();
+  const t = useTranslations('members');
+
+  const roleLabels: Record<string, string> = {
+    owner: t('roles.owner'),
+    admin: t('roles.admin'),
+    editor: t('roles.editor'),
+    viewer: t('roles.viewer'),
+  };
+
   const [members, setMembers] = useState<(TenantMember & { display_name?: string; email?: string; avatar_url?: string })[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -110,10 +113,10 @@ export default function WikiMembersPage() {
       .eq('user_id', userId);
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: error.message });
     } else {
       setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role } as TenantMember & { email?: string } : m)));
-      toast({ title: 'Permissão atualizada.' });
+      toast({ title: t('toast.role_updated') });
     }
     setUpdating(null);
   };
@@ -128,10 +131,10 @@ export default function WikiMembersPage() {
       .eq('user_id', userId);
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: error.message });
     } else {
       setMembers((prev) => prev.filter((m) => m.user_id !== userId));
-      toast({ title: 'Membro removido.' });
+      toast({ title: t('toast.member_removed') });
     }
     setUpdating(null);
   };
@@ -160,9 +163,9 @@ export default function WikiMembersPage() {
       const data = await res.json();
       setInvites((prev) => [data, ...prev]);
       setInviteEmail('');
-      toast({ title: 'Convite criado!', description: `Link: ${data.invite_url}` });
+      toast({ title: t('toast.invite_created'), description: `${t('toast.invite_link_prefix')}${data.invite_url}` });
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Erro', description: err.message });
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: err.message });
     } finally {
       setSendingInvite(false);
     }
@@ -177,16 +180,16 @@ export default function WikiMembersPage() {
 
     if (res.ok) {
       setInvites((prev) => prev.filter((i) => i.id !== id));
-      toast({ title: 'Convite revogado.' });
+      toast({ title: t('toast.invite_revoked') });
     } else {
-      toast({ variant: 'destructive', title: 'Erro ao revogar' });
+      toast({ variant: 'destructive', title: t('toast.revoke_error') });
     }
   };
 
   const copyInviteLink = async (token: string) => {
     const link = `${window.location.origin}/invite/${token}`;
     await navigator.clipboard.writeText(link);
-    toast({ title: 'Link copiado!' });
+    toast({ title: t('toast.link_copied') });
   };
 
   const downloadQR = async (token: string) => {
@@ -197,11 +200,11 @@ export default function WikiMembersPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `convite-${token.slice(0, 8)}.png`;
+      a.download = `${t('invites.pending_list.qr_filename_prefix')}${token.slice(0, 8)}.png`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast({ variant: 'destructive', title: 'Erro ao gerar QR Code' });
+      toast({ variant: 'destructive', title: t('toast.qr_error') });
     }
   };
 
@@ -211,7 +214,7 @@ export default function WikiMembersPage() {
   if (displayError) {
     return (
       <div className="p-6 max-w-2xl mx-auto text-center text-muted-foreground py-12">
-        <p className="text-destructive font-medium">Erro ao carregar membros.</p>
+        <p className="text-destructive font-medium">{t('error.title')}</p>
         <p className="text-sm mt-1">{displayError.message}</p>
       </div>
     );
@@ -230,10 +233,10 @@ export default function WikiMembersPage() {
       <SliderTabs defaultValue="members">
         <SliderTabsList>
           <SliderTabsTrigger value="members" icon={Shield}>
-            Membros ({members.length})
+            {t('tabs.members')} ({members.length})
           </SliderTabsTrigger>
           <SliderTabsTrigger value="invites" icon={UserPlus}>
-            Convites ({invites.length})
+            {t('tabs.invites')} ({invites.length})
           </SliderTabsTrigger>
         </SliderTabsList>
 
@@ -241,8 +244,8 @@ export default function WikiMembersPage() {
           <SliderTabsContent value="members">
             <WeldingCard>
             <CardHeader>
-              <CardTitle>Membros</CardTitle>
-              <CardDescription>Usuários com acesso a esta wiki.</CardDescription>
+              <CardTitle>{t('members_list.card_title')}</CardTitle>
+              <CardDescription>{t('members_list.card_description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {members.map((member) => {
@@ -253,7 +256,7 @@ export default function WikiMembersPage() {
                     <div className="flex items-center gap-3">
                       {isOwner ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Shield className="h-5 w-5 text-muted-foreground" />}
                       <div>
-                        <p className="text-sm font-medium">{isSelf ? 'Você' : member.display_name || member.email || member.user_id.slice(0, 8)}</p>
+                        <p className="text-sm font-medium">{isSelf ? t('members_list.self_label') : member.display_name || member.email || member.user_id.slice(0, 8)}</p>
                         <p className="text-xs text-muted-foreground">{roleLabels[member.role] || member.role}</p>
                       </div>
                     </div>
@@ -265,9 +268,9 @@ export default function WikiMembersPage() {
                           disabled={updating === member.user_id}
                           className="h-8 rounded-md border bg-background px-2 text-xs"
                         >
-                          <option value="admin">Admin</option>
-                          <option value="editor">Editor</option>
-                          <option value="viewer">Leitor</option>
+                          <option value="admin">{t('roles.admin')}</option>
+                          <option value="editor">{t('roles.editor')}</option>
+                          <option value="viewer">{t('roles.viewer')}</option>
                         </select>
                       )}
                       {!isOwner && !isSelf && (
@@ -286,47 +289,47 @@ export default function WikiMembersPage() {
           <SliderTabsContent value="invites">
           <WeldingCard>
             <CardHeader>
-              <CardTitle>Convidar Membro</CardTitle>
-              <CardDescription>Envie um convite para acessar esta wiki.</CardDescription>
+              <CardTitle>{t('invites.create_card.title')}</CardTitle>
+              <CardDescription>{t('invites.create_card.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <FloatingLabelInput
-                  label="Email"
+                  label={t('invites.create_card.email_label')}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   type="email"
                 />
                 <div>
-                  <label className="text-xs font-medium mb-1 block">Papel</label>
+                  <label className="text-xs font-medium mb-1 block">{t('invites.create_card.role_label')}</label>
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   >
-                    <option value="admin">Admin</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Leitor</option>
+                    <option value="admin">{t('roles.admin')}</option>
+                    <option value="editor">{t('roles.editor')}</option>
+                    <option value="viewer">{t('roles.viewer')}</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block">Expiração</label>
+                <label className="text-xs font-medium mb-1 block">{t('invites.create_card.expiry_label')}</label>
                 <select
                   value={inviteExpiry}
                   onChange={(e) => setInviteExpiry(e.target.value)}
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="3600000">1 hora</option>
-                  <option value="86400000">24 horas</option>
-                  <option value="604800000">7 dias</option>
-                  <option value="2592000000">30 dias</option>
-                  <option value="never">Nunca expira</option>
+                  <option value="3600000">{t('invites.create_card.expiry_1hour')}</option>
+                  <option value="86400000">{t('invites.create_card.expiry_24hours')}</option>
+                  <option value="604800000">{t('invites.create_card.expiry_7days')}</option>
+                  <option value="2592000000">{t('invites.create_card.expiry_30days')}</option>
+                  <option value="never">{t('invites.create_card.expiry_never')}</option>
                 </select>
               </div>
               <Button onClick={handleSendInvite} disabled={sendingInvite || !inviteEmail} className="w-full">
                 {sendingInvite ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                {sendingInvite ? 'Enviando...' : 'Criar Convite'}
+                {sendingInvite ? t('invites.create_card.sending') : t('invites.create_card.submit')}
               </Button>
             </CardContent>
           </WeldingCard>
@@ -334,7 +337,7 @@ export default function WikiMembersPage() {
           {invites.length > 0 && (
             <WeldingCard>
               <CardHeader>
-                <CardTitle>Convites Pendentes ({invites.length})</CardTitle>
+                <CardTitle>{t('invites.pending_list.card_title')} ({invites.length})</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {invites.map((inv) => (
@@ -342,25 +345,25 @@ export default function WikiMembersPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{inv.email}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{inv.role}</span>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{roleLabels[inv.role] || inv.role}</span>
                         {inv.expires_at ? (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            Expira {new Date(inv.expires_at).toLocaleDateString('pt-BR')}
+                            {t('invites.pending_list.expires_prefix')}{new Date(inv.expires_at).toLocaleDateString('pt-BR')}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sem expiração</span>
+                          <span className="text-xs text-muted-foreground">{t('invites.pending_list.no_expiry')}</span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" onClick={() => copyInviteLink(inv.token)} title="Copiar link">
+                      <Button variant="ghost" size="icon" onClick={() => copyInviteLink(inv.token)} title={t('invites.pending_list.copy_link')}>
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => downloadQR(inv.token)} title="QR Code">
+                      <Button variant="ghost" size="icon" onClick={() => downloadQR(inv.token)} title={t('invites.pending_list.qr_code')}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleRevokeInvite(inv.id)} title="Revogar">
+                      <Button variant="ghost" size="icon" onClick={() => handleRevokeInvite(inv.id)} title={t('invites.pending_list.revoke')}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>

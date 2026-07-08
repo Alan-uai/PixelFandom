@@ -85,7 +85,10 @@ function WikiLayoutContent({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
     fetch(`/api/tenants/${tenant.id}/page-layout?type=footer`, { signal: controller.signal })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         const layout = data?.blocks?.length ? { blocks: data.blocks } : null;
         footerCache.current[tenant.id] = layout;
@@ -110,7 +113,10 @@ function WikiLayoutContent({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
     fetch(`/api/tenants/${tenant.id}/page-layout?type=landing`, { signal: controller.signal })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         const islands = data?.floatingIslands?.length > 0 ? data.floatingIslands : [];
         islandsCache.current[tenant.id] = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };

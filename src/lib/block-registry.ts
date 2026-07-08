@@ -59,6 +59,7 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
   { type: 'social-links', label: 'Redes Sociais', icon: Share2 as LucideIcon, category: 'interactive', description: 'Links para redes sociais', defaultConfig: { title: 'Siga-nos', layout: 'row', size: 'md', links: [{ platform: 'Discord', url: '' }] } },
   { type: 'countdown', label: 'Contagem Regressiva', icon: TimerReset as LucideIcon, category: 'interactive', description: 'Timer para evento', defaultConfig: { title: 'Lançamento em:', showDays: true, showHours: true, showMinutes: true, showSeconds: true, labelDays: 'dias', labelHours: 'horas', labelMinutes: 'minutos', labelSeconds: 'segundos' } },
   { type: 'contact-form', label: 'Formulário Contato', icon: FormInput as LucideIcon, category: 'interactive', description: 'Formulário de contato', defaultConfig: { title: 'Entre em contato', fields: ['name', 'email', 'message'], submitText: 'Enviar', successMessage: 'Mensagem enviada!' } },
+  { type: 'popover', label: 'Popover / Tooltip', icon: MessageCircle as LucideIcon, category: 'interactive', description: 'Popover, tooltip ou aba flutuante', defaultConfig: { trigger: 'hover', position: 'top', title: '', content: 'Conteúdo do popover', triggerText: 'Saiba mais' } },
 
   // ── Special ──
   { type: 'search', label: 'Busca', icon: Search as LucideIcon, category: 'special', description: 'Barra de busca', defaultConfig: { placeholder: 'Pesquisar...', variant: 'default' } },

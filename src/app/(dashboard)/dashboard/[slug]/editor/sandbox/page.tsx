@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,8 @@ export default function EditorSandboxPage() {
   const slug = params.slug as string;
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations('sandbox');
+  const tc = useTranslations('common');
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -49,46 +52,48 @@ export default function EditorSandboxPage() {
         if (data) setDraftId(data.id);
       }
       setIsDirty(false);
-      toast({ title: 'Salvo', description: 'Rascunho salvo no sandbox.' });
+      toast({ title: t('saved'), description: t('saved_desc') });
     } catch {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar rascunho.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('save_failed') });
     } finally {
       setSaving(false);
     }
-  }, [slug, title, content, draftId, toast]);
+  }, [slug, title, content, draftId, toast, t, tc]);
 
   const handleDiscard = useCallback(() => {
     setTitle('');
     setContent('');
     setDraftId(null);
     setIsDirty(false);
-    toast({ title: 'Descartado', description: 'Sandbox limpo.' });
-  }, [toast]);
+    toast({ title: t('discarded'), description: t('discarded_desc') });
+  }, [toast, t]);
 
   const handlePromoteToArticle = useCallback(async () => {
     if (!title.trim()) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'O título é obrigatório.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('title_required') });
       return;
     }
     try {
       const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
       if (!tenant) throw new Error('Tenant not found');
 
+      const articleSlug = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const { data: article } = await supabase.from('wiki_articles').insert({
         tenant_id: tenant.id,
         title: title.trim(),
+        slug: articleSlug,
         content,
         status: 'draft',
       }).select('id').single();
 
       if (article) {
-        toast({ title: 'Artigo criado', description: 'Rascunho promovido para artigo.' });
+        toast({ title: t('article_created'), description: t('article_created_desc') });
         router.push(`/dashboard/${slug}/editor/${article.id}`);
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao criar artigo.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('article_create_failed') });
     }
-  }, [slug, title, content, router, toast]);
+  }, [slug, title, content, router, toast, t, tc]);
 
   useRegisterUnsavedChanges({ isDirty, onSave: handleSave, onDiscard: handleDiscard });
 
@@ -113,24 +118,24 @@ export default function EditorSandboxPage() {
         <div className="flex items-center gap-2">
           <FlaskConical className="h-6 w-6 text-amber-400" />
           <div>
-            <h1 className="text-2xl font-bold">Sandbox</h1>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
             <p className="text-sm text-muted-foreground">
-              Ambiente isolado para testar conteúdo sem afetar artigos reais.
+              {t('description')}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar
+            {t('save')}
           </Button>
           <Button variant="outline" size="sm" onClick={handleDiscard} className="gap-1.5 text-destructive">
             <Trash2 className="h-4 w-4" />
-            Descartar
+            {t('discard')}
           </Button>
           <Button size="sm" onClick={handlePromoteToArticle} className="gap-1.5">
             <Send className="h-4 w-4" />
-            Promover para Artigo
+            {t('promote')}
           </Button>
         </div>
       </div>
@@ -139,27 +144,27 @@ export default function EditorSandboxPage() {
         <TabsList>
           <TabsTrigger value="edit" className="flex items-center gap-1.5">
             <FlaskConical className="h-4 w-4" />
-            Editar
+            {t('edit_tab')}
           </TabsTrigger>
           <TabsTrigger value="preview" className="flex items-center gap-1.5">
             <Eye className="h-4 w-4" />
-            Visualizar
+            {t('preview_tab')}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="edit" className="mt-4 space-y-4">
           <div>
-            <Label>Título</Label>
+            <Label>{t('title_label')}</Label>
             <Input
               value={title}
               onChange={(e) => { setTitle(e.target.value); setIsDirty(true); }}
-              placeholder="Título do artigo..."
+              placeholder={t('title_placeholder')}
               className="mt-1"
             />
           </div>
           <div>
-            <Label>Conteúdo (Markdown)</Label>
+            <Label>{t('content_label')}</Label>
             <FloatingLabelTextarea
-              label="Escreva seu conteúdo aqui..."
+              label={t('content_placeholder')}
               value={content}
               onChange={(e) => { setContent(e.target.value); setIsDirty(true); }}
               className="min-h-[400px] mt-1 text-sm font-mono"
@@ -169,11 +174,11 @@ export default function EditorSandboxPage() {
         <TabsContent value="preview" className="mt-4">
           <WeldingCard>
             <CardHeader>
-              <CardTitle>{title || 'Sem título'}</CardTitle>
+              <CardTitle>{title || t('untitled')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="prose prose-invert max-w-none" ref={previewRef}>
-                {content ? renderPreview(content) : 'Nenhum conteúdo para visualizar.'}
+                {content ? renderPreview(content) : t('no_content')}
               </div>
             </CardContent>
           </WeldingCard>

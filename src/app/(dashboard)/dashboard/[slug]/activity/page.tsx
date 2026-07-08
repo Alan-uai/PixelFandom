@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { CardContent } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Loader2, History, FileText, Users, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
@@ -31,6 +32,7 @@ const TYPE_ICONS: Record<string, typeof FileText> = {
 export default function ActivityPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const t = useTranslations('activity');
   const { data: tenantData } = useCachedData<{ id: string }>(
     `tenant-id:${slug}`,
     async () => {
@@ -55,12 +57,12 @@ export default function ActivityPage() {
   const timeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'agora mesmo';
-    if (mins < 60) return `${mins} min atrás`;
+    if (mins < 1) return t('time.now');
+    if (mins < 60) return `${mins}${t('time.minutes_ago')}`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h atrás`;
+    if (hours < 24) return `${hours}${t('time.hours_ago')}`;
     const days = Math.floor(hours / 24);
-    return `${days}d atrás`;
+    return `${days}${t('time.days_ago')}`;
   };
 
   const itemList = items ?? [];
@@ -76,10 +78,10 @@ export default function ActivityPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <History className="h-6 w-6 text-primary" />
-          Activity Feed
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Histórico de alterações e eventos da wiki.
+          {t('description')}
         </p>
       </div>
 
@@ -87,7 +89,7 @@ export default function ActivityPage() {
         <WeldingCard>
           <CardContent className="text-center py-12">
             <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
-            <p className="text-muted-foreground">Nenhuma atividade registrada ainda.</p>
+            <p className="text-muted-foreground">{t('empty')}</p>
           </CardContent>
         </WeldingCard>
       ) : (

@@ -134,6 +134,10 @@ export default function WikiPage() {
         const res = await fetch(`/api/tenants/${tenant.id}/page-layout`, {
           signal: controller.signal,
         });
+        if (!res.ok) {
+          layoutCache.current[key] = null;
+          return;
+        }
         const data = await res.json();
         layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) {
@@ -160,7 +164,10 @@ export default function WikiPage() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
     fetch(`/api/tenants/${tenant.id}/page-layout?type=404`, { signal: controller.signal })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         layoutCache.current[key] = data;
         if (data?.blocks?.length > 0) setCustom404Layout({ blocks: data.blocks });

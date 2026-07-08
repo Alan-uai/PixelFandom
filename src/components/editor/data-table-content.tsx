@@ -27,6 +27,7 @@ import {
   Edit,
   Trash2,
   Save,
+  Search,
   X,
   Minus,
   Check,
@@ -36,6 +37,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
+import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { sanitizeUrl } from '@/lib/content-utils';
@@ -103,6 +105,7 @@ export default function DataTableContent({
   const [saving, setSaving] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [tableNotFoundError, setTableNotFoundError] = useState(false);
   const [availableDbTables, setAvailableDbTables] = useState<{ table_name: string; schema: string }[]>([]);
   const [recovering, setRecovering] = useState(false);
@@ -168,6 +171,16 @@ export default function DataTableContent({
     return inferPrimaryColumns(tableColumns);
   }, [tableColumns]);
 
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+    const q = searchQuery.toLowerCase();
+    return rows.filter((row) =>
+      Object.values(row).some(
+        (val) => val != null && String(val).toLowerCase().includes(q)
+      )
+    );
+  }, [rows, searchQuery]);
+
   const fetchColumns = useCallback(async (retries = 3, delay = 500) => {
     if (!tenantId) return;
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -208,6 +221,13 @@ export default function DataTableContent({
       break;
     }
   }, [table, tenantId, toast]);
+
+  const fetchAvailableColumns = useCallback(async () => {
+    const colData = await supabase.rpc('list_available_columns', { p_table: table });
+    if (!colData.error && colData.data) {
+      setAvailableColumns(colData.data as { column_name: string; data_type: string }[]);
+    }
+  }, [table]);
 
   const fetchRows = useCallback(async (retries = 3, delay = 500) => {
     if (!tenantId) return;
@@ -357,6 +377,7 @@ export default function DataTableContent({
       }
     });
     setEditForm(form);
+    fetchAvailableColumns();
   };
 
   const currentFormKeys = showNewForm ? [...newFormDefaultFields, ...Object.keys(newForm)] : editingId ? Object.keys(editForm) : [];
@@ -911,10 +932,20 @@ export default function DataTableContent({
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           )}
-          <Button size="sm" onClick={() => setShowNewForm(true)} disabled={showNewForm}>
+          <Button size="sm" onClick={() => { setShowNewForm(true); fetchAvailableColumns(); }} disabled={showNewForm}>
             <Plus className="h-4 w-4 mr-1" /> Adicionar
           </Button>
         </div>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar em todos os campos..."
+          className="pl-8 h-9 text-sm"
+        />
       </div>
 
       {tableNotFoundError ? (
@@ -992,63 +1023,49 @@ export default function DataTableContent({
               )}
           </div>
 
+          {unusedColumns.length > 0 && (
+            <div className="border rounded-md p-2">
+              <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                Sugestões ({unusedColumns.length} disponíveis)
+              </span>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {unusedColumns.map((col) => (
+                  <button
+                    key={col.column_name}
+                    type="button"
+                    className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
+                    title="Clique: usar neste item apenas"
+                    onClick={() => {
+                      setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                      setShowAddField(false);
+                      setNewFieldName('');
+                    }}
+                  >
+                    {col.column_name}
+                    <span className="text-muted-foreground ml-1">{col.data_type}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="border-t pt-3 mt-3">
             {showAddField ? (
               <div className="space-y-3">
-                {unusedColumns.length > 0 && (
-                  <div className="border rounded-md p-2">
-                    <span className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Sugestões ({unusedColumns.length} disponíveis)
-                    </span>
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                      {unusedColumns.map((col) => (
-                        <button
-                          key={col.column_name}
-                          type="button"
-                          className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
-                          title="Clique: usar neste item apenas"
-                          onClick={() => {
-                            setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
-                            setShowAddField(false);
-                            setNewFieldName('');
-                          }}
-                        >
-                          {col.column_name}
-                          <span className="text-muted-foreground ml-1">{col.data_type}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex items-end gap-2">
                   <div className="flex-1 space-y-1">
                     {(() => {
                       const typeDef = getTypeDef(newFieldType);
                       if (typeDef?.nameMode === 'selector' && typeDef.nameOptions) {
                         return (
-                          <>
-                            <Label className="text-xs text-muted-foreground">Tipo de mídia</Label>
-                            <div className="flex gap-1.5 flex-wrap">
-                              {typeDef.nameOptions.map((opt) => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => {
-                                    setNewFieldName(opt.defaultColumn);
-                                    setNewFieldSubType(opt.value);
-                                  }}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                                    newFieldSubType === opt.value
-                                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                      : 'bg-background text-muted-foreground border-input hover:border-muted-foreground/30'
-                                  }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </>
+                          <VerticalTypeCarousel
+                            options={typeDef.nameOptions}
+                            value={newFieldSubType}
+                            onChange={(opt) => {
+                              setNewFieldName(opt.defaultColumn);
+                              setNewFieldSubType(opt.value);
+                            }}
+                          />
                         );
                       }
                       return (
@@ -1135,16 +1152,16 @@ export default function DataTableContent({
         </div>
       )}
 
-      {rows.length === 0 && !showNewForm ? (
+      {filteredRows.length === 0 && !showNewForm ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-lg font-medium">Nenhum registro encontrado</p>
+          <p className="text-lg font-medium">{searchQuery ? 'Nenhum resultado encontrado' : 'Nenhum registro encontrado'}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Adicione o primeiro registro para começar.
+            {searchQuery ? 'Tente ajustar sua busca.' : 'Adicione o primeiro registro para começar.'}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {rows.map((row) => {
+          {filteredRows.map((row) => {
             const isEditing = editingId === row.id;
             const rowTitle = primary.map((col) => {
               if (!(col in row)) return '';
@@ -1203,35 +1220,35 @@ export default function DataTableContent({
                       })}
                     </div>
 
+                    {unusedColumns.length > 0 && (
+                      <div className="border rounded-md p-2">
+                        <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Sugestões ({unusedColumns.length} disponíveis)
+                        </span>
+                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                          {unusedColumns.map((col) => (
+                            <button
+                              key={col.column_name}
+                              type="button"
+                              className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
+                              title="Clique: usar neste item apenas"
+                              onClick={() => {
+                                setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                                setShowAddField(false);
+                                setNewFieldName('');
+                              }}
+                            >
+                              {col.column_name}
+                              <span className="text-muted-foreground ml-1">{col.data_type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="border-t pt-3">
                       {showAddField ? (
                         <div className="space-y-3">
-                          {unusedColumns.length > 0 && (
-                            <div className="border rounded-md p-2">
-                              <span className="text-xs font-medium text-muted-foreground mb-1 block">
-                                Sugestões ({unusedColumns.length} disponíveis)
-                              </span>
-                              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                                {unusedColumns.map((col) => (
-                                  <button
-                                    key={col.column_name}
-                                    type="button"
-                                    className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
-                                    title="Clique: usar neste item apenas"
-                                    onClick={() => {
-                                      setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
-                                      setShowAddField(false);
-                                      setNewFieldName('');
-                                    }}
-                                  >
-                                    {col.column_name}
-                                    <span className="text-muted-foreground ml-1">{col.data_type}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
                           <div className="flex items-end gap-2">
                             <div className="space-y-1 flex-1">
                               <Label className="text-xs text-muted-foreground">Nome do campo</Label>
@@ -1239,25 +1256,14 @@ export default function DataTableContent({
                                 const typeDef = getTypeDef(newFieldType);
                                 if (typeDef?.nameMode === 'selector' && typeDef.nameOptions) {
                                   return (
-                                    <div className="flex gap-1.5 flex-wrap">
-                                      {typeDef.nameOptions.map((opt) => (
-                                        <button
-                                          key={opt.value}
-                                          type="button"
-                                          onClick={() => {
-                                            setNewFieldName(opt.defaultColumn);
-                                            setNewFieldSubType(opt.value);
-                                          }}
-                                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                                            newFieldSubType === opt.value
-                                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                              : 'bg-background text-muted-foreground border-input hover:border-muted-foreground/30'
-                                          }`}
-                                        >
-                                          {opt.label}
-                                        </button>
-                                      ))}
-                                    </div>
+                                    <VerticalTypeCarousel
+                                      options={typeDef.nameOptions}
+                                      value={newFieldSubType}
+                                      onChange={(opt) => {
+                                        setNewFieldName(opt.defaultColumn);
+                                        setNewFieldSubType(opt.value);
+                                      }}
+                                    />
                                   );
                                 }
                                 return (

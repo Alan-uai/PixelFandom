@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -23,17 +24,25 @@ type AnalyticsData = {
 export default function AnalyticsPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const t = useTranslations('analytics');
   const [period, setPeriod] = useState('7d');
   const cacheKey = `analytics:${slug}:${period}`;
   const { data, loading } = useCachedData<AnalyticsData>(
     cacheKey,
-    () => fetch(`/api/analytics?slug=${slug}&period=${period}`).then(r => r.json())
+    async () => {
+      const r = await fetch(`/api/analytics?slug=${slug}&period=${period}`);
+      if (!r.ok) {
+        const text = await r.text().catch(() => 'Unknown error');
+        throw new Error(`API error ${r.status}: ${text}`);
+      }
+      return r.json();
+    }
   );
 
   const periods = [
-    { value: '7d', label: '7 dias' },
-    { value: '30d', label: '30 dias' },
-    { value: '90d', label: '90 dias' },
+    { value: '7d', label: t('periods.7d') },
+    { value: '30d', label: t('periods.30d') },
+    { value: '90d', label: t('periods.90d') },
   ];
 
   if (loading) {
@@ -50,10 +59,10 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
-            Analytics
+            {t('title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Métricas de visualizações e uso do chat.
+            {t('description')}
           </p>
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
@@ -74,7 +83,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Visualizações</CardDescription>
+            <CardDescription className="text-xs">{t('metrics.views')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -85,7 +94,7 @@ export default function AnalyticsPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Chats</CardDescription>
+            <CardDescription className="text-xs">{t('metrics.chats')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -96,7 +105,7 @@ export default function AnalyticsPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Média Diária</CardDescription>
+            <CardDescription className="text-xs">{t('metrics.daily_average')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -111,7 +120,7 @@ export default function AnalyticsPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Período</CardDescription>
+            <CardDescription className="text-xs">{t('metrics.period')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -125,7 +134,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WeldingCard>
           <CardHeader>
-            <CardTitle className="text-sm">Visualizações por Dia</CardTitle>
+            <CardTitle className="text-sm">{t('charts.views_per_day')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -149,7 +158,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                  Nenhum dado no período.
+                  {t('charts.no_data')}
                 </div>
               )}
             </div>
@@ -158,7 +167,7 @@ export default function AnalyticsPage() {
 
         <WeldingCard>
           <CardHeader>
-            <CardTitle className="text-sm">Chats por Dia</CardTitle>
+            <CardTitle className="text-sm">{t('charts.chats_per_day')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -176,7 +185,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                  Nenhum dado no período.
+                  {t('charts.no_data')}
                 </div>
               )}
             </div>
@@ -186,7 +195,7 @@ export default function AnalyticsPage() {
 
       <WeldingCard>
         <CardHeader>
-          <CardTitle className="text-sm">Páginas Mais Visitadas</CardTitle>
+          <CardTitle className="text-sm">{t('top_pages.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {data?.pageViews.topPages && data.pageViews.topPages.length > 0 ? (
@@ -200,14 +209,14 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-medium">{page.views}</p>
-                    <p className="text-xs text-muted-foreground">{page.unique_visitors} únicos</p>
+                    <p className="text-xs text-muted-foreground">{t('top_pages.unique_visitors', { count: page.unique_visitors })}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma página visitada no período.
+              {t('top_pages.no_data')}
             </p>
           )}
         </CardContent>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { useTableCatalog } from '@/hooks/use-data-access';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,8 @@ export default function EditorArticlesPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const { toast } = useToast();
+  const t = useTranslations('editor');
+  const tc = useTranslations('common');
 
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -65,6 +68,8 @@ export default function EditorArticlesPage() {
   const [createLabel, setCreateLabel] = useState('');
   const [createIcon, setCreateIcon] = useState('Database');
   const [creating, setCreating] = useState(false);
+  const [availableCreateTables, setAvailableCreateTables] = useState<string[]>([]);
+  const [loadingCreateTables, setLoadingCreateTables] = useState(false);
 
   const [renameTable, setRenameTable] = useState<string | null>(null);
   const [renameLabel, setRenameLabel] = useState('');
@@ -105,7 +110,7 @@ export default function EditorArticlesPage() {
   const { data: catalogData, loading: catalogLoading } = useTableCatalog(slug);
 
   const allTabs = [
-    { key: 'articles', label: 'Artigos', iconNode: <BookOpen className="h-3.5 w-3.5 shrink-0" /> },
+    { key: 'articles', label: t('tabs.articles'), iconNode: <BookOpen className="h-3.5 w-3.5 shrink-0" /> },
     ...catalog.map((t) => ({
       key: t.table_name,
       label: t.display_label,
@@ -134,15 +139,15 @@ export default function EditorArticlesPage() {
   const loading = !tenantId || catalogLoading;
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este artigo?')) return;
+    if (!confirm(t('delete.confirm_message'))) return;
     setDeleting(id);
     const { error } = await supabase.from('wiki_articles').delete().eq('id', id);
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
     } else {
       invalidateDataCache(slug);
       setArticles((prev) => prev.filter((a) => a.id !== id));
-      toast({ title: 'Artigo excluído.' });
+      toast({ title: t('toast.article_deleted') });
     }
     setDeleting(null);
   };
@@ -152,13 +157,20 @@ export default function EditorArticlesPage() {
     setCreateLabel('');
     setCreateIcon('Database');
     setShowCreateDialog(true);
+    setLoadingCreateTables(true);
+    supabase.from('tenant_game_tables').select('table_name').then(({ data }) => {
+      if (data) {
+        setAvailableCreateTables([...new Set(data.map((r: any) => r.table_name))]);
+      }
+      setLoadingCreateTables(false);
+    });
   };
 
   const handleCreateTable = async () => {
     if (!tenantId) return;
     const rawName = createName.trim();
     if (!rawName) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para a tabela.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('toast.enter_table_name') });
       return;
     }
 
@@ -175,7 +187,7 @@ export default function EditorArticlesPage() {
     });
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
     } else {
       const result = data as { ok: boolean; error?: string; table: string };
       if (result.ok) {
@@ -198,12 +210,12 @@ export default function EditorArticlesPage() {
         invalidateDataCache(slug);
         setShowCreateDialog(false);
         setActiveTab(slug);
-        toast({ title: `Tabela "${label}" adicionada!` });
+        toast({ title: t('toast.table_added', { label }) });
       } else {
         if (result.error?.includes('Você já tem esta tabela')) {
-          toast({ title: 'Você já usa esta tabela.' });
+          toast({ title: t('toast.table_already_exists') });
         } else {
-          toast({ variant: 'destructive', title: 'Erro', description: result.error });
+          toast({ variant: 'destructive', title: tc('error'), description: result.error });
         }
       }
     }
@@ -219,7 +231,7 @@ export default function EditorArticlesPage() {
   const handleRename = async () => {
     if (!tenantId || !renameTable) return;
     if (!renameLabel.trim()) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'O nome de exibição não pode ficar vazio.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('toast.display_name_empty') });
       return;
     }
     setRenaming(true);
@@ -231,15 +243,15 @@ export default function EditorArticlesPage() {
       p_new_icon: renameIcon,
     });
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
         invalidateDataCache(slug);
         setRenameTable(null);
-        toast({ title: 'Tabela atualizada!' });
+        toast({ title: t('toast.table_updated') });
       } else {
-        toast({ variant: 'destructive', title: 'Erro', description: result.error });
+        toast({ variant: 'destructive', title: tc('error'), description: result.error });
       }
     }
     setRenaming(false);
@@ -258,7 +270,7 @@ export default function EditorArticlesPage() {
       p_tenant_id: tenantId,
     });
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
     } else {
       const result = data as { ok: boolean; error?: string; dropped_table?: boolean; dropped_columns?: string[] };
       if (result.ok) {
@@ -266,14 +278,14 @@ export default function EditorArticlesPage() {
         if (activeTab === deleteTable) setActiveTab('articles');
 
         const msgs: string[] = [];
-        if (result.dropped_table) msgs.push('Tabela removida permanentemente (ninguém mais usava).');
+        if (result.dropped_table) msgs.push(t('toast.table_removed_permanent'));
         if (result.dropped_columns && result.dropped_columns.length > 0) {
-          msgs.push(`${result.dropped_columns.length} coluna(s) órfã(s) removida(s).`);
+          msgs.push(t('toast.orphan_columns_removed', { count: result.dropped_columns.length }));
         }
-        toast({ title: `Tabela "${deleteLabel}" removida.`, description: msgs.join(' ') });
+        toast({ title: t('toast.table_removed', { label: deleteLabel }), description: msgs.join(' ') });
         setDeleteTable(null);
       } else {
-        toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao remover tabela.' });
+        toast({ variant: 'destructive', title: tc('error'), description: result.error || t('toast.failed_to_remove') });
       }
     }
     setDeletingTable(false);
@@ -287,13 +299,11 @@ export default function EditorArticlesPage() {
     return articles.filter((a) => a.status === statusFilter);
   }, [articles, statusFilter]);
 
-  // const catalogMap = new Map(catalog.map((t) => [t.table_name, t.display_label]));
-
   const handleCreateArticle = async () => {
     if (!tenantId) return;
     const title = createArticleTitle.trim();
     if (!title) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Digite um título para o artigo.' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('toast.enter_article_title') });
       return;
     }
 
@@ -324,7 +334,7 @@ export default function EditorArticlesPage() {
     const { error } = await supabase.from('wiki_articles').insert(articleData);
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+      toast({ variant: 'destructive', title: tc('error'), description: error.message });
       setCreatingArticle(false);
       return;
     }
@@ -353,7 +363,7 @@ export default function EditorArticlesPage() {
       .order('created_at', { ascending: false });
     if (refreshed) setArticles(refreshed);
 
-    toast({ title: isScheduled ? 'Artigo agendado!' : 'Artigo criado!' });
+    toast({ title: isScheduled ? t('toast.article_scheduled') : t('toast.article_created') });
     router.push(`/dashboard/${slug}/editor/${articleId}`);
 
     setCreatingArticle(false);
@@ -375,7 +385,7 @@ export default function EditorArticlesPage() {
               size="icon"
               className="ml-1 shrink-0 h-8 w-8"
               onClick={openCreateDialog}
-              title="Adicionar tabela"
+              title={t('tabs.add_table')}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -391,23 +401,23 @@ export default function EditorArticlesPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold">Artigos</h1>
+                  <h1 className="text-2xl font-bold">{t('articles_section.title')}</h1>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    Gerencie os artigos da sua wiki.
+                    {t('articles_section.description')}
                   </p>
                 </div>
                 <Button onClick={() => setShowCreateArticleDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Novo Artigo
+                  {t('articles_section.new_article')}
                 </Button>
               </div>
 
               <div className="flex gap-2">
                 {[
-                  { key: 'all', label: 'Todos' },
-                  { key: 'published', label: 'Publicados' },
-                  { key: 'draft', label: 'Rascunhos' },
-                  { key: 'scheduled', label: 'Agendados' },
+                  { key: 'all', label: t('filters.all') },
+                  { key: 'published', label: t('filters.published') },
+                  { key: 'draft', label: t('filters.draft') },
+                  { key: 'scheduled', label: t('filters.scheduled') },
                 ].map((f) => (
                   <button
                     key={f.key}
@@ -429,17 +439,17 @@ export default function EditorArticlesPage() {
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-lg font-medium">
                     {statusFilter === 'all'
-                      ? 'Nenhum artigo ainda'
+                      ? t('empty.no_articles')
                       : statusFilter === 'published'
-                        ? 'Nenhum artigo publicado'
+                        ? t('empty.no_published')
                         : statusFilter === 'draft'
-                          ? 'Nenhum rascunho'
-                          : 'Nenhum artigo agendado'}
+                          ? t('empty.no_drafts')
+                          : t('empty.no_scheduled')}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {statusFilter === 'scheduled'
-                      ? 'Artigos agendados aparecerão aqui.'
-                      : 'Crie seu primeiro artigo para começar.'}
+                      ? t('empty.scheduled_will_appear')
+                      : t('empty.create_first')}
                   </p>
                   {statusFilter !== 'scheduled' && (
                     <Button
@@ -447,7 +457,7 @@ export default function EditorArticlesPage() {
                       className="mt-4"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Criar Artigo
+                      {t('empty.create_article')}
                     </Button>
                   )}
                 </div>
@@ -500,7 +510,7 @@ export default function EditorArticlesPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => router.push(`/dashboard/${slug}/editor/${article.id}`)}
-                              title="Editar"
+                              title={t('actions.edit')}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -509,7 +519,7 @@ export default function EditorArticlesPage() {
                               size="icon"
                               onClick={() => handleDelete(article.id)}
                               disabled={deleting === article.id}
-                              title="Excluir"
+                              title={t('actions.delete')}
                             >
                               {deleting === article.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -544,7 +554,7 @@ export default function EditorArticlesPage() {
                   }`}
                 >
                   <Database className="h-3.5 w-3.5" />
-                  Dados
+                  {t('tableTabs.data')}
                 </button>
                 <button
                   type="button"
@@ -556,7 +566,7 @@ export default function EditorArticlesPage() {
                   }`}
                 >
                   <Eye className="h-3.5 w-3.5" />
-                  Exibição
+                  {t('tableTabs.display')}
                 </button>
                 <button
                   type="button"
@@ -565,7 +575,7 @@ export default function EditorArticlesPage() {
                     if (activeTab === key) setActiveTab('articles');
                   }}
                   className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent transition-colors"
-                  title="Remover esta aba do editor"
+                  title={t('tableTabs.remove_tab')}
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
@@ -598,19 +608,19 @@ export default function EditorArticlesPage() {
       <Dialog open={showCreateArticleDialog} onOpenChange={setShowCreateArticleDialog}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Novo Artigo</DialogTitle>
+            <DialogTitle>{t('createArticleDialog.title')}</DialogTitle>
             <DialogDescription>
-              Crie um novo artigo para sua wiki. Você poderá editar o conteúdo depois.
+              {t('createArticleDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Título do artigo</Label>
+              <Label>{t('createArticleDialog.article_title')}</Label>
               <Input
                 value={createArticleTitle}
                 onChange={(e) => setCreateArticleTitle(e.target.value)}
-                placeholder="Digite o título do artigo"
+                placeholder={t('createArticleDialog.article_title_placeholder')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -620,7 +630,7 @@ export default function EditorArticlesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Agendar publicação</Label>
+              <Label>{t('createArticleDialog.schedule_label')}</Label>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -630,7 +640,7 @@ export default function EditorArticlesPage() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <Label htmlFor="schedule-toggle" className="text-sm font-normal">
-                  Agendar para data futura
+                  {t('createArticleDialog.schedule_future')}
                 </Label>
               </div>
               {scheduleEnabled && (
@@ -647,7 +657,7 @@ export default function EditorArticlesPage() {
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{tc('cancel')}</Button>
             </DialogClose>
             <Button onClick={handleCreateArticle} disabled={creatingArticle || !createArticleTitle.trim()}>
               {creatingArticle ? (
@@ -655,7 +665,7 @@ export default function EditorArticlesPage() {
               ) : (
                 <Clock className="h-4 w-4 mr-2" />
               )}
-              {scheduleEnabled && scheduledAt ? 'Agendar' : 'Criar'}
+              {scheduleEnabled && scheduledAt ? t('createArticleDialog.schedule') : t('createArticleDialog.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -665,42 +675,68 @@ export default function EditorArticlesPage() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Adicionar Tabela</DialogTitle>
+            <DialogTitle>{t('createTableDialog.title')}</DialogTitle>
             <DialogDescription>
-              Digite o nome da tabela. O sistema traduz automaticamente para o formato interno.
+              {t('createTableDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
+          {loadingCreateTables ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : availableCreateTables.length > 0 ? (
+            <div className="border rounded-md p-2">
+              <span className="text-xs font-medium text-muted-foreground mb-1 block">
+                {t('createTableDialog.available_tables')}
+              </span>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {availableCreateTables
+                  .filter((t) => !catalog.some((c) => c.table_name === t))
+                  .map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer whitespace-nowrap"
+                      onClick={() => setCreateName(t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Nome da tabela</Label>
+              <Label>{t('createTableDialog.table_name')}</Label>
               <Input
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                placeholder="ex: Armas de longo alcance"
+                placeholder={t('createTableDialog.table_name_placeholder')}
               />
             </div>
             <div className="space-y-1">
-              <Label>Nome de exibição (opcional)</Label>
+              <Label>{t('createTableDialog.display_name')}</Label>
               <Input
                 value={createLabel}
                 onChange={(e) => setCreateLabel(e.target.value)}
-                placeholder="Igual ao nome digitado"
+                placeholder={t('createTableDialog.display_name_placeholder')}
               />
             </div>
             <div className="space-y-1">
-              <Label>Ícone</Label>
+              <Label>{t('createTableDialog.icon')}</Label>
               <TableIconPicker value={createIcon} onChange={setCreateIcon} slug={slug} tenantId={tenantId ?? undefined} />
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{tc('cancel')}</Button>
             </DialogClose>
             <Button onClick={handleCreateTable} disabled={creating || !createName.trim()}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Adicionar
+              {t('createTableDialog.add')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -710,30 +746,30 @@ export default function EditorArticlesPage() {
       <Dialog open={!!renameTable} onOpenChange={(o) => !o && setRenameTable(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar Tabela</DialogTitle>
+            <DialogTitle>{t('editTableDialog.title')}</DialogTitle>
             <DialogDescription>
-              Altere o nome de exibição da tabela (o ícone pode ser alterado na aba Exibição do editor).
+              {t('editTableDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Nome de exibição</Label>
+              <Label>{t('editTableDialog.display_name')}</Label>
               <Input
                 value={renameLabel}
                 onChange={(e) => setRenameLabel(e.target.value)}
-                placeholder="Nome de exibição"
+                placeholder={t('editTableDialog.display_name_placeholder')}
               />
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{tc('cancel')}</Button>
             </DialogClose>
             <Button onClick={handleRename} disabled={renaming}>
               {renaming ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
-              Salvar
+              {tc('save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -743,24 +779,26 @@ export default function EditorArticlesPage() {
       <AlertDialog open={!!deleteTable} onOpenChange={(o) => !o && setDeleteTable(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Tabela</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteTableDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover a tabela <strong>{deleteLabel}</strong> da sua wiki?
+              {t('deleteTableDialog.confirm_message', { label: deleteLabel })}
               <br /><br />
-              Seus dados nesta tabela serão excluídos permanentemente.
-              Se outros tenants também usarem esta tabela, ela continuará existindo para eles.
-              Se você for o único a usar, a tabela será removida do banco de dados.
+              {t('deleteTableDialog.your_data_deleted')}
+              {' '}
+              {t('deleteTableDialog.other_tenants_keep')}
+              {' '}
+              {t('deleteTableDialog.only_you')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTable}
               disabled={deletingTable}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deletingTable ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Excluir
+              {tc('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

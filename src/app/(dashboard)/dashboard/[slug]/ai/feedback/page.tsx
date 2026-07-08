@@ -7,6 +7,7 @@ import { CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from 'next-intl';
 import { Loader2, ThumbsUp, ThumbsDown, TrendingUp, BarChart3, MessageSquare, Check, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -31,6 +32,7 @@ export default function AiFeedbackPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { toast } = useToast();
+  const t = useTranslations('ai.feedback');
 
   const { data: stats, loading, error: statsError } = useCachedData<FeedbackStats>(
     `ai-feedback:${slug}`,
@@ -52,17 +54,17 @@ export default function AiFeedbackPage() {
       });
       if (res.ok) {
         setNegativeList((prev) => (prev || stats!.recentNegative).filter((item: { id: string }) => item.id !== id));
-        toast({ title: 'Atualizado', description: 'Feedback marcado como revisado.' });
+        toast({ title: t('toast.updated.title'), description: t('toast.updated.description') });
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar.' });
+      toast({ variant: 'destructive', title: t('toast.error.title'), description: t('toast.error.description') });
     }
   };
 
   if (statsError) {
     return (
       <div className="p-6 max-w-2xl mx-auto text-center py-20">
-        <p className="text-destructive font-medium">Erro ao carregar feedback.</p>
+        <p className="text-destructive font-medium">{t('error.title')}</p>
         <p className="text-sm text-muted-foreground mt-1">{statsError.message}</p>
       </div>
     );
@@ -79,7 +81,7 @@ export default function AiFeedbackPage() {
   if (!stats) {
     return (
       <div className="p-6 max-w-2xl mx-auto text-center text-muted-foreground py-20">
-        Nenhum dado de feedback disponível.
+        {t('empty')}
       </div>
     );
   }
@@ -91,17 +93,17 @@ export default function AiFeedbackPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-primary" />
-          Feedback do AI Chat
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Acompanhe métricas de satisfação e revise feedbacks negativos.
+          {t('description')}
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Total</CardDescription>
+            <CardDescription className="text-xs">{t('stats.total')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -112,7 +114,7 @@ export default function AiFeedbackPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Positivos</CardDescription>
+            <CardDescription className="text-xs">{t('stats.positive')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -123,7 +125,7 @@ export default function AiFeedbackPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Negativos</CardDescription>
+            <CardDescription className="text-xs">{t('stats.negative')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -134,7 +136,7 @@ export default function AiFeedbackPage() {
         </WeldingCard>
         <WeldingCard>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Satisfação</CardDescription>
+            <CardDescription className="text-xs">{t('stats.satisfaction')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -149,17 +151,17 @@ export default function AiFeedbackPage() {
         <TabsList>
           <TabsTrigger value="negative" className="flex items-center gap-1.5">
             <ThumbsDown className="h-4 w-4" />
-            Feedbacks Negativos
+            {t('tabs.negative')}
           </TabsTrigger>
           <TabsTrigger value="models" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" />
-            Por Modelo
+            {t('tabs.by_model')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="negative" className="mt-4">
           {displayNegative.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Nenhum feedback negativo pendente.</p>
+            <p className="text-center text-muted-foreground py-8">{t('negative.empty')}</p>
           ) : (
             <div className="space-y-3">
               {displayNegative.map((item) => (
@@ -167,34 +169,34 @@ export default function AiFeedbackPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Pergunta:</p>
+                        <p className="text-sm font-medium">{t('negative.question_label')}</p>
                         <p className="text-sm text-muted-foreground mt-1">{item.question}</p>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         item.status === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'
                       }`}>
-                        {item.status === 'pending' ? 'Pendente' : 'Revisado'}
+                        {item.status === 'pending' ? t('negative.status.pending') : t('negative.status.reviewed')}
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground">Resposta negativa:</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t('negative.response_label')}</p>
                       <p className="text-sm mt-1">{item.negative_response}</p>
                     </div>
                     {item.ai_suggestion && (
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground">Sugestão da IA:</p>
+                        <p className="text-xs font-medium text-muted-foreground">{t('negative.suggestion_label')}</p>
                         <p className="text-sm mt-1 text-primary">{item.ai_suggestion}</p>
                       </div>
                     )}
                     {item.status === 'pending' && (
                       <div className="flex gap-2 pt-2">
                         <Button size="sm" variant="outline" onClick={() => handleResolve(item.id, 'accepted')} className="gap-1">
-                          <Check className="h-3 w-3" /> Aceitar Sugestão
+                          <Check className="h-3 w-3" /> {t('negative.accept_suggestion')}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleResolve(item.id, 'dismissed')} className="gap-1 text-destructive">
-                          <X className="h-3 w-3" /> Dispensar
+                          <X className="h-3 w-3" /> {t('negative.dismiss')}
                         </Button>
                       </div>
                     )}
@@ -207,7 +209,7 @@ export default function AiFeedbackPage() {
 
         <TabsContent value="models" className="mt-4">
           {stats.byModel.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Nenhum dado por modelo.</p>
+            <p className="text-center text-muted-foreground py-8">{t('byModel.empty')}</p>
           ) : (
             <div className="space-y-2">
               {stats.byModel.map((m: { model: string; total: number; positive: number; negative: number }) => (
@@ -215,7 +217,7 @@ export default function AiFeedbackPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{m.model}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground">{m.total} respostas</span>
+                  <span className="text-xs text-muted-foreground">{m.total} {t('byModel.responses_suffix')}</span>
                   <span className="text-xs text-green-500">{m.positive} 👍</span>
                   <span className="text-xs text-red-500">{m.negative} 👎</span>
                   <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">

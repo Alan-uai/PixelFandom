@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PageBuilderEditor } from '@/components/page-builder/page-builder-editor';
 import { WidgetsPage } from '@/components/page-builder/widgets-page';
 import { Loader2, ArrowLeft, LayoutDashboard, Footprints, FileQuestion, Puzzle } from 'lucide-react';
@@ -11,10 +12,10 @@ import { supabase } from '@/supabase';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 const PAGE_TYPES = [
-  { id: 'landing', label: 'Landing Page', icon: LayoutDashboard },
-  { id: 'footer', label: 'Footer', icon: Footprints },
-  { id: '404', label: 'Página 404', icon: FileQuestion },
-  { id: 'widgets', label: 'Widgets', icon: Puzzle },
+  { id: 'landing', labelKey: 'landing', icon: LayoutDashboard },
+  { id: 'footer', labelKey: 'footer', icon: Footprints },
+  { id: '404', labelKey: 'not_found', icon: FileQuestion },
+  { id: 'widgets', labelKey: 'widgets', icon: Puzzle },
 ] as const;
 
 export type PageType = (typeof PAGE_TYPES)[number]['id'];
@@ -36,6 +37,7 @@ function PageBuilderPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const t = useTranslations('pageBuilder');
   const pageType = (searchParams.get('type') as PageType) || 'landing';
   const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string } | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
@@ -58,6 +60,10 @@ function PageBuilderPageInner() {
     cacheKey,
     async () => {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
+      if (!res.ok) {
+        const text = await res.text().catch(() => 'Unknown error');
+        throw new Error(`API error ${res.status}: ${text}`);
+      }
       const json = await res.json();
       return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [], slotFlow: json?.slotFlow, clipStyle: json?.clipStyle };
     }
@@ -95,7 +101,7 @@ function PageBuilderPageInner() {
   }, []);
 
   if (!tenantId) {
-    return <p className="p-6 text-muted-foreground">Wiki não encontrada.</p>;
+    return <p className="p-6 text-muted-foreground">{t('wiki_not_found')}</p>;
   }
 
   return (
@@ -108,9 +114,9 @@ function PageBuilderPageInner() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-sm font-medium">Editor de Páginas</h1>
+          <h1 className="text-sm font-medium">{t('title')}</h1>
           <p className="text-[10px] text-muted-foreground">
-            Personalize as páginas da sua wiki
+            {t('description')}
           </p>
         </div>
       </div>
@@ -129,7 +135,7 @@ function PageBuilderPageInner() {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {pt.label}
+              {t('types.' + pt.labelKey)}
             </button>
           );
         })}
@@ -144,7 +150,7 @@ function PageBuilderPageInner() {
           />
         ) : layoutError ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-destructive text-sm">Erro ao carregar layout: {layoutError.message}</p>
+            <p className="text-destructive text-sm">{t('layout_error', { message: layoutError.message })}</p>
           </div>
         ) : loading || loadedPageType !== pageType ? (
           <div className="flex items-center justify-center h-full">

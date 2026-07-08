@@ -30,6 +30,7 @@ import {
   Timer,
   GripVertical,
   Sparkles,
+  MessageSquareMore,
 } from 'lucide-react';
 
 export const RENDER_TYPES = [
@@ -44,13 +45,15 @@ export const RENDER_TYPES = [
   'select', 'multi-select', 'toggle-group',
   // visual
   'color', 'color-palette', 'emoji', 'icon-set',
+  // interactive
+  'popover',
   // datetime
   'date', 'time',
 ] as const;
 
 export type RenderType = typeof RENDER_TYPES[number];
 
-export type CategoryId = 'text' | 'numeric' | 'media' | 'select' | 'visual' | 'datetime';
+export type CategoryId = 'text' | 'numeric' | 'media' | 'select' | 'visual' | 'interactive' | 'datetime';
 
 export interface CategoryDef {
   id: CategoryId;
@@ -65,6 +68,7 @@ export const CATEGORIES: CategoryDef[] = [
   { id: 'media', label: 'Upload / Mídia', icon: <Upload className="h-4 w-4" />, description: 'Imagens, ícones, vídeos e arquivos' },
   { id: 'select', label: 'Seleção', icon: <ListChecks className="h-4 w-4" />, description: 'Opções pré-definidas' },
   { id: 'visual', label: 'Visual', icon: <Palette className="h-4 w-4" />, description: 'Cores, emojis e elementos visuais' },
+  { id: 'interactive', label: 'Interativo', icon: <MessageSquareMore className="h-4 w-4" />, description: 'Popovers, tooltips e abas flutuantes' },
   { id: 'datetime', label: 'Data / Hora', icon: <CalendarIcon className="h-4 w-4" />, description: 'Datas, horários e durações' },
 ];
 
@@ -428,6 +432,26 @@ export const COLUMN_TYPES: Record<RenderType, ColumnTypeDefinition> = {
       return /^\d{2}:\d{2}(:\d{2})?$/.test(v) ? null : 'Formato: HH:MM ou HH:MM:SS';
     },
     sanitize: (v) => v.replace(/[^0-9:]/g, '').slice(0, 8),
+  },
+
+  // ── Interactive ────────────────────────────────
+  popover: {
+    id: 'popover', label: 'Popover / Tooltip', category: 'interactive', dbType: 'jsonb',
+    icon: <MessageSquareMore className="h-3.5 w-3.5" />,
+    nameMode: 'selector',
+    nameOptions: [
+      { label: 'Popover', value: 'popover', defaultColumn: 'popover_config' },
+      { label: 'Tooltip', value: 'tooltip', defaultColumn: 'tooltip_config' },
+      { label: 'Aba Flutuante', value: 'floating_tab', defaultColumn: 'floating_tab_config' },
+    ],
+    defaultColumn: 'popover_config',
+    valueSchema: jsonStr,
+    validateValue: (v) => {
+      if (!v) return null;
+      try { const p = JSON.parse(v); if (!p.content && !p.title) return 'Conteúdo ou título obrigatório'; return null; }
+      catch { return 'JSON inválido'; }
+    },
+    sanitize: (v) => sanitizeJson(v).slice(0, 50000),
   },
 };
 

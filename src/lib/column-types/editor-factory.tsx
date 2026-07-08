@@ -16,6 +16,7 @@ import {
   RatingEditor, ColorEditor, SliderEditor, DurationEditor,
   TagsEditor, EntityLinkEditor, EmojiEditor, MediaEditor,
   SelectEditor, ColorPaletteEditor, IconSetEditor, ToggleGroupEditor,
+  PopoverEditor,
 } from './editors';
 
 export interface EditorProps {
@@ -174,6 +175,9 @@ function renderEditor(
 
     case 'icon-set':
       return <IconSetEditor value={value} onChange={onChange} />;
+
+    case 'popover':
+      return <PopoverEditor value={value} onChange={onChange} />;
 
     case 'date':
       return <DateEditor value={value} onChange={onChange} />;

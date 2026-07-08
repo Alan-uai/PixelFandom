@@ -51,6 +51,7 @@ export type BlockType =
   | 'social-links'
   | 'countdown'
   | 'contact-form'
+  | 'popover'
   // Special
   | 'search'
   | 'tabs'
@@ -562,6 +563,14 @@ export interface ContactFormConfig {
   notificationEmail?: string;
 }
 
+export interface PopoverConfig {
+  trigger?: 'hover' | 'click';
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  title?: string;
+  content?: string;
+  triggerText?: string;
+}
+
 // Special
 export interface SearchConfig {
   placeholder?: string;
@@ -827,6 +836,7 @@ export type BlockConfigMap = {
   'social-links': SocialLinksConfig;
   'countdown': CountdownConfig;
   'contact-form': ContactFormConfig;
+  'popover': PopoverConfig;
   'search': SearchConfig;
   'tabs': TabsConfig;
   'template-part': TemplatePartConfig;
