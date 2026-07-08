@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'node:crypto';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
 import { isIpBlocked, isFingerprintBlocked, getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';
@@ -6,6 +7,7 @@ import { detectSqlInjection } from '@/lib/sql-injection-detect';
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const HMAC_SECRET = process.env.COOKIE_SECRET || 'pixelfandom-cookie-secret-change-in-production';
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|audio-processors).*)'],
@@ -18,8 +20,14 @@ function getCachedTenant(request: NextRequest): { slug: string; id: string } | n
     const raw = request.cookies.get('x-tenant-cache')?.value;
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.slug && parsed?.id && parsed?.exp && Date.now() < parsed.exp) {
-      return { slug: parsed.slug, id: parsed.id };
+    if (!parsed?.payload || !parsed?.sig) return null;
+
+    const expectedSig = createHmac('sha256', HMAC_SECRET).update(parsed.payload).digest('hex');
+    if (parsed.sig !== expectedSig) return null;
+
+    const data = JSON.parse(parsed.payload);
+    if (data?.slug && data?.id && data?.exp && Date.now() < data.exp) {
+      return { slug: data.slug, id: data.id };
     }
   } catch { /* noop */ }
   return null;
@@ -27,11 +35,13 @@ function getCachedTenant(request: NextRequest): { slug: string; id: string } | n
 
 function setCachedTenant(response: NextResponse, slug: string, id: string) {
   const payload = JSON.stringify({ slug, id, exp: Date.now() + CACHE_TTL_MS });
-  response.cookies.set('x-tenant-cache', payload, {
+  const sig = createHmac('sha256', HMAC_SECRET).update(payload).digest('hex');
+  response.cookies.set('x-tenant-cache', JSON.stringify({ payload, sig }), {
     path: '/',
     maxAge: CACHE_TTL_MS / 1000,
     sameSite: 'lax',
     httpOnly: true,
+    secure: true,
   });
 }
 
@@ -42,15 +52,16 @@ function addSecurityHeaders(response: NextResponse): void {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    'camera=(), microphone=(), geolocation=(), interest-cohort=(), display-capture=(), clipboard-read=(), clipboard-write=(), fullscreen=()',
   );
   response.headers.set(
     'Content-Security-Policy',
     [
       "default-src 'self'",
+      // TODO: Replace 'unsafe-inline' with strict nonce-based CSP in production
       "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.googleapis.com https://accounts.google.com https://cdn.jsdelivr.net",
       "style-src 'self' 'unsafe-inline' https://*.supabase.co https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https: http://*.supabase.co https://*.googleusercontent.com https://cdn.discordapp.com https://placehold.co https://images.unsplash.com https://picsum.photos",
+      "img-src 'self' data: blob: http://*.supabase.co https://*.supabase.co https://*.googleusercontent.com https://cdn.discordapp.com https://placehold.co https://images.unsplash.com https://picsum.photos",
       "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://openrouter.ai https://generativelanguage.googleapis.com",
       "frame-src 'self' https://accounts.google.com https://*.youtube.com https://*.youtu.be",
@@ -58,8 +69,23 @@ function addSecurityHeaders(response: NextResponse): void {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "frame-ancestors 'none'",
     ].join('; '),
   );
+}
+
+function errorResponse(status: number, message: string, retryAfter?: number): NextResponse {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'X-XSS-Protection': '1; mode=block',
+  };
+  if (retryAfter) {
+    headers['Retry-After'] = String(retryAfter);
+  }
+  return new NextResponse(JSON.stringify({ error: message }), { status, headers });
 }
 
 function getPathGroup(pathname: string): string {
@@ -77,6 +103,10 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   addSecurityHeaders(response);
 
+  if (pathname.startsWith('/dashboard')) {
+    response.headers.set('Referrer-Policy', 'same-origin');
+  }
+
   // ── Skip security checks in dev ──
   if (!isDev) {
     const ip = getClientIp(request);
@@ -85,27 +115,13 @@ export async function middleware(request: NextRequest) {
     // Layer 1: IP Block Check
     const ipBlocked = await isIpBlocked(ip);
     if (ipBlocked) {
-      return new NextResponse(JSON.stringify({ error: 'Access denied' }), {
-        status: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frame-Options': 'DENY',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      });
+      return errorResponse(403, 'Access denied');
     }
 
     // Layer 2: Fingerprint Block Check
     const fpBlocked = await isFingerprintBlocked(fingerprint);
     if (fpBlocked) {
-      return new NextResponse(JSON.stringify({ error: 'Access denied' }), {
-        status: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frame-Options': 'DENY',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      });
+      return errorResponse(403, 'Access denied');
     }
 
     // Layer 3: SQL Injection Detection on URL params & headers
@@ -126,30 +142,15 @@ export async function middleware(request: NextRequest) {
             details: { findings: sqliResult.findings.map(f => ({ path: f.path })) },
           },
         );
-        return new NextResponse(JSON.stringify({ error: 'Malicious request detected' }), {
-          status: 403,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Frame-Options': 'DENY',
-            'X-Content-Type-Options': 'nosniff',
-          },
-        });
+        return errorResponse(403, 'Malicious request detected');
       }
     }
 
     // Layer 4: Rate Limiting
     const pathGroup = getPathGroup(pathname);
-    const rl = checkRateLimit(`${pathGroup}:${ip}`, getRateLimiterForPath(pathname));
+    const rl = await checkRateLimit(`${pathGroup}:${ip}`, getRateLimiterForPath(pathname));
     if (!rl.allowed) {
-      return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
-          'X-Frame-Options': 'DENY',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      });
+      return errorResponse(429, 'Too many requests', Math.ceil((rl.resetAt - Date.now()) / 1000));
     }
   }
 
@@ -162,6 +163,7 @@ export async function middleware(request: NextRequest) {
           path: '/',
           maxAge: 60 * 60,
           sameSite: 'lax',
+          secure: true,
         });
       }
       return response;

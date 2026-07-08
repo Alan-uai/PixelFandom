@@ -5,7 +5,7 @@ import { checkRateLimit } from '@/lib/rate-limiter'
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') || 'unknown'
-  const rl = checkRateLimit(`voice-query:${ip}`, { windowMs: 60_000, maxRequests: 60 })
+  const rl = await checkRateLimit(`voice-query:${ip}`, { windowMs: 60_000, maxRequests: 60 })
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
       status: 429,

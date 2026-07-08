@@ -55,25 +55,27 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    return NextResponse.json({
+      error: 'Falha ao excluir conta. Tente novamente mais tarde.',
+    }, { status: 500 });
+  }
+
   await supabase.from('notifications').delete().eq('user_id', userId);
   await supabase.from('user_preferences').delete().eq('user_id', userId);
   await supabase.from('tenant_members').delete().eq('user_id', userId);
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
 
-  if (serviceKey) {
-    const adminClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceKey,
-      { cookies: { getAll: () => [], setAll: () => {} } }
-    );
-
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
-    if (deleteError) {
-      console.error('Failed to delete auth user:', deleteError);
-    }
-  } else {
-    console.warn('SUPABASE_SERVICE_ROLE_KEY not set — auth user not deleted');
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+  if (deleteError) {
+    console.error('Failed to delete auth user:', deleteError);
+    return NextResponse.json({ error: 'Falha ao excluir conta' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

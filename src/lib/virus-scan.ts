@@ -96,7 +96,7 @@ function clamavScanStream(stream: Readable): Promise<ScanResult> {
 
 export interface VirusScanner {
   isAvailable(): Promise<boolean>;
-  scanBuffer(buffer: Buffer): Promise<ScanResult>;
+  scanBuffer(buffer: Buffer, options?: { failClosed?: boolean }): Promise<ScanResult>;
   ping(): Promise<boolean>;
 }
 
@@ -114,10 +114,17 @@ export function createVirusScanner(): VirusScanner {
       return this.isAvailable();
     },
 
-    async scanBuffer(buffer: Buffer): Promise<ScanResult> {
+    async scanBuffer(buffer: Buffer, options?: { failClosed?: boolean }): Promise<ScanResult> {
       try {
         const available = await clamavPing();
         if (!available) {
+          if (options?.failClosed) {
+            return {
+              clean: false,
+              scanned: false,
+              error: 'ClamAV daemon not available — blocking upload (fail-closed mode)',
+            };
+          }
           return {
             clean: true,
             scanned: false,
@@ -128,6 +135,13 @@ export function createVirusScanner(): VirusScanner {
         const stream = Readable.from(buffer);
         return await clamavScanStream(stream);
       } catch (err) {
+        if (options?.failClosed) {
+          return {
+            clean: false,
+            scanned: false,
+            error: err instanceof Error ? err.message : 'Unknown scan error',
+          };
+        }
         return {
           clean: true,
           scanned: false,

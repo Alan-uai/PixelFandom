@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const fingerprint = getFingerprint(request);
   const path = '/api/upload';
 
-  const rl = checkRateLimit(`upload:${ip}`, getRateLimiterForPath(path));
+  const rl = await checkRateLimit(`upload:${ip}`, getRateLimiterForPath(path));
   if (!rl.allowed) {
     await handleThreatDetection(
       { ip, fingerprint, path, method: 'POST' },
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     const tenantId = formData.get('tenant_id') as string | null;
     const bucket = (formData.get('bucket') as string) || 'wiki-images';
     const pathPrefix = (formData.get('path_prefix') as string) || 'uploads';
+    const sanitizedPrefix = sanitizeFilename(pathPrefix).replace(/\.\./g, '');
     const altText = (formData.get('alt_text') as string) || '';
 
     if (!file) {
@@ -70,6 +71,12 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer() as ArrayBuffer);
+
+    const MAX_UPLOAD_SIZE = 110 * 1024 * 1024;
+    if (buffer.length > MAX_UPLOAD_SIZE) {
+      return NextResponse.json({ error: 'File too large (max 110MB)' }, { status: 413 });
+    }
+
     const validation = validateFile(buffer, file.name, file.type);
 
     if (!validation.valid) {
@@ -130,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     const filename = validation.sanitizedFilename || sanitizeFilename(file.name);
-    const filePath = `${pathPrefix}/${Date.now()}-${filename}`;
+    const filePath = `${sanitizedPrefix}/${Date.now()}-${filename}`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
@@ -140,7 +147,8 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      return NextResponse.json({ error: `Storage error: ${uploadError.message}` }, { status: 500 });
+      console.error('Storage upload error:', uploadError);
+      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 
     const { data: { publicUrl } } = supabase.storage

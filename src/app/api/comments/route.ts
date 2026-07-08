@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`comments:${ip}`, {
+  const rl = await checkRateLimit(`comments:${ip}`, {
     windowMs: 60_000,
     maxRequests: 10,
   });

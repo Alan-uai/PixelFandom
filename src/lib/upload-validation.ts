@@ -34,7 +34,7 @@ const MAX_FILE_SIZES: Record<string, number> = {
 };
 
 const PATH_TRAVERSAL = /\.\.(\/|\\)/;
-const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/g;
+const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\0-\x1f]/g;
 
 function detectMimeType(buffer: Buffer): string | null {
   const hex = buffer.toString('hex').toLowerCase();
@@ -50,7 +50,7 @@ export function sanitizeFilename(name: string): string {
   let clean = name.replace(INVALID_FILENAME_CHARS, '_');
   clean = clean.replace(/\s+/g, '_');
   clean = clean.replace(/_{2,}/g, '_');
-  clean = clean.replace(/^[_\.]+|[_\.]+$/g, '');
+  clean = clean.replace(/^[_.]+|[_.]+$/g, '');
   if (!clean || clean === '.') clean = 'unnamed';
   return clean;
 }
@@ -94,9 +94,28 @@ export function validateFile(
   }
 
   if (detectedMime === 'image/svg+xml') {
-    const content = buffer.toString('utf8').toLowerCase();
-    if (content.includes('<script') || content.includes('onload=') || content.includes('onerror=') || content.includes('onclick=')) {
-      return { valid: false, error: 'SVG contains disallowed elements (scripts/event handlers)', sanitizedFilename, detectedMime };
+    const content = buffer.toString('utf8');
+    const lower = content.toLowerCase();
+    
+    const disallowedPatterns = [
+      '<script', '<!doctype', '<!entity', '<?xml-stylesheet',
+      '<foreignobject',
+      'onload=', 'onerror=', 'onclick=', 'onmouseover=', 'onfocus=',
+      'onblur=', 'onsubmit=', 'onreset=', 'onchange=', 'oninput=',
+      'onpointerdown=', 'onpointerup=', 'onpointermove=',
+      'ontouchstart=', 'ontouchend=', 'ontouchmove=',
+      'xlink:href=', 'xlink="http',
+    ];
+    
+    for (const pattern of disallowedPatterns) {
+      if (lower.includes(pattern)) {
+        return { valid: false, error: 'SVG contains disallowed elements', sanitizedFilename, detectedMime };
+      }
+    }
+    
+    const useHrefMatch = lower.match(/<use[^>]+href\s*=\s*["'](https?:|data:)/i);
+    if (useHrefMatch) {
+      return { valid: false, error: 'SVG contains external resources', sanitizedFilename, detectedMime };
     }
   }
 

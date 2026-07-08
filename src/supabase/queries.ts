@@ -20,7 +20,7 @@ export async function getWikiData(slug: string, search?: string) {
   const { data, error } = await supabase.rpc('get_wiki_data', {
     p_slug: slug,
     p_search: search || null,
-    p_embedding: embedding ? `[${embedding.join(',')}]` : null,
+    p_embedding: embedding ? JSON.stringify(embedding) : null,
   });
 
   if (error) throw error;

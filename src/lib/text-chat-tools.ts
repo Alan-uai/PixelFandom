@@ -1057,9 +1057,18 @@ async function handleListItems(args: { table: string; offset?: number; limit?: n
   return { table: args.table, total: data?.length || 0, offset, limit, items: data || [] };
 }
 
+async function validateColumn(table: string, column: string): Promise<string | null> {
+  const columns = await getTableSchema(table);
+  const valid = columns.find((c) => c.column_name === column);
+  return valid ? null : `Column "${column}" not found in table "${table}"`;
+}
+
 async function handleRankByStat(args: { table: string; stat: string; itemName: string }, ctx: ToolContext): Promise<Record<string, unknown>> {
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', rank: null };
+
+  const colErr = await validateColumn(args.table, args.stat);
+  if (colErr) return { error: colErr, rank: null };
 
   const { data: raw } = await supabase
     .from(args.table)
@@ -1091,6 +1100,9 @@ async function handleCompareOnStat(args: { table: string; stat: string; limit?: 
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', items: [] };
 
+  const colErr = await validateColumn(args.table, args.stat);
+  if (colErr) return { error: colErr, items: [] };
+
   const limit = Math.min(args.limit ?? 10, 50);
   const desc = args.descending !== false;
 
@@ -1109,6 +1121,9 @@ async function handleCompareOnStat(args: { table: string; stat: string; limit?: 
 async function handleGetStatSummary(args: { table: string; column: string }, ctx: ToolContext): Promise<Record<string, unknown>> {
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found' };
+
+  const colErr = await validateColumn(args.table, args.column);
+  if (colErr) return { error: colErr };
 
   const { data: allItems } = await supabase
     .from(args.table)

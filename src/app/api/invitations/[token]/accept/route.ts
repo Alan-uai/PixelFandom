@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
 
@@ -7,11 +8,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { token } = await params;
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
   const { data: invitation, error: fetchError } = await supabase
     .from('invitations')
     .select('*')
-    .eq('token', token)
+    .eq('token', tokenHash)
     .single();
 
   if (fetchError || !invitation) {
@@ -39,12 +41,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       invited_by: invitation.invited_by,
     });
 
-  if (memberError) {
-    if (memberError.code === '23505') {
-      return NextResponse.json({ error: 'You are already a member of this tenant' }, { status: 409 });
+    if (memberError) {
+      if (memberError.code === '23505') {
+        return NextResponse.json({ error: 'You are already a member of this tenant' }, { status: 409 });
+      }
+      console.error('Failed to add member:', memberError);
+      return NextResponse.json({ error: 'Failed to accept invitation' }, { status: 500 });
     }
-    return NextResponse.json({ error: memberError.message }, { status: 500 });
-  }
 
   const { error: updateError } = await supabase
     .from('invitations')

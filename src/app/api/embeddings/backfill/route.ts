@@ -18,7 +18,7 @@ function serviceClient() {
 async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
 
-  const rl = checkRateLimit(`backfill:${ip}`, {
+  const rl = await checkRateLimit(`backfill:${ip}`, {
     windowMs: 60_000,
     maxRequests: 5,
   });

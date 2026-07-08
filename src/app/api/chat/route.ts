@@ -229,8 +229,10 @@ async function buildMessages(
 }
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  const rl = checkRateLimit(`chat:${ip}`, {
+  const IP_V4_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const validatedIp = IP_V4_REGEX.test(ip) ? ip : 'unknown';
+  const rl = await checkRateLimit(`chat:${validatedIp}`, {
     windowMs: 60_000,
     maxRequests: 30,
   });
@@ -326,14 +328,17 @@ export async function POST(request: NextRequest) {
     if (session_id) {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: existing } = await supabase
-          .from('chat_sessions')
-          .select('user_id')
-          .eq('id', session_id)
-          .single();
-        if (existing && existing.user_id !== user.id) {
-          return NextResponse.json({ error: 'Session does not belong to you' }, { status: 403 });
+      const { data: existing } = await supabase
+        .from('chat_sessions')
+        .select('user_id')
+        .eq('id', session_id)
+        .single();
+
+      if (existing) {
+        if (existing.user_id) {
+          if (!user || existing.user_id !== user.id) {
+            return NextResponse.json({ error: 'Session does not belong to you' }, { status: 403 });
+          }
         }
       }
       await saveMessage(session_id, 'user', truncatedMessage);

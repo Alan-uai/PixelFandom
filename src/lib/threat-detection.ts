@@ -20,6 +20,7 @@ export interface ThreatEvent {
 
 const BLOCK_CACHE = new Map<string, { blocked: boolean; expiry: number }>();
 const BLOCK_CACHE_TTL = 5 * 60 * 1000;
+const LAST_KNOWN_BLOCK = new Map<string, boolean>();
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex');
@@ -61,6 +62,8 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 
     if (error) {
       console.error('isIpBlocked error:', error);
+      const lastKnown = LAST_KNOWN_BLOCK.get(ipHash);
+      if (lastKnown !== undefined) return lastKnown;
       return false;
     }
 
@@ -71,12 +74,16 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
         .update({ is_active: false })
         .eq('id', data.id);
       BLOCK_CACHE.set(ipHash, { blocked: false, expiry: Date.now() + BLOCK_CACHE_TTL });
+      LAST_KNOWN_BLOCK.set(ipHash, false);
       return false;
     }
 
     BLOCK_CACHE.set(ipHash, { blocked, expiry: Date.now() + BLOCK_CACHE_TTL });
+    LAST_KNOWN_BLOCK.set(ipHash, blocked);
     return blocked;
   } catch {
+    const lastKnown = LAST_KNOWN_BLOCK.get(ipHash);
+    if (lastKnown !== undefined) return lastKnown;
     return false;
   }
 }
@@ -89,8 +96,12 @@ export async function isFingerprintBlocked(fingerprint: string): Promise<boolean
       .eq('fingerprint_hash', fingerprint)
       .maybeSingle();
 
-    return data?.is_blocked === true;
+    const blocked = data?.is_blocked === true;
+    LAST_KNOWN_BLOCK.set(fingerprint, blocked);
+    return blocked;
   } catch {
+    const lastKnown = LAST_KNOWN_BLOCK.get(fingerprint);
+    if (lastKnown !== undefined) return lastKnown;
     return false;
   }
 }

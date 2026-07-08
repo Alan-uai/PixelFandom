@@ -17,7 +17,7 @@ async function getUserGuilds(request: NextRequest): Promise<any[] | null> {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  const rl = checkRateLimit(`discord-channels:${ip}`, { windowMs: 60_000, maxRequests: 20 });
+  const rl = await checkRateLimit(`discord-channels:${ip}`, { windowMs: 60_000, maxRequests: 20 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
       status: 429,

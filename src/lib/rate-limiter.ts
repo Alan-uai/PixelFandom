@@ -1,3 +1,5 @@
+import { supabase } from '@/supabase';
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
@@ -35,7 +37,9 @@ const UPLOAD_LIMITS: RateLimitConfig = {
   maxRequests: 5,
 };
 
-export function checkRateLimit(
+const IN_MEMORY_ONLY = process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+export function checkRateLimitInMemory(
   key: string,
   config: RateLimitConfig = DEFAULTS,
 ): { allowed: boolean; remaining: number; resetAt: number } {
@@ -71,6 +75,34 @@ export function checkRateLimit(
     remaining: config.maxRequests - entry.count,
     resetAt: entry.resetAt,
   };
+}
+
+export async function checkRateLimit(
+  key: string,
+  config: RateLimitConfig = DEFAULTS,
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const memResult = checkRateLimitInMemory(key, config);
+
+  if (IN_MEMORY_ONLY) return memResult;
+  if (!memResult.allowed) return memResult;
+
+  try {
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      p_key: key,
+      p_window_ms: config.windowMs,
+      p_max_requests: config.maxRequests,
+    });
+
+    if (error) return memResult;
+
+    return {
+      allowed: data.allowed ?? memResult.allowed,
+      remaining: data.remaining ?? memResult.remaining,
+      resetAt: data.reset_at ?? memResult.resetAt,
+    };
+  } catch {
+    return memResult;
+  }
 }
 
 export function getRateLimiterForPath(path: string): RateLimitConfig {

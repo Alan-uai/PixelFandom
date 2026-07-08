@@ -18,7 +18,7 @@ export function sanitizeHtml(html: string): string {
       'span', 'div', 'hr', 'sub', 'sup', 'img', 'table', 'thead', 'tbody',
       'tr', 'th', 'td',
     ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'style'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
     ALLOW_DATA_ATTR: false,
   } as Config);
 }

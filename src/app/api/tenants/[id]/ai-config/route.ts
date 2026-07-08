@@ -13,7 +13,7 @@ function maskKey(key: string): string {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  const rl = checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
+  const rl = await checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
       status: 429,
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  const rl = checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
+  const rl = await checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
       status: 429,
