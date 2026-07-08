@@ -218,7 +218,7 @@ export async function checkRequestForThreats(
   }
 
   if (body) {
-    const sqliResult = detectSqlInjection(body);
+    const sqliResult = detectSqlInjection(body as Record<string, unknown>);
     if (sqliResult.detected) {
       await handleThreatDetection(
         { ip, fingerprint, path, method },

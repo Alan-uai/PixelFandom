@@ -7,10 +7,13 @@ export async function generateEmbedding(text: string, signal?: AbortSignal): Pro
   if (!apiKey) throw new Error('GEMINI_API_KEY not set');
 
   const res = await fetch(
-    `${GEMINI_API_BASE}/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`,
+    `${GEMINI_API_BASE}/models/${EMBEDDING_MODEL}:embedContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+      },
       body: JSON.stringify({
         model: `models/${EMBEDDING_MODEL}`,
         content: { parts: [{ text: text.slice(0, 8000) }] },

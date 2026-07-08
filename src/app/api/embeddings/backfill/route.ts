@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateEmbedding } from '@/lib/gemini-embedding';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 const BATCH_DELAY_MS = 150;
 const DEFAULT_LIMIT = 50;
@@ -13,7 +15,43 @@ function serviceClient() {
   return createClient(url, key);
 }
 
-export async function GET() {
+async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+
+  const rl = checkRateLimit(`backfill:${ip}`, {
+    windowMs: 60_000,
+    maxRequests: 5,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
+      status: 429,
+      headers: { 'X-RateLimit-Reset': String(rl.resetAt) },
+    });
+  }
+
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== 'admin') {
+    return NextResponse.json({ error: 'Acesso restrito a administradores.' }, { status: 403 });
+  }
+
+  return null;
+}
+
+export async function GET(request: NextRequest) {
+  const authError = await requireAdmin(request);
+  if (authError) return authError;
+
   const supabase = serviceClient();
 
   const { count: wikiCount } = await supabase
@@ -40,6 +78,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAdmin(request);
+  if (authError) return authError;
+
   const { limit = DEFAULT_LIMIT, table = 'wiki_articles' } = await request.json().catch(() => ({}));
   const maxItems = Math.min(Math.max(1, Number(limit)), 200);
 

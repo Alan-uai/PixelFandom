@@ -93,7 +93,7 @@ function deepScan(obj: ScanTarget, path = ''): Array<{ path: string; pattern?: R
     }
   } else if (Array.isArray(obj)) {
     obj.forEach((item, i) => {
-      findings.push(...deepScan(item, `${path}[${i}]`));
+      findings.push(...deepScan(item as ScanTarget, `${path}[${i}]`));
     });
   } else if (obj !== null && typeof obj === 'object') {
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {

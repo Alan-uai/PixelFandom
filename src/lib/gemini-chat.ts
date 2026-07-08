@@ -54,10 +54,13 @@ export async function chatStreamGemini({
     try {
       const body = buildGeminiBody(messages, temperature);
       const res = await fetch(
-        `${GEMINI_API_BASE}/models/${currentModel}:streamGenerateContent?key=${apiKey}&alt=sse`,
+        `${GEMINI_API_BASE}/models/${currentModel}:streamGenerateContent?alt=sse`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+          },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(60_000),
         }
@@ -135,10 +138,13 @@ export async function chatGemini({
     try {
       const body = buildGeminiBody(messages, temperature);
       const res = await fetch(
-        `${GEMINI_API_BASE}/models/${currentModel}:generateContent?key=${apiKey}`,
+        `${GEMINI_API_BASE}/models/${currentModel}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+          },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(60_000),
         }

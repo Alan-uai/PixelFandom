@@ -63,6 +63,7 @@ export function CommentForm({ articleId, tenantId, tenantSlug, parentId, onCreat
         onChange={(e) => setContent(e.target.value)}
         placeholder={parentId ? 'Escreva uma resposta...' : 'Compartilhe seus pensamentos...'}
         className="min-h-[80px] text-sm"
+        maxLength={10000}
       />
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={sending || !content.trim()}>

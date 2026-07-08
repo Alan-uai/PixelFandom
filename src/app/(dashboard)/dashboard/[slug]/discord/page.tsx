@@ -221,14 +221,16 @@ export default function WikiDiscordPage() {
       auto_ingest: autoIngest.length > 0 ? autoIngest : undefined,
     };
 
-    const { error } = await supabase
-      .from('tenants')
-      .update({ discord_config: discordConfig as any })
-      .eq('id', tenant!.id);
+    const res = await fetch(`/api/tenants/${tenant!.id}/discord-config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(discordConfig),
+    });
 
-    if (error) {
-      toast({ variant: 'destructive', title: tc('error'), description: error.message });
-      throw error;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Erro ao salvar' }));
+      toast({ variant: 'destructive', title: tc('error'), description: err.error || err.details?.[0]?.message || 'Erro ao salvar configuração.' });
+      throw new Error(err.error);
     }
 
     setSavedConfig({

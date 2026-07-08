@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
+import { z } from 'zod';
+import { sanitizeHtml } from '@/lib/sanitize.server';
+
+const MAX_CONTENT_LENGTH = 10000;
+
+const updateSchema = z.object({
+  content: z.string().min(1).max(MAX_CONTENT_LENGTH),
+});
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -7,15 +15,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
-  const { content } = await request.json();
 
-  if (!content?.trim()) {
-    return NextResponse.json({ error: 'content is required' }, { status: 400 });
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
+
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Dados inválidos', details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const cleanContent = await sanitizeHtml(parsed.data.content.trim());
 
   const { data, error } = await supabase
     .from('article_comments')
-    .update({ content: content.trim(), edited_at: new Date().toISOString() })
+    .update({ content: cleanContent, edited_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id)
     .select()

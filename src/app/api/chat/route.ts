@@ -6,6 +6,7 @@ import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
 import { chatStreamGemini } from '@/lib/gemini-chat';
 import { createClient } from '@/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limiter';
 import { decryptApiKey } from '@/lib/crypto';
 import {
   loadChatHistory,
@@ -228,6 +229,18 @@ async function buildMessages(
 }
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const rl = checkRateLimit(`chat:${ip}`, {
+    windowMs: 60_000,
+    maxRequests: 30,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
+      status: 429,
+      headers: { 'X-RateLimit-Reset': String(rl.resetAt) },
+    });
+  }
+
   try {
     const { message, session_id } = await request.json();
     if (!message) {
@@ -303,8 +316,27 @@ export async function POST(request: NextRequest) {
       }
     } catch { /* ignore profile load errors */ }
 
+    const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (session_id && !VALID_UUID.test(session_id)) {
+      return NextResponse.json({ error: 'Invalid session ID format' }, { status: 400 });
+    }
+
+    const truncatedMessage = message.slice(0, 4000);
+
     if (session_id) {
-      await saveMessage(session_id, 'user', message);
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: existing } = await supabase
+          .from('chat_sessions')
+          .select('user_id')
+          .eq('id', session_id)
+          .single();
+        if (existing && existing.user_id !== user.id) {
+          return NextResponse.json({ error: 'Session does not belong to you' }, { status: 403 });
+        }
+      }
+      await saveMessage(session_id, 'user', truncatedMessage);
     }
 
     // Check if any API key is available
@@ -329,7 +361,7 @@ export async function POST(request: NextRequest) {
       const contextPromise = (async () => {
         if (!tenantSlug) return '';
         try {
-          const result = await searchAll(tenantSlug, message, {
+          const result = await searchAll(tenantSlug, truncatedMessage, {
             signal: abortCtx.signal,
           });
           return formatSearchContext(result);
@@ -362,7 +394,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
       const geminiMessages: { role: string; content: string }[] = [
         { role: 'system', content: ragPrompt },
-        { role: 'user', content: message },
+        { role: 'user', content: truncatedMessage },
       ];
 
       const stream = await chatStreamGemini({
@@ -381,11 +413,12 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       ? [model, ...effectiveFallbackChain.filter((m) => m !== model)]
       : effectiveFallbackChain;
     const apiKey = customApiKey || process.env.OPENROUTER_API_KEY || '';
-    const toolCtx: ToolContext = { slug: tenantSlug, tenantId };
+    const supabaseClient = await createClient();
+    const toolCtx: ToolContext = { slug: tenantSlug, tenantId, userClient: supabaseClient };
 
     try {
       let messages = await buildMessages(
-        schemaPrompt, message, session_id, userPrompt, tenantSlug, responseStyle, displayMode, userId
+        schemaPrompt, truncatedMessage, session_id, userPrompt, tenantSlug, responseStyle, displayMode, userId
       );
       const contextWindow = getContextWindow(model);
       if (contextWindow && messages.length > 1) {
@@ -485,7 +518,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         const contextPromise = (async () => {
           if (!tenantSlug) return '';
           try {
-            const result = await searchAll(tenantSlug, message, {
+            const result = await searchAll(tenantSlug, truncatedMessage, {
               signal: abortCtx.signal,
             });
             return formatSearchContext(result);
@@ -518,7 +551,7 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
 
         const geminiMessages = [
           { role: 'system', content: ragPrompt },
-          { role: 'user', content: message },
+          { role: 'user', content: truncatedMessage },
         ];
 
         const stream = await chatStreamGemini({

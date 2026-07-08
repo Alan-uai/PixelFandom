@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
 import { isIpBlocked, isFingerprintBlocked, getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';
+import { detectSqlInjection } from '@/lib/sql-injection-detect';
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -107,7 +108,36 @@ export async function middleware(request: NextRequest) {
       });
     }
 
-    // Layer 3: Rate Limiting
+    // Layer 3: SQL Injection Detection on URL params & headers
+    const sqliTargets = [
+      ...Array.from(request.nextUrl.searchParams.values()),
+      request.headers.get('x-forwarded-for') || '',
+      request.headers.get('referer') || '',
+    ];
+
+    if (pathname.startsWith('/api/')) {
+      const sqliResult = detectSqlInjection(sqliTargets);
+      if (sqliResult.detected) {
+        await handleThreatDetection(
+          { ip, fingerprint, path: pathname, method: request.method },
+          {
+            eventType: 'sql_injection',
+            severity: 'critical',
+            details: { findings: sqliResult.findings.map(f => ({ path: f.path })) },
+          },
+        );
+        return new NextResponse(JSON.stringify({ error: 'Malicious request detected' }), {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Frame-Options': 'DENY',
+            'X-Content-Type-Options': 'nosniff',
+          },
+        });
+      }
+    }
+
+    // Layer 4: Rate Limiting
     const pathGroup = getPathGroup(pathname);
     const rl = checkRateLimit(`${pathGroup}:${ip}`, getRateLimiterForPath(pathname));
     if (!rl.allowed) {

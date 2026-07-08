@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant';
+import { createClient } from '@/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,26 @@ export async function GET(request: NextRequest) {
 
     if (!tenant) {
       return NextResponse.json({ error: 'Wiki not found' }, { status: 404 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      if (!tenant.is_public) {
+        return NextResponse.json({ error: 'Autenticação necessária para acessar esta wiki.' }, { status: 401 });
+      }
+    } else {
+      const { data: membership } = await supabase
+        .from('tenant_members')
+        .select('role')
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!membership && !tenant.is_public) {
+        return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+      }
     }
 
     return NextResponse.json({

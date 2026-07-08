@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limiter';
 import { encryptApiKey, decryptApiKey } from '@/lib/crypto';
 import { isTenantMember } from '@/lib/tenant';
 
@@ -11,6 +12,15 @@ function maskKey(key: string): string {
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const rl = checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
+      status: 429,
+      headers: { 'X-RateLimit-Reset': String(rl.resetAt) },
+    });
+  }
+
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -50,6 +60,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const rl = checkRateLimit(`ai-config:${ip}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
+      status: 429,
+      headers: { 'X-RateLimit-Reset': String(rl.resetAt) },
+    });
+  }
+
   try {
     const { id } = await params;
     const supabase = await createClient();

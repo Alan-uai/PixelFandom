@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (category === 'image') {
       try {
         const stripped = await stripImageMetadata(buffer, validation.detectedMime!);
-        cleanBuffer = stripped.buffer;
+        cleanBuffer = Buffer.from(stripped.buffer);
         width = stripped.width;
         height = stripped.height;
         outputMime = `image/${stripped.format}`;

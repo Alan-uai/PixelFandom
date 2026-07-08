@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { searchAll, type SearchAllResult } from '@/lib/search';
 import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
@@ -8,6 +9,11 @@ import { getTableCatalog } from '@/lib/data-access';
 export interface ToolContext {
   slug: string;
   tenantId: string | null;
+  userClient?: SupabaseClient;
+}
+
+export function getDb(ctx: ToolContext) {
+  return ctx.userClient ?? supabase;
 }
 
 export interface ToolDefinition {
@@ -788,8 +794,8 @@ async function handleGetWikiInfo(_args: Record<string, never>, ctx: ToolContext)
   if (!tenant) return { error: 'Tenant not found' };
 
   const [{ count: articleCount }, { data: rawTags }] = await Promise.all([
-    supabase.from('wiki_articles').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
-    supabase.from('wiki_articles').select('tags').eq('tenant_id', tenant.id).not('tags', 'is', null),
+    getDb(ctx).from('wiki_articles').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id),
+    getDb(ctx).from('wiki_articles').select('tags').eq('tenant_id', tenant.id).not('tags', 'is', null),
   ]);
 
   const tagCounts: Record<string, number> = {};
@@ -946,7 +952,7 @@ async function handleQueryItems(args: { table: string; filters: Record<string, s
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', items: [] };
 
-  let query = supabase.from(args.table).select('*').eq('tenant_id', tenant.id);
+  let query = getDb(ctx).from(args.table).select('*').eq('tenant_id', tenant.id);
 
   for (const [col, val] of Object.entries(args.filters)) {
     const numeric = !isNaN(Number(val));
@@ -967,7 +973,7 @@ async function handleFilterByRange(args: { table: string; column: string; min?: 
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', items: [] };
 
-  let query = supabase.from(args.table).select('*').eq('tenant_id', tenant.id);
+  let query = getDb(ctx).from(args.table).select('*').eq('tenant_id', tenant.id);
 
   if (args.min !== undefined) query = query.gte(args.column, args.min);
   if (args.max !== undefined) query = query.lte(args.column, args.max);
@@ -1012,7 +1018,7 @@ async function handleCountItems(args: { table: string; column?: string; value?: 
   const tenant = await getTenantBySlugOrId(ctx.slug, ctx.tenantId);
   if (!tenant) return { error: 'Tenant not found', count: 0 };
 
-  let query = supabase.from(args.table).select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id);
+  let query = getDb(ctx).from(args.table).select('id', { count: 'exact', head: true }).eq('tenant_id', tenant.id);
 
   if (args.column && args.value !== undefined) {
     const numeric = !isNaN(Number(args.value));
@@ -1033,7 +1039,7 @@ async function handleListItems(args: { table: string; offset?: number; limit?: n
   if (!tenant) return { error: 'Tenant not found', items: [] };
 
   const limit = Math.min(args.limit ?? 20, 100);
-  const offset = args.offset ?? 0;
+  const offset = Math.min(args.offset ?? 0, 1000);
 
   let query = supabase
     .from(args.table)
@@ -1789,7 +1795,7 @@ async function handleMultiTableQuery(args: { tables: string[]; filters: Record<s
 
   const results = await Promise.all(
     tables.map(async (table) => {
-      let query = supabase.from(table).select('*').eq('tenant_id', tenant.id);
+      let query = getDb(ctx).from(table).select('*').eq('tenant_id', tenant.id);
       for (const [col, val] of Object.entries(args.filters)) {
         const numeric = !isNaN(Number(val));
         if (numeric) {

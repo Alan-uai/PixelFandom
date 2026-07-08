@@ -120,6 +120,23 @@ export async function DELETE(
   try {
     const supabase = await createClient();
     const { id } = await params;
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data: membership } = await supabase
+      .from('tenant_members')
+      .select('role')
+      .eq('tenant_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!membership || !['owner', 'admin', 'editor'].includes(membership.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     const parsed = mediaDeleteSchema.safeParse(body);
