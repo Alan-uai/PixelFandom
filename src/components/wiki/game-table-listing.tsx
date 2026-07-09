@@ -106,24 +106,24 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   const { homePath } = useWikiPath(tenantSlug);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [compareStat, setCompareStat] = useState<string | null>(null);
-  const [compareItemId, setCompareItemId] = useState<string | null>(null);
-  const [scientificNotation, setScientificNotation] = useState(false);
+  const displayConfig = (viewerConfig?.display || {}) as Record<string, any>;
+  const fmt = displayConfig.format || displayFormat || 'grid';
+  const effectiveColumnsCount = displayConfig.columnsCount || columnsCount || 3;
+  const itemsPerPage = displayConfig.itemsPerPage || 50;
+  const pagination = displayConfig.pagination || 'paginated';
+  const gap = displayConfig.gap ?? 12;
+  const sortDirection = displayConfig.sortDirection || 'asc';
 
-  const urlItem = searchParams?.get('item') || null;
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
-  const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const cardConfig: Record<string, any> = viewerConfig?.card || {};
+  const detailConfig: Record<string, any> = viewerConfig?.detail || {};
 
-  const fmt = displayFormat || 'grid';
   let cols: number;
   if (fmt === 'list') {
     cols = 1;
   } else if (fmt === 'grid') {
-    cols = Math.max(2, Math.min(5, columnsCount || 3));
+    cols = Math.max(2, Math.min(6, effectiveColumnsCount));
   } else {
-    cols = Math.max(1, Math.min(5, columnsCount || 3));
+    cols = Math.max(1, Math.min(6, effectiveColumnsCount));
   }
   const scaleFactor = Math.max(0.5, 1 - (cols - 1) * 0.125);
   const gridColsClass = ({
@@ -132,7 +132,30 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
     4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
     5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
+    6: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6',
   } as Record<number, string>)[cols] || 'grid-cols-2';
+
+  const searchDebounceMs = viewerConfig?.search?.debounceMs ?? 300;
+  const searchMinChars = viewerConfig?.search?.minChars ?? 1;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), searchDebounceMs);
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchDebounceMs]);
+
+  const effectiveQuery = debouncedQuery.length >= searchMinChars ? debouncedQuery : '';
+
+  const [compareStat, setCompareStat] = useState<string | null>(null);
+  const [compareItemId, setCompareItemId] = useState<string | null>(null);
+  const [scientificNotation, setScientificNotation] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const urlItem = searchParams?.get('item') || null;
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
+  const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   useEffect(() => {
     setSelectedSlug(urlItem);
@@ -159,8 +182,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     router.replace(`${qs ? '?' + qs : ''}`, { scroll: false });
   }, [selectedSlug, searchParams, router]);
 
-  const columnAnalysis = useMemo(() => {
-    if (items.length === 0) return { categoryColumn: null as string | null, filterColumns: [] as { column: string; values: string[]; label: string }[] };
+  const columnAnalysis: {
+    categoryColumn: string | null;
+    secondaryColumn: string | null;
+    filterColumns: { column: string; values: string[]; label: string; mode: string }[];
+  } = useMemo(() => {
+    if (items.length === 0) return { categoryColumn: null, secondaryColumn: null, filterColumns: [] };
 
     const allKeys = new Set<string>();
     items.forEach(item => Object.keys(item).forEach(k => allKeys.add(k)));
@@ -236,37 +263,43 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const allFilterCandidates = [...tier1, ...tier2, ...tier3, ...tier4]
       .filter(col => col !== categoryColumn);
 
-    // Use viewerConfig filter columns if set
+    // Always auto-detect filter columns, apply column overrides
     const filterConfig = viewerConfig?.filters;
-    const hasConfiguredFilters = filterConfig?.columns && filterConfig.columns.length > 0 && filterConfig.autoDetect !== false;
+    const columnOverrides = new Map(
+      ((filterConfig?.columns || []) as Array<{ column: string; label?: string; mode?: string; enabled?: boolean }>)
+        .map(fc => [fc.column, fc]),
+    );
 
-    let filterColumns: { column: string; values: string[]; label: string }[];
-    if (hasConfiguredFilters) {
-      filterColumns = filterConfig!.columns
-        .map(fc => ({
-          column: fc.column,
-          values: columnValues[fc.column] || [],
-          label: fc.label || deriveLabel(fc.column),
-        }))
-        .filter(fc => fc.values.length > 0);
-    } else {
-      filterColumns = allFilterCandidates
-        .map(col => ({
+    const filterColumns: { column: string; values: string[]; label: string; mode: string }[] = allFilterCandidates
+      .map(col => {
+        const override = columnOverrides.get(col);
+        const enabled = override ? override.enabled !== false : true;
+        if (!enabled) return null;
+        const values = columnValues[col] || [];
+        return {
           column: col,
-          values: columnValues[col],
-          label: deriveLabel(col),
-        }))
-        .filter(fc => fc.values.length > 0);
-    }
+          values,
+          label: override?.label || deriveLabel(col),
+          mode: override?.mode || (values.length > 2 ? 'multiple' : 'single'),
+        };
+      })
+      .filter((fc): fc is { column: string; values: string[]; label: string; mode: string } => fc !== null && fc.values.length > 0);
 
-    return { categoryColumn, filterColumns };
+    // Secondary categorization
+    const secondaryColumn: string | null = catConfig?.secondaryColumn || null;
+
+    return { categoryColumn, secondaryColumn, filterColumns };
   }, [items, viewerConfig]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [effectiveQuery, activeFilters]);
 
   const filteredItems = useMemo(() => {
     let result = items;
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (effectiveQuery.trim()) {
+      const q = effectiveQuery.toLowerCase();
       const searchConfig = viewerConfig?.search;
       const searchableCols = searchConfig?.searchableColumns?.length
         ? new Set(searchConfig.searchableColumns)
@@ -289,7 +322,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     return result;
-  }, [items, searchQuery, activeFilters, viewerConfig]);
+  }, [items, effectiveQuery, activeFilters, viewerConfig]);
 
   const groupedItems = useMemo(() => {
     if (!columnAnalysis.categoryColumn) return null;
@@ -340,13 +373,34 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     return entries;
   }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
 
+  // Secondary grouping (within primary categories)
+  const secondaryGroupedItems = useMemo(() => {
+    if (!groupedItems || !columnAnalysis.secondaryColumn) return null;
+    const secondaryCol = columnAnalysis.secondaryColumn;
+    const result: Array<[string, Array<[string, typeof items]>]> = [];
+
+    for (const [category, catItems] of groupedItems) {
+      const subGroups: Record<string, typeof items> = {};
+      for (const item of catItems) {
+        const raw = item[secondaryCol];
+        const subCat = raw != null && raw !== '' ? formatCategoryValue(secondaryCol, raw) : 'Outros';
+        if (!subGroups[subCat]) subGroups[subCat] = [];
+        subGroups[subCat].push(item);
+      }
+      result.push([category, Object.entries(subGroups).sort(([a], [b]) => a.localeCompare(b))]);
+    }
+    return result;
+  }, [groupedItems, columnAnalysis]);
+
   const toggleFilter = (col: string, value: string) => {
     setActiveFilters(prev => {
       const next = { ...prev };
 
-      // Check if this column uses single-select mode
+      // Check if this column uses single-select mode — use config first, then auto-detect
       const filterCol = viewerConfig?.filters?.columns?.find(fc => fc.column === col);
-      if (filterCol?.mode === 'single') {
+      const filterInfo = columnAnalysis.filterColumns.find(fc => fc.column === col);
+      const mode = filterCol?.mode || filterInfo?.mode || 'multiple';
+      if (mode === 'single') {
         if (prev[col]?.has(value)) {
           delete next[col];
         } else {
@@ -365,6 +419,19 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const hasActiveFilters = Object.values(activeFilters).some(s => s.size > 0);
 
   function renderItems(items: any[], _groupKey: string) {
+    const baseItemCardProps = {
+      tableName,
+      tenantSlug,
+      tenantId,
+      selectedSlug,
+      onSelect: selectItem,
+      cardRefs,
+      scientificNotation,
+      scaleFactor,
+      cardConfig,
+      detailConfig,
+    };
+
     if (fmt === 'list') {
       return (
         <div className="space-y-3">
@@ -372,14 +439,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             <ItemCard
               key={item.id}
               item={item}
-              tableName={tableName}
-              tenantSlug={tenantSlug}
-              tenantId={tenantId}
-              selectedSlug={selectedSlug}
-              onSelect={selectItem}
-              cardRefs={cardRefs}
-              scientificNotation={scientificNotation}
-              scaleFactor={scaleFactor}
+              {...baseItemCardProps}
               onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           ))}
@@ -396,14 +456,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           renderItem={(item: any) => (
             <ItemCard
               item={item}
-              tableName={tableName}
-              tenantSlug={tenantSlug}
-              tenantId={tenantId}
-              selectedSlug={selectedSlug}
-              onSelect={selectItem}
-              cardRefs={cardRefs}
-              scientificNotation={scientificNotation}
-              scaleFactor={scaleFactor}
+              {...baseItemCardProps}
               onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
             />
           )}
@@ -422,14 +475,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             >
               <ItemCard
                 item={item}
-                tableName={tableName}
-                tenantSlug={tenantSlug}
-                tenantId={tenantId}
-                selectedSlug={selectedSlug}
-                onSelect={selectItem}
-                cardRefs={cardRefs}
-                scientificNotation={scientificNotation}
-                scaleFactor={scaleFactor}
+                {...baseItemCardProps}
                 onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
               />
             </div>
@@ -438,20 +484,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       );
     }
 
+    const gridGap = typeof gap === 'number' ? gap : 12;
     return (
-      <div className={`${gridColsClass} gap-3`}>
+      <div className={`${gridColsClass}`} style={{ gap: gridGap }}>
         {items.map((item) => (
           <ItemCard
             key={item.id}
             item={item}
-            tableName={tableName}
-            tenantSlug={tenantSlug}
-            tenantId={tenantId}
-            selectedSlug={selectedSlug}
-            onSelect={selectItem}
-            cardRefs={cardRefs}
-            scientificNotation={scientificNotation}
-            scaleFactor={scaleFactor}
+            {...baseItemCardProps}
             onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
           />
         ))}
@@ -463,6 +503,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const headerIcon = viewerConfig?.header?.icon || icon;
     if (headerIcon) {
       if (isCustomIcon(headerIcon)) {
+        const isVideo = /\.(mp4|webm|gif)$/i.test(headerIcon);
+        if (isVideo) {
+          return (
+            <div className="relative h-5 w-5">
+              <video src={headerIcon} autoPlay loop muted playsInline className="object-contain rounded w-full h-full" />
+            </div>
+          );
+        }
         return (
           <div className="relative h-5 w-5">
             <Image src={headerIcon} alt="" fill className="object-contain rounded" />
@@ -649,13 +697,36 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                   <span className="capitalize">{category}</span>
                   <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
                 </h3>
-                {renderItems(catItems, category)}
+                {renderItems(pagination === 'paginated' ? catItems.slice(0, itemsPerPage) : catItems, category)}
               </div>
             );
           })}
         </div>
       ) : (
-        renderItems(filteredItems, '_all')
+        <>
+          {renderItems(pagination === 'paginated' ? filteredItems.slice(0, currentPage * itemsPerPage) : filteredItems, '_all')}
+          {pagination === 'paginated' && filteredItems.length > itemsPerPage && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <span className="text-sm text-muted-foreground px-3">
+                {currentPage} de {Math.ceil(filteredItems.length / itemsPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage * itemsPerPage >= filteredItems.length}
+                className="px-3 py-1.5 text-sm rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Próximo
+              </button>
+            </div>
+          )}
+        </>
       )}
     </article>
   );
@@ -672,6 +743,8 @@ function ItemCard({
   onCompareStatClick,
   scientificNotation,
   scaleFactor = 1,
+  cardConfig,
+  detailConfig,
 }: {
   item: any;
   tableName: string;
@@ -683,6 +756,8 @@ function ItemCard({
   onCompareStatClick?: (statKey: string) => void;
   scientificNotation?: boolean;
   scaleFactor?: number;
+  cardConfig?: Record<string, any>;
+  detailConfig?: Record<string, any>;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
@@ -696,19 +771,31 @@ function ItemCard({
     }
   }, [isOpen, item, scaleFactor]);
 
+  const showCardIcon = cardConfig?.showIcon !== false;
+  const showCardImage = cardConfig?.showImage !== false;
+  const showCardLabel = cardConfig?.showLabel !== false;
+  const cardSize = cardConfig?.size || 'md';
+  const badgesEnabled = cardConfig?.badges !== false;
+  const hoverEffectEnabled = cardConfig?.hoverEffect !== 'none';
+  const compactMode = cardConfig?.compactMode === true;
+
   const icon = getIcon(item);
   const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
-  const imageUrl = item.image_url || item.image || item.icon_url || item.icon;
+  const imageUrl = (showCardImage ? item.image_url || item.image || item.icon_url || item.icon : undefined);
 
   const rarity = item.rarity != null ? String(item.rarity) : undefined;
   const tier = item.tier != null ? String(item.tier) : undefined;
   const element = item.element != null ? String(item.element) : undefined;
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
+  const cardPadding = compactMode ? 'p-2.5' : 'p-4';
+  const iconSize = cardSize === 'sm' ? 'h-8 w-8' : cardSize === 'lg' ? 'h-16 w-16' : 'h-12 w-12';
+  const titleSize = cardSize === 'sm' ? 'text-sm' : cardSize === 'lg' ? 'text-lg' : 'font-semibold';
+
   return (
     <div
       ref={(el) => { cardRefs.current[itemSlug] = el; }}
-      className="rounded-xl border bg-card overflow-hidden"
+      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectEnabled ? 'hover:shadow-md hover:border-primary/20 transition-all duration-200' : ''}`}
     >
       <motion.button
         onClick={() => onSelect(itemSlug)}
@@ -726,13 +813,16 @@ function ItemCard({
         >
           <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
           {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
-          <div className="relative p-4 flex items-start gap-3">
-            <div className="relative h-12 w-12 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
+          <div className={`relative ${cardPadding} flex items-start gap-3`}>
+            {showCardIcon && (
+            <div className={`relative ${iconSize} rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden`}>
               {icon || collIcon}
             </div>
+            )}
+            {showCardLabel && (
             <div className="flex-1 min-w-0 self-center">
               <motion.h3
-                className="font-semibold leading-tight relative"
+                className={`${titleSize} leading-tight relative`}
                 animate={{ x: isOpen ? 4 : 0 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
@@ -753,6 +843,8 @@ function ItemCard({
                 </motion.span>
               </motion.h3>
             </div>
+            )}
+            {badgesEnabled && (
             <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
               {rarity && (
                 <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm`}>
@@ -772,6 +864,7 @@ function ItemCard({
                 </span>
               )}
             </div>
+            )}
             <motion.div
               animate={{ rotate: isOpen ? 180 : 0, scale: isOpen ? 1.2 : 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 12, mass: 0.8 }}
@@ -829,6 +922,7 @@ function ItemCard({
                   chipWrap
                   scientificNotation={scientificNotation}
                   onCompareStatClick={onCompareStatClick}
+                  detailConfig={detailConfig}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">{item.description || ''}</p>

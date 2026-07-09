@@ -151,18 +151,24 @@ export default function TableViewerConfig({
       return;
     }
 
-    const { error } = await supabase
+    const updatePayload: Record<string, unknown> = { viewer_config: parsed.data };
+    const iconValue = parsed.data?.header?.icon;
+    if (parsed.data?.header) {
+      updatePayload.icon = iconValue || null;
+    }
+
+    const { error: updateError } = await supabase
       .from('tenant_game_tables')
-      .update({ viewer_config: parsed.data })
+      .update(updatePayload as any)
       .eq('tenant_id', tenantId)
       .eq('table_name', table);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    if (updateError) {
+      toast({ variant: 'destructive', title: 'Erro', description: updateError.message });
     } else {
       configCache.current = parsed.data;
       invalidateDataCache(slug);
-      updateCachedCatalogEntry(slug, table, { viewer_config: parsed.data });
+      updateCachedCatalogEntry(slug, table, updatePayload);
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
       toast({ title: 'Configuração salva!' });
@@ -248,7 +254,8 @@ export default function TableViewerConfig({
               tableIcon={s.id === 'header' ? tableIcon : undefined}
               tenantId={tenantId ?? undefined}
               onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
-              {...(s.id === 'categorization' ? { items, itemsLoading } : {})}
+              items={items}
+              itemsLoading={itemsLoading}
             />
           );
         })}

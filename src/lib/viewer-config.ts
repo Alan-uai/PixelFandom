@@ -4,6 +4,7 @@ export const FilterColumnSchema = z.object({
   column: z.string(),
   label: z.string().optional(),
   mode: z.enum(['single', 'multiple']).default('multiple'),
+  enabled: z.boolean().default(true),
 });
 
 export const ManualGroupSchema = z.object({
@@ -21,7 +22,7 @@ export const ViewerConfigSchema = z.object({
   }).optional(),
   display: z.object({
     format: z.enum(['grid', 'list', 'carousel', 'carousel_infinite']).optional(),
-    columnsCount: z.number().int().min(1).max(5).optional(),
+    columnsCount: z.number().int().min(1).max(6).optional(),
     itemsPerPage: z.number().int().min(1).max(200).optional(),
     pagination: z.enum(['paginated', 'infinite-scroll', 'none']).optional(),
     sortColumn: z.string().nullable().optional(),

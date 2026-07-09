@@ -486,13 +486,15 @@ function renderDynamicSections(
   rendered: Set<string>,
   scientificNotation?: boolean,
   chipWrap?: boolean,
+  visibleColumnsSet?: Set<string> | null,
 ) {
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
 
   // Filter out system fields, special-handled fields, and null values
   const activeCols = cols.filter(
-    (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name]),
+    (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name])
+      && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name)),
   );
 
   // 1. Numeric stat cards (skip 0)
@@ -669,9 +671,10 @@ function RenderTypeFields({ data, columnTypes, rendered }: { data: Record<string
   return <>{sections}</>;
 }
 
-function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, scientificNotation?: boolean) {
+function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, scientificNotation?: boolean, visibleColumnsSet?: Set<string> | null) {
   const extra = Object.entries(data).filter(
-    ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v),
+    ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v)
+      && (!visibleColumnsSet || visibleColumnsSet.has(k)),
   );
   if (extra.length === 0) return null;
   return (
@@ -704,6 +707,14 @@ function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, 
   );
 }
 
+type DetailConfig = {
+  visibleColumns?: string[];
+  columnOrder?: string[];
+  columnFormats?: Record<string, string>;
+  showComparison?: boolean;
+  showHeader?: boolean;
+};
+
 type Props = {
   data: Record<string, any>;
   collectionType?: string;
@@ -719,6 +730,7 @@ type Props = {
   scientificNotation?: boolean;
   chipWrap?: boolean;
   columnTypes?: Record<string, string>;
+  detailConfig?: DetailConfig;
 };
 
 const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
@@ -740,7 +752,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap, columnTypes }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -748,6 +760,11 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const tier = data.tier != null ? String(data.tier) : undefined;
   const element = data.element != null ? String(data.element) : undefined;
   const imageUrl = (data.image_url || data.image) as string | undefined;
+
+  const effectiveHideHeader = hideHeader && detailConfig?.showHeader !== true;
+  const effectiveVisibleColumns = detailConfig?.visibleColumns || [];
+  const visibleColumnsSet = effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null;
+  const showComparisonEnabled = detailConfig?.showComparison !== false;
 
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -767,6 +784,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   );
 
   const handleStatClick = (statKey: string) => {
+    if (!showComparisonEnabled) return;
     if (onCompareStatClick) {
       onCompareStatClick(statKey);
     } else if (comparisonMode === 'page' && tenantId) {
@@ -780,7 +798,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   return (
     <div className="max-w-3xl mx-auto">
-      {showCompare && tenantId && (
+      {showCompare && tenantId && showComparisonEnabled && (
         <ComparePopup
           table={table}
           tenantId={tenantId}
@@ -791,7 +809,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         />
       )}
 
-      {!hideHeader && (
+      {!effectiveHideHeader && (
       <div className="rounded-xl mb-6 relative overflow-hidden"
         style={imageUrl ? {
           backgroundImage: `url(${imageUrl})`,
@@ -855,7 +873,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode, chipWrap)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation, chipWrap)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation, chipWrap, visibleColumnsSet)}
 
       {/* Render-type-specific fields (color, rating, video, audio, etc.) */}
       {columnTypes && Object.entries(columnTypes).length > 0 && (
@@ -863,7 +881,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       )}
 
       {/* Fallback: any remaining unrendered fields */}
-      {renderFallbackFields(data, rendered, scientificNotation)}
+      {renderFallbackFields(data, rendered, scientificNotation, visibleColumnsSet)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (
