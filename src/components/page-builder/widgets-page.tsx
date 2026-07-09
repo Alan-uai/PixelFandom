@@ -99,7 +99,11 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
     if (!allOk) {
       throw new Error('Erro ao salvar ilhas flutuantes');
     }
-    islandCache.current = {};
+    const snapshot = { islands: floatingIslands, slotFlow, clipStyle };
+    islandsSnapshot.current = JSON.stringify(snapshot);
+    for (const type of targets) {
+      islandCache.current[type] = snapshot;
+    }
   }, [tenantId, floatingIslands, slotFlow, clipStyle, resolveTargetTypes]);
 
   const handleSave = useCallback(async () => {

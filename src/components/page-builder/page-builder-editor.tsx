@@ -34,6 +34,7 @@ interface PageBuilderEditorProps {
   pageType?: string;
   onRegisterSave?: (fn: () => Promise<void>) => void;
   onDirtyChange?: (dirty: boolean) => void;
+  onSaveSuccess?: (data: { blocks: BlockConfig[] }) => void;
 }
 
 function createBlock(type: BlockType): BlockConfig {
@@ -59,7 +60,7 @@ function createBlock(type: BlockType): BlockConfig {
 }
 
 export function PageBuilderEditor({
-  tenantId, slug, initialLayout, pageType = 'landing', onRegisterSave, onDirtyChange,
+  tenantId, slug, initialLayout, pageType = 'landing', onRegisterSave, onDirtyChange, onSaveSuccess,
 }: PageBuilderEditorProps) {
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -186,7 +187,8 @@ export function PageBuilderEditor({
       throw new Error(body?.error || `Erro ao salvar (${res.status})`);
     }
     initialBlocksRef.current = JSON.stringify(blocks);
-  }, [tenantId, pageType, blocks]);
+    onSaveSuccess?.({ blocks });
+  }, [tenantId, pageType, blocks, onSaveSuccess]);
 
   useEffect(() => {
     onRegisterSave?.(handleSave);

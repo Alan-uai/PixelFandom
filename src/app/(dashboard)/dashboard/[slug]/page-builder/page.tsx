@@ -44,6 +44,7 @@ function PageBuilderPageInner() {
   const [isDirty, setIsDirty] = useState(false);
   const saveBlocksRef = useRef<(() => Promise<void>) | null>(null);
   const saveWidgetsRef = useRef<(() => Promise<void>) | null>(null);
+  const pendingPageTypeRef = useRef<string | null>(null);
 
   const { data: tenant } = useCachedData<{ id: string }>(
     `tenant:${slug}`,
@@ -56,7 +57,7 @@ function PageBuilderPageInner() {
 
   const isWidgets = pageType === 'widgets';
   const cacheKey = !isWidgets && tenantId ? `page-layout:${tenantId}:${pageType}` : null;
-  const { data: layoutData, loading, error: layoutError } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
+  const { data: layoutData, loading, error: layoutError, updateCache } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
     cacheKey,
     async () => {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
@@ -71,11 +72,15 @@ function PageBuilderPageInner() {
 
   useEffect(() => {
     if (!layoutData && loading) return;
-    if (layoutData) {
+    if (layoutData && pendingPageTypeRef.current === pageType) {
       setLayout(layoutData);
+      setLoadedPageType(pageType);
     }
-    setLoadedPageType(pageType);
   }, [layoutData, loading, pageType]);
+
+  useEffect(() => {
+    pendingPageTypeRef.current = pageType;
+  }, [pageType]);
 
   const handleTypeChange = (type: string) => {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);
@@ -165,6 +170,14 @@ function PageBuilderPageInner() {
             pageType={pageType}
             onRegisterSave={registerBlocksSave}
             onDirtyChange={setIsDirty}
+            onSaveSuccess={(data) => {
+              updateCache({
+                blocks: data.blocks,
+                floatingIslands: layout?.floatingIslands || [],
+                slotFlow: layout?.slotFlow,
+                clipStyle: layout?.clipStyle,
+              });
+            }}
           />
         )}
       </div>
