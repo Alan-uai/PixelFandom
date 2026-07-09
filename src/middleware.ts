@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
 import { isIpBlocked, isFingerprintBlocked, getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';
@@ -15,14 +14,27 @@ export const config = {
 
 const CACHE_TTL_MS = 3_600_000;
 
-function getCachedTenant(request: NextRequest): { slug: string; id: string } | null {
+async function hmacSign(payload: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(HMAC_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getCachedTenant(request: NextRequest): Promise<{ slug: string; id: string } | null> {
   try {
     const raw = request.cookies.get('x-tenant-cache')?.value;
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.payload || !parsed?.sig) return null;
 
-    const expectedSig = createHmac('sha256', HMAC_SECRET).update(parsed.payload).digest('hex');
+    const expectedSig = await hmacSign(parsed.payload);
     if (parsed.sig !== expectedSig) return null;
 
     const data = JSON.parse(parsed.payload);
@@ -33,9 +45,9 @@ function getCachedTenant(request: NextRequest): { slug: string; id: string } | n
   return null;
 }
 
-function setCachedTenant(response: NextResponse, slug: string, id: string) {
+async function setCachedTenant(response: NextResponse, slug: string, id: string) {
   const payload = JSON.stringify({ slug, id, exp: Date.now() + CACHE_TTL_MS });
-  const sig = createHmac('sha256', HMAC_SECRET).update(payload).digest('hex');
+  const sig = await hmacSign(payload);
   response.cookies.set('x-tenant-cache', JSON.stringify({ payload, sig }), {
     path: '/',
     maxAge: CACHE_TTL_MS / 1000,
@@ -185,7 +197,7 @@ export async function middleware(request: NextRequest) {
 
   // Custom domain: lookup tenant and rewrite
   if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/')) {
-    const cached = getCachedTenant(request);
+    const cached = await getCachedTenant(request);
 
     if (cached) {
       const url = request.nextUrl.clone();
@@ -242,7 +254,7 @@ export async function middleware(request: NextRequest) {
 
         const rewriteResponse = NextResponse.rewrite(url);
         addSecurityHeaders(rewriteResponse);
-        setCachedTenant(rewriteResponse, slug, tenantData[0].id);
+        await setCachedTenant(rewriteResponse, slug, tenantData[0].id);
         return rewriteResponse;
       }
     } catch {
