@@ -686,11 +686,11 @@ export default function EditorArticlesPage() {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : availableCreateTables.length > 0 ? (
-            <div className="border rounded-md p-2">
+            <div className="border rounded-md p-2 overflow-hidden">
               <span className="text-xs font-medium text-muted-foreground mb-1 block">
                 {t('createTableDialog.available_tables')}
               </span>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+              <div className="flex gap-2 overflow-x-auto pb-1 min-w-0">
                 {availableCreateTables
                   .filter((t) => !catalog.some((c) => c.table_name === t))
                   .map((t) => (

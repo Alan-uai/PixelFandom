@@ -95,6 +95,7 @@ function WikiLayoutContent({
         setFooterLayout(layout);
       })
       .catch((e) => {
+        if (e.name === 'AbortError') return;
         console.error('Footer layout fetch failed:', e);
         footerCache.current[tenant.id] = null;
       })
@@ -125,6 +126,7 @@ function WikiLayoutContent({
         if (data.clipStyle) setClipStyle(data.clipStyle);
       })
       .catch((e) => {
+        if (e.name === 'AbortError') return;
         console.error('Islands layout fetch failed:', e);
         islandsCache.current[tenant.id] = { islands: [] };
       })
@@ -312,9 +314,7 @@ function WikiLayoutContent({
             </>
           )}
           <main className={`flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full ${preferences.density === 'compact' ? 'space-y-3' : 'space-y-6'}`}>
-            <Suspense fallback={null}>
-              {children}
-            </Suspense>
+            {children}
           </main>
         </div>
 

@@ -1023,11 +1023,11 @@ export default function DataTableContent({
           </div>
 
           {unusedColumns.length > 0 && (
-            <div className="border rounded-md p-2">
+            <div className="border rounded-md p-2 overflow-hidden">
               <span className="text-xs font-medium text-muted-foreground mb-1 block">
                 Sugestões ({unusedColumns.length} disponíveis)
               </span>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+              <div className="flex gap-2 overflow-x-auto pb-1 min-w-0">
                 {unusedColumns.map((col) => (
                   <button
                     key={col.column_name}
@@ -1220,11 +1220,11 @@ export default function DataTableContent({
                     </div>
 
                     {unusedColumns.length > 0 && (
-                      <div className="border rounded-md p-2">
+                      <div className="border rounded-md p-2 overflow-hidden">
                         <span className="text-xs font-medium text-muted-foreground mb-1 block">
                           Sugestões ({unusedColumns.length} disponíveis)
                         </span>
-                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                        <div className="flex gap-2 overflow-x-auto pb-1 min-w-0">
                           {unusedColumns.map((col) => (
                             <button
                               key={col.column_name}
