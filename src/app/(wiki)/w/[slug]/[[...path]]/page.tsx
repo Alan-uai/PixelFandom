@@ -422,21 +422,20 @@ export default function WikiPage() {
 
   if (!articleSlug && !loadingLayout) {
     return (
-      <div className="max-w-4xl mx-auto">
-        {/* Cover Image */}
+      <>
         {(tenant as any).cover_image && (
-          <div className="rounded-xl overflow-hidden mb-8 border">
+          <div className="fixed inset-0 -z-10">
             <Image
               src={(tenant as any).cover_image}
               alt=""
-              width={1200}
-              height={300}
-              className="w-full h-48 md:h-64 lg:h-72 object-cover"
+              fill
+              className="object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/60 to-background" />
           </div>
         )}
-
-        {/* Hero */}
+        <div className="max-w-4xl mx-auto">
+          {/* Hero */}
         <div className="mb-10">
           <div className="flex items-center gap-4 mb-4">
             {tenant.logo_url && (
@@ -580,8 +579,9 @@ export default function WikiPage() {
           </>
         )}
       </div>
-    );
-  }
+    </>
+  );
+}
 
   // Unreachable fallback (all landing/article/table cases handled above)
   return null;

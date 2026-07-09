@@ -56,8 +56,8 @@ export default function Home() {
       return;
     }
     supabase
-      .from('tenant_members')
-      .select('user_id', { count: 'exact', head: true })
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
       .then(({ count }) => {
         if (count !== null) {
           setMembersCount(count);
@@ -72,7 +72,7 @@ export default function Home() {
       return;
     }
     supabase
-      .from('tenant_pages')
+      .from('wiki_articles')
       .select('id', { count: 'exact', head: true })
       .then(({ count }) => {
         if (count !== null) {

@@ -48,6 +48,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const disconnectIntentionalRef = useRef(false)
 
   const voiceSessionIdRef = useRef<string | null>(null)
+  const sessionCleanupRef = useRef<(() => void) | null>(null)
+  const semaphoreRef = useRef(true)
 
 
   useEffect(() => {
@@ -183,6 +185,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     if (apiRef.current || isConnectingRef.current) return
     stopWakeWordDetector()
     isConnectingRef.current = true
+    semaphoreRef.current = true
     setIsConnecting(true)
     setStatus('connecting')
     setErrorMessage(null)
@@ -204,7 +207,9 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
           .single()
 
         if (tenant) {
-          const sessionRes = await fetch('/api/chat/sessions', {
+          const abortController = new AbortController()
+          fetch('/api/chat/sessions', {
+            signal: abortController.signal,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -214,11 +219,18 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
               model: 'gemini-3.1-flash-live-preview',
               voice_name: settingsRef.current.voice || 'Kore',
             }),
+          }).then((res) => {
+            if (semaphoreRef.current && res.ok) {
+              return res.json().then((session) => {
+                voiceSessionIdRef.current = session.id
+              })
+            }
+          }).catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error('[Voice] Failed to create session', err)
+            }
           })
-          if (sessionRes.ok) {
-            const session = await sessionRes.json()
-            voiceSessionIdRef.current = session.id
-          }
+          sessionCleanupRef.current = () => abortController.abort()
         }
       }
 
@@ -339,9 +351,18 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     setStatus('idle')
     setIsConnecting(false)
     isConnectingRef.current = false
+    semaphoreRef.current = false
   }, [])
 
-  useEffect(() => { connectRef.current = connect; }, [connect])
+  useEffect(() => {
+    connectRef.current = connect
+    return () => {
+      if (sessionCleanupRef.current) {
+        sessionCleanupRef.current()
+        sessionCleanupRef.current = null
+      }
+    }
+  }, [connect])
   useEffect(() => { disconnectRef.current = disconnect; }, [disconnect])
 
   useEffect(() => {
