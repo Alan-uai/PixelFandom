@@ -149,7 +149,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   const [compareStat, setCompareStat] = useState<string | null>(null);
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
-  const [scientificNotation, setScientificNotation] = useState(false);
+  const [useSuffix, setUseSuffix] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
   const urlItem = searchParams?.get('item') || null;
@@ -426,7 +426,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       selectedSlug,
       onSelect: selectItem,
       cardRefs,
-      scientificNotation,
+      useSuffix,
       scaleFactor,
       cardConfig,
       detailConfig,
@@ -571,12 +571,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           <div className="relative z-20 shrink-0">
             <button
               type="button"
-              onClick={() => setScientificNotation(!scientificNotation)}
+              onClick={() => setUseSuffix(!useSuffix)}
               className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-mono font-bold leading-none text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-              aria-label={scientificNotation ? 'Alternar para notação normal' : 'Alternar para notação científica'}
-              title={scientificNotation ? 'Notação científica: ativada' : 'Notação científica: desativada'}
+              aria-label={useSuffix ? 'Alternar para notação científica' : 'Alternar para sufixo numérico'}
+              title={useSuffix ? 'Sufixo numérico: ativado' : 'Notação científica: ativada'}
             >
-              {scientificNotation ? '123' : '1e'}
+              {useSuffix ? '1e' : '123'}
             </button>
           </div>
         </div>
@@ -741,7 +741,7 @@ function ItemCard({
   onSelect,
   cardRefs,
   onCompareStatClick,
-  scientificNotation,
+  useSuffix,
   scaleFactor = 1,
   cardConfig,
   detailConfig,
@@ -754,7 +754,7 @@ function ItemCard({
   onSelect: (slug: string | null) => void;
   cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   onCompareStatClick?: (statKey: string) => void;
-  scientificNotation?: boolean;
+  useSuffix?: boolean;
   scaleFactor?: number;
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
@@ -920,7 +920,7 @@ function ItemCard({
                   comparisonMode="modal"
                   hideHeader
                   chipWrap
-                  scientificNotation={scientificNotation}
+                  useSuffix={useSuffix}
                   onCompareStatClick={onCompareStatClick}
                   detailConfig={detailConfig}
                 />

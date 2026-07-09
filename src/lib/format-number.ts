@@ -1,19 +1,19 @@
+import { findSuffix, SCIENTIFIC_THRESHOLD } from '@/data/number-suffixes';
+
 export function abbreviateNumber(n: number): string {
-  if (Math.abs(n) >= 1_000_000_000_000) {
-    const v = n / 1_000_000_000_000;
-    return v.toFixed(2).replace(/\.?0+$/, '') + 'T';
+  if (!isFinite(n)) return String(n);
+  const suffix = findSuffix(n);
+  if (!suffix) return String(n);
+  const v = n / Math.pow(10, suffix.exponent);
+  return v.toFixed(2).replace(/\.?0+$/, '') + suffix.suffix;
+}
+
+export function formatNumber(n: number, useSuffix: boolean): string {
+  if (!useSuffix) {
+    if (Math.abs(n) >= SCIENTIFIC_THRESHOLD) {
+      return n.toExponential(2);
+    }
+    return String(n);
   }
-  if (Math.abs(n) >= 1_000_000_000) {
-    const v = n / 1_000_000_000;
-    return v.toFixed(2).replace(/\.?0+$/, '') + 'B';
-  }
-  if (Math.abs(n) >= 1_000_000) {
-    const v = n / 1_000_000;
-    return v.toFixed(2).replace(/\.?0+$/, '') + 'M';
-  }
-  if (Math.abs(n) >= 1_000) {
-    const v = n / 1_000;
-    return v.toFixed(2).replace(/\.?0+$/, '') + 'K';
-  }
-  return String(n);
+  return abbreviateNumber(n);
 }

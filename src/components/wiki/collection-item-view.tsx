@@ -9,7 +9,7 @@ import {
   Coins, Pickaxe, Sparkles, Crown,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { abbreviateNumber } from '@/lib/format-number';
+import { formatNumber } from '@/lib/format-number';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
@@ -63,15 +63,15 @@ function Accordion({ title, icon, defaultOpen, children }: { title: string; icon
 
 
 
-function fmt(v: unknown, scientificNotation?: boolean): string {
+function fmt(v: unknown, useSuffix?: boolean): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   if (typeof v === 'object') {
     if (Array.isArray(v)) return v.map((i) => (typeof i === 'object' ? JSON.stringify(i) : String(i))).join(', ');
     return JSON.stringify(v);
   }
-  if (scientificNotation && typeof v === 'number') {
-    return abbreviateNumber(v);
+  if (typeof v === 'number') {
+    return formatNumber(v, useSuffix ?? true);
   }
   return String(v);
 }
@@ -484,7 +484,7 @@ function renderDynamicSections(
   comparisonMode_: 'modal' | 'page',
   onStatClick: ((statKey: string) => void) | undefined,
   rendered: Set<string>,
-  scientificNotation?: boolean,
+  useSuffix?: boolean,
   chipWrap?: boolean,
   visibleColumnsSet?: Set<string> | null,
 ) {
@@ -511,7 +511,7 @@ function renderDynamicSections(
             <StatCard
               key={c.column_name}
               label={meta?.label || fieldLabel(c.column_name)}
-              value={fmt(data[c.column_name], scientificNotation)}
+              value={fmt(data[c.column_name], useSuffix)}
               icon={meta?.icon || fieldIcon(c.column_name)}
               color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -671,7 +671,7 @@ function RenderTypeFields({ data, columnTypes, rendered }: { data: Record<string
   return <>{sections}</>;
 }
 
-function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, scientificNotation?: boolean, visibleColumnsSet?: Set<string> | null) {
+function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, useSuffix?: boolean, visibleColumnsSet?: Set<string> | null) {
   const extra = Object.entries(data).filter(
     ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v)
       && (!visibleColumnsSet || visibleColumnsSet.has(k)),
@@ -696,7 +696,7 @@ function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, 
                     <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
                   )
                 ) : (
-                  <ColoredText text={fmt(v, scientificNotation)} />
+                  <ColoredText text={fmt(v, useSuffix)} />
                 )}
               </div>
             </div>
@@ -727,7 +727,7 @@ type Props = {
   schema?: ColumnInfo[];
   hideHeader?: boolean;
   onCompareStatClick?: (statKey: string) => void;
-  scientificNotation?: boolean;
+  useSuffix?: boolean;
   chipWrap?: boolean;
   columnTypes?: Record<string, string>;
   detailConfig?: DetailConfig;
@@ -752,7 +752,7 @@ const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className
   },
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, scientificNotation, chipWrap, columnTypes, detailConfig }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -873,7 +873,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode, chipWrap)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, scientificNotation, chipWrap, visibleColumnsSet)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet)}
 
       {/* Render-type-specific fields (color, rating, video, audio, etc.) */}
       {columnTypes && Object.entries(columnTypes).length > 0 && (
@@ -881,7 +881,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       )}
 
       {/* Fallback: any remaining unrendered fields */}
-      {renderFallbackFields(data, rendered, scientificNotation, visibleColumnsSet)}
+      {renderFallbackFields(data, rendered, useSuffix, visibleColumnsSet)}
 
       {/* Footer */}
       {(updatedAt || createdAt) && (
