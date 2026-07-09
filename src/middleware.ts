@@ -181,7 +181,7 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    const nonWikiPaths = ['/dashboard', '/api/', '/profile', '/settings', '/leaderboard', '/notifications', '/about'];
+    const nonWikiPaths = ['/dashboard', '/api', '/profile', '/settings', '/leaderboard', '/notifications', '/about'];
     const isNonWikiPath = nonWikiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
     if (!isNonWikiPath && pathname !== '/') {
       const tenantSlug = request.cookies.get('x-tenant-slug')?.value;
