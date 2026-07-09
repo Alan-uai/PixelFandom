@@ -15,7 +15,7 @@ export const config = {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const fingerprint = getFingerprint(request);
+  const fingerprint = await getFingerprint(request);
   const path = '/api/upload';
 
   const rl = await checkRateLimit(`upload:${ip}`, getRateLimiterForPath(path));

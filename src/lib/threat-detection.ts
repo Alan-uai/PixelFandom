@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import { supabase } from '@/supabase';
 import { detectSqlInjection } from './sql-injection-detect';
 
@@ -21,8 +20,13 @@ const BLOCK_CACHE = new Map<string, { blocked: boolean; expiry: number }>();
 const BLOCK_CACHE_TTL = 5 * 60 * 1000;
 const LAST_KNOWN_BLOCK = new Map<string, boolean>();
 
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex');
+async function sha256Hex(data: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hashIp(ip: string): Promise<string> {
+  return sha256Hex(ip);
 }
 
 export function getClientIp(request: { headers: Headers }): string {
@@ -33,18 +37,18 @@ export function getClientIp(request: { headers: Headers }): string {
     || 'unknown';
 }
 
-export function getFingerprint(request: { headers: Headers }): string {
+export async function getFingerprint(request: { headers: Headers }): Promise<string> {
   const ip = getClientIp(request);
   const ua = request.headers.get('user-agent') || '';
   const lang = request.headers.get('accept-language') || '';
   const encoding = request.headers.get('accept-encoding') || '';
 
   const raw = `${ip}|${ua}|${lang}|${encoding}`;
-  return createHash('sha256').update(raw).digest('hex');
+  return sha256Hex(raw);
 }
 
 export async function isIpBlocked(ip: string): Promise<boolean> {
-  const ipHash = hashIp(ip);
+  const ipHash = await hashIp(ip);
 
   const cached = BLOCK_CACHE.get(ipHash);
   if (cached && Date.now() < cached.expiry) {
@@ -108,7 +112,7 @@ export async function isFingerprintBlocked(fingerprint: string): Promise<boolean
 async function logThreatEvent(event: ThreatEvent & ThreatContext) {
   try {
     await supabase.from('threat_events').insert({
-      ip_hash: hashIp(event.ip),
+      ip_hash: await hashIp(event.ip),
       fingerprint_hash: event.fingerprint,
       user_id: event.userId || null,
       event_type: event.eventType,
@@ -129,7 +133,7 @@ async function autoBlockIp(
   reason: string,
   expiryHours: number | null = null,
 ) {
-  const ipHash = hashIp(ip);
+  const ipHash = await hashIp(ip);
 
   try {
     await supabase.from('ip_blocks').insert({
@@ -203,7 +207,7 @@ export async function checkRequestForThreats(
   body?: unknown,
 ): Promise<{ blocked: boolean; reason?: string }> {
   const ip = getClientIp(request);
-  const fingerprint = getFingerprint(request);
+  const fingerprint = await getFingerprint(request);
   const path = request.url || '/unknown';
   const method = request.method || 'GET';
 

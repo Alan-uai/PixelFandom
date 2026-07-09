@@ -122,7 +122,7 @@ export async function middleware(request: NextRequest) {
   // ── Skip security checks in dev ──
   if (!isDev) {
     const ip = getClientIp(request);
-    const fingerprint = getFingerprint(request);
+    const fingerprint = await getFingerprint(request);
 
     // Layer 1: IP Block Check
     const ipBlocked = await isIpBlocked(ip);
