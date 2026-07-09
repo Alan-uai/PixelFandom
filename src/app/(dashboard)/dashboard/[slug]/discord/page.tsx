@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useCachedData } from '@/hooks/use-cached-data';
 import { useSiteCache } from '@/lib/site-cache';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Label } from '@/components/ui/label';
+
 import { ImageUpload } from '@/components/ui/image-upload';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';

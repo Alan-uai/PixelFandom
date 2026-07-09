@@ -119,7 +119,7 @@ export function FilterConfig({
         ) : items && items.length > 0 ? (
           detectedColumns.length > 0 ? (
             <div className="space-y-1 max-h-60 overflow-y-auto">
-              {detectedColumns.map(({ column, values, defaultMode }) => {
+              {detectedColumns.map(({ column, values, defaultMode: _defaultMode }) => {
                 const { enabled, mode } = getState(column);
                 return (
                   <div

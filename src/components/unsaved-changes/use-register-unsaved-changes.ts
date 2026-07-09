@@ -5,7 +5,7 @@ import { UnsavedChangesCtx } from './unsaved-changes-provider';
 
 export interface UseRegisterUnsavedChangesOptions {
   isDirty: boolean;
-  onSave: () => Promise<void>;
+  onSave: () => Promise<boolean | void>;
   onDiscard: () => void;
 }
 

@@ -213,11 +213,11 @@ export default function WikiAIConfigPage() {
     return val !== '' && val === saved && val.includes('...');
   }
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (): Promise<boolean> => {
     const tid = tenantData?.id;
     if (!tid) {
       toast({ variant: 'destructive', title: t('toast.error.title'), description: t('toast.tenant_not_found') });
-      return;
+      return false;
     }
 
     const rawKey = modelSource === 'custom' || fallbackSource === 'custom' ? customApiKey : '';
@@ -256,7 +256,7 @@ export default function WikiAIConfigPage() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Save failed' }));
         toast({ variant: 'destructive', title: t('toast.error.title'), description: errData.error });
-        return;
+        return false;
       }
 
       const result = await res.json();
@@ -289,9 +289,11 @@ export default function WikiAIConfigPage() {
 
       useSiteCache.getState().set(`ai-config:${tid}`, result);
       toast({ title: t('toast.saved.title'), description: t('toast.saved.description') });
+      return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : t('toast.save_error');
       toast({ variant: 'destructive', title: t('toast.error.title'), description: message });
+      return false;
     }
   }, [
     tenantData, savedConfig, enabled, provider, primaryProvider, resolvedModel, model,

@@ -2,7 +2,7 @@
 
 import { useTableCatalog } from '@/hooks/use-data-access';
 import { ChannelSelect } from './channel-select';
-import { Database, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Select3D } from '@/components/ui/select3d';
 import type { IngestConfig } from './types';
 

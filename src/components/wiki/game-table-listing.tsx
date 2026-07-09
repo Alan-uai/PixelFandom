@@ -112,8 +112,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const itemsPerPage = displayConfig.itemsPerPage || 50;
   const pagination = displayConfig.pagination || 'paginated';
   const gap = displayConfig.gap ?? 12;
-  const sortDirection = displayConfig.sortDirection || 'asc';
-
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const detailConfig: Record<string, any> = viewerConfig?.detail || {};
 
@@ -372,25 +370,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     return entries;
   }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
-
-  // Secondary grouping (within primary categories)
-  const secondaryGroupedItems = useMemo(() => {
-    if (!groupedItems || !columnAnalysis.secondaryColumn) return null;
-    const secondaryCol = columnAnalysis.secondaryColumn;
-    const result: Array<[string, Array<[string, typeof items]>]> = [];
-
-    for (const [category, catItems] of groupedItems) {
-      const subGroups: Record<string, typeof items> = {};
-      for (const item of catItems) {
-        const raw = item[secondaryCol];
-        const subCat = raw != null && raw !== '' ? formatCategoryValue(secondaryCol, raw) : 'Outros';
-        if (!subGroups[subCat]) subGroups[subCat] = [];
-        subGroups[subCat].push(item);
-      }
-      result.push([category, Object.entries(subGroups).sort(([a], [b]) => a.localeCompare(b))]);
-    }
-    return result;
-  }, [groupedItems, columnAnalysis]);
 
   const toggleFilter = (col: string, value: string) => {
     setActiveFilters(prev => {

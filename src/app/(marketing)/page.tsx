@@ -112,7 +112,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       <ScrollRevealWrapper exitOnly>
-        <section className="min-h-screen flex flex-col items-center justify-center">
+        <section id="navstrip-origin" className="min-h-screen flex flex-col items-center justify-center">
           <HeroSection />
           <NavStrip onLogin={openAuth} />
         </section>

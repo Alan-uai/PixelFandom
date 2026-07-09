@@ -6,7 +6,7 @@ import { UnsavedChangesDialog } from './unsaved-changes-dialog';
 import { SaveNotification } from './save-notification';
 
 interface Registration {
-  onSave: () => Promise<void>;
+  onSave: () => Promise<boolean | void>;
   onDiscard: () => void;
 }
 
@@ -49,8 +49,8 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     setSaving(true);
     setSaveStatus(null);
     try {
-      await regRef.current.onSave();
-      setSaveStatus('success');
+      const ok = await regRef.current.onSave();
+      setSaveStatus(ok !== false ? 'success' : 'error');
     } catch {
       setSaveStatus('error');
     } finally {

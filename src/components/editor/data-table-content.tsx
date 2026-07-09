@@ -914,8 +914,6 @@ export default function DataTableContent({
       ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
       : primary;
   const detailColumns = getDetailColumns(allColumns);
-  const editableColumns = allColumns.filter((c) => isEditableColumn(c));
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">

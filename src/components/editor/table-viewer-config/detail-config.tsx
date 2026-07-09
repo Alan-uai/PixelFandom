@@ -4,17 +4,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 
-const COLUMN_FORMATS: { value: string; label: string }[] = [
-  { value: 'text', label: 'Texto' },
-  { value: 'badge', label: 'Badge' },
-  { value: 'color', label: 'Cor' },
-  { value: 'icon', label: 'Ícone' },
-  { value: 'link', label: 'Link' },
-  { value: 'image', label: 'Imagem' },
-  { value: 'rating', label: 'Rating' },
-  { value: 'progress', label: 'Progresso' },
-];
-
 export function DetailConfig({
   config,
   columns = [],

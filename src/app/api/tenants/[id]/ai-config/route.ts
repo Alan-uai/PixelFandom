@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { encryptApiKey, decryptApiKey } from '@/lib/crypto';
-import { isTenantMember } from '@/lib/tenant';
+import { ROLE_HIERARCHY } from '@/lib/tenant';
 
 const MASKED = '__MASKED__';
 
@@ -30,8 +30,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
     }
 
-    const isMember = await isTenantMember(id, user.id, 'admin');
-    if (!isMember) {
+    const { data: membership } = await supabase
+      .from('tenant_members')
+      .select('role')
+      .eq('tenant_id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership || ROLE_HIERARCHY[membership.role] < 2) {
       return NextResponse.json({ error: 'Permissão insuficiente.' }, { status: 403 });
     }
 
@@ -78,8 +84,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
     }
 
-    const isMember = await isTenantMember(id, user.id, 'admin');
-    if (!isMember) {
+    const { data: membership } = await supabase
+      .from('tenant_members')
+      .select('role')
+      .eq('tenant_id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership || ROLE_HIERARCHY[membership.role] < 2) {
       return NextResponse.json({ error: 'Permissão insuficiente.' }, { status: 403 });
     }
 

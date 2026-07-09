@@ -84,7 +84,6 @@ const nextConfig: NextConfig = {
     if (process.env.NODE_ENV !== 'production') {
       const backend = process.env.PSYCHO_BACKEND_URL || 'http://localhost:8000';
       return [
-        { source: '/api/token', destination: `${backend}/api/token` },
         { source: '/api/rag/:path*', destination: `${backend}/api/rag/:path*` },
         { source: '/api/session/:path*', destination: `${backend}/api/session/:path*` },
         { source: '/api/sessions/:path*', destination: `${backend}/api/sessions/:path*` },
