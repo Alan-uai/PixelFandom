@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'node:crypto';
+import { createHmac } from 'crypto';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
 import { isIpBlocked, isFingerprintBlocked, getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';

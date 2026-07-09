@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from 'crypto';
 import { supabase } from '@/supabase';
 import { detectSqlInjection } from './sql-injection-detect';
 
