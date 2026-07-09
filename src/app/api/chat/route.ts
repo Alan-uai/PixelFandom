@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_FALLBACK_CHAIN as BASE_FALLBACK } from '@/lib/models';
-import { MAIN_URL } from '@/lib/constants';
 import { getTenantBySlug } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { searchAll, formatSearchContext } from '@/lib/search';
 import { chatStreamGemini } from '@/lib/gemini-chat';
+import { chatStreamSSEWithTools } from '@/lib/openrouter-client';
 import { createClient } from '@/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { decryptApiKey } from '@/lib/crypto';
@@ -32,143 +32,6 @@ const STREAM_HEADERS = {
   'Connection': 'keep-alive',
 };
 
-async function streamOpenRouter(
-  messages: Record<string, unknown>[],
-  modelsToTry: string[],
-  apiKey: string
-): Promise<ReadableStream> {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': MAIN_URL,
-      'X-Title': 'PixelFandom',
-    },
-    body: JSON.stringify({
-      model: modelsToTry[0],
-      messages,
-      stream: true,
-      stream_options: { include_usage: true },
-    }),
-    signal: AbortSignal.timeout(120_000),
-  });
-
-  if (!res.ok) {
-    const errData = await res.json().catch(() => null);
-    throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
-  }
-
-  const stream = res.body;
-  if (!stream) throw new Error('No response body');
-
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let lineBuffer = '';
-
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          lineBuffer += chunk;
-
-          const lines = lineBuffer.split('\n');
-          lineBuffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || '';
-              if (content) {
-                controller.enqueue(new TextEncoder().encode(content));
-              }
-            } catch {
-              // skip malformed JSON lines
-            }
-          }
-        }
-
-        if (lineBuffer.startsWith('data: ')) {
-          const data = lineBuffer.slice(6);
-          if (data !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || '';
-              if (content) {
-                controller.enqueue(new TextEncoder().encode(content));
-              }
-            } catch {/* noop */}
-          }
-        }
-
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
-}
-
-async function callOpenRouter(
-  messages: Record<string, unknown>[],
-  modelsToTry: string[],
-  apiKey: string,
-  tools?: typeof TEXT_CHAT_TOOLS
-): Promise<Record<string, unknown>> {
-  let lastError: Error | null = null;
-
-  for (const model of modelsToTry) {
-    const body: Record<string, unknown> = {
-      model,
-      messages,
-      stream: false,
-      max_tokens: tools ? 512 : 4096,
-    };
-    if (tools) body.tools = tools;
-
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': MAIN_URL,
-          'X-Title': 'PixelFandom',
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(30_000),
-      });
-
-      if (res.ok) {
-        return await res.json();
-      }
-
-      if (res.status === 429 || res.status === 402 || res.status === 403) {
-        lastError = new Error(`Model ${model} unavailable (${res.status})`);
-        continue;
-      }
-
-      const errData = await res.json().catch(() => null);
-      throw new Error(errData?.error?.message || `OpenRouter error (${res.status})`);
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
-        lastError = e;
-        continue;
-      }
-      throw e;
-    }
-  }
-
-  throw lastError || new Error('All models failed');
-}
-
 async function saveMessage(
   sessionId: string,
   role: string,
@@ -185,17 +48,6 @@ async function saveMessage(
   } catch (e) {
     console.error('Failed to save message:', e);
   }
-}
-
-function createTextStream(
-  text: string
-): ReadableStream {
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue(new TextEncoder().encode(text));
-      controller.close();
-    },
-  });
 }
 
 async function buildMessages(
@@ -430,55 +282,14 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
         const systemContent = String(messages[0]?.content || '');
         messages = trimMessagesToBudget(messages as any, systemContent, contextWindow) as any;
       }
-      let finalText: string | null = null;
-      const MAX_TOOL_ROUNDS = 2;
-
-      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-        const response = await callOpenRouter(messages, modelsToTry, apiKey, TEXT_CHAT_TOOLS);
-        const choice = (response.choices as any[])?.[0];
-        const responseMsg = choice?.message;
-
-        if (!responseMsg || !responseMsg.tool_calls || responseMsg.tool_calls.length === 0) {
-          finalText = responseMsg?.content ?? null;
-          break;
-        }
-
-        messages.push({
-          role: 'assistant',
-          content: null,
-          tool_calls: responseMsg.tool_calls,
-        });
-
-        const toolResults = await Promise.all(
-          responseMsg.tool_calls.map(async (tc: any) => {
-            try {
-              const args = JSON.parse(tc.function.arguments);
-              const result = await executeTextChatTool(tc.function.name, args, toolCtx);
-              return {
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: JSON.stringify(result),
-              };
-            } catch (e: any) {
-              return {
-                role: 'tool',
-                tool_call_id: tc.id,
-                content: JSON.stringify({ error: e.message }),
-              };
-            }
-          })
-        );
-
-        messages.push(...toolResults);
-      }
-
-      let stream: ReadableStream;
-
-      if (finalText !== null) {
-        stream = createTextStream(finalText);
-      } else {
-        stream = await streamOpenRouter(messages, modelsToTry, apiKey);
-      }
+      const stream = await chatStreamSSEWithTools({
+        messages,
+        model: modelsToTry[0],
+        config: { apiKey, fallbackChain: modelsToTry },
+        tools: TEXT_CHAT_TOOLS,
+        executeTool: async (name, args) => executeTextChatTool(name, args, toolCtx),
+        maxToolRounds: 2,
+      });
 
       if (session_id) {
         const reader = stream.getReader();

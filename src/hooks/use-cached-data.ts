@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const globalCache = new Map<string, unknown>();
 
@@ -23,23 +23,36 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>, 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const fetcherRef = useRef(fetcher);
+  const keyRef = useRef(key);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    keyRef.current = key;
+  });
+
   const fetchData = useCallback(async () => {
-    if (!key) {
+    const currentKey = keyRef.current;
+    if (!currentKey) {
       setLoading(false);
       return;
     }
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const result = await withTimeout(fetcher(), timeoutMs);
-      globalCache.set(key, result);
+      const result = await withTimeout(fetcherRef.current(), timeoutMs);
+      globalCache.set(currentKey, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  }, [key, fetcher, timeoutMs]);
+  }, [timeoutMs]);
 
   useEffect(() => {
     if (!key) {

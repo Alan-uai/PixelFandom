@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
+import { Select3D } from '@/components/ui/select3d';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { useTranslations } from 'next-intl';
@@ -723,15 +724,11 @@ function EditPageContent() {
                                 onChange={(e) => setGuideTopic(e.target.value)}
                                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                               />
-                              <select
-                                value={guideTone}
-                                onChange={(e) => setGuideTone(e.target.value as any)}
-                                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                              >
-                                <option value="guia">{t('guide_tone_guide')}</option>
-                                <option value="tutorial">{t('guide_tone_tutorial')}</option>
-                                <option value="analise">{t('guide_tone_analise')}</option>
-                              </select>
+                              <Select3D value={guideTone} options={[
+                                {value: 'guia', label: t('guide_tone_guide')},
+                                {value: 'tutorial', label: t('guide_tone_tutorial')},
+                                {value: 'analise', label: t('guide_tone_analise')},
+                              ]} onChange={(v) => setGuideTone(v as any)} />
                               <Button
                                 type="button"
                                 className="w-full gap-2"
@@ -756,15 +753,11 @@ function EditPageContent() {
                             <p className="text-xs text-muted-foreground mb-3">
                               {t('improve_article_desc')}
                             </p>
-                            <select
-                              value={guideTone}
-                              onChange={(e) => setGuideTone(e.target.value as any)}
-                              className="w-full rounded-md border bg-background px-3 py-2 text-sm mb-3"
-                            >
-                              <option value="guia">Guia Prático</option>
-                              <option value="tutorial">Tutorial Passo-a-Passo</option>
-                              <option value="analise">Análise Detalhada</option>
-                            </select>
+                            <Select3D value={guideTone} options={[
+                              {value: 'guia', label: 'Guia Prático'},
+                              {value: 'tutorial', label: 'Tutorial Passo-a-Passo'},
+                              {value: 'analise', label: 'Análise Detalhada'},
+                            ]} onChange={(v) => setGuideTone(v as any)} className="mb-3" />
                             <Button
                               type="button"
                               variant="secondary"

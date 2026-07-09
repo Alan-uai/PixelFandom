@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
+import { Select3D } from '@/components/ui/select3d';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
@@ -535,19 +536,13 @@ export default function WikiSettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="borderRadius">{t('layout.border_radius')}</Label>
-            <select
-              id="borderRadius"
-              value={borderRadius}
-              onChange={(e) => setBorderRadius(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="">{t('layout.border_radius_default')}</option>
-              <option value="0.25rem">{t('layout.border_radius_small')}</option>
-              <option value="0.5rem">{t('layout.border_radius_medium')}</option>
-              <option value="0.75rem">{t('layout.border_radius_large')}</option>
-              <option value="1rem">{t('layout.border_radius_extra')}</option>
-            </select>
+            <Select3D label={t('layout.border_radius')} value={borderRadius} options={[
+              {value: '', label: t('layout.border_radius_default')},
+              {value: '0.25rem', label: t('layout.border_radius_small')},
+              {value: '0.5rem', label: t('layout.border_radius_medium')},
+              {value: '0.75rem', label: t('layout.border_radius_large')},
+              {value: '1rem', label: t('layout.border_radius_extra')},
+            ]} onChange={(v) => setBorderRadius(v)} />
           </div>
 
           <div className="border-t pt-4 mt-4">
@@ -833,37 +828,25 @@ export default function WikiSettingsPage() {
       <CollapsibleSection id="fonts" title={t('fonts.title')} description={t('fonts.description')}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="fontFamily">{t('fonts.primary')}</Label>
-            <select
-              id="fontFamily"
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="">{t('fonts.primary_default_option')}</option>
-              <option value="Inter, ui-sans-serif, system-ui, sans-serif">{t('fonts.options.inter')}</option>
-              <option value="ui-serif, Georgia, serif">{t('fonts.options.serif')}</option>
-              <option value="ui-monospace, SFMono-Regular, monospace">{t('fonts.options.mono')}</option>
-              <option value="'Poppins', sans-serif">{t('fonts.options.poppins')}</option>
-              <option value="'Open Sans', sans-serif">{t('fonts.options.open_sans')}</option>
-              <option value="'Roboto', sans-serif">{t('fonts.options.roboto')}</option>
-            </select>
+            <Select3D label={t('fonts.primary')} value={fontFamily} options={[
+              {value: '', label: t('fonts.primary_default_option')},
+              {value: 'Inter, ui-sans-serif, system-ui, sans-serif', label: t('fonts.options.inter')},
+              {value: 'ui-serif, Georgia, serif', label: t('fonts.options.serif')},
+              {value: 'ui-monospace, SFMono-Regular, monospace', label: t('fonts.options.mono')},
+              {value: "'Poppins', sans-serif", label: t('fonts.options.poppins')},
+              {value: "'Open Sans', sans-serif", label: t('fonts.options.open_sans')},
+              {value: "'Roboto', sans-serif", label: t('fonts.options.roboto')},
+            ]} onChange={(v) => setFontFamily(v)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="headingFont">{t('fonts.heading')}</Label>
-            <select
-              id="headingFont"
-              value={headingFont}
-              onChange={(e) => setHeadingFont(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="">{t('fonts.heading_default_option')}</option>
-              <option value="Inter, ui-sans-serif, system-ui, sans-serif">{t('fonts.options.inter')}</option>
-              <option value="ui-serif, Georgia, serif">{t('fonts.options.serif')}</option>
-              <option value="'Poppins', sans-serif">{t('fonts.options.poppins')}</option>
-              <option value="'Roboto', sans-serif">{t('fonts.options.roboto')}</option>
-              <option value="'Montserrat', sans-serif">{t('fonts.options.montserrat')}</option>
-            </select>
+            <Select3D label={t('fonts.heading')} value={headingFont} options={[
+              {value: '', label: t('fonts.heading_default_option')},
+              {value: 'Inter, ui-sans-serif, system-ui, sans-serif', label: t('fonts.options.inter')},
+              {value: 'ui-serif, Georgia, serif', label: t('fonts.options.serif')},
+              {value: "'Poppins', sans-serif", label: t('fonts.options.poppins')},
+              {value: "'Roboto', sans-serif", label: t('fonts.options.roboto')},
+              {value: "'Montserrat', sans-serif", label: t('fonts.options.montserrat')},
+            ]} onChange={(v) => setHeadingFont(v)} />
           </div>
         </div>
       </CollapsibleSection>

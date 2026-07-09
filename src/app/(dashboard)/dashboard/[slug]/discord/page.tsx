@@ -13,6 +13,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
+import { Select3D } from '@/components/ui/select3d';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Bot, Pencil, Settings2, Webhook } from 'lucide-react';
@@ -381,20 +382,12 @@ export default function WikiDiscordPage() {
                   </CardContent>
                 </WeldingCard>
 
-                <div className="space-y-2">
-                  <Label htmlFor="status">{t('identity.status_label')}</Label>
-                  <select
-                    id="status"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    <option value="online">{t('identity.status_online')}</option>
-                    <option value="idle">{t('identity.status_idle')}</option>
-                    <option value="dnd">{t('identity.status_dnd')}</option>
-                    <option value="invisible">{t('identity.status_invisible')}</option>
-                  </select>
-                </div>
+                <Select3D label={t('identity.status_label')} value={status} options={[
+                  {value: 'online', label: t('identity.status_online')},
+                  {value: 'idle', label: t('identity.status_idle')},
+                  {value: 'dnd', label: t('identity.status_dnd')},
+                  {value: 'invisible', label: t('identity.status_invisible')},
+                ]} onChange={(v) => setStatus(v as any)} />
               </div>
             </CollapsibleSection>
 

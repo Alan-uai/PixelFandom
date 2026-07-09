@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ICON_MAP } from '@/lib/game-icons';
+import { Select3D } from '@/components/ui/select3d';
 
 interface GameItemSelectorProps {
   open: boolean;
@@ -168,17 +169,7 @@ export function GameItemSelector({ open, onClose, onSelect, tenantId: _tenantId 
                 autoFocus
               />
             </div>
-            <select
-              value={selectedTable}
-              onChange={(e) => { setSelectedTable(e.target.value); setSearchQuery(''); setResults([]); }}
-              className="flex h-10 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              {TABLE_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {GAME_TABLE_META[key].label}
-                </option>
-              ))}
-            </select>
+            <Select3D value={selectedTable} options={TABLE_KEYS.map((key) => ({value: key, label: GAME_TABLE_META[key].label}))} onChange={(v) => { setSelectedTable(v); setSearchQuery(''); setResults([]); }} className="w-40" />
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

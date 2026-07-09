@@ -1,7 +1,7 @@
 'use client';
 
 import { Label } from '@/components/ui/label';
-import { SelectField } from '@/components/page-builder/config-panels/shared/fields';
+import { Select3D } from '@/components/ui/select3d';
 
 export function LoadingConfig({
   config,
@@ -16,7 +16,7 @@ export function LoadingConfig({
 
   return (
     <div className="space-y-4">
-      <SelectField
+      <Select3D
         label="Tipo de skeleton"
         value={c.skeleton || 'shimmer'}
         options={[

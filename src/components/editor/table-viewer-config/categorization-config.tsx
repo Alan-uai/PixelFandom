@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { SelectField } from '@/components/page-builder/config-panels/shared/fields';
+import { Select3D } from '@/components/ui/select3d';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -91,19 +91,7 @@ export function CategorizationConfig({
         <Label htmlFor="cat-enabled" className="text-xs">Categorização habilitada</Label>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Coluna de categoria</Label>
-        <select
-          value={c.column || 'none'}
-          onChange={(e) => onChange({ ...c, column: e.target.value === 'none' ? null : e.target.value })}
-          className="w-full h-8 rounded-md border bg-background px-2 text-sm"
-        >
-          <option value="none">Auto-detect</option>
-          {(columns as string[]).map((col) => (
-            <option key={col} value={col}>{col}</option>
-          ))}
-        </select>
-      </div>
+      <Select3D label="Coluna de categoria" value={c.column || 'none'} options={[{label: 'Auto-detect', value: 'none'}, ...(columns as string[]).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, column: v === 'none' ? null : v })} />
 
       {detectedColumn && (
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -199,7 +187,7 @@ export function CategorizationConfig({
         </div>
       )}
 
-      <SelectField
+      <Select3D
         label="Estilo das categorias"
         value={c.style || 'headings'}
         options={[
@@ -239,19 +227,7 @@ export function CategorizationConfig({
         <Label htmlFor="default-expanded" className="text-xs">Expandido por padrão (acordeão)</Label>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Coluna de categoria secundária</Label>
-        <select
-          value={c.secondaryColumn || 'none'}
-          onChange={(e) => onChange({ ...c, secondaryColumn: e.target.value === 'none' ? null : e.target.value })}
-          className="w-full h-8 rounded-md border bg-background px-2 text-sm"
-        >
-          <option value="none">Nenhuma</option>
-          {(columns as string[]).filter((col) => col !== c.column).map((col) => (
-            <option key={col} value={col}>{col}</option>
-          ))}
-        </select>
-      </div>
+      <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
 
       <div className="space-y-2 border-t pt-3">
         <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>

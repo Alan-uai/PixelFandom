@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Select3D } from '@/components/ui/select3d';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, LogIn, LogOut, RefreshCw, Server } from 'lucide-react';
@@ -77,18 +78,14 @@ export function DiscordLoginGate() {
 
         <div className="space-y-1">
           <label className="text-xs font-medium">Servidor</label>
-          <select
+          <Select3D
             value={selectedGuild?.id ?? ''}
-            onChange={(e) => e.target.value && selectGuild(e.target.value)}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            <option value="">Selecione um servidor...</option>
-            {guilds.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: 'Selecione um servidor...' },
+              ...guilds.map((g: { id: string; name: string }) => ({ value: g.id, label: g.name })),
+            ]}
+            onChange={(v) => v && selectGuild(v)}
+          />
         </div>
 
         {loading && (

@@ -2,6 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select3D } from '@/components/ui/select3d';
 
 const COLUMN_FORMATS: { value: string; label: string }[] = [
   { value: 'text', label: 'Texto' },
@@ -68,23 +69,16 @@ export function DetailConfig({
                 />
                 <label htmlFor={`detail-vis-${col}`} className="text-xs flex-1">{col}</label>
                 {isVisible && (
-                  <select
-                    value={((c.columnFormats as Record<string, string>) || {})[col] || 'text'}
-                    onChange={(e) => {
-                      onChange({
-                        ...c,
-                        columnFormats: {
-                          ...((c.columnFormats as Record<string, string>) || {}),
-                          [col]: e.target.value,
-                        },
-                      });
-                    }}
-                    className="h-6 rounded border bg-background px-1 text-[10px]"
-                  >
-                    {COLUMN_FORMATS.map((fmt) => (
-                      <option key={fmt.value} value={fmt.value}>{fmt.label}</option>
-                    ))}
-                  </select>
+                  <Select3D value={((c.columnFormats as Record<string, string>) || {})[col] || 'text'} options={[
+                    {value: 'text', label: 'Texto'},
+                    {value: 'badge', label: 'Badge'},
+                    {value: 'color', label: 'Cor'},
+                    {value: 'icon', label: 'Ícone'},
+                    {value: 'link', label: 'Link'},
+                    {value: 'image', label: 'Imagem'},
+                    {value: 'rating', label: 'Avaliação'},
+                    {value: 'progress', label: 'Progresso'},
+                  ]} onChange={(v) => onChange({ ...c, columnFormats: { ...((c.columnFormats as Record<string, string>) || {}), [col]: v } })} className="w-32" />
                 )}
               </div>
             );

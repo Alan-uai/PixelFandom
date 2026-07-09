@@ -1,5 +1,6 @@
 'use client';
 
+import { Select3D } from '@/components/ui/select3d';
 import { Mic, MicOff, Volume2, Loader2 } from 'lucide-react';
 import type { VoiceName } from '@/lib/voice/geminilive';
 
@@ -44,22 +45,15 @@ export default function VoiceControls({
         </div>
       )}
 
-      <div className="space-y-1">
-        <label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-          Voz
-        </label>
-        <select
-          value={voiceName}
-          onChange={(e) => onVoiceChange(e.target.value as VoiceName)}
-          className="w-full rounded-md border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          {(Object.keys(VOICE_LABELS) as VoiceName[]).map((v) => (
-            <option key={v} value={v}>
-              {VOICE_LABELS[v]}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Select3D
+        label="Voz"
+        value={voiceName}
+        options={(Object.keys(VOICE_LABELS) as VoiceName[]).map((v) => ({
+          value: v,
+          label: VOICE_LABELS[v],
+        }))}
+        onChange={(v) => onVoiceChange(v as VoiceName)}
+      />
 
       <div className="flex items-center gap-3">
         <button

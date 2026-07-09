@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select3D } from '@/components/ui/select3d';
 import { Loader2, Filter } from 'lucide-react';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
@@ -161,15 +162,7 @@ export function FilterConfig({
                     </div>
 
                     {enabled && (
-                      <select
-                        value={mode}
-                        onChange={(e) => updateColumn(column, { mode: e.target.value })}
-                        className="h-7 rounded-md border bg-background px-2 text-xs shrink-0"
-                        title="Modo de seleção"
-                      >
-                        <option value="single">Único</option>
-                        <option value="multiple">Múltiplo</option>
-                      </select>
+                      <Select3D label="Modo de seleção" value={mode} options={[{label: 'Único', value: 'single'}, {label: 'Múltiplo', value: 'multiple'}]} onChange={(v) => updateColumn(column, { mode: v })} className="w-32" />
                     )}
                   </div>
                 );

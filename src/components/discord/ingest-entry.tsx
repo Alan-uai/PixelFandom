@@ -3,6 +3,7 @@
 import { useTableCatalog } from '@/hooks/use-data-access';
 import { ChannelSelect } from './channel-select';
 import { Database, Trash2 } from 'lucide-react';
+import { Select3D } from '@/components/ui/select3d';
 import type { IngestConfig } from './types';
 
 interface IngestEntryProps {
@@ -37,37 +38,26 @@ export function IngestEntry({ slug, entry, onChange, onRemove }: IngestEntryProp
         {loading ? (
           <p className="text-xs text-muted-foreground">Carregando tabelas...</p>
         ) : (
-          <div className="relative">
-            <Database className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <select
-              value={entry.target_table}
-              onChange={(e) => {
-                const selected = catalog?.find((t) => t.table_name === e.target.value);
-                onChange({ ...entry, target_table: e.target.value, target_label: selected?.display_label ?? e.target.value });
-              }}
-              className="w-full rounded-lg border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none"
-            >
-              <option value="">Selecione uma tabela...</option>
-              {catalog?.map((t) => (
-                <option key={t.table_name} value={t.table_name}>
-                  {t.display_label} ({t.table_name})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select3D
+            label="Tabela de Destino"
+            value={entry.target_table}
+            options={[
+              { value: '', label: 'Selecione uma tabela...' },
+              ...(catalog?.map((t) => ({ value: t.table_name, label: `${t.display_label} (${t.table_name})` })) ?? []),
+            ]}
+            onChange={(v) => {
+              const selected = catalog?.find((t) => t.table_name === v);
+              onChange({ ...entry, target_table: v, target_label: selected?.display_label ?? v });
+            }}
+          />
         )}
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Tipo de Gatilho</label>
-        <select
-          value={entry.trigger_type}
-          onChange={(e) => onChange({ ...entry, trigger_type: e.target.value as 'all' | 'command' })}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="all">Ouvir todas as mensagens</option>
-          <option value="command">Apenas com comando (+ prefixo)</option>
-        </select>
+        <Select3D label="Tipo de Gatilho" value={entry.trigger_type} options={[
+          {value: 'all', label: 'Ouvir todas as mensagens'},
+          {value: 'command', label: 'Apenas com comando (+ prefixo)'},
+        ]} onChange={(v) => onChange({ ...entry, trigger_type: v as 'all' | 'command' })} />
         {entry.trigger_type === 'command' && (
           <input
             type="text"

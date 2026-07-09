@@ -6,6 +6,7 @@ import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, ChevronDown, ChevronRight, Code2 } from 'lucide-react';
+import { Select3D } from '@/components/ui/select3d';
 import { createDefaultAction, type CustomCommand, type BotActionType, type BotAction, type TriggerType, type ExecutionMode } from './types';
 import { ActionListItem, AddActionDropdown } from './action-configs';
 import { VariablePicker } from './variable-picker';
@@ -118,18 +119,13 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
           />
 
           <div className="space-y-1">
-            <Label className="text-xs">Tipo de Trigger</Label>
-            <select
-              value={command.triggerType}
-              onChange={(e) => update({ triggerType: e.target.value as TriggerType })}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="exact">Exato</option>
-              <option value="startsWith">Começa com</option>
-              <option value="includes">Contém</option>
-              <option value="regex">Regex</option>
-              <option value="mention">@Menção</option>
-            </select>
+            <Select3D label="Tipo de Trigger" value={command.triggerType} options={[
+              {value: 'exact', label: 'Exato'},
+              {value: 'startsWith', label: 'Começa com'},
+              {value: 'includes', label: 'Contém'},
+              {value: 'regex', label: 'Regex'},
+              {value: 'mention', label: '@Menção'},
+            ]} onChange={(v) => update({ triggerType: v as TriggerType })} />
           </div>
 
           {command.triggerType === 'mention' ? (
@@ -194,15 +190,10 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
               className="text-xs"
             />
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Modo de Execução</label>
-              <select
-                value={command.executionMode}
-                onChange={(e) => update({ executionMode: e.target.value as ExecutionMode })}
-                className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="sequential">Sequencial (um após o outro)</option>
-                <option value="parallel">Paralelo (todos de uma vez)</option>
-              </select>
+              <Select3D label="Modo de Execução" value={command.executionMode} options={[
+                {value: 'sequential', label: 'Sequencial (um após o outro)'},
+                {value: 'parallel', label: 'Paralelo (todos de uma vez)'},
+              ]} onChange={(v) => update({ executionMode: v as ExecutionMode })} />
             </div>
           </div>
 

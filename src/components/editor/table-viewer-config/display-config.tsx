@@ -1,6 +1,6 @@
 'use client';
 
-import { SelectField } from '@/components/page-builder/config-panels/shared/fields';
+import { Select3D } from '@/components/ui/select3d';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
@@ -16,7 +16,7 @@ export function DisplayConfig({
   const c: Record<string, any> = config || {};
   return (
     <div className="space-y-4">
-      <SelectField
+      <Select3D
         label="Formato"
         value={c.format || 'grid'}
         options={[
@@ -55,7 +55,7 @@ export function DisplayConfig({
           <span>6</span><span>200</span>
         </div>
       </div>
-      <SelectField
+      <Select3D
         label="Paginação"
         value={c.pagination || 'paginated'}
         options={[
@@ -80,17 +80,7 @@ export function DisplayConfig({
         </div>
       </div>
       {c.sortColumn && (
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Direção da ordenação</Label>
-          <select
-            value={c.sortDirection || 'asc'}
-            onChange={(e) => onChange({ ...c, sortDirection: e.target.value as 'asc' | 'desc' })}
-            className="h-7 rounded-md border bg-background px-2 text-xs"
-          >
-            <option value="asc">Ascendente</option>
-            <option value="desc">Descendente</option>
-          </select>
-        </div>
+        <Select3D label="Direção da ordenação" value={c.sortDirection || 'asc'} options={[{label: 'Ascendente', value: 'asc'}, {label: 'Descendente', value: 'desc'}]} onChange={(v) => onChange({ ...c, sortDirection: v as 'asc' | 'desc' })} />
       )}
       <div className="flex items-center gap-2">
         <Switch

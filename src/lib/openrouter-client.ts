@@ -245,4 +245,171 @@ export async function chatStreamSSE({
   });
 }
 
+export async function chatStreamSSEWithTools({
+  messages,
+  model,
+  temperature = 0.7,
+  tools,
+  executeTool,
+  maxToolRounds = 3,
+  config,
+}: {
+  messages: Record<string, unknown>[];
+  model?: string;
+  temperature?: number;
+  tools?: any[];
+  executeTool?: (name: string, args: any) => Promise<any>;
+  maxToolRounds?: number;
+  config?: OpenRouterConfig;
+}): Promise<ReadableStream> {
+  const apiKey = config?.apiKey || process.env.OPENROUTER_API_KEY || '';
+  const chain = config?.fallbackChain && config.fallbackChain.length > 0 ? config.fallbackChain : DEFAULT_FALLBACK_CHAIN;
+  const modelsToTry = model ? [model, ...chain.filter(m => m !== model)] : [...chain];
+
+  let currentMessages = [...messages];
+  let round = 0;
+
+  async function pump(controller: ReadableStreamController<Uint8Array>) {
+    while (round < maxToolRounds) {
+      let lastError: Error | null = null;
+
+      for (const currentModel of modelsToTry) {
+        try {
+          const body: Record<string, unknown> = {
+            model: currentModel,
+            messages: currentMessages,
+            temperature,
+            stream: true,
+            stream_options: { include_usage: true },
+          };
+          if (tools) body.tools = tools;
+
+          const res = await openRouterFetch(body, AbortSignal.timeout(120_000), apiKey);
+          if (!res.ok) {
+            const errData = await res.json().catch(() => null);
+            throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+          }
+
+          const reader = res.body?.getReader();
+          if (!reader) throw new Error('No response body');
+
+          const decoder = new TextDecoder();
+          let buf = '';
+          const toolAcc = new Map<number, {
+            id: string;
+            type: string;
+            function: { name: string; arguments: string };
+          }>();
+          let hadTools = false;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop() || '';
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const choice = parsed.choices?.[0];
+                if (!choice) continue;
+                const delta = choice.delta;
+
+                if (delta?.content) {
+                  controller.enqueue(new TextEncoder().encode(delta.content));
+                }
+
+                if (tools && delta?.tool_calls) {
+                  hadTools = true;
+                  for (const tc of delta.tool_calls) {
+                    const idx = tc.index;
+                    if (!toolAcc.has(idx)) {
+                      toolAcc.set(idx, { id: '', type: 'function', function: { name: '', arguments: '' } });
+                    }
+                    const a = toolAcc.get(idx)!;
+                    if (tc.id) a.id = tc.id;
+                    if (tc.function?.name) a.function.name += tc.function.name;
+                    if (tc.function?.arguments) a.function.arguments += tc.function.arguments;
+                  }
+                }
+
+                if (tools && choice.finish_reason === 'tool_calls') {
+                  hadTools = true;
+                }
+              } catch {
+                // skip malformed JSON lines
+              }
+            }
+          }
+
+          if (!hadTools) {
+            controller.close();
+            return;
+          }
+
+          round++;
+
+          if (round >= maxToolRounds || !executeTool || !tools) {
+            controller.close();
+            return;
+          }
+
+          const toolCalls = Array.from(toolAcc.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([_, tc]) => tc);
+
+          if (!toolCalls.length) {
+            controller.close();
+            return;
+          }
+
+          currentMessages.push({
+            role: 'assistant',
+            content: null,
+            tool_calls: toolCalls,
+          });
+
+          const results = await Promise.all(
+            toolCalls.map(async (tc: any) => {
+              try {
+                const args = JSON.parse(tc.function.arguments);
+                const result = await executeTool(tc.function.name, args);
+                return { role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) };
+              } catch (e: any) {
+                return { role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ error: e.message }) };
+              }
+            })
+          );
+
+          currentMessages.push(...results);
+          lastError = null;
+          break;
+        } catch (e) {
+          lastError = e as Error;
+          console.warn(`Model ${currentModel} failed (round ${round}):`, e);
+        }
+      }
+
+      if (lastError) {
+        if (round === 0) {
+          controller.error(lastError);
+        } else {
+          controller.close();
+        }
+        return;
+      }
+    }
+
+    controller.close();
+  }
+
+  return new ReadableStream({ start: pump });
+}
+
 export { getGameDataToolDef, getUpdateLogToolDef };

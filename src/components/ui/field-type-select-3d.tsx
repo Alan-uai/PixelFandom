@@ -25,9 +25,7 @@ export function FieldTypeSelect3D({ value, onChange, options, disabled }: FieldT
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -46,9 +44,7 @@ export function FieldTypeSelect3D({ value, onChange, options, disabled }: FieldT
   })).filter((cat) => cat.types.length > 0);
 
   useEffect(() => {
-    if (open && selectedCategory && !expandedCategory) {
-      setExpandedCategory(selectedCategory);
-    }
+    if (open && selectedCategory && !expandedCategory) setExpandedCategory(selectedCategory);
   }, [open, selectedCategory, expandedCategory]);
 
   return (
@@ -127,16 +123,11 @@ export function FieldTypeSelect3D({ value, onChange, options, disabled }: FieldT
                                 transition={{ delay: i * 0.02, duration: 0.15 }}
                                 whileHover={{ scale: 1.01, x: 2 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                  onChange(typeDef.id);
-                                  setOpen(false);
-                                }}
+                                onClick={() => { onChange(typeDef.id); setOpen(false); }}
                                 className={cn(
                                   'relative w-full flex items-center gap-2.5 px-3 py-1.5 text-sm text-left',
                                   'transition-colors',
-                                  isSelected
-                                    ? 'text-foreground'
-                                    : 'text-muted-foreground/80 hover:text-foreground',
+                                  isSelected ? 'text-foreground' : 'text-muted-foreground/80 hover:text-foreground',
                                 )}
                               >
                                 {isSelected && (
@@ -177,3 +168,4 @@ export function FieldTypeSelect3D({ value, onChange, options, disabled }: FieldT
     </div>
   );
 }
+

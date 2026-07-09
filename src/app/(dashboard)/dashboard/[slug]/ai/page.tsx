@@ -17,6 +17,7 @@ import { WeldingCard } from '@/components/ui/welding-card';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SelectCard } from '@/components/ui/select-card';
 import { OPENROUTER_FREE_MODELS, GEMINI_FREE_MODELS as GEMINI_FREE_MODELS_SHARED } from '@/lib/models';
+import { Select3D } from '@/components/ui/select3d';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mic, MicOff, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
@@ -482,21 +483,18 @@ export default function WikiAIConfigPage() {
                 </div>
 
                 {modelSource === 'free' ? (
-                  <select
+                  <Select3D
                     value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {loadingModels && freeModels.length === 0 ? (
-                      <option value="">{t('modelConfig.openrouter.model.loading')}</option>
-                    ) : (
-                      freeModels.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.id}) — {formatContext(m.context_length, t)}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    options={
+                      loadingModels && freeModels.length === 0
+                        ? [{ value: '', label: t('modelConfig.openrouter.model.loading') }]
+                        : freeModels.map((m: FreeModel) => ({
+                            value: m.id,
+                            label: `${m.name} (${m.id}) — ${formatContext(m.context_length, t)}`,
+                          }))
+                    }
+                    onChange={(v) => setModel(v)}
+                  />
                 ) : (
                   <FloatingLabelInput
                     label={t('modelConfig.openrouter.model.custom_placeholder')}
@@ -618,17 +616,14 @@ export default function WikiAIConfigPage() {
                 </div>
 
                 {geminiModelSource === 'free' ? (
-                  <select
+                  <Select3D
                     value={geminiModel}
-                    onChange={(e) => setGeminiModel(e.target.value)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {(geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS).map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.id}) — {formatContext(m.context_length, t)}
-                      </option>
-                    ))}
-                  </select>
+                    options={(geminiFreeModels.length > 0 ? geminiFreeModels : DEFAULT_GEMINI_FREE_MODELS).map((m: FreeModel) => ({
+                      value: m.id,
+                      label: `${m.name} (${m.id}) — ${formatContext(m.context_length, t)}`,
+                    }))}
+                    onChange={(v) => setGeminiModel(v)}
+                  />
                 ) : (
                   <FloatingLabelInput
                     label={t('modelConfig.gemini.model.custom_placeholder')}

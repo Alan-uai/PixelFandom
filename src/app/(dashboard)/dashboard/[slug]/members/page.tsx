@@ -13,6 +13,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserMinus, Shield, ShieldCheck, UserPlus, Copy, Download, Clock, X } from 'lucide-react';
+import { Select3D } from '@/components/ui/select3d';
 import type { TenantMember } from '@/supabase/client';
 
 type InviteRow = {
@@ -262,16 +263,11 @@ export default function WikiMembersPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {!isOwner && (
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
-                          disabled={updating === member.user_id}
-                          className="h-8 rounded-md border bg-background px-2 text-xs"
-                        >
-                          <option value="admin">{t('roles.admin')}</option>
-                          <option value="editor">{t('roles.editor')}</option>
-                          <option value="viewer">{t('roles.viewer')}</option>
-                        </select>
+                        <Select3D value={member.role} options={[
+                          {value: 'admin', label: t('roles.admin')},
+                          {value: 'editor', label: t('roles.editor')},
+                          {value: 'viewer', label: t('roles.viewer')},
+                        ]} onChange={(v) => handleRoleChange(member.user_id, v)} disabled={updating === member.user_id} className="w-28" />
                       )}
                       {!isOwner && !isSelf && (
                         <Button variant="ghost" size="icon" onClick={() => handleRemove(member.user_id)} disabled={updating === member.user_id}>
@@ -300,33 +296,23 @@ export default function WikiMembersPage() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                   type="email"
                 />
-                <div>
-                  <label className="text-xs font-medium mb-1 block">{t('invites.create_card.role_label')}</label>
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value)}
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="admin">{t('roles.admin')}</option>
-                    <option value="editor">{t('roles.editor')}</option>
-                    <option value="viewer">{t('roles.viewer')}</option>
-                  </select>
+<div>
+                    <Select3D label={t('invites.create_card.role_label')} value={inviteRole} options={[
+                      {value: 'admin', label: t('roles.admin')},
+                      {value: 'editor', label: t('roles.editor')},
+                      {value: 'viewer', label: t('roles.viewer')},
+                    ]} onChange={(v) => setInviteRole(v)} />
+                  </div>
+              </div>
+<div>
+                  <Select3D label={t('invites.create_card.expiry_label')} value={inviteExpiry} options={[
+                    {value: '3600000', label: t('invites.create_card.expiry_1hour')},
+                    {value: '86400000', label: t('invites.create_card.expiry_24hours')},
+                    {value: '604800000', label: t('invites.create_card.expiry_7days')},
+                    {value: '2592000000', label: t('invites.create_card.expiry_30days')},
+                    {value: 'never', label: t('invites.create_card.expiry_never')},
+                  ]} onChange={(v) => setInviteExpiry(v)} />
                 </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium mb-1 block">{t('invites.create_card.expiry_label')}</label>
-                <select
-                  value={inviteExpiry}
-                  onChange={(e) => setInviteExpiry(e.target.value)}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                >
-                  <option value="3600000">{t('invites.create_card.expiry_1hour')}</option>
-                  <option value="86400000">{t('invites.create_card.expiry_24hours')}</option>
-                  <option value="604800000">{t('invites.create_card.expiry_7days')}</option>
-                  <option value="2592000000">{t('invites.create_card.expiry_30days')}</option>
-                  <option value="never">{t('invites.create_card.expiry_never')}</option>
-                </select>
-              </div>
               <Button onClick={handleSendInvite} disabled={sendingInvite || !inviteEmail} className="w-full">
                 {sendingInvite ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
                 {sendingInvite ? t('invites.create_card.sending') : t('invites.create_card.submit')}

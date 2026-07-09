@@ -9,6 +9,7 @@ import { Trash2, GripVertical, ChevronUp, ChevronDown, Code2 } from 'lucide-reac
 import { EmbedBuilder } from './embed-builder';
 import type { BotAction, BotActionType } from './types';
 import { ACTION_LABELS, ACTION_TYPE_CATEGORIES } from './types';
+import { Select3D } from '@/components/ui/select3d';
 import { VariablePicker } from './variable-picker';
 
 function insertAtCursor(textarea: HTMLTextAreaElement | null, text: string): string {
@@ -110,17 +111,12 @@ function CreateChannelPayloadForm({ payload, onChange }: { payload: Record<strin
         className="text-xs"
       />
       <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Tipo</label>
-        <select
-          value={payload.type ?? 'text'}
-          onChange={(e) => onChange({ ...payload, type: e.target.value })}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="text">Texto</option>
-          <option value="voice">Voz</option>
-          <option value="forum">Fórum</option>
-          <option value="announcement">Anúncios</option>
-        </select>
+        <Select3D label="Tipo" value={payload.type ?? 'text'} options={[
+          {value: 'text', label: 'Texto'},
+          {value: 'voice', label: 'Voz'},
+          {value: 'forum', label: 'Fórum'},
+          {value: 'announcement', label: 'Anúncios'},
+        ]} onChange={(v) => onChange({ ...payload, type: v })} />
       </div>
       <div className="col-span-2">
         <FloatingLabelInput
@@ -374,17 +370,12 @@ function CreateInvitePayloadForm({ payload, onChange }: { payload: Record<string
 function SetBotStatusPayloadForm({ payload, onChange }: { payload: Record<string, any>; onChange: (p: Record<string, any>) => void }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">Status</label>
-      <select
-        value={payload.status ?? 'online'}
-        onChange={(e) => onChange({ ...payload, status: e.target.value })}
-        className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-      >
-        <option value="online">Online</option>
-        <option value="idle">Ausente</option>
-        <option value="dnd">Não Perturbe</option>
-        <option value="invisible">Invisível</option>
-      </select>
+      <Select3D label="Status" value={payload.status ?? 'online'} options={[
+        {value: 'online', label: 'Online'},
+        {value: 'idle', label: 'Ausente'},
+        {value: 'dnd', label: 'Não Perturbe'},
+        {value: 'invisible', label: 'Invisível'},
+      ]} onChange={(v) => onChange({ ...payload, status: v })} />
     </div>
   );
 }
@@ -407,15 +398,10 @@ function CreateThreadPayloadForm({ payload, onChange }: { payload: Record<string
         className="text-xs"
       />
       <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Tipo</label>
-        <select
-          value={payload.type ?? 'public_thread'}
-          onChange={(e) => onChange({ ...payload, type: e.target.value })}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="public_thread">Thread Pública</option>
-          <option value="private_thread">Thread Privada</option>
-        </select>
+        <Select3D label="Tipo" value={payload.type ?? 'public_thread'} options={[
+          {value: 'public_thread', label: 'Thread Pública'},
+          {value: 'private_thread', label: 'Thread Privada'},
+        ]} onChange={(v) => onChange({ ...payload, type: v })} />
       </div>
     </div>
   );
@@ -536,26 +522,16 @@ function CreateEventPayloadForm({ payload, onChange }: { payload: Record<string,
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Tipo</label>
-          <select
-            value={payload.entityType ?? 'voice'}
-            onChange={(e) => onChange({ ...payload, entityType: e.target.value })}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            <option value="voice">Voz</option>
-            <option value="stage">Stage</option>
-            <option value="external">Externo</option>
-          </select>
+          <Select3D label="Tipo" value={payload.entityType ?? 'voice'} options={[
+            {value: 'voice', label: 'Voz'},
+            {value: 'stage', label: 'Stage'},
+            {value: 'external', label: 'Externo'},
+          ]} onChange={(v) => onChange({ ...payload, entityType: v })} />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Privacidade</label>
-          <select
-            value={payload.privacyLevel ?? 'guild_only'}
-            onChange={(e) => onChange({ ...payload, privacyLevel: e.target.value })}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            <option value="guild_only">Apenas servidor</option>
-          </select>
+          <Select3D label="Privacidade" value={payload.privacyLevel ?? 'guild_only'} options={[
+            {value: 'guild_only', label: 'Apenas servidor'},
+          ]} onChange={(v) => onChange({ ...payload, privacyLevel: v })} />
         </div>
       </div>
       <FloatingLabelTextarea
@@ -767,15 +743,10 @@ export function ActionConfigForm({ action, onChange }: { action: BotAction; onCh
             className="text-xs"
           />
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Mutado</label>
-            <select
-              value={action.payload.mute ? 'true' : 'false'}
-              onChange={(e) => updatePayload({ ...action.payload, mute: e.target.value === 'true' })}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="true">Sim</option>
-              <option value="false">Não</option>
-            </select>
+            <Select3D label="Mutado" value={action.payload.mute ? 'true' : 'false'} options={[
+              {value: 'true', label: 'Sim'},
+              {value: 'false', label: 'Não'},
+            ]} onChange={(v) => updatePayload({ ...action.payload, mute: v === 'true' })} />
           </div>
         </div>
       );
@@ -790,15 +761,10 @@ export function ActionConfigForm({ action, onChange }: { action: BotAction; onCh
             className="text-xs"
           />
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Ensurdecer</label>
-            <select
-              value={action.payload.deafen ? 'true' : 'false'}
-              onChange={(e) => updatePayload({ ...action.payload, deafen: e.target.value === 'true' })}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="true">Sim</option>
-              <option value="false">Não</option>
-            </select>
+            <Select3D label="Ensurdecer" value={action.payload.deafen ? 'true' : 'false'} options={[
+              {value: 'true', label: 'Sim'},
+              {value: 'false', label: 'Não'},
+            ]} onChange={(v) => updatePayload({ ...action.payload, deafen: v === 'true' })} />
           </div>
         </div>
       );

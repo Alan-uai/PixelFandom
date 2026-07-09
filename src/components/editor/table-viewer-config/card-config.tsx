@@ -2,7 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { SelectField } from '@/components/page-builder/config-panels/shared/fields';
+import { Select3D } from '@/components/ui/select3d';
 
 export function CardConfig({
   config,
@@ -18,7 +18,7 @@ export function CardConfig({
 
   return (
     <div className="space-y-4">
-      <SelectField
+      <Select3D
         label="Tamanho do card"
         value={c.size || 'md'}
         options={[
@@ -29,7 +29,7 @@ export function CardConfig({
         onChange={(v) => onChange({ ...c, size: v })}
       />
 
-      <SelectField
+      <Select3D
         label="Efeito hover"
         value={c.hoverEffect || 'scale'}
         options={[
