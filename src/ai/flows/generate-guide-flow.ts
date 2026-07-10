@@ -15,7 +15,6 @@ export const GenerateGuideOutputSchema = z.object({
   summary: z.string().describe('Resumo conciso de 2-3 frases sobre o guia.'),
   content: z.string().describe('JSON string do conteúdo no formato TipTap ProseMirror (doc com content array).'),
   tags: z.string().describe('Tags relevantes separadas por vírgula (3-5 tags).'),
-  tables: z.string().describe('JSON string de array de referências a tabelas de dados do jogo: [{table: string, id: string}].'),
 });
 export type GenerateGuideOutput = z.infer<typeof GenerateGuideOutputSchema>;
 
@@ -69,13 +68,11 @@ Regras obrigatórias:
 
 5. **Tags:** Gere 3-5 tags relevantes em minúsculo, separadas por vírgula. Inclua termos que jogadores usariam para buscar (ex: "guia, armas, iniciante, dano, mundo 3").
 
-6. **Tables:** Inclua um array JSON de referências a tabelas de dados do jogo que foram usadas para criar o guia. Cada entrada deve ter {table: string, id: string}. Exemplo: [{"table":"powers","id":"power-123"},{"table":"npcs","id":"npc-456"}]. Se nenhuma tabela foi usada, retorne [].
-
 7. **targetSlug (modo melhoria):** Se um targetSlug for fornecido, significa que você está MELHORANDO um guia existente. Nesse caso, reestruture o conteúdo existente em vez de criar do zero — melhore a organização, adicione informações relevantes dos dados fornecidos e corrija problemas.
 
 8. **Game Data:** Use os dados fornecidos em gameDataContext para enriquecer o guia com informações precisas sobre itens, stats, NPCs, etc. NÃO invente dados.
 
-Responda APENAS com um objeto JSON contendo os campos: title, summary, content, tags, tables.`;
+Responda APENAS com um objeto JSON contendo os campos: title, summary, content, tags.`;
 
 export async function generateGuide(input: GenerateGuideInput): Promise<GenerateGuideOutput> {
   const userPrompt = `Tópico do Guia: ${input.topic}
@@ -109,7 +106,6 @@ Gere um guia completo e bem estruturado em português (PT-BR) seguindo as regras
           content: [{ type: 'paragraph', content: [{ type: 'text', text: GENERIC_ERROR_MESSAGE }] }],
         }),
         tags: 'erro',
-        tables: '[]',
       };
     }
 
@@ -122,7 +118,6 @@ Gere um guia completo e bem estruturado em português (PT-BR) seguindo as regras
         content: [{ type: 'paragraph', content: [{ type: 'text', text: GENERIC_ERROR_MESSAGE }] }],
       }),
       tags: parsed.tags || 'guia',
-      tables: parsed.tables || '[]',
     };
   } catch (error) {
     console.error('Erro no fluxo de geração de guia:', error);
@@ -134,7 +129,6 @@ Gere um guia completo e bem estruturado em português (PT-BR) seguindo as regras
         content: [{ type: 'paragraph', content: [{ type: 'text', text: GENERIC_ERROR_MESSAGE }] }],
       }),
       tags: 'erro',
-      tables: '[]',
     };
   }
 }

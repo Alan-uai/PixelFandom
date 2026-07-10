@@ -30,7 +30,7 @@ Siga estas regras estritamente:
 5. **Tags:** Gere uma lista de tags relevantes separadas por vírgula. Inclua o nome do mundo, os nomes das subcoleções presentes e termos gerais como "guia", "dicas", "novo mundo".
 6. **Saída Final:** A saída DEVE ser um único objeto JSON contendo o artigo da wiki formatado, encapsulado em uma chave 'wikiArticleJson'. O valor dessa chave deve ser uma string JSON válida.
 
-Responda em JSON com {wikiArticleJson: "{"id":"...","title":"...","summary":"...","content":"...","tags":"...","imageUrl":"","tables":{}}"}`;
+Responda em JSON com {wikiArticleJson: "{"id":"...","title":"...","summary":"...","content":"...","tags":"...","imageUrl":""}}"`;
 
 export async function generateWikiArticleFromData(input: GenerateWikiArticleFromDataInput): Promise<GenerateWikiArticleFromDataOutput> {
   const userPrompt = `**Dados do Mundo para Análise:**
@@ -66,7 +66,6 @@ Estrutue o objeto JSON de saída.`;
       content: GENERIC_ERROR_MESSAGE,
       tags: 'erro',
       imageUrl: '',
-      tables: {}
     };
     return { wikiArticleJson: JSON.stringify(errorArticle) };
   }

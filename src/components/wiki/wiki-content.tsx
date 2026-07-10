@@ -5,14 +5,15 @@ import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { escapeHtml } from '@/lib/content-utils';
+import { UserMentionHydrator } from './user-mention-popover';
 
 type WikiContentProps = {
   content: string | null;
   className?: string;
+  wikiSlug?: string;
 };
 
-export function WikiContent({ content, className = '' }: WikiContentProps) {
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+export function WikiContent({ content, className = '', wikiSlug }: WikiContentProps) {
   const html = useMemo(() => {
     if (!content) return null;
 
@@ -35,25 +36,93 @@ export function WikiContent({ content, className = '' }: WikiContentProps) {
       }
     }
 
+    // Pre-process smart mentions before markdown
+    const preprocessed = preprocessSmartMentions(trimmed, wikiSlug);
+
     // Default: render as markdown
     try {
-      const html = micromark(content, { allowDangerousHtml: true, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
+      const html = micromark(preprocessed, { allowDangerousHtml: true, extensions: [gfmTable()], htmlExtensions: [gfmTableHtml()] });
       return sanitizeHtml(html);
     } catch {
       return `<p>${escapeHtml(content)}</p>`;
     }
-  }, [content]);
+  }, [content, wikiSlug]);
 
   if (!html) {
     return <p className="text-muted-foreground">Esta página ainda não tem conteúdo.</p>;
   }
 
   return (
-    <div
-      className={`prose prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary prose-img:rounded-lg prose-pre:bg-muted prose-pre:border ${className}`}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <>
+      <UserMentionHydrator />
+      <div
+        className={`prose prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary prose-img:rounded-lg prose-pre:bg-muted prose-pre:border ${className}`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </>
   );
+}
+
+function preprocessSmartMentions(text: string, wikiSlug?: string): string {
+  let result = text;
+
+  // $l<url> → external link (must be before other patterns to avoid conflicts)
+  result = result.replace(
+    /\$l<([^>]+)>/g,
+    (_, url: string) => {
+      const sanitized = url.trim();
+      if (!sanitized) return '';
+      const href = sanitized.startsWith('http://') || sanitized.startsWith('https://')
+        ? sanitized
+        : `https://${sanitized}`;
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="smart-mention link-mention">🔗 ${escapeHtml(sanitized)}</a>`;
+    },
+  );
+
+  // $t<slug> → table link
+  result = result.replace(
+    /\$t<([^>]+)>/g,
+    (_, slug: string) => {
+      const s = slug.trim().toLowerCase();
+      if (!s) return '';
+      const href = wikiSlug ? `/w/${wikiSlug}/${s}` : `/${s}`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention table-mention" data-type="table" data-slug="${escapeHtml(s)}">▦ ${escapeHtml(s)}</a>`;
+    },
+  );
+
+  // $i<slug> → item link (resolve via search)
+  result = result.replace(
+    /\$i<([^>]+)>/g,
+    (_, name: string) => {
+      const n = name.trim().toLowerCase();
+      if (!n) return '';
+      const href = wikiSlug ? `/w/${wikiSlug}?search=${encodeURIComponent(n)}` : `/?search=${encodeURIComponent(n)}`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention item-mention" data-type="item" data-slug="${escapeHtml(n)}">◇ ${escapeHtml(n)}</a>`;
+    },
+  );
+
+  // $a<slug> → article link
+  result = result.replace(
+    /\$a<([^>]+)>/g,
+    (_, slug: string) => {
+      const s = slug.trim().toLowerCase();
+      if (!s) return '';
+      const href = wikiSlug ? `/w/${wikiSlug}/${s}` : `/${s}`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention article-mention" data-type="article" data-slug="${escapeHtml(s)}">📄 ${escapeHtml(s)}</a>`;
+    },
+  );
+
+  // $@<username> → user mention
+  result = result.replace(
+    /\$@<([^>]+)>/g,
+    (_, username: string) => {
+      const u = username.trim();
+      if (!u) return '';
+      return `<span class="user-mention" data-username="${escapeHtml(u)}">@${escapeHtml(u)}</span>`;
+    },
+  );
+
+  return result;
 }
 
 function renderTipTapJSON(json: string): string {
@@ -86,12 +155,12 @@ function renderRawJson(data: unknown): string {
 
   if (obj.description) {
     parts.push(
-      `<p class="text-muted-foreground border-l-2 border-primary/40 pl-4 mb-4">${escapeHtml(String(obj.description))}</p>`
+      `<p class="text-muted-foreground border-l-2 border-primary/40 pl-4 mb-4">${escapeHtml(String(obj.description))}</p>`,
     );
   }
 
   const fields = Object.entries(obj).filter(
-    ([key, val]) => !skipKeys.has(key) && val != null && val !== ''
+    ([key, val]) => !skipKeys.has(key) && val != null && val !== '',
   );
 
   if (fields.length > 0) {
@@ -107,7 +176,7 @@ function renderRawJson(data: unknown): string {
         display = escapeHtml(String(val));
       }
       parts.push(
-        `<tr class="border-b border-border"><td class="py-2 pr-4 font-medium text-sm align-top whitespace-nowrap">${label}</td><td class="py-2 text-sm">${display}</td></tr>`
+        `<tr class="border-b border-border"><td class="py-2 pr-4 font-medium text-sm align-top whitespace-nowrap">${label}</td><td class="py-2 text-sm">${display}</td></tr>`,
       );
     }
     parts.push('</tbody></table>');
@@ -293,5 +362,3 @@ function renderTierlistBlock(node: any): string {
   parts.push('</div>');
   return parts.join('\n');
 }
-
-

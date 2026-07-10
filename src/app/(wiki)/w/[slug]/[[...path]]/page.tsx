@@ -378,7 +378,7 @@ export default function WikiPage() {
                 </div>
 
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <WikiContent content={article.content} />
+                  <WikiContent content={article.content} wikiSlug={slug} />
                 </div>
 
                 <div className="mt-12 pt-8 border-t">

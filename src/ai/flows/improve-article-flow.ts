@@ -7,7 +7,6 @@ export const ImproveArticleInputSchema = z.object({
   content: z.string().describe('JSON string do conteúdo atual no formato TipTap ProseMirror doc.'),
   summary: z.string().describe('O resumo atual do artigo.'),
   tags: z.string().describe('Tags atuais separadas por vírgula.'),
-  tables: z.string().describe('JSON string das referências atuais a tabelas de dados.'),
   gameDataContext: z.string().describe('String JSON com dados relevantes do jogo para enriquecer o artigo.'),
   tone: z.enum(['guia', 'tutorial', 'analise']).describe('O tom desejado para o artigo reestruturado.'),
 });
@@ -18,7 +17,6 @@ export const ImproveArticleOutputSchema = z.object({
   summary: z.string().describe('O resumo melhorado do artigo (2-3 frases).'),
   content: z.string().describe('JSON string do conteúdo reestruturado no formato TipTap ProseMirror doc.'),
   tags: z.string().describe('Tags relevantes separadas por vírgula (3-5 tags).'),
-  tables: z.string().describe('JSON string de array de referências a tabelas: [{table: string, id: string}].'),
 });
 export type ImproveArticleOutput = z.infer<typeof ImproveArticleOutputSchema>;
 
@@ -86,9 +84,7 @@ Regras obrigatórias:
 
 5. **Tags:** Gere 3-5 tags relevantes em minúsculo, separadas por vírgula.
 
-6. **Tables:** Inclua um array JSON de referências a tabelas de dados do jogo usadas no artigo. Cada entrada: {table: string, id: string}. Retorne [] se nenhuma.
-
-Responda APENAS com um objeto JSON contendo: title, summary, content, tags, tables.`;
+Responda APENAS com um objeto JSON contendo: title, summary, content, tags.`;
 
 export async function improveArticle(input: ImproveArticleInput): Promise<ImproveArticleOutput> {
   const existingText = extractArticleText(input.content);
@@ -97,7 +93,7 @@ export async function improveArticle(input: ImproveArticleInput): Promise<Improv
 Título: ${input.title}
 Resumo: ${input.summary}
 Tags: ${input.tags}
-Tabelas Referenciadas: ${input.tables}
+
 
 Conteúdo do Artigo:
 ${existingText}
@@ -128,7 +124,6 @@ Reestruture este artigo como um guia completo e bem organizado em português (PT
         summary: GENERIC_ERROR_MESSAGE,
         content: input.content,
         tags: input.tags,
-        tables: input.tables,
       };
     }
 
@@ -138,7 +133,6 @@ Reestruture este artigo como um guia completo e bem organizado em português (PT
       summary: parsed.summary || input.summary,
       content: parsed.content || input.content,
       tags: parsed.tags || input.tags,
-      tables: parsed.tables || input.tables,
     };
   } catch (error) {
     console.error('Erro no fluxo de melhoria de artigo:', error);
@@ -147,7 +141,6 @@ Reestruture este artigo como um guia completo e bem organizado em português (PT
       summary: GENERIC_ERROR_MESSAGE,
       content: input.content,
       tags: input.tags,
-      tables: input.tables,
     };
   }
 }

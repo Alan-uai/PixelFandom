@@ -23,7 +23,6 @@ import {
   Redo,
   Upload,
   Loader2,
-  Gamepad2,
   Layers,
   Library,
   FileUp,
@@ -32,8 +31,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import TurndownService from 'turndown';
-import { GameItemEmbed, TierlistBlock } from './extensions';
-import { GameItemSelector } from './game-item-selector';
+import { GameItemEmbed, TierlistBlock, SmartMention } from './extensions';
 import { MediaLibrary } from '@/components/ui/media-library';
 
 const turndown = new TurndownService({
@@ -63,6 +61,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       Underline,
       GameItemEmbed,
       TierlistBlock,
+      SmartMention,
     ],
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
@@ -82,7 +81,6 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
   const imageInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [slug, setSlug] = useState('');
-  const [showGameItemSelector, setShowGameItemSelector] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
 
   useEffect(() => {
@@ -92,14 +90,6 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       setSlug(parts[dashIdx + 1]);
     }
   }, []);
-
-  const handleGameItemSelect = useCallback((table: string, itemId: string, itemName: string) => {
-    if (!editor) return;
-    editor.chain().focus().insertContent({
-      type: 'gameItemEmbed',
-      attrs: { table, itemId, itemName },
-    }).run();
-  }, [editor]);
 
   const handleInsertTierlist = useCallback(() => {
     if (!editor) return;
@@ -269,9 +259,6 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
 
         <Divider />
 
-        <ToolbarButton onClick={() => setShowGameItemSelector(true)}>
-          <Gamepad2 className="h-4 w-4" />
-        </ToolbarButton>
         <ToolbarButton onClick={handleInsertTierlist}>
           <Layers className="h-4 w-4" />
         </ToolbarButton>
@@ -323,14 +310,6 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
         </ToolbarButton>
       </div>
       <EditorContent editor={editor} />
-      {slug && (
-        <GameItemSelector
-          open={showGameItemSelector}
-          onClose={() => setShowGameItemSelector(false)}
-          onSelect={handleGameItemSelect}
-          tenantId={slug}
-        />
-      )}
       <MediaLibrary
         open={showLibrary}
         onOpenChange={setShowLibrary}

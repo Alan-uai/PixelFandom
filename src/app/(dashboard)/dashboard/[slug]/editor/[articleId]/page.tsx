@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
-import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History, Clock } from 'lucide-react';
+import { extractPendingLinks } from '@/lib/smart-mention-queries';
+import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, History } from 'lucide-react';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -32,8 +33,6 @@ import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
-import { extractTextFromFile } from '@/ai/flows/extract-text-from-file-flow';
-import { formatTextToJson } from '@/ai/flows/format-text-to-json-flow';
 import { supabase } from '@/supabase';
 import { RealtimeCursors } from '@/components/editor/realtime-cursors';
 import { RealtimeIndicator } from '@/components/editor/realtime-indicator';
@@ -53,7 +52,7 @@ const articleSchema = z.object({
   imageUrl: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
   bannerImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
   ogImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
-  tables: z.string().max(500000, 'JSON muito grande.').optional(),
+
 });
 
 type ArticleFormData = z.infer<typeof articleSchema>;
@@ -67,8 +66,6 @@ function EditPageContent() {
 
   const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [isFormatting, setIsFormatting] = useState(false);
   const [changeSummary, setChangeSummary] = useState('');
   const [versions, setVersions] = useState<any[]>([]);
   const [showVersions, setShowVersions] = useState(false);
@@ -93,8 +90,6 @@ function EditPageContent() {
   const [isArticleLoading, setIsArticleLoading] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -138,7 +133,6 @@ function EditPageContent() {
       imageUrl: '',
       bannerImage: '',
       ogImage: '',
-      tables: '',
     },
   });
 
@@ -157,7 +151,6 @@ function EditPageContent() {
             content: generatedArticle.content || '',
             tags: Array.isArray(generatedArticle.tags) ? generatedArticle.tags.join(', ') : generatedArticle.tags || '',
             imageUrl: generatedArticle.imageUrl || '',
-            tables: generatedArticle.tables ? JSON.stringify(generatedArticle.tables, null, 2) : '',
           });
           sessionStorage.removeItem('generated-wiki-article');
         } catch (error) {
@@ -178,7 +171,6 @@ function EditPageContent() {
         imageUrl: article.image_url,
         bannerImage: article.banner_image || '',
         ogImage: article.og_image || '',
-        tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
       });
       if (article.scheduled_at) {
         setScheduleEnabled(true);
@@ -239,68 +231,6 @@ function EditPageContent() {
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, extractionType: 'markdown' | 'json') => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsExtracting(true);
-    toast({ title: 'Processando arquivo...', description: 'A IA está extraindo o texto. Isso pode levar um momento.' });
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const fileDataUri = reader.result as string;
-
-        const result = await extractTextFromFile({ fileDataUri, extractionType });
-
-        if (result.extractedText) {
-          if (extractionType === 'markdown') {
-            setValue('content', result.extractedText);
-          } else if (extractionType === 'json') {
-            setValue('tables', result.extractedText);
-          }
-          toast({ title: 'Texto Extraído!', description: `O campo de ${extractionType === 'markdown' ? 'conteúdo' : 'tabelas'} foi preenchido.` });
-        } else {
-          throw new Error('A IA não retornou texto.');
-        }
-      };
-      reader.onerror = (error) => {
-        throw error;
-      }
-    } catch (error) {
-      console.error(`Erro ao extrair texto para ${extractionType}:`, error);
-      toast({ variant: 'destructive', title: 'Erro na Extração', description: 'Não foi possível extrair o texto do arquivo.' });
-    } finally {
-      setIsExtracting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleFormatText = async () => {
-    const rawText = form.getValues('tables');
-    if (!rawText) {
-      toast({ variant: 'destructive', title: 'Campo Vazio', description: 'Por favor, insira o texto a ser formatado no campo de tabelas.' });
-      return;
-    }
-    setIsFormatting(true);
-    try {
-      const result = await formatTextToJson({ rawText });
-      if (result.jsonString && result.jsonString !== '[]') {
-        const parsed = JSON.parse(result.jsonString);
-        setValue('tables', JSON.stringify(parsed, null, 2));
-        toast({ title: 'Texto Formatado!', description: 'O texto foi convertido para JSON com sucesso.' });
-      } else {
-        throw new Error('A IA não conseguiu formatar o texto.');
-      }
-    } catch (error) {
-      console.error('Erro ao formatar texto:', error);
-      toast({ variant: 'destructive', title: 'Erro na Formatação', description: 'Não foi possível formatar o texto para JSON.' });
-    } finally {
-      setIsFormatting(false);
-    }
-  };
-
   const handleGenerateGuide = async () => {
     if (!guideTopic.trim() || !tenantId || !slug) return;
     setIsGeneratingGuide(true);
@@ -333,9 +263,6 @@ function EditPageContent() {
         form.setValue('content', result.content);
         form.setValue('summary', result.summary || '');
         form.setValue('tags', result.tags || '');
-        if (result.tables) {
-          form.setValue('tables', result.tables);
-        }
         if (result.title) {
           form.setValue('title', result.title);
         }
@@ -372,7 +299,6 @@ function EditPageContent() {
         content: contentText,
         summary: values.summary,
         tags: values.tags,
-        tables: values.tables || '[]',
         gameDataContext,
         tone: guideTone,
       });
@@ -381,9 +307,6 @@ function EditPageContent() {
         form.setValue('content', result.content);
         form.setValue('summary', result.summary || values.summary);
         form.setValue('tags', result.tags || values.tags);
-        if (result.tables) {
-          form.setValue('tables', result.tables);
-        }
         toast({ title: 'Artigo Melhorado!', description: 'O artigo foi reestruturado. Revise e salve.' });
       }
     } catch (error) {
@@ -396,20 +319,17 @@ function EditPageContent() {
 
   const onSubmit = async (values: ArticleFormData) => {
     const now = new Date().toISOString();
-    let parsedTables = article?.tables;
-    if (values.tables) {
-      try {
-        parsedTables = JSON.parse(values.tables);
-        if (typeof parsedTables !== 'object' || parsedTables === null) {
-          throw new Error('JSON deve ser um objeto ou array');
-        }
-      } catch (e) {
-        const msg = e instanceof SyntaxError
-          ? 'O JSON das tabelas é inválido. Verifique a sintaxe.'
-          : 'A estrutura JSON das tabelas é inválida.';
-        toast({ variant: 'destructive', title: 'Erro de JSON', description: msg });
-        throw e;
-      }
+
+    const pendingLinks = extractPendingLinks(values.content || '');
+
+    const existingPending = (article?.pending_links as any[]) || [];
+    const mergedPending = [...existingPending];
+
+    for (const link of pendingLinks) {
+      const exists = mergedPending.some(
+        (e) => e.type === link.type && e.slug === link.slug,
+      );
+      if (!exists) mergedPending.push(link);
     }
 
     const slug = values.title
@@ -429,7 +349,7 @@ function EditPageContent() {
       image_url: values.imageUrl ? sanitizeUrl(values.imageUrl.trim()) : null,
       banner_image: values.bannerImage ? sanitizeUrl(values.bannerImage.trim()) : null,
       og_image: values.ogImage ? sanitizeUrl(values.ogImage.trim()) : null,
-      tables: parsedTables,
+      pending_links: mergedPending,
       tenant_id: tenantId,
       created_at: isNewArticle ? now : article?.created_at,
       updated_at: now,
@@ -518,7 +438,6 @@ function EditPageContent() {
         imageUrl: values.imageUrl || undefined,
         bannerImage: values.bannerImage || undefined,
         ogImage: values.ogImage || undefined,
-        tables: values.tables || '',
       };
       form.reset(valuesToReset);
       setChangeSummary('');
@@ -582,8 +501,6 @@ function EditPageContent() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <input type="file" ref={fileInputRef} onChange={(_e) => {}} style={{ display: 'none' }} accept="image/*,application/pdf" />
-
               <FormField
                 control={form.control}
                 name="title"
@@ -689,46 +606,6 @@ function EditPageContent() {
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="tables"
-                render={({ field, fieldState }) => (
-                  <div>
-                    <FloatingLabelTextarea label={t('tables_label')} error={fieldState.error?.message} className="min-h-[250px] font-mono text-xs" {...field} />
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isFormatting}
-                        onClick={handleFormatText}
-                      >
-                        {isFormatting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                        {t('format_text')}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isExtracting}
-                        onClick={() => {
-                          const handler = (e: Event) => {
-                            handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>, 'json');
-                            fileInputRef.current?.removeEventListener('change', handler);
-                          };
-                          fileInputRef.current?.addEventListener('change', handler);
-                          fileInputRef.current?.click();
-                        }}
-                      >
-                        {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Text className="mr-2 h-4 w-4" />}
-                        {t('extract_from_file')}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{t('tables_hint')}</p>
-                  </div>
                 )}
               />
 
