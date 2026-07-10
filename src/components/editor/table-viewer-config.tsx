@@ -13,7 +13,6 @@ import { DisplayConfig } from './table-viewer-config/display-config';
 import { FilterConfig } from './table-viewer-config/filter-config';
 import { CategorizationConfig } from './table-viewer-config/categorization-config';
 import { CardConfig } from './table-viewer-config/card-config';
-import { DetailConfig } from './table-viewer-config/detail-config';
 import { SearchConfig } from './table-viewer-config/search-config';
 import { EmptyConfig } from './table-viewer-config/empty-config';
 import { LoadingConfig } from './table-viewer-config/loading-config';
@@ -67,16 +66,20 @@ export default function TableViewerConfig({
     return tier1[0] || tier2[0] || tier3[0] || columns[0] || null;
   }, [config.categorization, columns]);
 
+  const categorizationSecondaryColumn = useMemo(() => {
+    return config.categorization?.secondaryColumn || null;
+  }, [config.categorization]);
+
   const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
     const merged: Record<string, any> = { ...local };
     if (!merged.display) merged.display = {};
     if (!merged.display.format && global.default_format) merged.display.format = global.default_format;
     if (!merged.display.columnsCount && global.default_columns) merged.display.columnsCount = global.default_columns;
     if (!merged.display.itemsPerPage && global.items_per_page) merged.display.itemsPerPage = global.items_per_page;
-    if (!merged.display.pagination && global.pagination) merged.display.pagination = global.pagination;
+    if (merged.display.pagination === undefined && global.pagination) merged.display.pagination = global.pagination === 'paginated';
     if (!merged.card) merged.card = {};
     if (!merged.card.hoverEffect && global.hover_effect) merged.card.hoverEffect = global.hover_effect;
-    if (!merged.card.compactMode && global.card_style === 'compact') merged.card.compactMode = true;
+    if (!merged.card.layout && global.card_layout) merged.card.layout = global.card_layout;
     if (!merged.search) merged.search = {};
     if (merged.search.enabled === undefined && global.show_search !== undefined) merged.search.enabled = global.show_search;
     if (!merged.filters) merged.filters = {};
@@ -213,7 +216,6 @@ export default function TableViewerConfig({
     { id: 'filters', label: 'Filtros', component: FilterConfig },
     { id: 'categorization', label: 'Categorização', component: CategorizationConfig },
     { id: 'card', label: 'Cards', component: CardConfig },
-    { id: 'detail', label: 'Detalhes', component: DetailConfig },
     { id: 'search', label: 'Busca', component: SearchConfig },
     { id: 'emptyState', label: 'Estado Vazio', component: EmptyConfig },
     { id: 'loading', label: 'Carregamento', component: LoadingConfig },
@@ -312,6 +314,7 @@ export default function TableViewerConfig({
               items={items}
               itemsLoading={itemsLoading}
               categorizationColumn={s.id === 'filters' ? categorizationColumn : undefined}
+              categorizationSecondaryColumn={s.id === 'filters' ? categorizationSecondaryColumn : undefined}
             />
           );
         })}

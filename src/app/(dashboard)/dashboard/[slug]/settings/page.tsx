@@ -42,7 +42,7 @@ export default function WikiSettingsPage() {
     listingDisplayFormat: string; listingColumnsCount: number;
     listingItemsPerPage: number; listingPagination: string;
     listingShowSearch: boolean; listingShowFilters: boolean; listingShowHeader: boolean;
-    listingCardStyle: string; listingHoverEffect: string;
+    listingCardStyle: string; listingCardLayout: string; listingHoverEffect: string;
     articleDisplayFormat: string; articleColumnsCount: number;
     articleShowImages: boolean; articleShowSummaries: boolean;
   }>({
@@ -56,7 +56,7 @@ export default function WikiSettingsPage() {
     listingDisplayFormat: 'grid', listingColumnsCount: 4,
     listingItemsPerPage: 20, listingPagination: 'paginated',
     listingShowSearch: true, listingShowFilters: true, listingShowHeader: true,
-    listingCardStyle: 'default', listingHoverEffect: 'scale',
+    listingCardStyle: 'default', listingCardLayout: 'card', listingHoverEffect: 'scale',
     articleDisplayFormat: 'grid', articleColumnsCount: 3,
     articleShowImages: true, articleShowSummaries: true,
   });
@@ -91,6 +91,7 @@ export default function WikiSettingsPage() {
   const [listingShowFilters, setListingShowFilters] = useState(true);
   const [listingShowHeader, setListingShowHeader] = useState(true);
   const [listingCardStyle, setListingCardStyle] = useState('default');
+  const [listingCardLayout, setListingCardLayout] = useState('card');
   const [listingHoverEffect, setListingHoverEffect] = useState('scale');
   const [articleDisplayFormat, setArticleDisplayFormat] = useState('grid');
   const [articleColumnsCount, setArticleColumnsCount] = useState(3);
@@ -143,6 +144,7 @@ export default function WikiSettingsPage() {
     setListingShowFilters(listingDisplay.show_filters ?? true);
     setListingShowHeader(listingDisplay.show_header ?? true);
     setListingCardStyle(listingDisplay.card_style || 'default');
+    setListingCardLayout(listingDisplay.card_layout || 'card');
     setListingHoverEffect(listingDisplay.hover_effect || 'scale');
     const articlesDisplay = (theme.articles_display as Record<string, any>) || {};
     setArticleDisplayFormat(articlesDisplay.default_format || 'grid');
@@ -181,6 +183,7 @@ export default function WikiSettingsPage() {
       listingShowFilters: listingDisplay.show_filters ?? true,
       listingShowHeader: listingDisplay.show_header ?? true,
       listingCardStyle: listingDisplay.card_style || 'default',
+      listingCardLayout: listingDisplay.card_layout || 'card',
       listingHoverEffect: listingDisplay.hover_effect || 'scale',
       articleDisplayFormat: articlesDisplay.default_format || 'grid',
       articleColumnsCount: articlesDisplay.default_columns || 3,
@@ -233,6 +236,7 @@ export default function WikiSettingsPage() {
               show_filters: listingShowFilters,
               show_header: listingShowHeader,
               card_style: listingCardStyle,
+              card_layout: listingCardLayout,
               hover_effect: listingHoverEffect,
             },
             articles_display: {
@@ -261,7 +265,7 @@ export default function WikiSettingsPage() {
         gameTableTabsEnabled, gameTableTabsSubFormat,
         listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
         listingShowSearch, listingShowFilters, listingShowHeader,
-        listingCardStyle, listingHoverEffect,
+        listingCardStyle, listingCardLayout, listingHoverEffect,
         articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
       });
 
@@ -351,6 +355,7 @@ export default function WikiSettingsPage() {
     listingShowFilters !== savedConfig.listingShowFilters ||
     listingShowHeader !== savedConfig.listingShowHeader ||
     listingCardStyle !== savedConfig.listingCardStyle ||
+    listingCardLayout !== savedConfig.listingCardLayout ||
     listingHoverEffect !== savedConfig.listingHoverEffect ||
     articleDisplayFormat !== savedConfig.articleDisplayFormat ||
     articleColumnsCount !== savedConfig.articleColumnsCount ||
@@ -370,7 +375,7 @@ export default function WikiSettingsPage() {
       gameTableTabsEnabled, gameTableTabsSubFormat,
       listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
       listingShowSearch, listingShowFilters, listingShowHeader,
-      listingCardStyle, listingHoverEffect,
+      listingCardStyle, listingCardLayout, listingHoverEffect,
       articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
     }),
   });
@@ -689,6 +694,29 @@ export default function WikiSettingsPage() {
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="listingHeader" className="text-xs">{t('layout.show_header')}</Label>
                 <Switch id="listingHeader" checked={listingShowHeader} onCheckedChange={setListingShowHeader} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Layout dos cards</Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'card', l: 'Card' },
+                    { v: 'accordion', l: 'Acordeão' },
+                    { v: 'list', l: 'Lista' },
+                    { v: 'table', l: 'Tabela' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setListingCardLayout(opt.v)}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                        listingCardLayout === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">

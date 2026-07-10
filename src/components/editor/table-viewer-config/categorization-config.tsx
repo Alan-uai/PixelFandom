@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, GripVertical } from 'lucide-react';
 import { Icon } from '@iconify/react';
 
 export function CategorizationConfig({
@@ -98,6 +99,30 @@ export function CategorizationConfig({
       Object.entries(map).map(([k, v]) => [k, Array.from(v).sort()]),
     );
   }, [secondaryColumn, items, detectedColumn]);
+
+  // Manual group icon/image helpers
+  const manualGroups: any[] = c.manualGroups || [];
+  const subManualGroups: any[] = c.subManualGroups || [];
+
+  const updateManualGroup = (i: number, patch: Record<string, any>) => {
+    const groups = [...manualGroups];
+    groups[i] = { ...groups[i], ...patch };
+    onChange({ ...c, manualGroups: groups });
+  };
+
+  const removeManualGroup = (i: number) => {
+    onChange({ ...c, manualGroups: manualGroups.filter((_: any, j: number) => j !== i) });
+  };
+
+  const updateSubManualGroup = (i: number, patch: Record<string, any>) => {
+    const groups = [...subManualGroups];
+    groups[i] = { ...groups[i], ...patch };
+    onChange({ ...c, subManualGroups: groups });
+  };
+
+  const removeSubManualGroup = (i: number) => {
+    onChange({ ...c, subManualGroups: subManualGroups.filter((_: any, j: number) => j !== i) });
+  };
 
   return (
     <div className="space-y-4">
@@ -244,6 +269,45 @@ export function CategorizationConfig({
         <Label htmlFor="default-expanded" className="text-xs">Expandido por padrão (acordeão)</Label>
       </div>
 
+      {/* === Espaçamento entre categorias === */}
+      <div className="space-y-3 border-t pt-3">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="spacing-enabled"
+            checked={c.spacingEnabled !== false}
+            onCheckedChange={(v) => onChange({ ...c, spacingEnabled: v })}
+          />
+          <Label htmlFor="spacing-enabled" className="text-xs">Espaçamento entre categorias</Label>
+        </div>
+
+        {c.spacingEnabled !== false && (
+          <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+            <Select3D
+              label="Estilo do espaçamento"
+              value={c.spacingStyle || 'none'}
+              options={[
+                { label: 'Padrão (sem linha)', value: 'none' },
+                { label: '--- (linha simples)', value: 'single-line' },
+                { label: '=== (linhas duplas)', value: 'double-line' },
+                { label: '- - - (tracejada)', value: 'dashed' },
+              ]}
+              onChange={(v) => onChange({ ...c, spacingStyle: v })}
+            />
+            {c.spacingStyle && c.spacingStyle !== 'none' && (
+              <ElasticSlider3D
+                label="Espaçamento entre linha e conteúdo"
+                defaultValue={c.spacingValue || 16}
+                startingValue={2}
+                maxValue={32}
+                showValue
+                valueSuffix="px"
+                onValueChange={(v) => onChange({ ...c, spacingValue: Math.round(v) })}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
       <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
 
       {/* Sub-category icons per category */}
@@ -336,6 +400,63 @@ export function CategorizationConfig({
         </div>
       )}
 
+      {/* === Ordem das sub-categorias === */}
+      {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs text-muted-foreground">Ordem das sub-categorias</Label>
+            <button
+              type="button"
+              onClick={() => {
+                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                onChange({ ...c, categorySortDirection: dir });
+              }}
+              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {c.categorySortDirection === 'asc' ? (
+                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+              ) : (
+                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+              )}
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">Clique para definir posição.</p>
+          <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+            {Object.entries(secondaryValuesByCategory).flatMap(([cat, subs]) =>
+              subs.map((sub) => {
+                const key = `${cat}::${sub}`;
+                const orderIndex = ((c.subOrder as string[]) || []).indexOf(key);
+                const isOrdered = orderIndex >= 0;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      const currentOrder = (c.subOrder as string[]) || [];
+                      if (isOrdered) {
+                        onChange({ ...c, subOrder: currentOrder.filter((v) => v !== key) });
+                      } else {
+                        onChange({ ...c, subOrder: [...currentOrder, key] });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                      isOrdered
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                    <span className="text-[10px] opacity-60">{cat}:</span> {sub}
+                    {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* === Ordem das categorias === */}
       <div className="space-y-2 border-t pt-3">
         <div className="flex items-center justify-between gap-2">
           <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
@@ -393,75 +514,249 @@ export function CategorizationConfig({
         )}
       </div>
 
+      {/* === Grupos manuais (categorias personalizadas) === */}
       <div className="space-y-2 border-t pt-3">
         <Label className="text-xs text-muted-foreground">Grupos manuais</Label>
         <p className="text-[10px] text-muted-foreground">Agrupe valores existentes sob um novo nome.</p>
-        {((c.manualGroups as any[]) || []).map((mg: any, i: number) => (
-          <div key={i} className="space-y-1 rounded border p-2">
-            <Input
-              value={mg.label}
-              onChange={(e) => {
-                const groups = [...((c.manualGroups as any[]) || [])];
-                groups[i] = { ...groups[i], label: e.target.value };
-                onChange({ ...c, manualGroups: groups });
-              }}
-              placeholder="Nome do grupo"
-              className="h-7 text-xs"
-            />
-            <div className="flex flex-wrap gap-1">
-              {categoryValues.map((val) => {
-                const selected = ((mg.values as string[]) || []).includes(val);
-                return (
+        {manualGroups.map((mg: any, i: number) => {
+          const currentIcon = mg.icon || (mg.imageUrl ? mg.imageUrl : undefined);
+          const isImg = mg.imageUrl ? true : false;
+          return (
+            <div key={i} className="space-y-1 rounded border p-2">
+              <div className="flex items-center gap-2">
+                {currentIcon && (
+                  <div className="w-6 h-6 shrink-0 rounded border flex items-center justify-center bg-muted/20 overflow-hidden">
+                    {isImg ? (
+                      <Image src={mg.imageUrl} alt="" width={14} height={14} className="object-contain" />
+                    ) : (
+                      <IconRenderer icon={mg.icon} size="sm" />
+                    )}
+                  </div>
+                )}
+                <Input
+                  value={mg.label}
+                  onChange={(e) => updateManualGroup(i, { label: e.target.value })}
+                  placeholder="Nome do grupo"
+                  className="h-7 text-xs flex-1"
+                />
+              </div>
+              <div className="flex items-center gap-1 pl-8">
+                <IconPickerTrigger
+                  value={mg.icon && !isImg ? mg.icon : undefined}
+                  onChange={(iconId) => updateManualGroup(i, { icon: iconId, imageUrl: undefined })}
+                  size="sm"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem">
+                      <ImageIcon className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-48 p-2" side="bottom">
+                    <ImageUpload
+                      bucket="game-items"
+                      pathPrefix={`wiki-manual-groups/${slug}/${i}`}
+                      value={mg.imageUrl || ''}
+                      onChange={(url) => updateManualGroup(i, { imageUrl: url, icon: undefined })}
+                      label="Ícone do grupo"
+                      previewSize="w-full h-12"
+                      tenantId={tenantId}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {currentIcon && (
                   <button
-                    key={val}
                     type="button"
-                    onClick={() => {
-                      const groups = [...((c.manualGroups as any[]) || [])];
-                      const vals = (groups[i].values as string[]) || [];
-                      groups[i] = {
-                        ...groups[i],
-                        values: selected
-                          ? vals.filter((v: string) => v !== val)
-                          : [...vals, val],
-                      };
-                      onChange({ ...c, manualGroups: groups });
-                    }}
-                    className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
-                      selected
-                        ? 'bg-primary/10 border-primary/30 text-primary'
-                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
-                    }`}
+                    onClick={() => updateManualGroup(i, { icon: undefined, imageUrl: undefined })}
+                    className="text-muted-foreground hover:text-destructive shrink-0 p-0.5"
                   >
-                    {val}
+                    <Trash2 className="h-3 w-3" />
                   </button>
-                );
-              })}
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1 pl-8">
+                {categoryValues.map((val) => {
+                  const selected = ((mg.values as string[]) || []).includes(val);
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => {
+                        const vals = (mg.values as string[]) || [];
+                        updateManualGroup(i, {
+                          values: selected
+                            ? vals.filter((v: string) => v !== val)
+                            : [...vals, val],
+                        });
+                      }}
+                      className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                        selected
+                          ? 'bg-primary/10 border-primary/30 text-primary'
+                          : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between pl-8">
+                <span className="text-[10px] text-muted-foreground">
+                  Ordem: <span className="font-medium">{(c.order as string[])?.indexOf?.(mg.label) >= 0 ? ((c.order as string[])?.indexOf?.(mg.label) + 1) : 'não definida'}</span>
+                  {((c.order as string[])?.indexOf?.(mg.label) >= 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentOrder = (c.order as string[]) || [];
+                        onChange({ ...c, order: currentOrder.filter((v) => v !== mg.label) });
+                      }}
+                      className="ml-1 text-destructive hover:underline"
+                    >
+                      remover
+                    </button>
+                  )}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-6"
+                  onClick={() => removeManualGroup(i)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Remover
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-6"
-              onClick={() => {
-                const groups = ((c.manualGroups as any[]) || []).filter((_: any, j: number) => j !== i);
-                onChange({ ...c, manualGroups: groups });
-              }}
-            >
-              <Trash2 className="h-3 w-3 mr-1" /> Remover
-            </Button>
-          </div>
-        ))}
+          );
+        })}
         <Button
           variant="outline"
           size="sm"
           className="text-xs h-7"
           onClick={() => onChange({
             ...c,
-            manualGroups: [...((c.manualGroups as any[]) || []), { label: '', values: [] }],
+            manualGroups: [...manualGroups, { label: '', values: [] }],
           })}
         >
           <Plus className="h-3 w-3 mr-1" /> Adicionar grupo
         </Button>
       </div>
+
+      {/* === Sub-grupos manuais === */}
+      {secondaryColumn && (
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-xs text-muted-foreground">Sub-grupos manuais</Label>
+          <p className="text-[10px] text-muted-foreground">Agrupe valores de sub-categorias sob um novo nome.</p>
+          {subManualGroups.map((mg: any, i: number) => {
+            const currentIcon = mg.icon || (mg.imageUrl ? mg.imageUrl : undefined);
+            const isImg = mg.imageUrl ? true : false;
+            return (
+              <div key={i} className="space-y-1 rounded border p-2">
+                <div className="flex items-center gap-2">
+                  {currentIcon && (
+                    <div className="w-6 h-6 shrink-0 rounded border flex items-center justify-center bg-muted/20 overflow-hidden">
+                      {isImg ? (
+                        <Image src={mg.imageUrl} alt="" width={14} height={14} className="object-contain" />
+                      ) : (
+                        <IconRenderer icon={mg.icon} size="sm" />
+                      )}
+                    </div>
+                  )}
+                  <Input
+                    value={mg.label}
+                    onChange={(e) => updateSubManualGroup(i, { label: e.target.value })}
+                    placeholder="Nome do sub-grupo"
+                    className="h-7 text-xs flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-1 pl-8">
+                  <IconPickerTrigger
+                    value={mg.icon && !isImg ? mg.icon : undefined}
+                    onChange={(iconId) => updateSubManualGroup(i, { icon: iconId, imageUrl: undefined })}
+                    size="sm"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem">
+                        <ImageIcon className="h-3 w-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-48 p-2" side="bottom">
+                      <ImageUpload
+                        bucket="game-items"
+                        pathPrefix={`wiki-sub-manual-groups/${slug}/${i}`}
+                        value={mg.imageUrl || ''}
+                        onChange={(url) => updateSubManualGroup(i, { imageUrl: url, icon: undefined })}
+                        label="Ícone do sub-grupo"
+                        previewSize="w-full h-12"
+                        tenantId={tenantId}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {currentIcon && (
+                    <button
+                      type="button"
+                      onClick={() => updateSubManualGroup(i, { icon: undefined, imageUrl: undefined })}
+                      className="text-muted-foreground hover:text-destructive shrink-0 p-0.5"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 pl-8">
+                  {Object.entries(secondaryValuesByCategory).flatMap(([cat, subs]) =>
+                    subs.map((sub) => {
+                      const key = `${cat}::${sub}`;
+                      const selected = ((mg.values as string[]) || []).includes(key);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            const vals = (mg.values as string[]) || [];
+                            updateSubManualGroup(i, {
+                              values: selected
+                                ? vals.filter((v: string) => v !== key)
+                                : [...vals, key],
+                            });
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                            selected
+                              ? 'bg-primary/10 border-primary/30 text-primary'
+                              : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                          }`}
+                        >
+                          <span className="text-[10px] opacity-60">{cat}:</span> {sub}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-6"
+                    onClick={() => removeSubManualGroup(i)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" /> Remover
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => onChange({
+              ...c,
+              subManualGroups: [...subManualGroups, { label: '', values: [] }],
+            })}
+          >
+            <Plus className="h-3 w-3 mr-1" /> Adicionar sub-grupo
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

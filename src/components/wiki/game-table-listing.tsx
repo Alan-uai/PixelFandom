@@ -109,10 +109,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const fmt = displayConfig.format || displayFormat || 'grid';
   const effectiveColumnsCount = displayConfig.columnsCount || columnsCount || 3;
   const itemsPerPage = displayConfig.itemsPerPage || 50;
-  const pagination = displayConfig.pagination || 'none';
+  const pagination = displayConfig.pagination === true;
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
-  const detailConfig: Record<string, any> = viewerConfig?.detail || {};
+  const detailConfig: Record<string, any> = viewerConfig?.card || {};
 
   let cols: number;
   if (fmt === 'list') {
@@ -483,7 +483,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     category: string,
     catItems: any[],
     vc: typeof viewerConfig,
-    pg: string,
+    pg: boolean,
     ipp: number,
     style: string,
     expanded: Set<string>,
@@ -540,13 +540,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                 <span className="text-xs font-medium text-muted-foreground/70 capitalize">{sub}</span>
                 <span className="text-[10px] text-muted-foreground/40">{subItems.length}</span>
               </div>
-              {renderItems(pg === 'paginated' ? subItems.slice(0, ipp) : subItems, `${category}::${sub}`)}
+              {renderItems(pg ? subItems.slice(0, ipp) : subItems, `${category}::${sub}`)}
             </div>
           );
         })}
       </div>
     ) : (
-      renderItems(pg === 'paginated' ? catItems.slice(0, ipp) : catItems, category)
+      renderItems(pg ? catItems.slice(0, ipp) : catItems, category)
     );
 
     if (style === 'accordion') {
@@ -803,12 +803,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       ) : (
         <>
           {renderItems(
-            pagination === 'paginated'
+            pagination
               ? filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               : filteredItems,
             '_all',
           )}
-          {pagination === 'paginated' && filteredItems.length > itemsPerPage && (
+          {pagination && filteredItems.length > itemsPerPage && (
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -882,7 +882,6 @@ function ItemCard({
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
   const hoverEffectEnabled = cardConfig?.hoverEffect !== 'none';
-  const compactMode = cardConfig?.compactMode === true;
 
   const icon = getIcon(item);
   const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
@@ -932,7 +931,7 @@ function ItemCard({
     );
   }
 
-  const cardPadding = compactMode ? 'p-2.5' : 'p-4';
+  const cardPadding = 'p-3';
   const iconSize = cardSize === 'sm' ? 'h-8 w-8' : cardSize === 'lg' ? 'h-16 w-16' : 'h-12 w-12';
   const titleSize = cardSize === 'sm' ? 'text-sm' : cardSize === 'lg' ? 'text-lg' : 'font-semibold';
 

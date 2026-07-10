@@ -30,6 +30,7 @@ export function FilterConfig({
   items,
   itemsLoading,
   categorizationColumn,
+  categorizationSecondaryColumn,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
@@ -38,6 +39,7 @@ export function FilterConfig({
   items?: Record<string, unknown>[];
   itemsLoading?: boolean;
   categorizationColumn?: string | null;
+  categorizationSecondaryColumn?: string | null;
 }) {
   const c: Record<string, any> = config || {};
 
@@ -72,7 +74,7 @@ export function FilterConfig({
   const getState = (col: string) => {
     const saved = savedColumns.find((fc: any) => fc.column === col);
     const detected = detectedColumns.find((dc) => dc.column === col);
-    const isCatColumn = categorizationColumn === col;
+    const isCatColumn = categorizationColumn === col || categorizationSecondaryColumn === col;
     return {
       enabled: isCatColumn ? false : (saved !== undefined ? saved.enabled !== false : true),
       mode: saved?.mode || detected?.defaultMode || 'multiple',
@@ -81,7 +83,7 @@ export function FilterConfig({
   };
 
   const updateColumn = (col: string, updates: Record<string, unknown>) => {
-    if (categorizationColumn === col && updates.enabled === true) return;
+    if ((categorizationColumn === col || categorizationSecondaryColumn === col) && updates.enabled === true) return;
     const existing = [...savedColumns];
     const idx = existing.findIndex((fc: any) => fc.column === col);
     if (idx >= 0) {

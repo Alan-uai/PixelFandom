@@ -213,12 +213,11 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
               </ConfigField>
               <ConfigField label="Paginação">
                 <Select
-                  value={config.display?.pagination || ''}
-                  onChange={e => updateConfig('display.pagination', e.target.value || undefined)}
+                  value={typeof config.display?.pagination === 'boolean' ? (config.display.pagination ? 'paginated' : 'none') : (config.display?.pagination || '')}
+                  onChange={e => updateConfig('display.pagination', e.target.value === 'paginated' ? true : e.target.value === 'none' ? false : undefined)}
                   options={[
                     { value: '', label: 'Padrão' },
                     { value: 'paginated', label: 'Paginada' },
-                    { value: 'infinite-scroll', label: 'Scroll infinito' },
                     { value: 'none', label: 'Todos de uma vez' },
                   ]}
                 />
@@ -366,6 +365,18 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
 
             {/* Card Design Config */}
             <ConfigSection icon={CreditCard} title="Design do Card">
+              <ConfigField label="Layout">
+                <Select
+                  value={config.card?.layout || 'card'}
+                  onChange={e => updateConfig('card.layout', e.target.value)}
+                  options={[
+                    { value: 'card', label: 'Card' },
+                    { value: 'accordion', label: 'Acordeão' },
+                    { value: 'list', label: 'Lista' },
+                    { value: 'table', label: 'Tabela' },
+                  ]}
+                />
+              </ConfigField>
               <ConfigField label="Tamanho">
                 <Select
                   value={config.card?.size || 'md'}
@@ -380,7 +391,6 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
               <SwitchField label="Mostrar ícone" checked={config.card?.showIcon ?? true} onChange={v => updateConfig('card.showIcon', v)} />
               <SwitchField label="Mostrar imagem" checked={config.card?.showImage ?? true} onChange={v => updateConfig('card.showImage', v)} />
               <SwitchField label="Mostrar label" checked={config.card?.showLabel ?? true} onChange={v => updateConfig('card.showLabel', v)} />
-              <SwitchField label="Modo compacto" checked={config.card?.compactMode || false} onChange={v => updateConfig('card.compactMode', v)} />
               <ConfigField label="Efeito hover">
                 <Select
                   value={config.card?.hoverEffect || 'scale'}
@@ -393,11 +403,7 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
                   ]}
                 />
               </ConfigField>
-            </ConfigSection>
-
-            {/* Item Detail Config */}
-            <ConfigSection icon={Eye} title="Detalhe do Item (Expandido)">
-              <SwitchField label="Mostrar comparação" checked={config.detail?.showComparison ?? true} onChange={v => updateConfig('detail.showComparison', v)} />
+              <SwitchField label="Mostrar comparação" checked={config.card?.showComparison ?? true} onChange={v => updateConfig('card.showComparison', v)} />
             </ConfigSection>
 
             {/* Search Config */}

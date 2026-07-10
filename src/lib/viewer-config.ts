@@ -11,6 +11,8 @@ export const ManualGroupSchema = z.object({
   label: z.string(),
   column: z.string().optional(),
   values: z.array(z.string()),
+  icon: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 export const BadgeEntrySchema = z.object({
@@ -31,7 +33,8 @@ export const ViewerConfigSchema = z.object({
     format: z.enum(['grid', 'list', 'carousel', 'carousel_infinite']).optional(),
     columnsCount: z.number().int().min(1).max(6).optional(),
     itemsPerPage: z.number().int().min(1).max(200).optional(),
-    pagination: z.enum(['paginated', 'infinite-scroll', 'none']).optional(),
+    pagination: z.boolean().default(false),
+    paginationStyle: z.enum(['arrows', 'numbers', 'emoji']).default('arrows'),
     sortColumn: z.string().nullable().optional(),
     sortDirection: z.enum(['asc', 'desc']).default('asc'),
     gap: z.number().min(0).max(16).optional(),
@@ -60,8 +63,14 @@ export const ViewerConfigSchema = z.object({
     secondaryColumn: z.string().nullable().default(null),
     categoryIcons: z.record(z.string(), z.string()).default({}),
     secondaryIcons: z.record(z.string(), z.record(z.string(), z.string())).default({}),
+    spacingEnabled: z.boolean().default(true),
+    spacingStyle: z.enum(['none', 'single-line', 'double-line', 'dashed']).default('none'),
+    spacingValue: z.number().min(0).max(32).default(16),
+    subManualGroups: z.array(ManualGroupSchema).default([]),
+    subOrder: z.array(z.string()).default([]),
   }).optional(),
   card: z.object({
+    layout: z.enum(['card', 'accordion', 'list', 'table']).default('card'),
     size: z.enum(['sm', 'md', 'lg']).default('md'),
     showIcon: z.boolean().default(true),
     showImage: z.boolean().default(true),
@@ -70,9 +79,6 @@ export const ViewerConfigSchema = z.object({
     badgeColors: z.record(z.string(), z.string()).default({}),
     badgeConfig: z.record(z.string(), BadgeEntrySchema).default({}),
     hoverEffect: z.enum(['scale', 'glow', 'shadow', 'none']).default('scale'),
-    compactMode: z.boolean().default(false),
-  }).optional(),
-  detail: z.object({
     visibleColumns: z.array(z.string()).default([]),
     columnOrder: z.array(z.string()).default([]),
     columnFormats: z.record(z.string(), z.enum(['text', 'badge', 'color', 'icon', 'link', 'image', 'rating', 'progress'])).default({}),
