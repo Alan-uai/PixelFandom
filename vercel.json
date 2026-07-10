@@ -1,6 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/audio-processors/(.*)", "destination": "/audio-processors/$1" },
-    { "source": "/(.*)", "destination": "/$1" }
-  ]
+  "functions": {
+    "api/token.py": {
+      "maxDuration": 10
+    }
+  }
 }
