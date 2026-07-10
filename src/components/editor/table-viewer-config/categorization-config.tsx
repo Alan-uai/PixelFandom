@@ -11,7 +11,7 @@ import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Trash2, GripVertical, ImageIcon, Loader2, Tag } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp } from 'lucide-react';
 import { Icon } from '@iconify/react';
 
 export function CategorizationConfig({
@@ -337,53 +337,60 @@ export function CategorizationConfig({
       )}
 
       <div className="space-y-2 border-t pt-3">
-        <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
-        <p className="text-[10px] text-muted-foreground">Deixe vazio para ordem alfabética.</p>
-        <div className="flex flex-wrap gap-1">
-          {((c.order as string[]) || []).map((cat, i) => (
-            <div key={i} className="flex items-center gap-1 bg-muted rounded px-2 py-0.5">
-              <GripVertical className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs">{cat}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const order = ((c.order as string[]) || []).filter((_, j) => j !== i);
-                  onChange({ ...c, order });
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
+          {categoryValues.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                onChange({ ...c, categorySortDirection: dir });
+              }}
+              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              title="Alternar direção da ordenação"
+            >
+              {c.categorySortDirection === 'asc' ? (
+                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+              ) : (
+                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+              )}
+            </button>
+          )}
         </div>
-        <div className="flex gap-1">
-          <Input
-            value=""
-            placeholder="Nome da categoria"
-            className="h-7 text-xs flex-1"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                onChange({ ...c, order: [...((c.order as string[]) || []), e.currentTarget.value.trim()] });
-                e.currentTarget.value = '';
-              }
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => {
-              const input = document.activeElement as HTMLInputElement;
-              if (input?.value?.trim()) {
-                onChange({ ...c, order: [...((c.order as string[]) || []), input.value.trim()] });
-                input.value = '';
-              }
-            }}
-          >
-            <Plus className="h-3 w-3" />
-          </Button>
-        </div>
+        <p className="text-[10px] text-muted-foreground">Clique para definir posição. Vazias seguem ordem definida.</p>
+        {categoryValues.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
+            {categoryValues.map((cat) => {
+              const orderIndex = ((c.order as string[]) || []).indexOf(cat);
+              const isOrdered = orderIndex >= 0;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    const currentOrder = (c.order as string[]) || [];
+                    if (isOrdered) {
+                      onChange({ ...c, order: currentOrder.filter((v) => v !== cat) });
+                    } else {
+                      onChange({ ...c, order: [...currentOrder, cat] });
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                    isOrdered
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                  }`}
+                >
+                  {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                  {cat}
+                  {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground py-0.5">Nenhuma categoria disponível.</p>
+        )}
       </div>
 
       <div className="space-y-2 border-t pt-3">

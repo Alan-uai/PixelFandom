@@ -48,7 +48,8 @@ export default function WikiPage() {
   const articleColumns = Math.min(Math.max(((articlesDisplay.default_columns as number) || articlesPerRow), 1), 6);
 
   const mergeListingDefaults = (vc: import('@/lib/viewer-config').ViewerConfig | null, global: Record<string, unknown>): import('@/lib/viewer-config').ViewerConfig => {
-    const merged: Record<string, any> = vc ? { ...vc } : {};
+    const useGlobalOnly = vc?.source === 'global';
+    const merged: Record<string, any> = useGlobalOnly ? {} : (vc ? { ...vc } : {});
     if (!merged.display) merged.display = {};
     if (!merged.display.format && global.default_format) merged.display.format = global.default_format as string;
     if (!merged.display.columnsCount && global.default_columns) merged.display.columnsCount = global.default_columns as number;

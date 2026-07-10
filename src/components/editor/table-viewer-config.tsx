@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Globe, Laptop } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { ViewerConfigSchema } from '@/lib/viewer-config';
 import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
@@ -34,6 +34,8 @@ export default function TableViewerConfig({
   const [loading, setLoading] = useState(true);
   const [savedConfig, setSavedConfig] = useState<ViewerConfig>({});
   const [activeSection, setActiveSection] = useState<string>('header');
+  const [source, setSource] = useState<'global' | 'local'>('local');
+
   const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
   const [tableIcon, setTableIcon] = useState<string | null>(null);
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
@@ -46,6 +48,24 @@ export default function TableViewerConfig({
   const handleDiscard = useCallback(() => {
     setConfig(savedConfig);
   }, [savedConfig]);
+
+  const categorizationColumn = useMemo(() => {
+    const catConfig = config.categorization;
+    if (catConfig?.column && catConfig.column !== 'none') return catConfig.column;
+    const tier1 = columns.filter(col => {
+      const lower = col.toLowerCase();
+      return lower === 'type' || lower === 'category' || lower.endsWith('_type');
+    });
+    const tier2 = columns.filter(col => {
+      const lower = col.toLowerCase();
+      return lower === 'rarity' || lower.endsWith('_rarity');
+    });
+    const tier3 = columns.filter(col => {
+      const lower = col.toLowerCase();
+      return lower === 'element' || lower.endsWith('_element') || lower === 'tier' || lower.endsWith('_tier') || lower === 'class' || lower.endsWith('_class');
+    });
+    return tier1[0] || tier2[0] || tier3[0] || columns[0] || null;
+  }, [config.categorization, columns]);
 
   const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
     const merged: Record<string, any> = { ...local };
@@ -97,6 +117,7 @@ export default function TableViewerConfig({
         configCache.current = merged;
         setSavedConfig(merged);
         setConfig(merged);
+        setSource(merged.source || 'local');
         setLoading(false);
         return;
       }
@@ -208,11 +229,45 @@ export default function TableViewerConfig({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">{displayLabel || table} — Exibição</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Personalize como esta tabela é exibida na wiki.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold">{displayLabel || table} — Exibição</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Personalize como esta tabela é exibida na wiki.
+          </p>
+        </div>
+        <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 p-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setSource('global');
+              setConfig((prev) => ({ ...prev, source: 'global' }));
+            }}
+            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+              source === 'global'
+                ? 'bg-background shadow-sm text-foreground border'
+                : 'text-muted-foreground hover:text-foreground border border-transparent'
+            }`}
+          >
+            <Globe className="h-3 w-3" />
+            Global
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSource('local');
+              setConfig((prev) => ({ ...prev, source: 'local' }));
+            }}
+            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+              source === 'local'
+                ? 'bg-background shadow-sm text-foreground border'
+                : 'text-muted-foreground hover:text-foreground border border-transparent'
+            }`}
+          >
+            <Laptop className="h-3 w-3" />
+            Local
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 border-b pb-1 overflow-x-auto">
@@ -234,8 +289,11 @@ export default function TableViewerConfig({
 
       {Object.keys(globalDefaults).length > 0 && (
         <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 bg-muted/30 rounded-md px-3 py-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-          Valores não configurados usam os padrões globais definidos nas configurações da wiki. Salve valores específicos aqui para sobrescrever.
+          <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${source === 'global' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+          {source === 'global'
+            ? 'Usando configurações globais do Dashboard. Alternar para Local para personalizar esta tabela.'
+            : 'Usando configurações locais. Valores não configurados usam os padrões globais da wiki.'
+          }
         </div>
       )}
       <div className="rounded-lg border p-4">
@@ -253,6 +311,7 @@ export default function TableViewerConfig({
               onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
               items={items}
               itemsLoading={itemsLoading}
+              categorizationColumn={s.id === 'filters' ? categorizationColumn : undefined}
             />
           );
         })}

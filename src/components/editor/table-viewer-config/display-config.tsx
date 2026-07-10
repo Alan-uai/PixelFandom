@@ -2,8 +2,6 @@
 
 import { Select3D } from '@/components/ui/select3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 
 export function DisplayConfig({
   config,
@@ -66,14 +64,6 @@ export function DisplayConfig({
       {c.sortColumn && (
         <Select3D label="Direção da ordenação" value={c.sortDirection || 'asc'} options={[{label: 'Ascendente', value: 'asc'}, {label: 'Descendente', value: 'desc'}]} onChange={(v) => onChange({ ...c, sortDirection: v as 'asc' | 'desc' })} />
       )}
-      <div className="flex items-center gap-2">
-        <Switch
-          id="override-global"
-          checked={c.overrideGlobal || false}
-          onCheckedChange={(v) => onChange({ ...c, overrideGlobal: v })}
-        />
-        <Label htmlFor="override-global" className="text-xs">Sobrescrever configuração global</Label>
-      </div>
     </div>
   );
 }

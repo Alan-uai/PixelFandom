@@ -35,7 +35,6 @@ export const ViewerConfigSchema = z.object({
     sortColumn: z.string().nullable().optional(),
     sortDirection: z.enum(['asc', 'desc']).default('asc'),
     gap: z.number().min(0).max(16).optional(),
-    overrideGlobal: z.boolean().default(false),
   }).optional(),
   filters: z.object({
     enabled: z.boolean().default(true),
@@ -55,6 +54,7 @@ export const ViewerConfigSchema = z.object({
     showEmptyCategories: z.boolean().default(false),
     defaultExpanded: z.boolean().default(true),
     order: z.array(z.string()).default([]),
+    categorySortDirection: z.enum(['asc', 'desc']).default('asc'),
     autoDetect: z.boolean().default(true),
     manualGroups: z.array(ManualGroupSchema).default([]),
     secondaryColumn: z.string().nullable().default(null),
@@ -96,6 +96,7 @@ export const ViewerConfigSchema = z.object({
     skeleton: z.enum(['shimmer', 'pulse', 'spinner', 'none']).default('shimmer'),
     skeletonCount: z.number().int().min(1).max(12).default(6),
   }).optional(),
+  source: z.enum(['global', 'local']).default('local').optional(),
   uploadColumns: z.array(z.string()).default([]).optional(),
   columnTypes: z.record(z.string(), z.string()).default({}).optional(),
 }).default({});
@@ -105,5 +106,5 @@ export type ViewerConfig = z.infer<typeof ViewerConfigSchema>;
 export function parseViewerConfig(raw: unknown): ViewerConfig {
   const result = ViewerConfigSchema.safeParse(raw);
   if (result.success) return result.data;
-  return {};
+  return ViewerConfigSchema.parse({});
 }

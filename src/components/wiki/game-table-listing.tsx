@@ -349,18 +349,19 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     // Apply custom order if set
     const customOrder = viewerConfig?.categorization?.order;
+    const sortDir = viewerConfig?.categorization?.categorySortDirection || 'asc';
     if (customOrder && customOrder.length > 0) {
       const orderMap = new Map(customOrder.map((k, i) => [k, i]));
       entries.sort(([a], [b]) => {
         const ai = orderMap.get(a);
         const bi = orderMap.get(b);
-        if (ai != null && bi != null) return ai - bi;
+        if (ai != null && bi != null) return sortDir === 'desc' ? bi - ai : ai - bi;
         if (ai != null) return -1;
         if (bi != null) return 1;
-        return a.localeCompare(b);
+        return sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
       });
     } else {
-      entries.sort(([a], [b]) => a.localeCompare(b));
+      entries.sort(([a], [b]) => sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b));
     }
 
     // Filter empty categories if configured

@@ -29,6 +29,7 @@ export function FilterConfig({
   onChange,
   items,
   itemsLoading,
+  categorizationColumn,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
@@ -36,6 +37,7 @@ export function FilterConfig({
   slug?: string;
   items?: Record<string, unknown>[];
   itemsLoading?: boolean;
+  categorizationColumn?: string | null;
 }) {
   const c: Record<string, any> = config || {};
 
@@ -70,13 +72,16 @@ export function FilterConfig({
   const getState = (col: string) => {
     const saved = savedColumns.find((fc: any) => fc.column === col);
     const detected = detectedColumns.find((dc) => dc.column === col);
+    const isCatColumn = categorizationColumn === col;
     return {
-      enabled: saved !== undefined ? saved.enabled !== false : true,
+      enabled: isCatColumn ? false : (saved !== undefined ? saved.enabled !== false : true),
       mode: saved?.mode || detected?.defaultMode || 'multiple',
+      isCatColumn,
     };
   };
 
   const updateColumn = (col: string, updates: Record<string, unknown>) => {
+    if (categorizationColumn === col && updates.enabled === true) return;
     const existing = [...savedColumns];
     const idx = existing.findIndex((fc: any) => fc.column === col);
     if (idx >= 0) {
@@ -87,7 +92,10 @@ export function FilterConfig({
     onChange({ ...c, columns: existing, autoDetect: true });
   };
 
-  const enabledCount = detectedColumns.filter((dc) => getState(dc.column).enabled).length;
+  const enabledCount = detectedColumns.filter((dc) => {
+    if (categorizationColumn === dc.column) return false;
+    return getState(dc.column).enabled;
+  }).length;
 
   return (
     <div className="space-y-4">
@@ -120,34 +128,41 @@ export function FilterConfig({
           detectedColumns.length > 0 ? (
             <div className="space-y-1 max-h-60 overflow-y-auto">
               {detectedColumns.map(({ column, values, defaultMode: _defaultMode }) => {
-                const { enabled, mode } = getState(column);
+                const { enabled, mode, isCatColumn } = getState(column);
                 return (
                   <div
                     key={column}
                     className={`flex items-center gap-2 rounded-md border px-3 py-1.5 transition-colors ${
-                      enabled ? 'bg-background' : 'bg-muted/30 opacity-60'
+                      isCatColumn ? 'bg-blue-500/5 border-blue-500/20' : enabled ? 'bg-background' : 'bg-muted/30 opacity-60'
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => updateColumn(column, { enabled: !enabled })}
+                      disabled={isCatColumn}
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium border transition-colors ${
-                        enabled
-                          ? 'bg-primary/10 border-primary/30 text-primary'
-                          : 'bg-card border-border/50 text-muted-foreground'
+                        isCatColumn
+                          ? 'bg-blue-500/10 border-blue-500/30 text-blue-500 cursor-not-allowed'
+                          : enabled
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-card border-border/50 text-muted-foreground'
                       }`}
                     >
-                      {enabled ? 'ON' : 'OFF'}
+                      {isCatColumn ? 'CAT' : enabled ? 'ON' : 'OFF'}
                     </button>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium">{deriveLabel(column)}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {values.length} {values.length === 1 ? 'valor' : 'valores'}
-                        </span>
+                        {isCatColumn ? (
+                          <span className="text-[10px] text-blue-500 font-medium">Usada como categoria</span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">
+                            {values.length} {values.length === 1 ? 'valor' : 'valores'}
+                          </span>
+                        )}
                       </div>
-                      {enabled && (
+                      {enabled && !isCatColumn && (
                         <div className="flex flex-wrap gap-0.5 mt-0.5">
                           {values.slice(0, 5).map((v) => (
                             <span key={v} className="text-[10px] text-muted-foreground/60 bg-muted/40 rounded px-1 py-0 truncate max-w-[80px]">
@@ -161,7 +176,7 @@ export function FilterConfig({
                       )}
                     </div>
 
-                    {enabled && (
+                    {enabled && !isCatColumn && (
                       <Select3D label="Modo de seleção" value={mode} options={[{label: 'Único', value: 'single'}, {label: 'Múltiplo', value: 'multiple'}]} onChange={(v) => updateColumn(column, { mode: v })} className="w-32" />
                     )}
                   </div>

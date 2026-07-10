@@ -64,15 +64,6 @@ export function DetailConfig({
         <Label htmlFor="show-comparison" className="text-xs">Exibir botão de comparação</Label>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch
-          id="show-detail-header"
-          checked={c.showHeader || false}
-          onCheckedChange={(v) => onChange({ ...c, showHeader: v })}
-        />
-        <Label htmlFor="show-detail-header" className="text-xs">Mostrar header no expandido</Label>
-      </div>
-
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Colunas visíveis ao expandir</Label>
         <p className="text-[10px] text-muted-foreground">Marque as colunas que aparecem no detalhe.</p>

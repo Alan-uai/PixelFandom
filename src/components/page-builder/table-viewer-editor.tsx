@@ -236,7 +236,6 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
                   ]}
                 />
               </ConfigField>
-              <SwitchField label="Sobrescrever config global" checked={config.display?.overrideGlobal || false} onChange={v => updateConfig('display.overrideGlobal', v)} />
             </ConfigSection>
 
             {/* Filters Config */}
@@ -399,7 +398,6 @@ export function TableViewerEditor({ tenantId, slug: _slug }: { tenantId: string;
             {/* Item Detail Config */}
             <ConfigSection icon={Eye} title="Detalhe do Item (Expandido)">
               <SwitchField label="Mostrar comparação" checked={config.detail?.showComparison ?? true} onChange={v => updateConfig('detail.showComparison', v)} />
-              <SwitchField label="Mostrar header" checked={config.detail?.showHeader || false} onChange={v => updateConfig('detail.showHeader', v)} />
             </ConfigSection>
 
             {/* Search Config */}
