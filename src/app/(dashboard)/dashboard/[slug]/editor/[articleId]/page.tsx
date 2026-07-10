@@ -10,6 +10,7 @@ import { useTenantRole } from '@/hooks/use-tenant-role';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,9 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor from '@/components/editor/tiptap-editor';
 import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
-import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History } from 'lucide-react';
+import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, Text, History, Clock } from 'lucide-react';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
@@ -74,6 +77,9 @@ function EditPageContent() {
   const [showAiSidebar, setShowAiSidebar] = useState(false);
   const [guideTopic, setGuideTopic] = useState('');
   const [guideTone, setGuideTone] = useState<'guia' | 'tutorial' | 'analise'>('guia');
+
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
 
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
@@ -174,6 +180,13 @@ function EditPageContent() {
         ogImage: article.og_image || '',
         tables: article.tables ? JSON.stringify(article.tables, null, 2) : '',
       });
+      if (article.scheduled_at) {
+        setScheduleEnabled(true);
+        setScheduledAt(new Date(article.scheduled_at).toISOString().slice(0, 16));
+      } else {
+        setScheduleEnabled(false);
+        setScheduledAt('');
+      }
       supabase
         .from('article_versions')
         .select('*')
@@ -423,11 +436,64 @@ function EditPageContent() {
       ...(isNewArticle && user?.id ? { created_by: user.id } : {}),
     };
 
+    const dataToSaveFinal: Record<string, unknown> = {
+      ...dataToSave,
+    };
+
+    const isScheduledNow = scheduleEnabled && scheduledAt;
+    const wasScheduled = article?.scheduled_at;
+
+    if (isScheduledNow) {
+      dataToSaveFinal.status = 'draft';
+      dataToSaveFinal.scheduled_at = new Date(scheduledAt).toISOString();
+    } else if (wasScheduled && !isScheduledNow) {
+      dataToSaveFinal.status = 'published';
+      dataToSaveFinal.scheduled_at = null;
+    } else {
+      if (!isNewArticle && article?.status === 'draft' && !article?.scheduled_at) {
+        dataToSaveFinal.status = 'draft';
+      } else if (!isNewArticle) {
+        dataToSaveFinal.status = article?.status || 'published';
+      }
+      dataToSaveFinal.scheduled_at = article?.scheduled_at || null;
+    }
+
     const { error: upsertError } = await supabase
       .from('wiki_articles')
-      .upsert(dataToSave, { onConflict: 'id' });
+      .upsert(dataToSaveFinal, { onConflict: 'id' });
 
     if (upsertError) throw upsertError;
+
+    // Handle scheduled_actions record
+    if (isScheduledNow) {
+      const { data: existingAction } = await supabase
+        .from('scheduled_actions')
+        .select('id')
+        .eq('target_type', 'article')
+        .eq('target_id', articleId)
+        .single();
+      if (existingAction) {
+        await supabase
+          .from('scheduled_actions')
+          .update({ scheduled_at: new Date(scheduledAt).toISOString() })
+          .eq('id', existingAction.id);
+      } else {
+        await supabase.from('scheduled_actions').insert({
+          tenant_id: tenantId,
+          target_type: 'article',
+          target_id: articleId,
+          action: 'publish',
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          created_by: user?.id ?? null,
+        });
+      }
+    } else if (wasScheduled && !isScheduledNow) {
+      await supabase
+        .from('scheduled_actions')
+        .delete()
+        .eq('target_type', 'article')
+        .eq('target_id', articleId);
+    }
 
     invalidateDataCache(slug);
 
@@ -680,7 +746,30 @@ function EditPageContent() {
                 )}
               />
 
-              <div className="border-t pt-4">
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox3D
+                    checked={scheduleEnabled}
+                    onChange={setScheduleEnabled}
+                    size="md"
+                  />
+                  <Label className="text-sm font-normal cursor-pointer" onClick={() => setScheduleEnabled(!scheduleEnabled)}>
+                    {t('edit_schedule_label') || 'Agendar publicação'}
+                  </Label>
+                </div>
+                {scheduleEnabled && (
+                  <Input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                  />
+                )}
+                {scheduleEnabled && scheduledAt && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('edit_schedule_hint') || 'O artigo será publicado em'} {new Date(scheduledAt).toLocaleString('pt-BR')}
+                  </p>
+                )}
                 <FloatingLabelTextarea
                   label={t('change_summary_label')}
                   value={changeSummary}

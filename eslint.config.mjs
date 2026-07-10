@@ -63,6 +63,12 @@ export default [
     },
   },
   {
+    files: ['**/color-select-3d-scene.tsx'],
+    rules: {
+      'react/no-unknown-property': 'off',
+    },
+  },
+  {
     ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', '**/build/**', '**/.opencode/**', '**/.vercel/**', 'supabase/functions/**', 'test-websocket.mjs', 'tailwind.config.ts', 'vitest.config.ts', 'next-env.d.ts', 'next.config.ts', 'public/**'],
   },
 ];

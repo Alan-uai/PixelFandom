@@ -23,6 +23,7 @@ import {
 } from '@/lib/game-ui';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { resolveTableIcon } from '@/lib/table-icons';
+import { isColorString, hexToStyle } from '@/lib/color';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -909,13 +910,17 @@ function ItemCard({
     if (val == null || val === '' || val === 'none') return null;
     const strVal = String(val);
     const bc = badgeConfig[col] || {};
-    const color = badgeColors[col] || '';
+    const rawColor = badgeColors[col] || '';
+    const isColor = isColorString(rawColor);
     const hasHover = bc.hover === true;
     const hasAction = (bc.clickAction || 'none') !== 'none';
-    const classes = `inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${color || 'bg-background/80 backdrop-blur-sm border-border/50'} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
+    const baseClass = 'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium';
+    const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
+    const classes = `${baseClass} ${colorClass} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
+    const style = isColor ? (hexToStyle(rawColor) || undefined) : undefined;
     if (hasAction) {
       return (
-        <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes}>
+        <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes} style={style}>
           {col === 'element' && elIcon(strVal)}
           {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
           {strVal}
@@ -923,7 +928,7 @@ function ItemCard({
       );
     }
     return (
-      <span key={col} className={classes}>
+      <span key={col} className={classes} style={style}>
         {col === 'element' && elIcon(strVal)}
         {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
         {strVal}

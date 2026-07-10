@@ -181,7 +181,7 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    const nonWikiPaths = ['/dashboard', '/api', '/profile', '/settings', '/leaderboard', '/notifications', '/about'];
+    const nonWikiPaths = ['/dashboard', '/api', '/auth', '/login', '/profile', '/settings', '/leaderboard', '/notifications', '/about'];
     const isNonWikiPath = nonWikiPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
     if (!isNonWikiPath && pathname !== '/') {
       const tenantSlug = request.cookies.get('x-tenant-slug')?.value;
@@ -196,7 +196,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Custom domain: lookup tenant and rewrite
-  if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/')) {
+  if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/')) {
     const cached = await getCachedTenant(request);
 
     if (cached) {
@@ -228,8 +228,8 @@ export async function middleware(request: NextRequest) {
         tenantData = (await customDomainResp.json()) as { slug: string; id: string }[];
       }
 
-      if (!tenantData?.length && host.endsWith('.vercel.app')) {
-        const subdomain = host.replace('.vercel.app', '');
+      if (!tenantData?.length && host.endsWith('.' + MAIN_DOMAIN)) {
+        const subdomain = host.replace('.' + MAIN_DOMAIN, '');
         const fallbackResp = await fetch(
           `${SUPA_URL}/rest/v1/tenants?slug=eq.${encodeURIComponent(subdomain)}&select=slug,id`,
           { headers },

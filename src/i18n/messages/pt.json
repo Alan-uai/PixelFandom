@@ -503,6 +503,9 @@
     "edit_hint": "Faça as alterações abaixo e clique em salvar.",
     "success": "Sucesso!",
     "article_created": "O artigo foi criado.",
+    "edit_schedule_label": "Agendar publicação",
+    "edit_schedule_hint": "O artigo será publicado em",
+    "import_toolbar_hint": "Importar conteúdo (PDF, DOC, TXT, MD)",
     "tabs": {
       "articles": "Artigos",
       "add_table": "Adicionar tabela"

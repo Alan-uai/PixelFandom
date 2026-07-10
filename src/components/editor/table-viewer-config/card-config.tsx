@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { Input } from '@/components/ui/input';
+import { ColorSelect3D } from '@/components/ui/color-select-3d';
+import { isColorString, hexToStyle } from '@/lib/color';
 
 const BADGE_DEFAULTS = ['rarity', 'tier', 'element'];
 
@@ -197,19 +199,20 @@ export function CardConfig({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold">{col}</span>
                         <span
-                          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${badgeColors[col] || DEFAULT_BADGE_COLORS[col] || 'bg-background/80 backdrop-blur-sm border-border'}`}
+                          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium${!isColorString(badgeColors[col] || '') ? ` ${badgeColors[col] || DEFAULT_BADGE_COLORS[col] || 'bg-background/80 backdrop-blur-sm border-border'}` : ''}`}
+                          style={isColorString(badgeColors[col] || '') ? hexToStyle(badgeColors[col]) || {} : undefined}
                         >
                           {col}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Label className="text-[10px] text-muted-foreground">Cor (classe Tailwind)</Label>
-                        <Input
-                          value={badgeColors[col] || DEFAULT_BADGE_COLORS[col] || ''}
-                          onChange={(e) => updateBadgeColor(col, e.target.value)}
-                          className="h-6 text-[10px] flex-1"
-                          placeholder="ex: text-amber-400 border-amber-500/30"
+                        <Label className="text-[10px] text-muted-foreground">Cor</Label>
+                        <ColorSelect3D
+                          value={isColorString(badgeColors[col] || '') ? badgeColors[col] : undefined}
+                          onChange={(v) => updateBadgeColor(col, v)}
+                          className="flex-1"
+                          placeholder="Selecionar cor..."
                         />
                       </div>
 

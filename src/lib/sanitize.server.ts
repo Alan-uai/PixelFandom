@@ -1,34 +1,26 @@
+import sanitizeHtmlLib from 'sanitize-html';
 import { sanitizeUrl } from './sanitize';
 
-type Purify = any;
-type Config = Record<string, unknown>;
+const ALLOWED_TAGS = [
+  'p', 'br', 'b', 'i', 'u', 'em', 'strong', 'a', 'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
+  'span', 'div', 'hr', 'sub', 'sup', 'img', 'table', 'thead', 'tbody',
+  'tr', 'th', 'td',
+];
 
-let purifyCache: Purify | null = null;
-
-async function getServerPurify(): Promise<Purify> {
-  if (purifyCache) return purifyCache;
-
-  const [dompurify, jsdom] = await Promise.all([
-    import('dompurify'),
-    import('jsdom'),
-  ]);
-  const window = new (jsdom as any).JSDOM('<!DOCTYPE html>').window;
-  purifyCache = (dompurify as any).default(window);
-  return purifyCache;
-}
+const SANITIZE_OPTIONS: sanitizeHtmlLib.IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: {
+    '*': ['class'],
+    'a': ['href', 'target', 'rel'],
+    'img': ['src', 'alt'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+  allowProtocolRelative: false,
+};
 
 export async function sanitizeHtml(html: string): Promise<string> {
-  const purify = await getServerPurify();
-  return purify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'p', 'br', 'b', 'i', 'u', 'em', 'strong', 'a', 'ul', 'ol', 'li',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
-      'span', 'div', 'hr', 'sub', 'sup', 'img', 'table', 'thead', 'tbody',
-      'tr', 'th', 'td',
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
-    ALLOW_DATA_ATTR: false,
-  } as Config);
+  return sanitizeHtmlLib(html, SANITIZE_OPTIONS);
 }
 
 export async function sanitizeBlockConfig(config: Record<string, unknown>): Promise<Record<string, unknown>> {

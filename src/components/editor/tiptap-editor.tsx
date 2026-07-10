@@ -26,11 +26,22 @@ import {
   Gamepad2,
   Layers,
   Library,
+  FileUp,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { micromark } from 'micromark';
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
+import TurndownService from 'turndown';
 import { GameItemEmbed, TierlistBlock } from './extensions';
 import { GameItemSelector } from './game-item-selector';
 import { MediaLibrary } from '@/components/ui/media-library';
+
+const turndown = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  emDelimiter: '*',
+  bulletListMarker: '-',
+});
 
 type TiptapEditorProps = {
   content: string;
@@ -55,8 +66,9 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
     ],
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
-      const text = editor.getText();
-      onChange(text);
+      const html = editor.getHTML();
+      const md = turndown.turndown(html);
+      onChange(md);
     },
     editorProps: {
       attributes: {
@@ -66,7 +78,9 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
   });
 
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [importingFile, setImportingFile] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [slug, setSlug] = useState('');
   const [showGameItemSelector, setShowGameItemSelector] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -139,6 +153,70 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       if (imageInputRef.current) imageInputRef.current.value = '';
     }
   }, [editor, articleId, slug]);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      const { toast } = await import('@/hooks/use-toast');
+      toast({ variant: 'destructive', title: 'Erro', description: 'Arquivo muito grande. Máximo 10MB.' });
+      if (importInputRef.current) importInputRef.current.value = '';
+      return;
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown',
+      'text/x-markdown',
+    ];
+    const allowedExts = ['.pdf', '.doc', '.docx', '.txt', '.md'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedExts.includes(ext) && !allowedTypes.includes(file.type)) {
+      const { toast } = await import('@/hooks/use-toast');
+      toast({ variant: 'destructive', title: 'Erro', description: 'Tipo de arquivo não suportado. Use PDF, DOC, DOCX, TXT ou MD.' });
+      if (importInputRef.current) importInputRef.current.value = '';
+      return;
+    }
+
+    setImportingFile(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const fileDataUri = reader.result as string;
+        const { extractTextFromFile } = await import('@/ai/flows/extract-text-from-file-flow');
+        const result = await extractTextFromFile({ fileDataUri, extractionType: 'markdown' });
+
+        if (result.extractedText) {
+          const html = micromark(result.extractedText, {
+            allowDangerousHtml: true,
+            extensions: [gfmTable()],
+            htmlExtensions: [gfmTableHtml()],
+          });
+          editor.chain().focus().insertContent(html).run();
+          const { toast } = await import('@/hooks/use-toast');
+          toast({ title: 'Conteúdo Importado!', description: 'O conteúdo foi extraído e inserido no editor.' });
+        } else {
+          throw new Error('A IA não retornou texto.');
+        }
+      };
+      reader.onerror = () => {
+        throw new Error('Erro ao ler o arquivo.');
+      };
+    } catch (error) {
+      console.error('Erro ao importar arquivo:', error);
+      const { toast } = await import('@/hooks/use-toast');
+      toast({ variant: 'destructive', title: 'Erro na Importação', description: 'Não foi possível extrair o conteúdo do arquivo.' });
+    } finally {
+      setImportingFile(false);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  }, [editor]);
 
   const handleLinkAdd = useCallback(() => {
     const url = window.prompt('URL do link:');
@@ -224,6 +302,19 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
 
         <Divider />
 
+        <input
+          type="file"
+          ref={importInputRef}
+          onChange={handleImportFile}
+          style={{ display: 'none' }}
+          accept=".pdf,.doc,.docx,.txt,.md"
+        />
+        <ToolbarButton onClick={() => importInputRef.current?.click()}>
+          {importingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+        </ToolbarButton>
+
+        <Divider />
+
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()}>
           <Undo className="h-4 w-4" />
         </ToolbarButton>
@@ -280,7 +371,7 @@ function parseInitialContent(content: string): any {
     const parsed = JSON.parse(content);
     if (parsed && parsed.type === 'doc') return parsed;
   } catch {
-    // Not JSON — treat as HTML or markdown
+    // Not JSON
   }
 
   // If it looks like HTML, use it directly
@@ -288,6 +379,14 @@ function parseInitialContent(content: string): any {
     return content;
   }
 
-  // Otherwise return as plain text (TipTap will wrap in paragraph)
-  return content;
+  // Convert markdown to HTML for proper rendering in TipTap
+  try {
+    return micromark(content, {
+      allowDangerousHtml: true,
+      extensions: [gfmTable()],
+      htmlExtensions: [gfmTableHtml()],
+    });
+  } catch {
+    return content;
+  }
 }
