@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, Mic, Settings, ExternalLink, Loader2, ArrowUpDown } from 'lucide-react';
 import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
 import { CardPositionEditor } from './card-position-editor';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 
 const POSITIONS = [
   { value: 'bottom-right', label: 'Inferior Direito' },
@@ -157,15 +158,11 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
               <p className="text-xs text-muted-foreground">Ícone flutuante do assistente de IA</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={chat.enabled}
-              onChange={(e) => setChat((p) => ({ ...p, enabled: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-          </label>
+          <Checkbox3D
+            checked={chat.enabled ?? false}
+            onChange={(v) => setChat((p) => ({ ...p, enabled: v }))}
+            size="md"
+          />
         </div>
 
         {chat.enabled && (
@@ -267,15 +264,11 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
               <p className="text-xs text-muted-foreground">Ícone flutuante do assistente de voz</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={voice.enabled}
-              onChange={(e) => setVoice((p) => ({ ...p, enabled: e.target.checked }))}
-              className="sr-only peer"
-            />
-            <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-          </label>
+          <Checkbox3D
+            checked={voice.enabled ?? false}
+            onChange={(v) => setVoice((p) => ({ ...p, enabled: v }))}
+            size="md"
+          />
         </div>
 
         {voice.enabled && (

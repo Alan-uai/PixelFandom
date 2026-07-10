@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List, Image as ImageIcon, ListOrdered } from 'lucide-react';
 import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia, SlotFlowId, ClipStyleId } from './types';
 import { SLOT_FLOWS } from '@/lib/floating-island-flows';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { CLIP_STYLES } from '@/lib/floating-island-clips';
 
 const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.ComponentType<{ className?: string }>; defaultConfig: Record<string, unknown> }[] = [
@@ -318,14 +319,12 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
                   </Field>
 
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`enable-${island.id}`}
+                    <Checkbox3D
                       checked={island.enabled}
-                      onChange={(e) => handleFieldChange(island.id, 'enabled', e.target.checked)}
-                      className="rounded"
+                      onChange={(v) => handleFieldChange(island.id, 'enabled', v)}
+                      size="sm"
                     />
-                    <label htmlFor={`enable-${island.id}`} className="text-xs text-muted-foreground">Ativo</label>
+                    <span className="text-xs text-muted-foreground">Ativo</span>
                   </div>
 
                   <Field label="Expirar em (opcional)">
@@ -439,20 +438,18 @@ function ConfigFields({
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`cronFirst-${id}`}
+            <Checkbox3D
               checked={!!island.config.cronFirst}
-              onChange={(e) => onChange(id, 'cronFirst', e.target.checked)}
-              className="rounded"
+              onChange={(v) => onChange(id, 'cronFirst', v)}
+              size="sm"
             />
-            <label htmlFor={`cronFirst-${id}`} className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Cron primeiro (timer no cabeçalho)
-            </label>
+            </span>
           </div>
           <Field label="Formato de Exibição">
             <select
-              value={(island.config.displayFormat as string) || 'parallel'}
+              value={(island.config.displayFormat as string) || 'sequential'}
               onChange={(e) => onChange(id, 'displayFormat', e.target.value)}
               className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
             >
@@ -484,16 +481,14 @@ function ConfigFields({
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`cronFirst-${id}`}
+            <Checkbox3D
               checked={!!island.config.cronFirst}
-              onChange={(e) => onChange(id, 'cronFirst', e.target.checked)}
-              className="rounded"
+              onChange={(v) => onChange(id, 'cronFirst', v)}
+              size="sm"
             />
-            <label htmlFor={`cronFirst-${id}`} className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Cron primeiro (timer no cabeçalho)
-            </label>
+            </span>
           </div>
           <Field label="Formato de Exibição">
             <select
@@ -590,14 +585,12 @@ function ConfigFields({
             </select>
           </Field>
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`autoplay-${id}`}
+            <Checkbox3D
               checked={!!island.config.autoPlay}
-              onChange={(e) => onChange(id, 'autoPlay', e.target.checked)}
-              className="rounded"
+              onChange={(v) => onChange(id, 'autoPlay', v)}
+              size="sm"
             />
-            <label htmlFor={`autoplay-${id}`} className="text-xs text-muted-foreground">Auto-play</label>
+            <span className="text-xs text-muted-foreground">Auto-play</span>
           </div>
           {(island.config.autoPlay as boolean) && (
             <Field label="Intervalo (segundos)">

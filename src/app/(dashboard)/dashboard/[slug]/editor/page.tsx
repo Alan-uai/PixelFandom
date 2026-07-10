@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -632,16 +633,14 @@ export default function EditorArticlesPage() {
             <div className="space-y-2">
               <Label>{t('createArticleDialog.schedule_label')}</Label>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="schedule-toggle"
+                <Checkbox3D
                   checked={scheduleEnabled}
-                  onChange={(e) => setScheduleEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onChange={setScheduleEnabled}
+                  size="md"
                 />
-                <Label htmlFor="schedule-toggle" className="text-sm font-normal">
+                <span className="text-sm font-normal">
                   {t('createArticleDialog.schedule_future')}
-                </Label>
+                </span>
               </div>
               {scheduleEnabled && (
                 <Input
