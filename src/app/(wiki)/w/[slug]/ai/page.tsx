@@ -17,6 +17,7 @@ import { Checkbox3D } from '@/components/ui/checkbox-3d'
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { LayerCard } from '@/components/ui/layer-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d'
 import { Volume2, Mic, Headphones, Ear, MessageCircle, Sparkles } from 'lucide-react'
 
 type VoiceSettings = {
@@ -337,20 +338,16 @@ export default function AISettingsPage() {
                   <option value="Aoede">Aoede — Suave e melódica</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" />
-                  Volume ({voiceSettings.volume}%)
-                </Label>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={voiceSettings.volume}
-                  onChange={(e) => updateVoice('volume', Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+              <ElasticSlider3D
+                label="Volume"
+                defaultValue={voiceSettings.volume}
+                startingValue={0}
+                maxValue={100}
+                showValue
+                valueSuffix="%"
+                leftIcon={<Volume2 className="h-4 w-4" />}
+                onValueChange={(v) => updateVoice('volume', v)}
+              />
               <div className="space-y-2">
                 <Label>Tom da Conversa</Label>
                 <div className="flex gap-2">
@@ -454,17 +451,14 @@ export default function AISettingsPage() {
                 />
               </div>
               {voiceSettings.publicMode && (
-                <div className="space-y-2">
-                  <Label>Sensibilidade ({voiceSettings.publicModeSensitivity})</Label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={voiceSettings.publicModeSensitivity}
-                    onChange={(e) => updateVoice('publicModeSensitivity', Number(e.target.value))}
-                    className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                  />
-                </div>
+                <ElasticSlider3D
+                  label="Sensibilidade"
+                  defaultValue={voiceSettings.publicModeSensitivity}
+                  startingValue={1}
+                  maxValue={10}
+                  showValue
+                  onValueChange={(v) => updateVoice('publicModeSensitivity', v)}
+                />
               )}
             </CardContent>
           </LayerCard>

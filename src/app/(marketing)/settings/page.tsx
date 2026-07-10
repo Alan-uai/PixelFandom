@@ -10,6 +10,7 @@ import { officialLanguages } from '@/lib/official-languages';
 import { responseFormatStyles, responseStyleGroups, displayModeGroups, displayModes } from '@/lib/response-styles';
 import { THEME_PRESETS, applyThemePreset } from '@/lib/theme-presets';
 import { Button } from '@/components/ui/button';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Label } from '@/components/ui/label';
 import { SelectCard } from '@/components/ui/select-card';
 import { Switch } from '@/components/ui/switch';
@@ -317,20 +318,16 @@ export default function GlobalSettingsPage() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" />
-                  Volume ({(preferences.voice_settings.volume as number) || 80}%)
-                </Label>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={(preferences.voice_settings.volume as number) || 80}
-                  onChange={(e) => updateVoice('volume', Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-              </div>
+              <ElasticSlider3D
+                label="Volume"
+                defaultValue={(preferences.voice_settings.volume as number) || 80}
+                startingValue={0}
+                maxValue={100}
+                showValue
+                valueSuffix="%"
+                leftIcon={<Volume2 className="h-4 w-4" />}
+                onValueChange={(v) => updateVoice('volume', v)}
+              />
 
               <div className="space-y-2">
                 <Label>Tom da Conversa</Label>

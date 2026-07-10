@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Label } from '@/components/ui/label';
 import { SelectCard } from '@/components/ui/select-card';
 import { useToast } from '@/hooks/use-toast';
@@ -159,22 +160,14 @@ export function GameTablesBuilder({ tenantId, slug }: GameTablesBuilderProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="columnsCount">Colunas ({columnsCount})</Label>
-            <input
-              id="columnsCount"
-              type="range"
-              min={2}
-              max={5}
-              value={columnsCount}
-              onChange={(e) => setColumnsCount(Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>2</span>
-              <span>5</span>
-            </div>
-          </div>
+          <ElasticSlider3D
+            label="Colunas"
+            defaultValue={columnsCount}
+            startingValue={2}
+            maxValue={5}
+            showValue
+            onValueChange={setColumnsCount}
+          />
 
           <div className="flex items-center gap-3">
             <Label htmlFor="tabsEnabled" className="shrink-0">Modo Abas (Tabs)</Label>

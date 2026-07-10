@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
@@ -66,36 +67,26 @@ export function SearchConfig({
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Debounce: {c.debounceMs || 300}ms</Label>
-            <input
-              type="range"
-              min={150}
-              max={1000}
-              step={50}
-              value={c.debounceMs || 300}
-              onChange={(e) => onChange({ ...c, debounceMs: Number(e.target.value) })}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>150ms</span><span>1000ms</span>
-            </div>
-          </div>
+          <ElasticSlider3D
+            label="Debounce"
+            defaultValue={c.debounceMs || 300}
+            startingValue={150}
+            maxValue={1000}
+            isStepped
+            stepSize={50}
+            showValue
+            valueSuffix="ms"
+            onValueChange={(v) => onChange({ ...c, debounceMs: v })}
+          />
 
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Mínimo de caracteres: {c.minChars || 1}</Label>
-            <input
-              type="range"
-              min={0}
-              max={5}
-              value={c.minChars || 1}
-              onChange={(e) => onChange({ ...c, minChars: Number(e.target.value) })}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>0</span><span>5</span>
-            </div>
-          </div>
+          <ElasticSlider3D
+            label="Mínimo de caracteres"
+            defaultValue={c.minChars || 1}
+            startingValue={0}
+            maxValue={5}
+            showValue
+            onValueChange={(v) => onChange({ ...c, minChars: v })}
+          />
         </>
       )}
     </div>

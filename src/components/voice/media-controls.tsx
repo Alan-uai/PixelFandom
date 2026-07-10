@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d'
 
 interface Props {
   isAudioStreaming: boolean
@@ -55,17 +56,16 @@ export default function MediaControls({
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Volume da Voz</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={volume}
-          onChange={(e) => onVolumeChange(parseInt(e.target.value))}
-          className="flex-1 accent-primary"
+      <div className="flex-1">
+        <ElasticSlider3D
+          label="Volume da Voz"
+          defaultValue={volume}
+          startingValue={0}
+          maxValue={100}
+          showValue
+          valueSuffix="%"
+          onValueChange={onVolumeChange}
         />
-        <span className="text-xs text-slate-400 w-8 text-right">{volume}%</span>
       </div>
     </motion.div>
   )

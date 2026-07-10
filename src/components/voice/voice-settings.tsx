@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Checkbox3D } from '@/components/ui/checkbox-3d'
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d'
 import type { VoiceName } from '@/lib/voice/geminilive'
 
 export interface Settings {
@@ -163,26 +164,15 @@ export default function VoiceSettings({ open, settings, onClose, onChange }: Pro
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                {lang === 'pt' ? 'Volume da voz' : lang === 'es' ? 'Volumen de la voz' : 'Voice volume'}
-              </label>
-              <span className="text-sm font-medium text-primary">{settings.volume}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={settings.volume}
-              onChange={(e) => onChange('volume', parseInt(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500 mt-0.5">
-              <span>🔇</span>
-              <span>🔊</span>
-            </div>
-          </div>
+          <ElasticSlider3D
+            label={lang === 'pt' ? 'Volume da voz' : lang === 'es' ? 'Volumen de la voz' : 'Voice volume'}
+            defaultValue={settings.volume}
+            startingValue={0}
+            maxValue={100}
+            showValue
+            valueSuffix="%"
+            onValueChange={(v) => onChange('volume', v)}
+          />
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
@@ -228,26 +218,14 @@ export default function VoiceSettings({ open, settings, onClose, onChange }: Pro
                 desc={lang === 'pt' ? 'Apenas sua voz pode interromper — vozes de fundo são ignoradas' : lang === 'es' ? 'Solo tu voz interrumpe — las voces de fondo se ignoran' : 'Only your voice interrupts — background voices ignored'}
               />
               {settings.publicMode && (
-                <div className="pt-2 border-t border-slate-600/50">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-medium text-slate-400">
-                      {lang === 'pt' ? 'Sensibilidade do Filtro' : lang === 'es' ? 'Sensibilidad del Filtro' : 'Filter Sensitivity'}
-                    </span>
-                    <span className="text-sm font-semibold text-primary">{settings.publicModeSensitivity}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={settings.publicModeSensitivity}
-                    onChange={(e) => onChange('publicModeSensitivity', parseInt(e.target.value))}
-                    className="w-full accent-primary"
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-500 mt-0.5">
-                    <span>{lang === 'pt' ? 'Menos rígido' : lang === 'es' ? 'Menos estricto' : 'Lenient'}</span>
-                    <span>{lang === 'pt' ? 'Máximo (só você)' : lang === 'es' ? 'Máximo (solo tú)' : 'Maximum (only you)'}</span>
-                  </div>
-                </div>
+                <ElasticSlider3D
+                  label={lang === 'pt' ? 'Sensibilidade do Filtro' : lang === 'es' ? 'Sensibilidad del Filtro' : 'Filter Sensitivity'}
+                  defaultValue={settings.publicModeSensitivity}
+                  startingValue={1}
+                  maxValue={10}
+                  showValue
+                  onValueChange={(v) => onChange('publicModeSensitivity', v)}
+                />
               )}
             </div>
           </div>

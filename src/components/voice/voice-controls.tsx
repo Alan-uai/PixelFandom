@@ -1,6 +1,7 @@
 'use client';
 
 import { Select3D } from '@/components/ui/select3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Mic, MicOff, Volume2, Loader2 } from 'lucide-react';
 import type { VoiceName } from '@/lib/voice/geminilive';
 
@@ -75,21 +76,16 @@ export default function VoiceControls({
           )}
         </button>
 
-        <div className="flex items-center gap-2 flex-1">
-          <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={(e) => onVolumeChange(Number(e.target.value))}
-            className="flex-1 h-1.5 rounded-full appearance-none bg-muted-foreground/20 cursor-pointer accent-primary
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        <div className="flex-1">
+          <ElasticSlider3D
+            defaultValue={volume}
+            startingValue={0}
+            maxValue={100}
+            showValue
+            valueSuffix="%"
+            leftIcon={<Volume2 className="h-4 w-4" />}
+            onValueChange={onVolumeChange}
           />
-          <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
-            {volume}
-          </span>
         </div>
 
         {isConnected && (

@@ -1,6 +1,7 @@
 'use client';
 
 import { Select3D } from '@/components/ui/select3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
@@ -27,34 +28,22 @@ export function DisplayConfig({
         ]}
         onChange={(v) => onChange({ ...c, format: v })}
       />
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Colunas no grid ({c.columnsCount || 4})</Label>
-        <input
-          type="range"
-          min={1}
-          max={6}
-          value={c.columnsCount || 4}
-          onChange={(e) => onChange({ ...c, columnsCount: Number(e.target.value) })}
-          className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>1</span><span>6</span>
-        </div>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Items por página ({c.itemsPerPage || 50})</Label>
-        <input
-          type="range"
-          min={6}
-          max={200}
-          value={c.itemsPerPage || 50}
-          onChange={(e) => onChange({ ...c, itemsPerPage: Number(e.target.value) })}
-          className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>6</span><span>200</span>
-        </div>
-      </div>
+      <ElasticSlider3D
+        label="Colunas no grid"
+        defaultValue={c.columnsCount || 4}
+        startingValue={1}
+        maxValue={6}
+        showValue
+        onValueChange={(v) => onChange({ ...c, columnsCount: v })}
+      />
+      <ElasticSlider3D
+        label="Items por página"
+        defaultValue={c.itemsPerPage || 50}
+        startingValue={6}
+        maxValue={200}
+        showValue
+        onValueChange={(v) => onChange({ ...c, itemsPerPage: v })}
+      />
       <Select3D
         label="Paginação"
         value={c.pagination || 'none'}
@@ -65,20 +54,15 @@ export function DisplayConfig({
         ]}
         onChange={(v) => onChange({ ...c, pagination: v })}
       />
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Espaçamento (gap: {c.gap || 12}px)</Label>
-        <input
-          type="range"
-          min={2}
-          max={16}
-          value={c.gap || 12}
-          onChange={(e) => onChange({ ...c, gap: Number(e.target.value) })}
-          className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>2px</span><span>16px</span>
-        </div>
-      </div>
+      <ElasticSlider3D
+        label="Espaçamento"
+        defaultValue={c.gap || 12}
+        startingValue={2}
+        maxValue={16}
+        showValue
+        valueSuffix="px"
+        onValueChange={(v) => onChange({ ...c, gap: v })}
+      />
       {c.sortColumn && (
         <Select3D label="Direção da ordenação" value={c.sortDirection || 'asc'} options={[{label: 'Ascendente', value: 'asc'}, {label: 'Descendente', value: 'desc'}]} onChange={(v) => onChange({ ...c, sortDirection: v as 'asc' | 'desc' })} />
       )}

@@ -11,6 +11,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Label } from '@/components/ui/label';
 import { Select3D } from '@/components/ui/select3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
@@ -519,22 +520,14 @@ export default function WikiSettingsPage() {
               ))}
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="articlesPerRow">{t('layout.articles_per_row')} ({articlesPerRow})</Label>
-            <input
-              id="articlesPerRow"
-              type="range"
-              min={1}
-              max={6}
-              value={articlesPerRow}
-              onChange={(e) => setArticlesPerRow(Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>1</span>
-              <span>6</span>
-            </div>
-          </div>
+          <ElasticSlider3D
+            label={t('layout.articles_per_row')}
+            defaultValue={articlesPerRow}
+            startingValue={1}
+            maxValue={6}
+            showValue
+            onValueChange={setArticlesPerRow}
+          />
           <div className="space-y-2">
             <Select3D label={t('layout.border_radius')} value={borderRadius} options={[
               {value: '', label: t('layout.border_radius_default')},
@@ -571,22 +564,14 @@ export default function WikiSettingsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="gameTableColumns">{t('layout.columns_label')} ({gameTableColumnsCount})</Label>
-                <input
-                  id="gameTableColumns"
-                  type="range"
-                  min={2}
-                  max={5}
-                  value={gameTableColumnsCount}
-                  onChange={(e) => setGameTableColumnsCount(Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>2</span>
-                  <span>5</span>
-                </div>
-              </div>
+              <ElasticSlider3D
+                label={t('layout.columns_label')}
+                defaultValue={gameTableColumnsCount}
+                startingValue={2}
+                maxValue={5}
+                showValue
+                onValueChange={setGameTableColumnsCount}
+              />
 
               <div className="flex items-center gap-3">
                 <Label htmlFor="gameTableTabs" className="shrink-0">{t('layout.tabs_mode')}</Label>
@@ -649,40 +634,25 @@ export default function WikiSettingsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="listingColumns">{t('layout.columns_label')} ({listingColumnsCount})</Label>
-                <input
-                  id="listingColumns"
-                  type="range"
-                  min={1}
-                  max={5}
-                  value={listingColumnsCount}
-                  onChange={(e) => setListingColumnsCount(Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>1</span>
-                  <span>5</span>
-                </div>
-              </div>
+              <ElasticSlider3D
+                label={t('layout.columns_label')}
+                defaultValue={listingColumnsCount}
+                startingValue={1}
+                maxValue={5}
+                showValue
+                onValueChange={setListingColumnsCount}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="listingItemsPerPage">{t('layout.items_per_page')} ({listingItemsPerPage})</Label>
-                <input
-                  id="listingItemsPerPage"
-                  type="range"
-                  min={5}
-                  max={100}
-                  step={5}
-                  value={listingItemsPerPage}
-                  onChange={(e) => setListingItemsPerPage(Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>5</span>
-                  <span>100</span>
-                </div>
-              </div>
+              <ElasticSlider3D
+                label={t('layout.items_per_page')}
+                defaultValue={listingItemsPerPage}
+                startingValue={5}
+                maxValue={100}
+                isStepped
+                stepSize={5}
+                showValue
+                onValueChange={setListingItemsPerPage}
+              />
 
               <div className="space-y-2">
                 <Label>{t('layout.pagination')}</Label>
@@ -794,22 +764,14 @@ export default function WikiSettingsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="articleColumns">{t('layout.columns_label')} ({articleColumnsCount})</Label>
-                <input
-                  id="articleColumns"
-                  type="range"
-                  min={1}
-                  max={6}
-                  value={articleColumnsCount}
-                  onChange={(e) => setArticleColumnsCount(Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>1</span>
-                  <span>6</span>
-                </div>
-              </div>
+              <ElasticSlider3D
+                label={t('layout.columns_label')}
+                defaultValue={articleColumnsCount}
+                startingValue={1}
+                maxValue={6}
+                showValue
+                onValueChange={setArticleColumnsCount}
+              />
 
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="articleImages" className="text-xs">{t('layout.show_images')}</Label>

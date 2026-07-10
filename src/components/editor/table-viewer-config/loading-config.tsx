@@ -1,6 +1,6 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { Select3D } from '@/components/ui/select3d';
 
 export function LoadingConfig({
@@ -28,20 +28,14 @@ export function LoadingConfig({
         onChange={(v) => onChange({ ...c, skeleton: v })}
       />
 
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Quantidade de skeletons ({c.skeletonCount || 6})</Label>
-        <input
-          type="range"
-          min={1}
-          max={12}
-          value={c.skeletonCount || 6}
-          onChange={(e) => onChange({ ...c, skeletonCount: Number(e.target.value) })}
-          className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>1</span><span>12</span>
-        </div>
-      </div>
+      <ElasticSlider3D
+        label="Quantidade de skeletons"
+        defaultValue={c.skeletonCount || 6}
+        startingValue={1}
+        maxValue={12}
+        showValue
+        onValueChange={(v) => onChange({ ...c, skeletonCount: v })}
+      />
     </div>
   );
 }

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Loader2, Save, Check } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { ViewerConfigSchema } from '@/lib/viewer-config';
 import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
+import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 import { HeaderConfig } from './table-viewer-config/header-config';
 import { DisplayConfig } from './table-viewer-config/display-config';
 import { FilterConfig } from './table-viewer-config/filter-config';
@@ -32,8 +32,7 @@ export default function TableViewerConfig({
   const [config, setConfig] = useState<ViewerConfig>({});
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savedFeedback, setSavedFeedback] = useState(false);
+  const [savedConfig, setSavedConfig] = useState<ViewerConfig>({});
   const [activeSection, setActiveSection] = useState<string>('header');
   const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
   const [tableIcon, setTableIcon] = useState<string | null>(null);
@@ -41,6 +40,12 @@ export default function TableViewerConfig({
   const [itemsLoading, setItemsLoading] = useState(false);
   const itemsCache = useRef<Record<string, unknown>[] | null>(null);
   const configCache = useRef<ViewerConfig | null>(null);
+
+  const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(savedConfig), [config, savedConfig]);
+
+  const handleDiscard = useCallback(() => {
+    setConfig(savedConfig);
+  }, [savedConfig]);
 
   const mergeWithGlobalDefaults = (local: ViewerConfig, global: Record<string, any>): ViewerConfig => {
     const merged: Record<string, any> = { ...local };
@@ -61,6 +66,7 @@ export default function TableViewerConfig({
 
   const fetchConfig = useCallback(async (tid: string) => {
     if (configCache.current) {
+      setSavedConfig(configCache.current);
       setConfig(configCache.current);
       setLoading(false);
       return;
@@ -89,11 +95,13 @@ export default function TableViewerConfig({
       if (parsed.success) {
         const merged = mergeWithGlobalDefaults(parsed.data, globalListing);
         configCache.current = merged;
+        setSavedConfig(merged);
         setConfig(merged);
         setLoading(false);
         return;
       }
     }
+    setSavedConfig({});
     setLoading(false);
   }, [table]);
 
@@ -141,14 +149,12 @@ export default function TableViewerConfig({
   }, [slug, table, fetchConfig, fetchColumns, fetchItems]);
 
   const handleSave = async () => {
-    if (!tenantId) return;
-    setSaving(true);
+    if (!tenantId) return false;
 
     const parsed = ViewerConfigSchema.safeParse(config);
     if (!parsed.success) {
       toast({ variant: 'destructive', title: 'Erro de validação', description: 'Configuração inválida.' });
-      setSaving(false);
-      return;
+      return false;
     }
 
     const updatePayload: Record<string, unknown> = { viewer_config: parsed.data };
@@ -165,16 +171,20 @@ export default function TableViewerConfig({
 
     if (updateError) {
       toast({ variant: 'destructive', title: 'Erro', description: updateError.message });
-    } else {
-      configCache.current = parsed.data;
-      invalidateDataCache(slug);
-      updateCachedCatalogEntry(slug, table, updatePayload);
-      setSavedFeedback(true);
-      setTimeout(() => setSavedFeedback(false), 2000);
-      toast({ title: 'Configuração salva!' });
+      return false;
     }
-    setSaving(false);
+
+    configCache.current = parsed.data;
+    setSavedConfig(parsed.data);
+    invalidateDataCache(slug);
+    updateCachedCatalogEntry(slug, table, updatePayload);
   };
+
+  useRegisterUnsavedChanges({
+    isDirty,
+    onSave: handleSave,
+    onDiscard: handleDiscard,
+  });
 
   const sections = [
     { id: 'header', label: 'Header', component: HeaderConfig },
@@ -198,24 +208,11 @@ export default function TableViewerConfig({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">{displayLabel || table} — Exibição</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Personalize como esta tabela é exibida na wiki.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {savedFeedback && (
-            <span className="flex items-center gap-1 text-sm text-green-500 font-medium">
-              <Check className="h-4 w-4" /> Salvo!
-            </span>
-          )}
-          <Button onClick={handleSave} disabled={saving} size="sm">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            Salvar
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold">{displayLabel || table} — Exibição</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Personalize como esta tabela é exibida na wiki.
+        </p>
       </div>
 
       <div className="flex gap-1 border-b pb-1 overflow-x-auto">
