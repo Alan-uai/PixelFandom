@@ -52,7 +52,9 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
       if (data.clipStyle) setClipStyle(data.clipStyle);
     } catch {
       setFloatingIslands([]);
-      islandsSnapshot.current = '';
+      const defaultSnapshot = { islands: [], slotFlow: 'current' as const, clipStyle: 'trapezoid' as const };
+      islandsSnapshot.current = JSON.stringify(defaultSnapshot);
+      islandCache.current[type] = defaultSnapshot;
     }
   }, [tenantId]);
 

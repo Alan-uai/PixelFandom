@@ -86,7 +86,7 @@ slugificação, normalização, deduplicação, correção e persistência autom
 - `supabase/migrations/` — 021→030 sequential SQL migrations
 - `data/pixel-blade/` — static game data JSON fallback
 - `public/audio-processors/` — worklets de áudio para o sistema de voz
-- `api/token.py` — serverless function para gerar tokens Gemini Live API
+- `src/app/api/token/route.ts` — Next.js route que gera tokens Gemini Live API (substitui o antigo `api/token.py`)
 - `@/*` alias → `src/`
 
 ## Multi-tenant
