@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Checkbox3D } from '@/components/ui/checkbox-3d'
 import type { VoiceName } from '@/lib/voice/geminilive'
 
 export interface Settings {
@@ -43,17 +44,15 @@ const langOptions = [
 
 function Toggle({ checked, onChange, label, desc }: { checked: boolean; onChange: (v: boolean) => void; label: string; desc?: string }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer group">
-      <div className="relative mt-0.5 flex-shrink-0">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-10 h-5 rounded-full bg-slate-700 peer-checked:bg-primary transition-colors" />
-        <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm peer-checked:translate-x-5 transition-transform" />
+    <div className="flex items-start gap-3 group">
+      <div className="mt-0.5 shrink-0">
+        <Checkbox3D checked={checked} onChange={onChange} size="md" showParticles={false} />
       </div>
-      <div>
+      <div className="cursor-pointer" onClick={() => onChange(!checked)}>
         <span className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{label}</span>
         {desc && <span className="block text-xs text-slate-400 mt-0.5">{desc}</span>}
       </div>
-    </label>
+    </div>
   )
 }
 

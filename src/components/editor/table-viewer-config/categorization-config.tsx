@@ -80,6 +80,25 @@ export function CategorizationConfig({
     }
   };
 
+  // sub-category icons
+  const secondaryIcons: Record<string, Record<string, string>> = c.secondaryIcons || {};
+  const secondaryColumn = c.secondaryColumn;
+
+  const secondaryValuesByCategory = useMemo(() => {
+    if (!secondaryColumn || !items || !detectedColumn) return {};
+    const map: Record<string, Set<string>> = {};
+    for (const item of items) {
+      const cat = String(item[detectedColumn] ?? '');
+      const sub = String(item[secondaryColumn] ?? '');
+      if (!cat || !sub || sub === 'none') continue;
+      if (!map[cat]) map[cat] = new Set();
+      map[cat].add(sub);
+    }
+    return Object.fromEntries(
+      Object.entries(map).map(([k, v]) => [k, Array.from(v).sort()]),
+    );
+  }, [secondaryColumn, items, detectedColumn]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -194,8 +213,6 @@ export function CategorizationConfig({
           { label: 'Títulos', value: 'headings' },
           { label: 'Abas', value: 'tabs' },
           { label: 'Acordeão', value: 'accordion' },
-          { label: 'Badges', value: 'badges' },
-          { label: 'Nenhum', value: 'none' },
         ]}
         onChange={(v) => onChange({ ...c, style: v })}
       />
@@ -228,6 +245,96 @@ export function CategorizationConfig({
       </div>
 
       <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
+
+      {/* Sub-category icons per category */}
+      {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Tag className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium">Ícones de Sub-categorias</span>
+          </div>
+          {Object.entries(secondaryValuesByCategory).map(([cat, subs]) => (
+            <div key={cat} className="space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground capitalize block">{cat}</span>
+              <div className="flex flex-wrap gap-1 pl-2">
+                {subs.map((sub) => {
+                  const currentIcon = secondaryIcons?.[cat]?.[sub];
+                  const isImg = currentIcon ? isUrl(currentIcon) : false;
+                  return (
+                    <div key={sub} className="flex items-center gap-1 rounded-md border bg-background px-1.5 py-0.5">
+                      <div className="w-5 h-5 shrink-0 rounded border flex items-center justify-center bg-muted/20 overflow-hidden">
+                        {currentIcon ? (
+                          isImg ? (
+                            <Image src={currentIcon} alt="" width={12} height={12} className="object-contain" />
+                          ) : (
+                            <IconRenderer icon={currentIcon} size="sm" />
+                          )
+                        ) : (
+                          <Icon icon="lucide:help-circle" width={10} height={10} className="text-muted-foreground/50" />
+                        )}
+                      </div>
+                      <span className="text-[10px]">{sub}</span>
+                      <IconPickerTrigger
+                        value={currentIcon && !isImg ? currentIcon : undefined}
+                        onChange={(iconId) => {
+                          onChange({
+                            ...c,
+                            secondaryIcons: {
+                              ...secondaryIcons,
+                              [cat]: { ...(secondaryIcons[cat] || {}), [sub]: iconId },
+                            },
+                          });
+                        }}
+                        size="sm"
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" title="Upload de imagem">
+                            <ImageIcon className="h-2.5 w-2.5" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-48 p-2" side="bottom">
+                          <ImageUpload
+                            bucket="game-items"
+                            pathPrefix={`wiki-subcategories/${slug}/${cat}/${sub}`}
+                            value={isImg ? currentIcon : ''}
+                            onChange={(url) => {
+                              onChange({
+                                ...c,
+                                secondaryIcons: {
+                                  ...secondaryIcons,
+                                  [cat]: { ...(secondaryIcons[cat] || {}), [sub]: url },
+                                },
+                              });
+                            }}
+                            label="Ícone"
+                            previewSize="w-full h-12"
+                            tenantId={tenantId}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {currentIcon && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = { ...secondaryIcons };
+                            if (updated[cat]) delete updated[cat][sub];
+                            if (Object.keys(updated[cat]).length === 0) delete updated[cat];
+                            onChange({ ...c, secondaryIcons: updated });
+                          }}
+                          className="text-muted-foreground hover:text-destructive shrink-0 p-0.5"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2 border-t pt-3">
         <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
@@ -281,6 +388,7 @@ export function CategorizationConfig({
 
       <div className="space-y-2 border-t pt-3">
         <Label className="text-xs text-muted-foreground">Grupos manuais</Label>
+        <p className="text-[10px] text-muted-foreground">Agrupe valores existentes sob um novo nome.</p>
         {((c.manualGroups as any[]) || []).map((mg: any, i: number) => (
           <div key={i} className="space-y-1 rounded border p-2">
             <Input
@@ -290,19 +398,38 @@ export function CategorizationConfig({
                 groups[i] = { ...groups[i], label: e.target.value };
                 onChange({ ...c, manualGroups: groups });
               }}
-              placeholder="Label do grupo"
+              placeholder="Nome do grupo"
               className="h-7 text-xs"
             />
-            <Input
-              value={mg.values.join(', ')}
-              onChange={(e) => {
-                const groups = [...((c.manualGroups as any[]) || [])];
-                groups[i] = { ...groups[i], values: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) };
-                onChange({ ...c, manualGroups: groups });
-              }}
-              placeholder="valores separados por vírgula"
-              className="h-7 text-xs"
-            />
+            <div className="flex flex-wrap gap-1">
+              {categoryValues.map((val) => {
+                const selected = ((mg.values as string[]) || []).includes(val);
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      const groups = [...((c.manualGroups as any[]) || [])];
+                      const vals = (groups[i].values as string[]) || [];
+                      groups[i] = {
+                        ...groups[i],
+                        values: selected
+                          ? vals.filter((v: string) => v !== val)
+                          : [...vals, val],
+                      };
+                      onChange({ ...c, manualGroups: groups });
+                    }}
+                    className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
+                      selected
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                );
+              })}
+            </div>
             <Button
               variant="ghost"
               size="sm"

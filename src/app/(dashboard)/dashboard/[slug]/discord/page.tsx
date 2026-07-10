@@ -12,6 +12,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { Select3D } from '@/components/ui/select3d';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger, SliderTabsContent, SliderTabsContentGroup } from '@/components/ui/slider-tabs';
@@ -344,11 +345,10 @@ export default function WikiDiscordPage() {
                     {t('status.active_hint')}
                   </p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox3D
                   checked={enabled}
-                  onChange={(e) => setEnabled(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300"
+                  onChange={setEnabled}
+                  size="lg"
                 />
               </div>
             </CollapsibleSection>
@@ -423,14 +423,13 @@ export default function WikiDiscordPage() {
                         key={cmd.id}
                         className="flex items-center gap-3 rounded-lg border p-3"
                       >
-                        <label className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
+                        <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox3D
                             checked={cmd.enabled}
                             onChange={() => toggleCommand(index)}
-                            className="h-4 w-4 rounded border-gray-300"
+                            size="md"
                           />
-                        </label>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{cmd.name || t('commands.unnamed')}</p>
                           {cmd.description && (
@@ -568,11 +567,10 @@ export default function WikiDiscordPage() {
                         {t('auto_post.codes_desc')}
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Checkbox3D
                       checked={autoPostCodesEnabled}
-                      onChange={(e) => setAutoPostCodesEnabled(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300"
+                      onChange={setAutoPostCodesEnabled}
+                      size="lg"
                     />
                   </div>
                   {autoPostCodesEnabled && (
@@ -594,11 +592,10 @@ export default function WikiDiscordPage() {
                         {t('auto_post.articles_desc')}
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Checkbox3D
                       checked={autoPostArticlesEnabled}
-                      onChange={(e) => setAutoPostArticlesEnabled(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300"
+                      onChange={setAutoPostArticlesEnabled}
+                      size="lg"
                     />
                   </div>
                   {autoPostArticlesEnabled && (
@@ -620,11 +617,10 @@ export default function WikiDiscordPage() {
                         {t('auto_post.updates_desc')}
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Checkbox3D
                       checked={autoPostUpdatesEnabled}
-                      onChange={(e) => setAutoPostUpdatesEnabled(e.target.checked)}
-                      className="h-5 w-5 rounded border-gray-300"
+                      onChange={setAutoPostUpdatesEnabled}
+                      size="lg"
                     />
                   </div>
                   {autoPostUpdatesEnabled && (

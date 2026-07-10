@@ -1,6 +1,7 @@
 'use client';
 
 import { sanitizeUrl } from '@/lib/sanitize';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 
 export function SelectField({ label, value, options, onChange }: { label: string; value: string; options: { label: string; value: string }[]; onChange: (v: string) => void }) {
   return (
@@ -13,11 +14,11 @@ export function SelectField({ label, value, options, onChange }: { label: string
   );
 }
 
-export function CheckboxField({ label, checked, onChange, id }: { label: string; checked: boolean; onChange: (v: boolean) => void; id: string }) {
+export function CheckboxField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void; id?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} id={id} className="rounded" />
-      <label htmlFor={id} className="text-xs">{label}</label>
+      <Checkbox3D checked={checked} onChange={onChange} size="sm" />
+      <span className="text-xs">{label}</span>
     </div>
   );
 }

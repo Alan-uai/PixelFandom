@@ -57,11 +57,11 @@ export function DisplayConfig({
       </div>
       <Select3D
         label="Paginação"
-        value={c.pagination || 'paginated'}
+        value={c.pagination || 'none'}
         options={[
+          { label: 'Nenhum', value: 'none' },
           { label: 'Paginação', value: 'paginated' },
           { label: 'Scroll infinito', value: 'infinite-scroll' },
-          { label: 'Nenhum', value: 'none' },
         ]}
         onChange={(v) => onChange({ ...c, pagination: v })}
       />

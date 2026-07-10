@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, ChevronDown, ChevronRight, Code2 } from 'lucide-react';
 import { Select3D } from '@/components/ui/select3d';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { createDefaultAction, type CustomCommand, type BotActionType, type BotAction, type TriggerType, type ExecutionMode } from './types';
 import { ActionListItem, AddActionDropdown } from './action-configs';
 import { VariablePicker } from './variable-picker';
@@ -67,14 +68,13 @@ export function CommandCard({ command, onChange, onRemove }: Props) {
         <button className="shrink-0 text-muted-foreground">
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
-        <label className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
+        <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Checkbox3D
             checked={command.enabled}
-            onChange={(e) => update({ enabled: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300"
+            onChange={(v) => update({ enabled: v })}
+            size="md"
           />
-        </label>
+        </div>
         <div className="flex-1 min-w-0">
           {command.name ? (
             <p className="text-sm font-medium truncate">{command.name}</p>

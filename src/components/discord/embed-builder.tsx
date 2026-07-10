@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2, GripVertical, Code2 } from 'lucide-react';
 import type { EmbedPayload, EmbedField } from './types';
 import { VariablePicker } from './variable-picker';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 
 interface Props {
   value?: EmbedPayload[];
@@ -37,15 +38,14 @@ function EmbedFieldRow({ field, index: _index, onChange, onRemove }: {
           className="text-xs"
         />
         <div className="space-y-1 flex items-end gap-1">
-          <label className="flex items-center gap-1 text-xs pb-1">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-1 text-xs pb-1">
+            <Checkbox3D
               checked={field.inline}
-              onChange={(e) => onChange({ ...field, inline: e.target.checked })}
-              className="h-3 w-3"
+              onChange={(v) => onChange({ ...field, inline: v })}
+              size="sm"
             />
-            Inline
-          </label>
+            <span>Inline</span>
+          </div>
           <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 shrink-0">
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -170,15 +170,14 @@ function SingleEmbed({ embed, index, onChange, onRemove }: {
         />
       </div>
 
-      <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
+      <div className="flex items-center gap-2 text-xs">
+        <Checkbox3D
           checked={embed.timestamp ?? false}
-          onChange={(e) => update({ timestamp: e.target.checked })}
-          className="h-3 w-3"
+          onChange={(v) => update({ timestamp: v })}
+          size="sm"
         />
-        Incluir timestamp automático
-      </label>
+        <span>Incluir timestamp automático</span>
+      </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

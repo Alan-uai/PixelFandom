@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Trash2, GripVertical, ChevronUp, ChevronDown, Code2 } from 'lucide-react';
 import { EmbedBuilder } from './embed-builder';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import type { BotAction, BotActionType } from './types';
 import { ACTION_LABELS, ACTION_TYPE_CATEGORIES } from './types';
 import { Select3D } from '@/components/ui/select3d';
@@ -254,24 +255,22 @@ function CreateRolePayloadForm({ payload, onChange }: { payload: Record<string, 
           />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
+      <div className="flex items-center gap-2 text-xs">
+        <Checkbox3D
           checked={payload.hoist ?? false}
-          onChange={(e) => onChange({ ...payload, hoist: e.target.checked })}
-          className="h-3 w-3"
+          onChange={(v) => onChange({ ...payload, hoist: v })}
+          size="sm"
         />
-        Exibir separadamente
-      </label>
-      <label className="flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
+        <span>Exibir separadamente</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <Checkbox3D
           checked={payload.mentionable ?? false}
-          onChange={(e) => onChange({ ...payload, mentionable: e.target.checked })}
-          className="h-3 w-3"
+          onChange={(v) => onChange({ ...payload, mentionable: v })}
+          size="sm"
         />
-          Mencionável
-      </label>
+          <span>Mencionável</span>
+      </div>
     </div>
   );
 }

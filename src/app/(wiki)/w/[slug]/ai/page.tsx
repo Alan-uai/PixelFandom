@@ -13,6 +13,7 @@ import { officialLanguages } from '@/lib/official-languages'
 import { FloatingLabelInput } from '@/components/ui/floating-label-input'
 import { Label } from '@/components/ui/label'
 import { SelectCard } from '@/components/ui/select-card'
+import { Checkbox3D } from '@/components/ui/checkbox-3d'
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { LayerCard } from '@/components/ui/layer-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -396,11 +397,10 @@ export default function AISettingsPage() {
                         : 'Ajusta o volume automaticamente'}
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox3D
                     checked={voiceSettings[key]}
-                    onChange={(e) => updateVoice(key, e.target.checked)}
-                    className="h-5 w-5 rounded border-gray-300"
+                    onChange={(v) => updateVoice(key, v)}
+                    size="lg"
                   />
                 </div>
               ))}
@@ -427,11 +427,10 @@ export default function AISettingsPage() {
                   <p className="font-medium text-sm">Wake Word</p>
                   <p className="text-xs text-muted-foreground">Diga a palavra de ativação seguida da sua mensagem</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox3D
                   checked={voiceSettings.wakeWordEnabled}
-                  onChange={(e) => updateVoice('wakeWordEnabled', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300"
+                  onChange={(v) => updateVoice('wakeWordEnabled', v)}
+                  size="lg"
                 />
               </div>
             </CardContent>
@@ -448,11 +447,10 @@ export default function AISettingsPage() {
                   <p className="font-medium text-sm">Modo Público</p>
                   <p className="text-xs text-muted-foreground">Menos sensível a ruídos ambiente</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox3D
                   checked={voiceSettings.publicMode}
-                  onChange={(e) => updateVoice('publicMode', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300"
+                  onChange={(v) => updateVoice('publicMode', v)}
+                  size="lg"
                 />
               </div>
               {voiceSettings.publicMode && (
@@ -484,11 +482,10 @@ export default function AISettingsPage() {
                     Ao encontrar um item, navegue direto para a página antes de mostrar estatísticas
                   </p>
                 </div>
-                <input
-                  type="checkbox"
+                <Checkbox3D
                   checked={voiceSettings.primaryNavigation}
-                  onChange={(e) => updateVoice('primaryNavigation', e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300"
+                  onChange={(v) => updateVoice('primaryNavigation', v)}
+                  size="lg"
                 />
               </div>
             </CardContent>

@@ -5,7 +5,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  FileText, Database, ArrowLeft, ChevronDown,
+  FileText, Database, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight,
   Star,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
@@ -19,8 +19,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import ComparePopup from '@/components/wiki/compare-popup';
 import {
-  RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
-  elementClass, elIcon, COLL_ICON,
+  RARITY_GRAD, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { resolveTableIcon } from '@/lib/table-icons';
@@ -110,7 +109,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const fmt = displayConfig.format || displayFormat || 'grid';
   const effectiveColumnsCount = displayConfig.columnsCount || columnsCount || 3;
   const itemsPerPage = displayConfig.itemsPerPage || 50;
-  const pagination = displayConfig.pagination || 'paginated';
+  const pagination = displayConfig.pagination || 'none';
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const detailConfig: Record<string, any> = viewerConfig?.detail || {};
@@ -149,6 +148,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const [compareItemId, setCompareItemId] = useState<string | null>(null);
   const [useSuffix, setUseSuffix] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [expandedAccordion, setExpandedAccordion] = useState<Set<string>>(new Set());
 
   const urlItem = searchParams?.get('item') || null;
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
@@ -324,8 +325,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   const groupedItems = useMemo(() => {
     if (!columnAnalysis.categoryColumn) return null;
-    const catStyle = viewerConfig?.categorization?.style;
-    if (catStyle === 'none') return null;
+
 
     const groups: Record<string, typeof items> = {};
     const catCol = columnAnalysis.categoryColumn!;
@@ -477,6 +477,111 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       </div>
     );
   }
+
+  const renderCategory = (
+    category: string,
+    catItems: any[],
+    vc: typeof viewerConfig,
+    pg: string,
+    ipp: number,
+    style: string,
+    expanded: Set<string>,
+    setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>,
+  ) => {
+    const catIcon = vc?.categorization?.categoryIcons?.[category];
+    const secondaryColumn = vc?.categorization?.secondaryColumn;
+    const isExpanded = expanded.has(category) || (vc?.categorization?.defaultExpanded !== false && expanded.size === 0);
+
+    // Compute secondary groups
+    let secondaryGroups: [string, any[]][] = [];
+    if (secondaryColumn) {
+      const sgMap: Record<string, any[]> = {};
+      for (const item of catItems) {
+        const sub = String(item[secondaryColumn] ?? 'Outros');
+        if (!sgMap[sub]) sgMap[sub] = [];
+        sgMap[sub].push(item);
+      }
+      secondaryGroups = Object.entries(sgMap).sort(([a], [b]) => a.localeCompare(b));
+    }
+
+    const heading = (
+      <div className="flex items-center gap-3 mb-3">
+        {catIcon ? (
+          catIcon.startsWith('http://') || catIcon.startsWith('https://') || catIcon.startsWith('data:') ? (
+            <div className="relative w-4 h-4 shrink-0"><Image src={catIcon} alt="" fill className="object-contain" /></div>
+          ) : (
+            <IconRenderer icon={catIcon} size="sm" />
+          )
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+        )}
+        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize">{category}</span>
+        <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
+      </div>
+    );
+
+    const itemsContent = secondaryGroups.length > 0 ? (
+      <div className="space-y-4">
+        {secondaryGroups.map(([sub, subItems]) => {
+          const subIcon = vc?.categorization?.secondaryIcons?.[category]?.[sub];
+          return (
+            <div key={sub}>
+              <div className="flex items-center gap-2 mb-2">
+                {subIcon ? (
+                  subIcon.startsWith('http://') || subIcon.startsWith('https://') || subIcon.startsWith('data:') ? (
+                    <div className="relative w-3 h-3 shrink-0"><Image src={subIcon} alt="" fill className="object-contain" /></div>
+                  ) : (
+                    <IconRenderer icon={subIcon} size="sm" />
+                  )
+                ) : (
+                  <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                )}
+                <span className="text-xs font-medium text-muted-foreground/70 capitalize">{sub}</span>
+                <span className="text-[10px] text-muted-foreground/40">{subItems.length}</span>
+              </div>
+              {renderItems(pg === 'paginated' ? subItems.slice(0, ipp) : subItems, `${category}::${sub}`)}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      renderItems(pg === 'paginated' ? catItems.slice(0, ipp) : catItems, category)
+    );
+
+    if (style === 'accordion') {
+      return (
+        <div key={category} className="border border-border/50 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => {
+              const next = new Set(expanded);
+              if (next.has(category)) next.delete(category); else next.add(category);
+              setExpanded(next);
+            }}
+            className="w-full flex items-center justify-between px-4 py-3 bg-muted/20 hover:bg-muted/30 transition-colors"
+          >
+            {heading}
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          <motion.div
+            initial={false}
+            animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 pt-2">{itemsContent}</div>
+          </motion.div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={category}>
+        {heading}
+        {itemsContent}
+      </div>
+    );
+  };
 
   const renderHeaderIcon = () => {
     const headerIcon = viewerConfig?.header?.icon || icon;
@@ -657,41 +762,59 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       ) : groupedItems ? (
         <div className="space-y-8">
-          {groupedItems.map(([category, catItems]) => {
-            const catIcon = viewerConfig?.categorization?.categoryIcons?.[category];
-            return (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                  {catIcon ? (
-                    catIcon.startsWith('http://') || catIcon.startsWith('https://') || catIcon.startsWith('data:') ? (
-                      <div className="relative w-4 h-4 shrink-0">
-                        <Image src={catIcon} alt="" fill className="object-contain" />
-                      </div>
-                    ) : (
-                      <IconRenderer icon={catIcon} size="sm" />
-                    )
-                  ) : (
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                  )}
-                  <span className="capitalize">{category}</span>
-                  <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
-                </h3>
-                {renderItems(pagination === 'paginated' ? catItems.slice(0, itemsPerPage) : catItems, category)}
-              </div>
+          {(() => {
+            const catStyle = viewerConfig?.categorization?.style || 'headings';
+
+            // Tabs style: render tab buttons then filter
+            if (catStyle === 'tabs') {
+              const currentTab = activeTab || groupedItems[0]?.[0] || '';
+              if (!activeTab && groupedItems[0]) setActiveTab(groupedItems[0][0]);
+              return (
+                <>
+                  <div className="flex gap-1 border-b pb-1 overflow-x-auto mb-4">
+                    {groupedItems.map(([category]) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => setActiveTab(category)}
+                        className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                          currentTab === category
+                            ? 'bg-primary/10 text-primary border border-primary/30'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                        }`}
+                      >
+                        <span className="capitalize">{category}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {groupedItems
+                    .filter(([category]) => category === currentTab)
+                    .map(([category, catItems]) => renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, 'headings', expandedAccordion, setExpandedAccordion))}
+                </>
+              );
+            }
+
+            return groupedItems.map(([category, catItems]) =>
+              renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, catStyle, expandedAccordion, setExpandedAccordion),
             );
-          })}
+          })()}
         </div>
       ) : (
         <>
-          {renderItems(pagination === 'paginated' ? filteredItems.slice(0, currentPage * itemsPerPage) : filteredItems, '_all')}
+          {renderItems(
+            pagination === 'paginated'
+              ? filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+              : filteredItems,
+            '_all',
+          )}
           {pagination === 'paginated' && filteredItems.length > itemsPerPage && (
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Anterior
+                <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-sm text-muted-foreground px-3">
                 {currentPage} de {Math.ceil(filteredItems.length / itemsPerPage)}
@@ -699,9 +822,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               <button
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage * itemsPerPage >= filteredItems.length}
-                className="px-3 py-1.5 text-sm rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Próximo
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           )}
@@ -754,7 +877,9 @@ function ItemCard({
   const showCardImage = cardConfig?.showImage !== false;
   const showCardLabel = cardConfig?.showLabel !== false;
   const cardSize = cardConfig?.size || 'md';
-  const badgesEnabled = cardConfig?.badges !== false;
+  const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
+  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
+  const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
   const hoverEffectEnabled = cardConfig?.hoverEffect !== 'none';
   const compactMode = cardConfig?.compactMode === true;
 
@@ -763,9 +888,48 @@ function ItemCard({
   const imageUrl = (showCardImage ? item.image_url || item.image || item.icon_url || item.icon : undefined);
 
   const rarity = item.rarity != null ? String(item.rarity) : undefined;
-  const tier = item.tier != null ? String(item.tier) : undefined;
-  const element = item.element != null ? String(item.element) : undefined;
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
+
+  const handleBadgeClick = (col: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const bc = badgeConfig[col] || {};
+    const action = bc.clickAction || 'none';
+    if (action === 'comparison') {
+      onCompareStatClick?.(col);
+    } else if (action === 'external-link') {
+      const url = bc.clickUrl || '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
+
+  function renderBadge(col: string): React.ReactNode {
+    const val = item[col];
+    if (val == null || val === '' || val === 'none') return null;
+    const strVal = String(val);
+    const bc = badgeConfig[col] || {};
+    const color = badgeColors[col] || '';
+    const hasHover = bc.hover === true;
+    const hasAction = (bc.clickAction || 'none') !== 'none';
+    const classes = `inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${color || 'bg-background/80 backdrop-blur-sm border-border/50'} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
+    if (hasAction) {
+      return (
+        <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes}>
+          {col === 'element' && elIcon(strVal)}
+          {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
+          {strVal}
+        </button>
+      );
+    }
+    return (
+      <span key={col} className={classes}>
+        {col === 'element' && elIcon(strVal)}
+        {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
+        {strVal}
+      </span>
+    );
+  }
 
   const cardPadding = compactMode ? 'p-2.5' : 'p-4';
   const iconSize = cardSize === 'sm' ? 'h-8 w-8' : cardSize === 'lg' ? 'h-16 w-16' : 'h-12 w-12';
@@ -823,25 +987,9 @@ function ItemCard({
               </motion.h3>
             </div>
             )}
-            {badgesEnabled && (
+            {activeBadges.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
-              {rarity && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm`}>
-                  <Star className="h-2.5 w-2.5" />
-                  {rarity}
-                </span>
-              )}
-              {tier && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm`}>
-                  {TIER_LABEL[tier.toLowerCase()] || tier}
-                </span>
-              )}
-              {element && element !== 'none' && (
-                <span className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${elementClass(element)} bg-background/80 backdrop-blur-sm`}>
-                  {elIcon(element)}
-                  {element}
-                </span>
-              )}
+              {activeBadges.map(col => renderBadge(col))}
             </div>
             )}
             <motion.div

@@ -4,6 +4,7 @@ import { useTableCatalog } from '@/hooks/use-data-access';
 import { ChannelSelect } from './channel-select';
 import { Trash2 } from 'lucide-react';
 import { Select3D } from '@/components/ui/select3d';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import type { IngestConfig } from './types';
 
 interface IngestEntryProps {
@@ -71,11 +72,10 @@ export function IngestEntry({ slug, entry, onChange, onRemove }: IngestEntryProp
 
       <div className="flex items-center justify-between">
         <span className="text-sm">Ativo</span>
-        <input
-          type="checkbox"
+        <Checkbox3D
           checked={entry.enabled}
-          onChange={(e) => onChange({ ...entry, enabled: e.target.checked })}
-          className="h-5 w-5 rounded border-gray-300"
+          onChange={(v) => onChange({ ...entry, enabled: v })}
+          size="lg"
         />
       </div>
     </div>

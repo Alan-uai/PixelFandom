@@ -764,6 +764,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const effectiveHideHeader = hideHeader && detailConfig?.showHeader !== true;
   const effectiveVisibleColumns = detailConfig?.visibleColumns || [];
   const visibleColumnsSet = effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null;
+  const columnFormats = detailConfig?.columnFormats || {};
   const showComparisonEnabled = detailConfig?.showComparison !== false;
 
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
@@ -793,6 +794,130 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       setShowCompare({ stat: statKey });
     }
   };
+
+  function renderFormattedFields(data: Record<string, any>, rendered: Set<string>) {
+    const formatEntries = Object.entries(columnFormats).filter(
+      ([col, fmt]) => {
+        if (rendered.has(col)) return false;
+        if (SYSTEM_FIELDS.has(col)) return false;
+        if (visibleColumnsSet && !visibleColumnsSet.has(col)) return false;
+        if (!hasValue(data[col])) return false;
+        if (fmt === 'text') return false; // text is default, handled by fallback
+        return true;
+      },
+    );
+    if (formatEntries.length === 0) return null;
+
+    return (
+      <div className="space-y-3 mb-6">
+        {formatEntries.map(([col, fmt]) => {
+          rendered.add(col);
+          const val = data[col];
+          const label = fieldLabel(col);
+
+          if (fmt === 'badge') {
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary">
+                  {String(val)}
+                </span>
+              </div>
+            );
+          }
+
+          if (fmt === 'color') {
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: String(val) }} />
+                  <span className="text-xs font-mono">{String(val)}</span>
+                </div>
+              </div>
+            );
+          }
+
+          if (fmt === 'icon') {
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <IconRenderer icon={String(val)} size="md" />
+              </div>
+            );
+          }
+
+          if (fmt === 'link') {
+            const url = String(val);
+            const isValid = url.startsWith('http://') || url.startsWith('https://');
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                {isValid ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px]">
+                    {url}
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{url}</span>
+                )}
+              </div>
+            );
+          }
+
+          if (fmt === 'image') {
+            const src = String(val);
+            const isValid = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
+            return (
+              <div key={col} className="flex items-start gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px] pt-1">{label}</span>
+                {isValid ? (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                    <Image src={src} alt={label} fill className="object-cover" />
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{src}</span>
+                )}
+              </div>
+            );
+          }
+
+          if (fmt === 'rating') {
+            const num = Number(val);
+            const stars = isNaN(num) ? 0 : Math.round(Math.min(5, Math.max(0, num)));
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+                  ))}
+                  {isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
+                </div>
+              </div>
+            );
+          }
+
+          if (fmt === 'progress') {
+            const num = Number(val);
+            const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, num));
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${pct}%`}</span>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })}
+      </div>
+    );
+  }
 
   const rendered = new Set<string>();
 
@@ -879,6 +1004,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {columnTypes && Object.entries(columnTypes).length > 0 && (
         <RenderTypeFields data={data} columnTypes={columnTypes} rendered={rendered} />
       )}
+
+      {/* Columns with custom format overrides from detail config */}
+      {renderFormattedFields(data, rendered)}
 
       {/* Fallback: any remaining unrendered fields */}
       {renderFallbackFields(data, rendered, useSuffix, visibleColumnsSet)}

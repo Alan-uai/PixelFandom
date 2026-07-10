@@ -18,6 +18,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { SelectCard } from '@/components/ui/select-card';
 import { OPENROUTER_FREE_MODELS, GEMINI_FREE_MODELS as GEMINI_FREE_MODELS_SHARED } from '@/lib/models';
 import { Select3D } from '@/components/ui/select3d';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mic, MicOff, Cpu, Layers, Key, Globe, MessageSquare, Bot } from 'lucide-react';
 import { WakeWordDetector } from '@/lib/voice/wakeWord';
@@ -394,11 +395,10 @@ export default function WikiAIConfigPage() {
               {t('activation.help_text')}
             </p>
           </div>
-          <input
-            type="checkbox"
+          <Checkbox3D
             checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-            className="h-5 w-5 rounded border-gray-300"
+            onChange={setEnabled}
+            size="lg"
           />
         </div>
       </CollapsibleSection>
@@ -540,17 +540,16 @@ export default function WikiAIConfigPage() {
                         key={m.id}
                         className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox3D
                           checked={fallbackChain.includes(m.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
+                          onChange={(checked) => {
+                            if (checked) {
                               setFallbackChain([...fallbackChain, m.id]);
                             } else {
                               setFallbackChain(fallbackChain.filter((id) => id !== m.id));
                             }
                           }}
-                          className="h-3.5 w-3.5 rounded border-gray-300"
+                          size="sm"
                         />
                         <span className="flex-1 truncate">{m.name}</span>
                         <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length, t)}</span>
@@ -669,17 +668,16 @@ export default function WikiAIConfigPage() {
                         key={m.id}
                         className="flex items-center gap-2 rounded px-2 py-1 hover:bg-accent cursor-pointer text-xs"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox3D
                           checked={geminiFallbackChain.includes(m.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
+                          onChange={(checked) => {
+                            if (checked) {
                               setGeminiFallbackChain([...geminiFallbackChain, m.id]);
                             } else {
                               setGeminiFallbackChain(geminiFallbackChain.filter((id) => id !== m.id));
                             }
                           }}
-                          className="h-3.5 w-3.5 rounded border-gray-300"
+                          size="sm"
                         />
                         <span className="flex-1 truncate">{m.name}</span>
                         <span className="text-[10px] text-muted-foreground shrink-0">{formatContext(m.context_length, t)}</span>

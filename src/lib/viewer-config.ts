@@ -9,7 +9,14 @@ export const FilterColumnSchema = z.object({
 
 export const ManualGroupSchema = z.object({
   label: z.string(),
+  column: z.string().optional(),
   values: z.array(z.string()),
+});
+
+export const BadgeEntrySchema = z.object({
+  hover: z.boolean().default(false),
+  clickAction: z.enum(['comparison', 'external-link', 'none']).default('none'),
+  clickUrl: z.string().optional(),
 });
 
 export const ViewerConfigSchema = z.object({
@@ -40,7 +47,10 @@ export const ViewerConfigSchema = z.object({
   categorization: z.object({
     enabled: z.boolean().default(true),
     column: z.string().nullable().default(null),
-    style: z.enum(['tabs', 'accordion', 'headings', 'badges', 'none']).default('headings'),
+    style: z.enum(['tabs', 'accordion', 'headings', 'badges', 'none']).transform(v => {
+      if (v === 'badges' || v === 'none') return 'headings';
+      return v;
+    }).default('headings'),
     groupEmpty: z.boolean().default(true),
     showEmptyCategories: z.boolean().default(false),
     defaultExpanded: z.boolean().default(true),
@@ -49,6 +59,7 @@ export const ViewerConfigSchema = z.object({
     manualGroups: z.array(ManualGroupSchema).default([]),
     secondaryColumn: z.string().nullable().default(null),
     categoryIcons: z.record(z.string(), z.string()).default({}),
+    secondaryIcons: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   }).optional(),
   card: z.object({
     size: z.enum(['sm', 'md', 'lg']).default('md'),
@@ -57,6 +68,7 @@ export const ViewerConfigSchema = z.object({
     showLabel: z.boolean().default(true),
     badges: z.array(z.string()).default([]),
     badgeColors: z.record(z.string(), z.string()).default({}),
+    badgeConfig: z.record(z.string(), BadgeEntrySchema).default({}),
     hoverEffect: z.enum(['scale', 'glow', 'shadow', 'none']).default('scale'),
     compactMode: z.boolean().default(false),
   }).optional(),
