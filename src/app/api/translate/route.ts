@@ -12,11 +12,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ translated: '', slug: '' });
     }
 
-    if (/^[a-zA-Z][a-zA-Z0-9 _-]*$/.test(rawText)) {
-      const slug = rawText.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-      return NextResponse.json({ translated: rawText, slug });
-    }
-
     const res = await fetch(
       `https://translate.googleapis.com/translate_a/single?` +
       `client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(rawText)}`,

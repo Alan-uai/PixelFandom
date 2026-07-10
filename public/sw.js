@@ -1,6 +1,6 @@
-const CACHE_NAME = 'pixelfandom-v1';
-const STATIC_CACHE = 'pixelfandom-static-v1';
-const WIKI_CACHE = 'pixelfandom-wiki-v1';
+const CACHE_NAME = 'pixelfandom-v2';
+const STATIC_CACHE = 'pixelfandom-static-v2';
+const WIKI_CACHE = 'pixelfandom-wiki-v2';
 
 const STATIC_EXTENSIONS = [
   '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.webp',

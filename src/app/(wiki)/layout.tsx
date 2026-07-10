@@ -158,6 +158,16 @@ function WikiLayoutContent({
     }
   }, []);
 
+  useEffect(() => {
+    const link = document.querySelector('link[rel="icon"][sizes="512x512"]')
+      || document.querySelector('link[rel="icon"]')
+      || document.querySelector('link[rel="shortcut icon"]');
+    if (link) {
+      link.setAttribute('href', (tenant as any)?.favicon_url || '/icon-512.png');
+      if ((tenant as any)?.favicon_url) link.setAttribute('type', 'image/png');
+    }
+  }, [(tenant as any)?.favicon_url]);
+
   const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
     updatePreference('theme_mode', mode);
   }, [updatePreference]);
