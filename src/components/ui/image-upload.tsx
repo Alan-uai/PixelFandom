@@ -46,7 +46,7 @@ export function ImageUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = 10 * 1024 * 1024;
+    const maxSize = 25 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         variant: 'destructive',

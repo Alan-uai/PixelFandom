@@ -589,13 +589,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         const isVideo = /\.(mp4|webm|gif)$/i.test(headerIcon);
         if (isVideo) {
           return (
-            <div className="relative h-5 w-5">
+            <div className="relative h-10 w-10">
               <video src={headerIcon} autoPlay loop muted playsInline className="object-contain rounded w-full h-full" />
             </div>
           );
         }
         return (
-          <div className="relative h-5 w-5">
+          <div className="relative h-10 w-10">
             <Image src={headerIcon} alt="" fill className="object-contain rounded" />
           </div>
         );

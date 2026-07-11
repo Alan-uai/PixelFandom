@@ -223,7 +223,7 @@ export function GameTablesBuilder({ tenantId, slug }: GameTablesBuilderProps) {
                   className="flex items-center gap-3 rounded-lg border p-4 text-left hover:bg-accent hover:border-primary/30 transition-all group"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
-                    <TableIconDisplay icon={t.icon || t.table_name} className="h-5 w-5" />
+                    <TableIconDisplay icon={t.icon || t.table_name} className="h-10 w-10" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{t.display_label}</p>

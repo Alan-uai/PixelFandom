@@ -48,7 +48,7 @@ function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
       className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:border-primary/50 hover:bg-accent/50 transition-all group"
     >
       <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-        <TableIconDisplay icon={entry.icon} className="h-5 w-5" />
+        <TableIconDisplay icon={entry.icon} className="h-10 w-10" />
       </div>
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{entry.display_label}</p>

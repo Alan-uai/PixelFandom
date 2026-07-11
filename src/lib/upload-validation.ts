@@ -27,7 +27,7 @@ const MAGIC_BYTES: Record<string, string[]> = {
 };
 
 const MAX_FILE_SIZES: Record<string, number> = {
-  image: 10 * 1024 * 1024,
+  image: 25 * 1024 * 1024,
   video: 100 * 1024 * 1024,
   audio: 50 * 1024 * 1024,
   file: 25 * 1024 * 1024,

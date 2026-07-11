@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@/supabase/server';
 import { validateFile, validateExtension, sanitizeFilename, sanitizePathPrefix } from '@/lib/upload-validation';
 import { virusScanner } from '@/lib/virus-scan';
@@ -151,11 +152,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
 
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not set — cannot save media record');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const adminClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceKey,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
 
-    const { data: mediaRecord, error: mediaError } = await supabase
+    const { data: mediaRecord, error: mediaError } = await adminClient
       .from('wiki_media')
       .insert({
         tenant_id: tenantId,
@@ -181,11 +195,12 @@ export async function POST(request: NextRequest) {
 
     if (mediaError) {
       console.error('Failed to save media record:', mediaError);
+      return NextResponse.json({ error: 'Failed to save media record' }, { status: 500 });
     }
 
     return NextResponse.json({
       url: publicUrl,
-      media: mediaRecord || null,
+      media: mediaRecord,
       scan_status: scanResult.clean ? 'clean' : 'pending',
     });
   } catch (error) {

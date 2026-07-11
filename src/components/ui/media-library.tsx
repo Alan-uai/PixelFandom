@@ -5,7 +5,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { Loader2, Search, Trash2, Upload, ShieldAlert } from 'lucide-react';
+import { Loader2, Search, Trash2, Upload, ShieldAlert, FileVideo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
@@ -83,11 +83,11 @@ export function MediaLibrary({
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       toast({
         variant: 'destructive',
         title: 'Formato inválido',
-        description: 'Apenas arquivos de imagem são permitidos.',
+        description: 'Apenas imagens e vídeos curtos são permitidos.',
       });
       return;
     }
@@ -115,17 +115,23 @@ export function MediaLibrary({
       const data = await res.json();
 
       if (data.url) {
-        const img = new window.Image();
-        img.onload = () => {
+        if (data.media?.mime_type?.startsWith('video/')) {
           fetchMedia();
-          toast({ title: 'Imagem enviada', description: 'Verificada e adicionada à biblioteca.' });
+          toast({ title: 'Vídeo enviado', description: 'Verificado e adicionado à biblioteca.' });
           setUploading(false);
-        };
-        img.onerror = () => {
-          setUploading(false);
-          fetchMedia();
-        };
-        img.src = data.url;
+        } else {
+          const img = new window.Image();
+          img.onload = () => {
+            fetchMedia();
+            toast({ title: 'Imagem enviada', description: 'Verificada e adicionada à biblioteca.' });
+            setUploading(false);
+          };
+          img.onerror = () => {
+            setUploading(false);
+            fetchMedia();
+          };
+          img.src = data.url;
+        }
       } else {
         setUploading(false);
         fetchMedia();
@@ -190,7 +196,7 @@ export function MediaLibrary({
             ref={inputRef}
             onChange={handleUpload}
             style={{ display: 'none' }}
-            accept="image/*"
+            accept="image/*,video/mp4,video/webm"
           />
           <button
             type="button"
@@ -232,17 +238,36 @@ export function MediaLibrary({
                   onClick={() => handleSelect(item.public_url)}
                 >
                   <div className="relative aspect-square">
-                    <Image
-                      src={item.public_url}
-                      alt={item.alt_text || item.file_name}
-                      fill
-                      className="object-cover"
-                    />
+                    {item.mime_type?.startsWith('video/') ? (
+                      <div className="w-full h-full flex items-center justify-center bg-muted/20">
+                        <video
+                          src={item.public_url}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center">
+                            <FileVideo className="h-4 w-4 text-foreground" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Image
+                        src={item.public_url}
+                        alt={item.alt_text || item.file_name}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
                   </div>
                   <div className="p-2">
                     <p className="text-[11px] truncate text-muted-foreground">
                       {item.file_name}
                     </p>
+                    {item.mime_type?.startsWith('video/') && (
+                      <span className="text-[9px] text-primary/70 font-medium uppercase">Vídeo</span>
+                    )}
                   </div>
                   <button
                     type="button"

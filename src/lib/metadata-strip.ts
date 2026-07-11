@@ -15,14 +15,14 @@ export interface StripResult {
  */
 export async function stripImageMetadata(buffer: Buffer, mimeType: string): Promise<StripResult> {
   try {
-    const image = sharp(buffer);
+    const image = sharp(buffer, { animated: mimeType === 'image/gif' });
 
     let cleaned: Sharp;
 
     if (mimeType === 'image/png') {
       cleaned = image.png({ compressionLevel: 9 });
     } else if (mimeType === 'image/gif') {
-      cleaned = image.png({ compressionLevel: 9 });
+      cleaned = image.webp({ effort: 6 });
     } else if (mimeType === 'image/webp') {
       cleaned = image.webp({ effort: 6 });
     } else if (mimeType === 'image/avif') {

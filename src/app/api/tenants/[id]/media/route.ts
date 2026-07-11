@@ -27,7 +27,25 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await params;
+
+    const { data: membership } = await supabase
+      .from('tenant_members')
+      .select('role')
+      .eq('tenant_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Not a member of this tenant' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 100);
@@ -51,6 +69,7 @@ export async function GET(
     const { data, error } = await query;
 
     if (error) {
+      console.error('Get media query error:', error);
       return NextResponse.json({ media: [], total: 0 });
     }
 
