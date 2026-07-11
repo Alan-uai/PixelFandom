@@ -266,7 +266,7 @@ export default function TableViewerConfig({
         ))}
       </div>
 
-      {Object.keys(globalDefaults).length > 0 && (
+      {Object.keys(globalDefaults).length > 0 && (activeSection === 'display' || activeSection === 'card') && (
         <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 bg-muted/30 rounded-md px-3 py-1.5">
           <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${source === 'global' ? 'bg-blue-500' : 'bg-amber-500'}`} />
           {source === 'global'

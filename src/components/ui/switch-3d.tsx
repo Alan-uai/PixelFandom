@@ -175,9 +175,10 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
           boxShadow: checked
             ? [
                 `0 0 ${glowSize}px ${PRIMARY}/0.35`,
-                `inset 0 1px 0 ${PRIMARY_FG}/0.08`,
+                '1px 1px 3px rgba(0,0,0,0.25)',
+                '-0.5px -0.5px 1px rgba(255,255,255,0.06)',
               ].join(', ')
-            : 'inset 0 1.5px 3px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)',
+            : 'inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(255,255,255,0.06)',
         }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         whileHover={!disabled ? { scale: 1.06, transition: { duration: 0.15 } } : undefined}

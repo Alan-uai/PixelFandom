@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import './elastic-slider-3d.css';
 
 const MAX_OVERFLOW = 50;
-const MAX_TILT = 12;
+const MAX_TILT = 20;
 
 export interface ElasticSlider3DProps {
   defaultValue?: number;

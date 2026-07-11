@@ -37,7 +37,8 @@ export const ViewerConfigSchema = z.object({
     paginationStyle: z.enum(['arrows', 'numbers', 'emoji']).default('arrows'),
     sortColumn: z.string().nullable().optional(),
     sortDirection: z.enum(['asc', 'desc']).default('asc'),
-    gap: z.number().min(0).max(16).optional(),
+    gap: z.number().min(0).max(32).optional(),
+    separatorWidth: z.number().min(0).max(8).default(2).optional(),
   }).optional(),
   filters: z.object({
     enabled: z.boolean().default(true),

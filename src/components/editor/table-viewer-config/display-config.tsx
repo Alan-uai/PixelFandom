@@ -59,12 +59,21 @@ export function DisplayConfig({
       })()}
       <ElasticSlider3D
         label="Espaçamento"
-        defaultValue={c.gap || 12}
+        defaultValue={c.gap || 16}
         startingValue={2}
-        maxValue={16}
+        maxValue={32}
         showValue
         valueSuffix="px"
         onValueChange={(v) => onChange({ ...c, gap: v })}
+      />
+      <ElasticSlider3D
+        label="Espessura do separador"
+        defaultValue={c.separatorWidth ?? 2}
+        startingValue={0}
+        maxValue={8}
+        showValue
+        valueSuffix="px"
+        onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
       />
 
       <div className="space-y-3 border-t pt-3">

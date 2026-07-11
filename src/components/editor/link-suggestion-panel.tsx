@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getTableCatalog, getTableItems } from '@/lib/data-access';
 import type { SuggestionState } from './extensions/smart-mention';
@@ -216,7 +217,7 @@ function SectionCarousel({
           ref={scrollRef}
           className="flex gap-1.5 overflow-x-auto scrollbar-none scroll-smooth pb-1"
         >
-          {chips.map((chip) => {
+          {chips.map((chip, idx) => {
             const colors: Record<string, string> = {
               table: 'text-primary border-primary/30 bg-primary/10 hover:bg-primary/20',
               item: 'text-secondary border-secondary/30 bg-secondary/10 hover:bg-secondary/20',
@@ -224,16 +225,27 @@ function SectionCarousel({
             };
             const tag = `$${chip.type === 'table' ? 't' : chip.type === 'item' ? 'i' : 'a'}<${chip.slug}>`;
             return (
-              <button
+              <motion.button
                 key={`${chip.type}:${chip.slug}`}
                 type="button"
                 title={chip.description}
                 onClick={() => onInsert(tag)}
+                initial={{ rotateY: 90, opacity: 0, z: -60 }}
+                animate={{ rotateY: 0, opacity: 1, z: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 180,
+                  damping: 18,
+                  delay: idx * 0.035,
+                }}
+                style={{ transformStyle: 'preserve-3d' }}
+                whileHover={{ scale: 1.08, z: 20 }}
+                whileTap={{ scale: 0.95 }}
                 className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors ${colors[chip.type] || ''}`}
               >
                 <span>{icon}</span>
                 <span className="max-w-[120px] truncate">{chip.label}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>

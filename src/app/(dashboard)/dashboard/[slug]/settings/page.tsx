@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
@@ -327,7 +327,7 @@ export default function WikiSettingsPage() {
     }
   };
 
-  const isDirty =
+  const isDirty = useMemo(() =>
     name !== savedConfig.name ||
     description !== savedConfig.description ||
     logoUrl !== savedConfig.logoUrl ||
@@ -364,7 +364,17 @@ export default function WikiSettingsPage() {
     articleDisplayFormat !== savedConfig.articleDisplayFormat ||
     articleColumnsCount !== savedConfig.articleColumnsCount ||
     articleShowImages !== savedConfig.articleShowImages ||
-    articleShowSummaries !== savedConfig.articleShowSummaries;
+    articleShowSummaries !== savedConfig.articleShowSummaries,
+  [name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage,
+    primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
+    fontFamily, headingFont, borderRadius, sidebarWidth, headerStyle, articlesPerRow,
+    gameTableDisplayFormat, gameTableColumnsCount, gameTableTabsEnabled, gameTableTabsSubFormat,
+    listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+    listingShowSearch, listingShowFilters, listingShowHeader,
+    listingCardStyle, listingCardLayout, listingHoverEffect,
+    articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
+    savedConfig,
+  ]);
 
   useRegisterUnsavedChanges({
     isDirty,

@@ -42,6 +42,16 @@ const turndown = new TurndownService({
   bulletListMarker: '-',
 });
 
+// Preserve smart mention patterns ($t<slug>, $i<slug>, etc.) during HTML→Markdown
+turndown.addRule('smartMention', {
+  filter: (node) => {
+    if (node.nodeType !== 3) return false;
+    const text = node.textContent || '';
+    return /^\$([tia@l])<([^>]+)>$/.test(text);
+  },
+  replacement: (content) => content,
+});
+
 export interface TiptapEditorHandle {
   insertText: (text: string) => void;
   focus: () => void;
@@ -67,6 +77,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
     onSuggestionChange?.(state);
   }, [onSuggestionChange]);
 
+  const isExternalUpdate = useRef(false);
+  const lastContentRef = useRef(content);
+
   const extensions = React.useMemo(() => [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -88,6 +101,10 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
     extensions,
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
+      if (isExternalUpdate.current) {
+        isExternalUpdate.current = false;
+        return;
+      }
       const html = editor.getHTML();
       const md = turndown.turndown(html);
       onChange(md);
@@ -110,6 +127,15 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
       return suggestionRef.current;
     },
   }), [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const newContent = content || '';
+    if (lastContentRef.current === newContent) return;
+    lastContentRef.current = newContent;
+    isExternalUpdate.current = true;
+    editor.commands.setContent(parseInitialContent(newContent));
+  }, [content, editor]);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
@@ -401,7 +427,7 @@ function parseInitialContent(content: string): any {
     const placeholders = new Map<string, string>();
     let phIdx = 0;
     const protectedContent = content.replace(/\$([tia@l])<([^>]+)>/g, (match) => {
-      const ph = `\x00SMART_MENTION_${phIdx++}\x00`;
+      const ph = `\uE000SMART_MENTION_${phIdx++}\uE000`;
       placeholders.set(ph, match);
       return ph;
     });
@@ -412,8 +438,8 @@ function parseInitialContent(content: string): any {
       htmlExtensions: [gfmTableHtml()],
     });
 
-    const NULL_CHAR = String.fromCharCode(0);
-    const mentionPhPattern = new RegExp(`${NULL_CHAR}SMART_MENTION_\\d+${NULL_CHAR}`, 'g');
+    const PUA = '\uE000';
+    const mentionPhPattern = new RegExp(`${PUA}SMART_MENTION_\\d+${PUA}`, 'g');
     return html.replace(mentionPhPattern, (ph) => placeholders.get(ph) || ph);
   } catch {
     return content;
