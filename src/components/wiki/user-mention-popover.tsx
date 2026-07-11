@@ -105,6 +105,7 @@ function UserMentionPopoverContent({
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatar_url}
                 alt=""
@@ -131,6 +132,7 @@ function UserMentionPopoverContent({
               </div>
               <div className="flex items-center gap-2">
                 {profile.discord_avatar && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={profile.discord_avatar} alt="" className="h-6 w-6 rounded-full" />
                 )}
                 <div>

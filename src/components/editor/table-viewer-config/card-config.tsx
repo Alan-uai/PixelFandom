@@ -82,6 +82,7 @@ export function CardConfig({
 
   // Detail state
   const columnFormats: Record<string, string> = c.columnFormats || {};
+  const formatVariants: Record<string, number> = c.columnFormatVariants || {};
 
   const effectiveVisible = useMemo(() => {
     const visibleColumns: string[] = c.visibleColumns || [];
@@ -110,6 +111,14 @@ export function CardConfig({
     const defCompatible = getCompatibleFormats(columnTypes[col]);
     if (defCompatible.some((f) => f.value === inferred)) return inferred;
     return getDefaultFormat(columnTypes[col]);
+  };
+
+  const getVariant = (col: string): number => formatVariants[col] || 1;
+
+  const cycleVariant = (col: string) => {
+    const current = getVariant(col);
+    const next = current >= 5 ? 1 : current + 1;
+    onChange({ ...c, columnFormatVariants: { ...formatVariants, [col]: next } });
   };
 
   return (
@@ -302,7 +311,22 @@ export function CardConfig({
                   />
                   <label htmlFor={`detail-vis-${col}`} className="text-xs flex-1">{col}</label>
                   {isVisible && (
-                    <Select3D value={getFormat(col)} options={getCompatibleFormats(columnTypes[col]).map(f => ({value: f.value, label: f.label}))} onChange={(v) => setFormat(col, v)} className="w-32" />
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => cycleVariant(col)}
+                        className="flex items-center gap-0.5 h-5 rounded px-1 text-[10px] font-bold leading-none bg-muted hover:bg-muted/80 text-muted-foreground border border-border/50 transition-colors"
+                        title="Variante de estilo"
+                      >
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <span key={n} className={`${n === getVariant(col) ? 'text-foreground' : 'text-muted-foreground/30'}`}>
+                            {n === getVariant(col) ? '●' : '○'}
+                          </span>
+                        ))}
+                        <span className="ml-0.5 text-[10px] text-muted-foreground">{getVariant(col)}</span>
+                      </button>
+                      <Select3D value={getFormat(col)} options={getCompatibleFormats(columnTypes[col]).map(f => ({value: f.value, label: f.label}))} onChange={(v) => setFormat(col, v)} className="w-32" />
+                    </div>
                   )}
                 </div>
               );

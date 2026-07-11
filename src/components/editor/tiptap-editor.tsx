@@ -62,26 +62,30 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
   ref,
 ) {
   const suggestionRef = useRef<SuggestionState>({ active: false, type: null, search: '' });
+  const stableOnSuggestionChange = useCallback((state: SuggestionState) => {
+    suggestionRef.current = state;
+    onSuggestionChange?.(state);
+  }, [onSuggestionChange]);
+
+  const extensions = React.useMemo(() => [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3] },
+    }),
+    Placeholder.configure({ placeholder: placeholder || 'Escreva seu conteúdo aqui...' }),
+    ImageExtension,
+    LinkExtension.configure({ openOnClick: false }),
+    Underline,
+    GameItemEmbed,
+    TierlistBlock,
+    // eslint-disable-next-line react-hooks/refs
+    SmartMention.configure({
+      onSuggestionChange: stableOnSuggestionChange,
+    }),
+    SmartMentionHighlight,
+  ], [placeholder, stableOnSuggestionChange]);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      Placeholder.configure({ placeholder: placeholder || 'Escreva seu conteúdo aqui...' }),
-      ImageExtension,
-      LinkExtension.configure({ openOnClick: false }),
-      Underline,
-      GameItemEmbed,
-      TierlistBlock,
-      SmartMention.configure({
-        onSuggestionChange: (state: SuggestionState) => {
-          suggestionRef.current = state;
-          onSuggestionChange?.(state);
-        },
-      }),
-      SmartMentionHighlight,
-    ],
+    extensions,
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
@@ -408,7 +412,9 @@ function parseInitialContent(content: string): any {
       htmlExtensions: [gfmTableHtml()],
     });
 
-    return html.replace(/\x00SMART_MENTION_\d+\x00/g, (ph) => placeholders.get(ph) || ph);
+    const NULL_CHAR = String.fromCharCode(0);
+    const mentionPhPattern = new RegExp(`${NULL_CHAR}SMART_MENTION_\\d+${NULL_CHAR}`, 'g');
+    return html.replace(mentionPhPattern, (ph) => placeholders.get(ph) || ph);
   } catch {
     return content;
   }

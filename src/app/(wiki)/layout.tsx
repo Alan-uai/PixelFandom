@@ -158,15 +158,17 @@ function WikiLayoutContent({
     }
   }, []);
 
+  const faviconUrl = (tenant as any)?.favicon_url;
+
   useEffect(() => {
     const link = document.querySelector('link[rel="icon"][sizes="512x512"]')
       || document.querySelector('link[rel="icon"]')
       || document.querySelector('link[rel="shortcut icon"]');
     if (link) {
-      link.setAttribute('href', (tenant as any)?.favicon_url || '/icon-512.png');
-      if ((tenant as any)?.favicon_url) link.setAttribute('type', 'image/png');
+      link.setAttribute('href', faviconUrl || '/icon-512.png');
+      if (faviconUrl) link.setAttribute('type', 'image/png');
     }
-  }, [(tenant as any)?.favicon_url]);
+  }, [faviconUrl]);
 
   const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
     updatePreference('theme_mode', mode);

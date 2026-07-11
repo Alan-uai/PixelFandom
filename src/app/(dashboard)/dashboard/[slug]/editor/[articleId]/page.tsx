@@ -200,6 +200,7 @@ function EditPageContent() {
   }, [article, form]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/incompatible-library
     const sub = form.watch((value, { name }) => {
       if (name === 'content' || !name) {
         const links = extractPendingLinks(value.content || '');

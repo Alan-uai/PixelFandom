@@ -3,8 +3,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getTableCatalog, getTableItems } from '@/lib/data-access';
-import type { CatalogEntry } from '@/lib/data-access';
-import type { MentionType } from '@/lib/smart-mention-types';
 import type { SuggestionState } from './extensions/smart-mention';
 
 interface SuggestionChip {

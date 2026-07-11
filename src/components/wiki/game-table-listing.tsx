@@ -393,7 +393,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     if (!activeTab && groupedItems && groupedItems.length > 0) {
       setActiveTab(groupedItems[0][0]);
     }
-  }, [groupedItems]);
+  }, [activeTab, groupedItems]);
 
   const toggleFilter = (col: string, value: string) => {
     setActiveFilters(prev => {
@@ -998,29 +998,29 @@ function PaginationControls({
 
 function ItemListRow({
   item,
-  tableName,
-  tenantSlug,
-  tenantId,
+  _tableName,
+  _tenantSlug,
+  _tenantId,
   selectedSlug,
   onSelect,
   cardRefs,
-  useSuffix,
-  scaleFactor,
+  _useSuffix,
+  _scaleFactor,
   cardConfig,
-  detailConfig,
+  _detailConfig,
   onCompareStatClick,
 }: {
   item: any;
-  tableName?: string;
-  tenantSlug?: string;
-  tenantId?: string;
+  _tableName?: string;
+  _tenantSlug?: string;
+  _tenantId?: string;
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
-  useSuffix?: boolean;
-  scaleFactor?: number;
+  _useSuffix?: boolean;
+  _scaleFactor?: number;
   cardConfig?: Record<string, any>;
-  detailConfig?: Record<string, any>;
+  _detailConfig?: Record<string, any>;
   onCompareStatClick: () => void;
 }) {
   const name = item.name || item.title || item.slug || 'Item';
@@ -1066,29 +1066,29 @@ function ItemListRow({
 
 function ItemTableRow({
   item,
-  tableName,
-  tenantSlug,
-  tenantId,
+  _tableName,
+  _tenantSlug,
+  _tenantId,
   selectedSlug,
   onSelect,
   cardRefs,
-  useSuffix,
-  scaleFactor,
+  _useSuffix,
+  _scaleFactor,
   cardConfig,
-  detailConfig,
+  _detailConfig,
   onCompareStatClick,
 }: {
   item: any;
-  tableName?: string;
-  tenantSlug?: string;
-  tenantId?: string;
+  _tableName?: string;
+  _tenantSlug?: string;
+  _tenantId?: string;
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
-  useSuffix?: boolean;
-  scaleFactor?: number;
+  _useSuffix?: boolean;
+  _scaleFactor?: number;
   cardConfig?: Record<string, any>;
-  detailConfig?: Record<string, any>;
+  _detailConfig?: Record<string, any>;
   onCompareStatClick: () => void;
 }) {
   const name = item.name || item.title || item.slug || 'Item';
@@ -1151,8 +1151,8 @@ function ItemAccordionBox({
   onSelect,
   cardRefs,
   useSuffix,
-  scaleFactor,
-  cardConfig,
+  _scaleFactor,
+  _cardConfig,
   detailConfig,
   onCompareStatClick,
 }: {
@@ -1164,8 +1164,8 @@ function ItemAccordionBox({
   onSelect?: (slug: string | null) => void;
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
   useSuffix?: boolean;
-  scaleFactor?: number;
-  cardConfig?: Record<string, any>;
+  _scaleFactor?: number;
+  _cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   onCompareStatClick: (statKey: string) => void;
 }) {

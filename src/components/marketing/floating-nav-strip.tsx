@@ -2,7 +2,6 @@
 
 import { useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { User, Trophy, Bell, LayoutDashboard, LogOut, LogIn, Settings } from 'lucide-react';
 import { useUser, useSupabase } from '@/supabase';
@@ -68,6 +67,7 @@ export default function FloatingNavStrip({ show }: FloatingNavStripProps) {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 p-[2px] shadow-[0_0_20px_rgba(75,197,255,0.2)] hover:shadow-[0_0_30px_rgba(75,197,255,0.4)] transition-shadow duration-300">
                 <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                   {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.user_metadata.avatar_url || user.user_metadata.picture}
                       alt=""

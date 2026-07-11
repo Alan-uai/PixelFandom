@@ -45,20 +45,6 @@ function getTenantSlug(): string | null {
 
 const SmartMentionPluginKey = new PluginKey('smartMention');
 
-function getTypeChar(type: MentionType): string {
-  switch (type) {
-    case 'user': return '@';
-    case 'table': return 't';
-    case 'item': return 'i';
-    case 'article': return 'a';
-    case 'link': return 'l';
-  }
-}
-
-function makeTextNode(schema: any, type: MentionType, label: string) {
-  return schema.text('$' + getTypeChar(type) + '<' + label + '>');
-}
-
 export const SmartMention = Extension.create({
   name: 'smartMention',
 
