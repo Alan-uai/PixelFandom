@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +15,8 @@ import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
 import { Select3D } from '@/components/ui/select3d';
 import { ImageUpload } from '@/components/ui/image-upload';
-import TiptapEditor from '@/components/editor/tiptap-editor';
+import TiptapEditor, { type TiptapEditorHandle } from '@/components/editor/tiptap-editor';
+import LinkSuggestionPanel from '@/components/editor/link-suggestion-panel';
 import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { extractPendingLinks } from '@/lib/smart-mention-queries';
@@ -89,6 +90,7 @@ function EditPageContent() {
 
   const isNewArticle = articleIdParam === 'new';
   const [articleId, setArticleId] = useState(isNewArticle ? crypto.randomUUID() : articleIdParam);
+  const editorRef = useRef<TiptapEditorHandle>(null);
 
   const [article, setArticle] = useState<any>(null);
   const [isArticleLoading, setIsArticleLoading] = useState(false);
@@ -168,11 +170,11 @@ function EditPageContent() {
   useEffect(() => {
     if (article) {
       form.reset({
-        title: article.title,
-        summary: article.summary,
-        content: article.content,
+        title: article.title || '',
+        summary: article.summary || '',
+        content: article.content || '',
         tags: Array.isArray(article.tags) ? article.tags.join(', ') : '',
-        imageUrl: article.image_url,
+        imageUrl: article.image_url || '',
         bannerImage: article.banner_image || '',
         ogImage: article.og_image || '',
       });
@@ -470,7 +472,11 @@ function EditPageContent() {
 
   useRegisterUnsavedChanges({
     isDirty,
-    onSave: () => form.handleSubmit(onSubmit)(),
+    onSave: async () => {
+      const valid = await form.trigger();
+      if (!valid) return false;
+      return form.handleSubmit(onSubmit)() as Promise<void>;
+    },
     onDiscard: () => form.reset(),
   });
 
@@ -634,6 +640,7 @@ function EditPageContent() {
                     <FormLabel>{t('content_label')}</FormLabel>
                     <FormControl>
                       <TiptapEditor
+                        ref={editorRef}
                         content={field.value || ''}
                         onChange={(text) => {
                           field.onChange(text);
@@ -649,24 +656,37 @@ function EditPageContent() {
               />
 
               {detectedLinks.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {detectedLinks.map((link, i) => {
-                    const icon = link.type === 'table' ? '▦' : link.type === 'item' ? '◇' : '📄';
-                    const color = link.type === 'table' ? 'text-primary border-primary/30 bg-primary/10' :
-                      link.type === 'item' ? 'text-secondary border-secondary/30 bg-secondary/10' :
-                      'text-accent border-accent/30 bg-accent/10';
-                    return (
-                      <span
-                        key={`${link.type}:${link.slug}:${i}`}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${color}`}
-                      >
-                        <span>{icon}</span>
-                        <span>{link.slug}</span>
-                      </span>
-                    );
-                  })}
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                    Links detectados no conteúdo
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detectedLinks.map((link, i) => {
+                      const icon = link.type === 'table' ? '▦' : link.type === 'item' ? '◇' : '📄';
+                      const color = link.type === 'table' ? 'text-primary border-primary/30 bg-primary/10' :
+                        link.type === 'item' ? 'text-secondary border-secondary/30 bg-secondary/10' :
+                        'text-accent border-accent/30 bg-accent/10';
+                      return (
+                        <span
+                          key={`${link.type}:${link.slug}:${i}`}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${color}`}
+                        >
+                          <span>{icon}</span>
+                          <span>{link.slug}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
+              <div className="border-t border-border/50 pt-3">
+                <LinkSuggestionPanel
+                  tenantSlug={params.slug as string}
+                  onInsert={(tag) => {
+                    editorRef.current?.insertText(tag);
+                  }}
+                />
+              </div>
 
               <FormField
                 control={form.control}

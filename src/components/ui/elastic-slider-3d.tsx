@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import './elastic-slider-3d.css';
 
 const MAX_OVERFLOW = 50;
+const MAX_TILT = 12;
 
 export interface ElasticSlider3DProps {
   defaultValue?: number;
@@ -166,8 +167,10 @@ function Slider({
           const rect = containerRef.current.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
           const cy = rect.top + rect.height / 2;
-          tiltX.jump(((e.clientY - cy) / rect.height) * -8);
-          tiltY.jump(((e.clientX - cx) / rect.width) * 8);
+          const rawTiltX = ((e.clientY - cy) / rect.height) * -8;
+          const rawTiltY = ((e.clientX - cx) / rect.width) * 8;
+          tiltX.jump(Math.min(Math.max(rawTiltX, -MAX_TILT), MAX_TILT));
+          tiltY.jump(Math.min(Math.max(rawTiltY, -MAX_TILT), MAX_TILT));
         }
       }
     },
@@ -216,8 +219,10 @@ function Slider({
         const rect = containerRef.current.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        tiltX.set(((e.clientY - cy) / rect.height) * -4);
-        tiltY.set(((e.clientX - cx) / rect.width) * 4);
+        const rawTiltX = ((e.clientY - cy) / rect.height) * -4;
+        const rawTiltY = ((e.clientX - cx) / rect.width) * 4;
+        tiltX.set(Math.min(Math.max(rawTiltX, -MAX_TILT), MAX_TILT));
+        tiltY.set(Math.min(Math.max(rawTiltY, -MAX_TILT), MAX_TILT));
       }
     },
     [tiltX, tiltY],
@@ -311,11 +316,11 @@ function Slider({
                 className="elastic-slider-3d-range"
                 style={{ width: `${rangeWidth}%` }}
               />
-              <div
-                className="elastic-slider-3d-handle"
-                style={{ left: `${rangeWidth}%` }}
-              />
             </div>
+            <div
+              className="elastic-slider-3d-handle"
+              style={{ left: `${rangeWidth}%` }}
+            />
           </motion.div>
         </div>
       </div>

@@ -73,7 +73,7 @@ export const SmartMention = Extension.create({
         items: async ({ query }): Promise<MentionResult[]> => {
           if (!query) return [];
           const parsed = parseQuery(query);
-          if (!parsed || !parsed.search) return [];
+          if (!parsed) return [];
           if (!tenantSlug && parsed.type !== 'user') return [];
 
           switch (parsed.type) {
@@ -104,8 +104,9 @@ export const SmartMention = Extension.create({
           ) {
             if (!dom) return;
             const parsed = parseQuery(query);
-            currentType = parsed?.type || 'table';
-            const search = parsed?.search || '';
+            if (!parsed) { renderList([], false, ''); return; }
+            currentType = parsed.type;
+            const search = parsed.search;
 
             (async () => {
               try {

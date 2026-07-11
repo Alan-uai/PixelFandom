@@ -27,7 +27,7 @@ import {
   Library,
   FileUp,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import TurndownService from 'turndown';
@@ -41,6 +41,11 @@ const turndown = new TurndownService({
   bulletListMarker: '-',
 });
 
+export interface TiptapEditorHandle {
+  insertText: (text: string) => void;
+  focus: () => void;
+}
+
 type TiptapEditorProps = {
   content: string;
   onChange: (text: string) => void;
@@ -49,7 +54,10 @@ type TiptapEditorProps = {
   tenantId?: string;
 };
 
-export default function TiptapEditor({ content, onChange, placeholder, articleId, tenantId }: TiptapEditorProps) {
+const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function TiptapEditor(
+  { content, onChange, placeholder, articleId, tenantId },
+  ref,
+) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -76,6 +84,15 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       },
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    insertText(text: string) {
+      editor?.chain().focus().insertContent(text).run();
+    },
+    focus() {
+      editor?.chain().focus().run();
+    },
+  }), [editor]);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
@@ -323,7 +340,8 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       />
     </div>
   );
-}
+});
+export default TiptapEditor;
 
 function ToolbarButton({ onClick, active, children }: any) {
   return (

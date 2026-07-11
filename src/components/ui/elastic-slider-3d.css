@@ -39,7 +39,6 @@
   flex-grow: 1;
   border-radius: 9999px;
   background: hsl(var(--muted));
-  overflow: hidden;
   position: relative;
 }
 
