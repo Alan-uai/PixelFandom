@@ -298,9 +298,6 @@ export default function WikiDomainsPage() {
                 value={vercelPrefix}
                 onChange={(e) => setVercelPrefix(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-mono pointer-events-none select-none">
-                .vercel.app
-              </span>
             </div>
             {tenant?.vercel_domain ? (
               <Button
@@ -326,7 +323,7 @@ export default function WikiDomainsPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="font-mono text-sm font-medium">{tenant.vercel_domain}</p>
+                  <p className="font-mono text-sm font-medium">{tenant.vercel_domain.replace('.vercel.app', '')}</p>
                   <p className="text-xs text-green-500">{t('vercel.active')}</p>
                 </div>
               </div>

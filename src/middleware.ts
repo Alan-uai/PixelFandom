@@ -233,6 +233,16 @@ export async function middleware(request: NextRequest) {
         tenantData = (await customDomainResp.json()) as { slug: string; id: string }[];
       }
 
+      if (!tenantData?.length) {
+        const vercelDomainResp = await fetch(
+          `${SUPA_URL}/rest/v1/tenants?vercel_domain=eq.${encodeURIComponent(host)}&select=slug,id`,
+          { headers },
+        );
+        if (vercelDomainResp.ok) {
+          tenantData = (await vercelDomainResp.json()) as { slug: string; id: string }[];
+        }
+      }
+
       if (!tenantData?.length && host.endsWith('.vercel.app')) {
         const subdomain = host.replace('.vercel.app', '');
         const fallbackResp = await fetch(
