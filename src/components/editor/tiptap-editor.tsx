@@ -31,7 +31,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import TurndownService from 'turndown';
-import { GameItemEmbed, TierlistBlock, SmartMention } from './extensions';
+import { GameItemEmbed, TierlistBlock, SmartMention, SmartMentionHighlight } from './extensions';
 import { MediaLibrary } from '@/components/ui/media-library';
 
 const turndown = new TurndownService({
@@ -62,6 +62,7 @@ export default function TiptapEditor({ content, onChange, placeholder, articleId
       GameItemEmbed,
       TierlistBlock,
       SmartMention,
+      SmartMentionHighlight,
     ],
     content: parseInitialContent(content),
     onUpdate: ({ editor }) => {

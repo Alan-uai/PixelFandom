@@ -117,11 +117,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   let cols: number;
   if (fmt === 'list') {
-    cols = 1;
-  } else if (fmt === 'grid') {
-    cols = Math.max(2, Math.min(6, effectiveColumnsCount));
+    cols = Math.max(1, Math.min(2, effectiveColumnsCount));
   } else {
-    cols = Math.max(1, Math.min(6, effectiveColumnsCount));
+    cols = Math.max(2, Math.min(5, effectiveColumnsCount));
   }
   const scaleFactor = Math.max(0.5, 1 - (cols - 1) * 0.125);
   const gridColsClass = ({
@@ -130,7 +128,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
     4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
     5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
-    6: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6',
   } as Record<number, string>)[cols] || 'grid-cols-2';
 
   const searchDebounceMs = viewerConfig?.search?.debounceMs ?? 300;

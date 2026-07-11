@@ -31,7 +31,7 @@ export const ViewerConfigSchema = z.object({
   }).optional(),
   display: z.object({
     format: z.enum(['grid', 'list', 'carousel', 'carousel_infinite']).optional(),
-    columnsCount: z.number().int().min(1).max(6).optional(),
+    columnsCount: z.number().int().min(1).max(5).optional(),
     itemsPerPage: z.number().int().min(1).max(200).optional(),
     pagination: z.boolean().default(false),
     paginationStyle: z.enum(['arrows', 'numbers', 'emoji']).default('arrows'),
@@ -112,5 +112,6 @@ export type ViewerConfig = z.infer<typeof ViewerConfigSchema>;
 export function parseViewerConfig(raw: unknown): ViewerConfig {
   const result = ViewerConfigSchema.safeParse(raw);
   if (result.success) return result.data;
+  console.warn('[viewer-config] parse failed, falling back to defaults:', result.error.flatten());
   return ViewerConfigSchema.parse({});
 }

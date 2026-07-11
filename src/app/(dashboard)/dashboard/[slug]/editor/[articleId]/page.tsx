@@ -31,6 +31,7 @@ import { searchAll } from '@/lib/search';
 import { invalidateDataCache } from '@/lib/data-access';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
+import { MediaLibrary } from '@/components/ui/media-library';
 import { generateTags } from '@/ai/flows/generate-tags-flow';
 import { summarizeWikiContent } from '@/ai/flows/summarize-wiki-content';
 import { supabase } from '@/supabase';
@@ -46,13 +47,12 @@ const urlSafe = (msg: string) => urlOrEmpty.refine(
 
 const articleSchema = z.object({
   title: z.string().min(3, 'O título é obrigatório.').max(500, 'Título muito longo.'),
-  summary: z.string().min(10, 'O resumo é obrigatório.').max(5000, 'Resumo muito longo.'),
-  content: z.string().min(20, 'O conteúdo é obrigatório.').max(500000, 'Conteúdo muito longo.'),
-  tags: z.string().min(1, 'Pelo menos uma tag é necessária.').max(2000, 'Tags muito longas.'),
+  summary: z.string().max(5000, 'Resumo muito longo.').optional().or(z.literal('')),
+  content: z.string().max(500000, 'Conteúdo muito longo.').optional().or(z.literal('')),
+  tags: z.string().max(2000, 'Tags muito longas.').optional().or(z.literal('')),
   imageUrl: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
   bannerImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
   ogImage: urlSafe('URL inválida. Apenas HTTP(S) ou caminho relativo.'),
-
 });
 
 type ArticleFormData = z.infer<typeof articleSchema>;
@@ -77,6 +77,10 @@ function EditPageContent() {
 
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
+  const [showImageLib, setShowImageLib] = useState(false);
+  const [showBannerLib, setShowBannerLib] = useState(false);
+  const [showOgLib, setShowOgLib] = useState(false);
+  const [detectedLinks, setDetectedLinks] = useState<ReturnType<typeof extractPendingLinks>>([]);
 
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const { canEdit, isLoading: isAdminLoading } = useTenantRole(slug);
@@ -191,12 +195,22 @@ function EditPageContent() {
     }
   }, [article, form]);
 
+  useEffect(() => {
+    const sub = form.watch((value, { name }) => {
+      if (name === 'content' || !name) {
+        const links = extractPendingLinks(value.content || '');
+        setDetectedLinks(links);
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [form]);
+
   const handleGenerateTags = async () => {
     setIsGeneratingTags(true);
     const { title, summary } = form.getValues();
     const content = extractTextFromContent(form.getValues().content);
     try {
-      const result = await generateTags({ title, summary, content });
+      const result = await generateTags({ title, summary: summary || '', content });
       if (result.tags) {
         setValue('tags', result.tags);
         toast({ title: 'Tags Geradas!', description: 'As tags foram preenchidas com sugestões da IA.' });
@@ -281,7 +295,7 @@ function EditPageContent() {
     setIsImproving(true);
     try {
       const values = form.getValues();
-      const contentText = values.content;
+      const contentText = values.content || '';
       
       let gameDataContext = '';
       try {
@@ -297,8 +311,8 @@ function EditPageContent() {
       const result = await improveArticle({
         title: values.title,
         content: contentText,
-        summary: values.summary,
-        tags: values.tags,
+        summary: values.summary || '',
+        tags: values.tags || '',
         gameDataContext,
         tone: guideTone,
       });
@@ -343,9 +357,9 @@ function EditPageContent() {
       id: articleId,
       title: values.title.trim(),
       slug,
-      summary: values.summary.trim(),
-      content: values.content,
-      tags: values.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      summary: (values.summary || '').trim(),
+      content: values.content || '',
+      tags: (values.tags || '').split(',').map(tag => tag.trim()).filter(Boolean),
       image_url: values.imageUrl ? sanitizeUrl(values.imageUrl.trim()) : null,
       banner_image: values.bannerImage ? sanitizeUrl(values.bannerImage.trim()) : null,
       og_image: values.ogImage ? sanitizeUrl(values.ogImage.trim()) : null,
@@ -430,16 +444,15 @@ function EditPageContent() {
       toast({ title: t('success'), description: t('article_created') });
       router.push('/admin-chat');
     } else {
-      const valuesToReset = {
+      form.reset({
         title: values.title,
-        summary: values.summary,
-        content: values.content,
-        tags: values.tags,
+        summary: values.summary || '',
+        content: values.content || '',
+        tags: values.tags || '',
         imageUrl: values.imageUrl || undefined,
         bannerImage: values.bannerImage || undefined,
         ogImage: values.ogImage || undefined,
-      };
-      form.reset(valuesToReset);
+      });
       setChangeSummary('');
       supabase
         .from('article_versions')
@@ -531,17 +544,27 @@ function EditPageContent() {
                     <FormLabel>{t('article_image_label')}</FormLabel>
                     <FormControl>
                       <ImageUpload
-                          bucket="wiki-assets"
-                          pathPrefix={`${slug}/covers/${articleId}`}
+                        bucket="wiki-assets"
+                        pathPrefix={`${slug}/covers/${articleId}`}
                         value={field.value || ''}
                         onChange={field.onChange}
                         label={t('article_image_upload')}
+                        tenantId={tenantId ?? undefined}
+                        onOpenLibrary={() => setShowImageLib(true)}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {tenantId && (
+                <MediaLibrary
+                  open={showImageLib}
+                  onOpenChange={setShowImageLib}
+                  tenantId={tenantId}
+                  onSelect={(url) => { form.setValue('imageUrl', url); setShowImageLib(false); }}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -557,12 +580,22 @@ function EditPageContent() {
                         onChange={field.onChange}
                         label={t('banner_upload')}
                         previewSize="w-full h-24"
+                        tenantId={tenantId ?? undefined}
+                        onOpenLibrary={() => setShowBannerLib(true)}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {tenantId && (
+                <MediaLibrary
+                  open={showBannerLib}
+                  onOpenChange={setShowBannerLib}
+                  tenantId={tenantId}
+                  onSelect={(url) => { form.setValue('bannerImage', url); setShowBannerLib(false); }}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -578,16 +611,22 @@ function EditPageContent() {
                         onChange={field.onChange}
                         label={t('og_upload')}
                         previewSize="w-40 h-24"
+                        tenantId={tenantId ?? undefined}
+                        onOpenLibrary={() => setShowOgLib(true)}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-
-
-              <FormField
+              {tenantId && (
+                <MediaLibrary
+                  open={showOgLib}
+                  onOpenChange={setShowOgLib}
+                  tenantId={tenantId}
+                  onSelect={(url) => { form.setValue('ogImage', url); setShowOgLib(false); }}
+                />
+              )}              <FormField
                 control={form.control}
                 name="content"
                 render={({ field }) => (
@@ -595,7 +634,7 @@ function EditPageContent() {
                     <FormLabel>{t('content_label')}</FormLabel>
                     <FormControl>
                       <TiptapEditor
-                        content={field.value}
+                        content={field.value || ''}
                         onChange={(text) => {
                           field.onChange(text);
                         }}
@@ -608,6 +647,26 @@ function EditPageContent() {
                   </FormItem>
                 )}
               />
+
+              {detectedLinks.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {detectedLinks.map((link, i) => {
+                    const icon = link.type === 'table' ? '▦' : link.type === 'item' ? '◇' : '📄';
+                    const color = link.type === 'table' ? 'text-primary border-primary/30 bg-primary/10' :
+                      link.type === 'item' ? 'text-secondary border-secondary/30 bg-secondary/10' :
+                      'text-accent border-accent/30 bg-accent/10';
+                    return (
+                      <span
+                        key={`${link.type}:${link.slug}:${i}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${color}`}
+                      >
+                        <span>{icon}</span>
+                        <span>{link.slug}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
 
               <FormField
                 control={form.control}

@@ -179,6 +179,12 @@ export default function TableViewerConfig({
 
     const parsed = parseViewerConfig(config);
 
+    const hasConfig = Object.keys(parsed).length > 0;
+    if (!hasConfig) {
+      toast({ variant: 'destructive', title: 'Erro de validação', description: 'Não foi possível validar as configurações. Verifique os campos e tente novamente.' });
+      return false;
+    }
+
     const updatePayload: Record<string, unknown> = { viewer_config: parsed };
     const iconValue = parsed?.header?.icon;
     if (parsed?.header) {

@@ -336,4 +336,43 @@
     color: hsl(var(--muted-foreground));
     border-color: hsl(var(--muted));
   }
+
+  /* ── Smart Mention Badges (ProseMirror editor decoration) ── */
+  .smart-mention-badge {
+    border-radius: 9999px;
+    padding: 0.075rem 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .smart-mention-badge:hover {
+    opacity: 0.8;
+  }
+  .smart-mention-badge.mention-table {
+    background: hsl(198 100% 65% / 0.15);
+    color: hsl(198 100% 65%);
+    border: 1px solid hsl(198 100% 65% / 0.3);
+  }
+  .smart-mention-badge.mention-item {
+    background: hsl(270 80% 60% / 0.15);
+    color: hsl(270 80% 60%);
+    border: 1px solid hsl(270 80% 60% / 0.3);
+  }
+  .smart-mention-badge.mention-article {
+    background: hsl(350 90% 60% / 0.15);
+    color: hsl(350 90% 60%);
+    border: 1px solid hsl(350 90% 60% / 0.3);
+  }
+  .smart-mention-badge.mention-user {
+    background: hsl(30 80% 55% / 0.15);
+    color: hsl(30 80% 55%);
+    border: 1px solid hsl(30 80% 55% / 0.3);
+  }
+  .smart-mention-badge.mention-link {
+    background: hsl(160 60% 50% / 0.15);
+    color: hsl(160 60% 50%);
+    border: 1px solid hsl(160 60% 50% / 0.3);
+  }
 }

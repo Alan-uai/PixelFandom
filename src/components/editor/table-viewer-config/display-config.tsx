@@ -28,16 +28,35 @@ export function DisplayConfig({
           { label: 'Carrossel', value: 'carousel' },
           { label: 'Carrossel Infinito', value: 'carousel_infinite' },
         ]}
-        onChange={(v) => onChange({ ...c, format: v })}
+        onChange={(v) => {
+          if (v !== (c.format || 'grid')) {
+            const isList = v === 'list';
+            const defaultCols = isList ? 1 : 2;
+            onChange({ ...c, format: v, columnsCount: defaultCols });
+          }
+        }}
       />
-      <ElasticSlider3D
-        label="Colunas no grid"
-        defaultValue={c.columnsCount || 4}
-        startingValue={1}
-        maxValue={6}
-        showValue
-        onValueChange={(v) => onChange({ ...c, columnsCount: Math.round(v) })}
-      />
+      {(() => {
+        const isList = c.format === 'list';
+        const minCols = isList ? 1 : 2;
+        const maxCols = isList ? 2 : 5;
+        const defaultCols = isList ? 1 : 2;
+        return (
+          <ElasticSlider3D
+            label={isList ? 'Colunas' : 'Colunas no grid'}
+            defaultValue={c.columnsCount ?? defaultCols}
+            startingValue={minCols}
+            maxValue={maxCols}
+            showValue
+            onValueChange={(v) => {
+              const n = Math.round(Number(v));
+              if (!isNaN(n) && n >= minCols && n <= maxCols) {
+                onChange({ ...c, columnsCount: n });
+              }
+            }}
+          />
+        );
+      })()}
       <ElasticSlider3D
         label="Espaçamento"
         defaultValue={c.gap || 12}

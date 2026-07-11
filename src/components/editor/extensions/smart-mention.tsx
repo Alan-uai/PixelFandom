@@ -10,7 +10,7 @@ import { SmartMentionList, type SmartMentionListRef } from '../smart-mention-lis
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 function parseQuery(query: string): { type: MentionType; search: string } | null {
-  const match = query.match(/^([tia@l])<(.*)/);
+  const match = query.match(/^([tia@l])<([^>]*)/);
   if (!match) return null;
 
   const typeMap: Record<string, MentionType> = {
