@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight,
-  Star,
+  Star, BarChart3,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
 import { isCustomIcon } from '@/lib/table-icons';
@@ -106,11 +106,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   const { homePath } = useWikiPath(tenantSlug);
 
+  const catConfig = (viewerConfig?.categorization || {}) as Record<string, any>;
+  const spacingEnabled = catConfig.spacingEnabled !== false;
+  const spacingStyle: string = spacingEnabled ? (catConfig.spacingStyle || 'none') : 'none';
+  const spacingValue = spacingEnabled ? (catConfig.spacingValue ?? 16) : 0;
+
   const displayConfig = (viewerConfig?.display || {}) as Record<string, any>;
   const fmt = displayConfig.format || displayFormat || 'grid';
-  const effectiveColumnsCount = displayConfig.columnsCount || columnsCount || 3;
+  const effectiveColumnsCount = displayConfig.columnsCount || columnsCount || 4;
   const itemsPerPage = displayConfig.itemsPerPage || 50;
   const pagination = displayConfig.pagination === true;
+  const paginationStyle = displayConfig.paginationStyle || 'arrows';
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const detailConfig: Record<string, any> = viewerConfig?.card || {};
@@ -157,6 +163,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   useEffect(() => {
     setSelectedSlug(urlItem);
   }, [urlItem]);
+
+  useEffect(() => {
+    if (!activeTab && groupedItems && groupedItems.length > 0) {
+      setActiveTab(groupedItems[0][0]);
+    }
+  }, [groupedItems]);
 
   useEffect(() => {
     if (selectedSlug && cardRefs.current[selectedSlug]) {
@@ -318,6 +330,19 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       }
     }
 
+    const sortCol = viewerConfig?.display?.sortColumn;
+    const sortDir = viewerConfig?.display?.sortDirection || 'asc';
+    if (sortCol && result.length > 0 && sortCol in result[0]) {
+      result = [...result].sort((a, b) => {
+        const va = a[sortCol], vb = b[sortCol];
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
+        return sortDir === 'desc' ? -cmp : cmp;
+      });
+    }
+
     return result;
   }, [items, effectiveQuery, activeFilters, viewerConfig]);
 
@@ -410,17 +435,53 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       detailConfig,
     };
 
+    const effectiveLayout = cardConfig?.layout || 'card';
+
+    const renderItemByLayout = (item: any, statKey: string) => {
+      if (effectiveLayout === 'list') {
+        return (
+          <ItemListRow
+            key={item.id}
+            item={item}
+            {...baseItemCardProps}
+            onCompareStatClick={() => { setCompareStat(statKey); setCompareItemId(item.id); }}
+          />
+        );
+      }
+      if (effectiveLayout === 'table') {
+        return (
+          <ItemTableRow
+            key={item.id}
+            item={item}
+            {...baseItemCardProps}
+            onCompareStatClick={() => { setCompareStat(statKey); setCompareItemId(item.id); }}
+          />
+        );
+      }
+      if (effectiveLayout === 'accordion') {
+        return (
+          <ItemAccordionBox
+            key={item.id}
+            item={item}
+            {...baseItemCardProps}
+            onCompareStatClick={(sk: string) => { setCompareStat(sk); setCompareItemId(item.id); }}
+          />
+        );
+      }
+      return (
+        <ItemCard
+          key={item.id}
+          item={item}
+          {...baseItemCardProps}
+          onCompareStatClick={(sk: string) => { setCompareStat(sk); setCompareItemId(item.id); }}
+        />
+      );
+    };
+
     if (fmt === 'list') {
       return (
         <div className="space-y-3">
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              {...baseItemCardProps}
-              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-            />
-          ))}
+          {items.map((item) => renderItemByLayout(item, ''))}
         </div>
       );
     }
@@ -432,11 +493,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           columnsCount={cols}
           gap={12}
           renderItem={(item: any) => (
-            <ItemCard
-              item={item}
-              {...baseItemCardProps}
-              onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-            />
+            renderItemByLayout(item, '')
           )}
         />
       );
@@ -451,11 +508,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               className="snap-start shrink-0"
               style={{ flex: `0 0 calc((100% - ${(cols - 1) * 12}px) / ${cols})` }}
             >
-              <ItemCard
-                item={item}
-                {...baseItemCardProps}
-                onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-              />
+              {renderItemByLayout(item, '')}
             </div>
           ))}
         </div>
@@ -465,14 +518,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const gridGap = typeof gap === 'number' ? gap : 12;
     return (
       <div className={`${gridColsClass}`} style={{ gap: gridGap }}>
-        {items.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            {...baseItemCardProps}
-            onCompareStatClick={(statKey: string) => { setCompareStat(statKey); setCompareItemId(item.id); }}
-          />
-        ))}
+        {items.map((item) => renderItemByLayout(item, ''))}
       </div>
     );
   }
@@ -500,7 +546,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (!sgMap[sub]) sgMap[sub] = [];
         sgMap[sub].push(item);
       }
-      secondaryGroups = Object.entries(sgMap).sort(([a], [b]) => a.localeCompare(b));
+      const subOrder = (vc?.categorization?.subOrder as string[]) ?? [];
+      const catDirection = vc?.categorization?.categorySortDirection || 'asc';
+      secondaryGroups = Object.entries(sgMap).sort(([a], [b]) => {
+        const ai = subOrder.indexOf(`${category}::${a}`);
+        const bi = subOrder.indexOf(`${category}::${b}`);
+        if (ai >= 0 && bi >= 0) return ai - bi;
+        if (ai >= 0) return -1;
+        if (bi >= 0) return 1;
+        return catDirection === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
+      });
     }
 
     const heading = (
@@ -630,13 +685,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           onClose={() => { setCompareStat(null); setCompareItemId(null); }}
         />
       )}
-      <Link
-        href={homePath}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-      >
-        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-        Voltar para home
-      </Link>
+      {(viewerConfig?.header?.showBreadcrumb ?? true) && (
+        <Link
+          href={homePath}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+        >
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+          Voltar para home
+        </Link>
+      )}
 
       <div className="mb-8">
         <div className="flex items-start justify-between mb-2">
@@ -646,6 +703,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             </div>
             <div>
               <h1 className="text-2xl font-bold">{renderHeaderTitle()}</h1>
+              {viewerConfig?.header?.subtitle && (
+                <p className="text-sm text-muted-foreground/70">{viewerConfig.header.subtitle}</p>
+              )}
               <p className="text-sm text-muted-foreground">
                 {filteredItems.length} de {items.length} ite{items.length === 1 ? 'm' : 'ns'}
               </p>
@@ -714,7 +774,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               </ChipCarousel>
             </div>
           ))}
-          {hasActiveFilters && (
+          {(viewerConfig?.filters?.showClearButton ?? true) && hasActiveFilters && (
             <button
               onClick={() => setActiveFilters({})}
               className="text-xs text-muted-foreground hover:text-foreground underline ml-[5.5rem]"
@@ -726,11 +786,11 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       )}
 
       {loading ? (
-        <div className={`space-y-3 ${viewerConfig?.loading?.skeleton === 'pulse' ? 'animate-pulse' : viewerConfig?.loading?.skeleton === 'shimmer' ? 'animate-pulse' : ''}`}>
+        <div className={`space-y-3 ${viewerConfig?.loading?.skeleton === 'pulse' ? 'animate-pulse' : viewerConfig?.loading?.skeleton === 'shimmer' ? 'animate-shimmer' : ''}`}>
           <div className="h-5 w-32 bg-muted rounded mb-6" />
           <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3`}>
             {Array.from({ length: viewerConfig?.loading?.skeletonCount || 6 }).map((_, i) => (
-              <div key={i} className={`h-20 rounded-xl ${viewerConfig?.loading?.skeleton === 'spinner' ? 'flex items-center justify-center' : 'bg-muted'}`}>
+              <div key={i} className={`h-20 rounded-xl ${viewerConfig?.loading?.skeleton === 'spinner' ? 'flex items-center justify-center' : viewerConfig?.loading?.skeleton === 'shimmer' ? 'bg-gradient-to-r from-muted via-muted-foreground/10 to-muted bg-[length:200%_100%]' : 'bg-muted'}`}>
                 {viewerConfig?.loading?.skeleton === 'spinner' && (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 )}
@@ -767,7 +827,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             // Tabs style: render tab buttons then filter
             if (catStyle === 'tabs') {
               const currentTab = activeTab || groupedItems[0]?.[0] || '';
-              if (!activeTab && groupedItems[0]) setActiveTab(groupedItems[0][0]);
               return (
                 <>
                   <div className="flex gap-1 border-b pb-1 overflow-x-auto mb-4">
@@ -793,9 +852,21 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               );
             }
 
-            return groupedItems.map(([category, catItems]) =>
-              renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, catStyle, expandedAccordion, setExpandedAccordion),
-            );
+            const separatorClass = spacingStyle === 'single-line' ? 'border-t border-border/50' :
+              spacingStyle === 'double-line' ? 'border-t-2 border-double border-border/40' :
+              spacingStyle === 'dashed' ? 'border-t border-dashed border-border/40' : '';
+
+            return groupedItems.map(([category, catItems], idx) => (
+              <div key={category}>
+                {idx > 0 && separatorClass && (
+                  <div className={separatorClass} style={{ marginBottom: spacingValue }} />
+                )}
+                {idx > 0 && !separatorClass && (
+                  <div style={{ height: spacingValue }} />
+                )}
+                {renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, catStyle, expandedAccordion, setExpandedAccordion)}
+              </div>
+            ));
           })()}
         </div>
       ) : (
@@ -807,29 +878,354 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             '_all',
           )}
           {pagination && filteredItems.length > itemsPerPage && (
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground px-3">
-                {currentPage} de {Math.ceil(filteredItems.length / itemsPerPage)}
-              </span>
-              <button
-                onClick={() => setCurrentPage(p => p + 1)}
-                disabled={currentPage * itemsPerPage >= filteredItems.length}
-                className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalItems={filteredItems.length}
+              itemsPerPage={itemsPerPage}
+              paginationStyle={paginationStyle}
+              onPageChange={setCurrentPage}
+            />
           )}
         </>
       )}
     </article>
+  );
+}
+
+function PaginationControls({
+  currentPage, totalItems, itemsPerPage, paginationStyle, onPageChange,
+}: {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  paginationStyle: string;
+  onPageChange: React.Dispatch<React.SetStateAction<number>>;
+}) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  if (paginationStyle === 'emoji') {
+    return (
+      <div className="flex items-center justify-center gap-3 mt-8">
+        <button
+          onClick={() => onPageChange(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="text-lg disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform"
+          aria-label="Previous page"
+        >
+          ⬅️
+        </button>
+        <span className="text-sm text-muted-foreground">
+          {currentPage} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(p => p + 1)}
+          disabled={currentPage >= totalPages}
+          className="text-lg disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform"
+          aria-label="Next page"
+        >
+          ➡️
+        </button>
+      </div>
+    );
+  }
+
+  if (paginationStyle === 'numbers') {
+    const pages: number[] = [];
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    return (
+      <div className="flex items-center justify-center gap-1.5 mt-8">
+        <button
+          onClick={() => onPageChange(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {start > 1 && <span className="text-xs text-muted-foreground px-1">...</span>}
+        {pages.map(p => (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`min-w-[2rem] h-8 rounded-lg text-xs font-medium border transition-colors ${
+              p === currentPage
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'bg-card hover:bg-muted text-muted-foreground border-border/50'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        {end < totalPages && <span className="text-xs text-muted-foreground px-1">...</span>}
+        <button
+          onClick={() => onPageChange(p => p + 1)}
+          disabled={currentPage >= totalPages}
+          className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Next page"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  // arrows (default)
+  return (
+    <div className="flex items-center justify-center gap-2 mt-8">
+      <button
+        onClick={() => onPageChange(p => Math.max(1, p - 1))}
+        disabled={currentPage === 1}
+        className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="text-sm text-muted-foreground px-3">
+        {currentPage} de {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(p => p + 1)}
+        disabled={currentPage >= totalPages}
+        className="p-1.5 rounded-lg border bg-card hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function ItemListRow({
+  item,
+  tableName,
+  tenantSlug,
+  tenantId,
+  selectedSlug,
+  onSelect,
+  cardRefs,
+  useSuffix,
+  scaleFactor,
+  cardConfig,
+  detailConfig,
+  onCompareStatClick,
+}: {
+  item: any;
+  tableName?: string;
+  tenantSlug?: string;
+  tenantId?: string;
+  selectedSlug?: string | null;
+  onSelect?: (slug: string | null) => void;
+  cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
+  useSuffix?: boolean;
+  scaleFactor?: number;
+  cardConfig?: Record<string, any>;
+  detailConfig?: Record<string, any>;
+  onCompareStatClick: () => void;
+}) {
+  const name = item.name || item.title || item.slug || 'Item';
+  const slug = item.slug || '';
+  const isSelected = selectedSlug === slug;
+  const description = item.description || item.subtitle || '';
+
+  return (
+    <div
+      id={slug ? `item-${slug}` : undefined}
+      ref={(el) => { if (slug && el && cardRefs) cardRefs.current.set(slug, el); }}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg border bg-card cursor-pointer transition-colors ${
+        isSelected ? 'border-primary/40 bg-primary/5' : 'hover:bg-muted/50 border-border/50'
+      }`}
+      onClick={() => onSelect?.(slug)}
+    >
+      {item.icon_url ? (
+        <div className="relative w-7 h-7 shrink-0 rounded-md overflow-hidden bg-muted">
+          <Image src={item.icon_url} alt="" fill className="object-contain" />
+        </div>
+      ) : item.icon ? (
+        <div className="w-7 h-7 shrink-0 rounded-md bg-muted flex items-center justify-center text-xs">
+          <IconRenderer icon={item.icon} size="sm" />
+        </div>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{name}</p>
+        {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
+      </div>
+      {cardConfig?.showComparison !== false && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onCompareStatClick(); }}
+          className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          title="Compare"
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ItemTableRow({
+  item,
+  tableName,
+  tenantSlug,
+  tenantId,
+  selectedSlug,
+  onSelect,
+  cardRefs,
+  useSuffix,
+  scaleFactor,
+  cardConfig,
+  detailConfig,
+  onCompareStatClick,
+}: {
+  item: any;
+  tableName?: string;
+  tenantSlug?: string;
+  tenantId?: string;
+  selectedSlug?: string | null;
+  onSelect?: (slug: string | null) => void;
+  cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
+  useSuffix?: boolean;
+  scaleFactor?: number;
+  cardConfig?: Record<string, any>;
+  detailConfig?: Record<string, any>;
+  onCompareStatClick: () => void;
+}) {
+  const name = item.name || item.title || item.slug || 'Item';
+  const slug = item.slug || '';
+  const isSelected = selectedSlug === slug;
+  const visibleColumns: string[] = cardConfig?.columnOrder?.length
+    ? cardConfig.columnOrder
+    : cardConfig?.visibleColumns || [];
+
+  return (
+    <tr
+      id={slug ? `item-${slug}` : undefined}
+      ref={(el) => { if (slug && el && cardRefs) cardRefs.current.set(slug, el); }}
+      className={`border-b border-border/30 cursor-pointer transition-colors last:border-0 ${
+        isSelected ? 'bg-primary/5' : 'hover:bg-muted/30'
+      }`}
+      onClick={() => onSelect?.(slug)}
+    >
+      <td className="py-2 px-3">
+        <div className="flex items-center gap-2">
+          {item.icon_url ? (
+            <div className="relative w-6 h-6 shrink-0 rounded overflow-hidden bg-muted">
+              <Image src={item.icon_url} alt="" fill className="object-contain" />
+            </div>
+          ) : item.icon ? (
+            <div className="w-6 h-6 shrink-0 rounded bg-muted flex items-center justify-center text-xs">
+              <IconRenderer icon={item.icon} size="sm" />
+            </div>
+          ) : null}
+          <span className="text-sm font-medium truncate">{name}</span>
+        </div>
+      </td>
+      {visibleColumns.map(col => (
+        <td key={col} className="py-2 px-3 text-xs text-muted-foreground">
+          {String(item[col] ?? '—')}
+        </td>
+      ))}
+      <td className="py-2 px-3 text-right">
+        {cardConfig?.showComparison !== false && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCompareStatClick(); }}
+            className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            title="Compare"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function ItemAccordionBox({
+  item,
+  tableName,
+  tenantSlug,
+  tenantId,
+  selectedSlug,
+  onSelect,
+  cardRefs,
+  useSuffix,
+  scaleFactor,
+  cardConfig,
+  detailConfig,
+  onCompareStatClick,
+}: {
+  item: any;
+  tableName?: string;
+  tenantSlug?: string;
+  tenantId?: string;
+  selectedSlug?: string | null;
+  onSelect?: (slug: string | null) => void;
+  cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
+  useSuffix?: boolean;
+  scaleFactor?: number;
+  cardConfig?: Record<string, any>;
+  detailConfig?: Record<string, any>;
+  onCompareStatClick: (statKey: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const name = item.name || item.title || item.slug || 'Item';
+  const slug = item.slug || '';
+  const isSelected = selectedSlug === slug;
+
+  return (
+    <div
+      id={slug ? `item-${slug}` : undefined}
+      ref={(el) => { if (slug && el && cardRefs) cardRefs.current.set(slug, el); }}
+      className={`rounded-xl border bg-card overflow-hidden transition-colors ${
+        isSelected ? 'border-primary/40 bg-primary/5' : ''
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => { setExpanded(!expanded); onSelect?.(slug); }}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+      >
+        {item.icon_url ? (
+          <div className="relative w-8 h-8 shrink-0 rounded-lg overflow-hidden bg-muted">
+            <Image src={item.icon_url} alt="" fill className="object-contain" />
+          </div>
+        ) : item.icon ? (
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-muted flex items-center justify-center">
+            <IconRenderer icon={item.icon} size="sm" />
+          </div>
+        ) : null}
+        <span className="text-sm font-medium flex-1 text-left truncate">{name}</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      <motion.div
+        initial={false}
+        animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
+        transition={{ duration: 0.25, ease: 'easeInOut' }}
+        className="overflow-hidden"
+      >
+        <div className="px-4 pb-3 pt-1 border-t border-border/30">
+          {item.description && (
+            <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
+          )}
+          {tenantId ? (
+            <CollectionItemView
+              data={item}
+              tenantId={tenantId}
+              tenantSlug={tenantSlug}
+              sourceTable={tableName}
+              comparisonMode="modal"
+              hideHeader
+              chipWrap
+              useSuffix={useSuffix}
+              onCompareStatClick={onCompareStatClick as any}
+              detailConfig={detailConfig}
+            />
+          ) : null}
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -879,7 +1275,11 @@ function ItemCard({
   const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
-  const hoverEffectEnabled = cardConfig?.hoverEffect !== 'none';
+  const hoverEffect = cardConfig?.hoverEffect || 'scale';
+  const hoverEffectClass = hoverEffect === 'none' ? '' :
+    hoverEffect === 'scale' ? 'hover:scale-[1.02] hover:shadow-md hover:border-primary/20 transition-all duration-200' :
+    hoverEffect === 'glow' ? 'hover:shadow-[0_0_15px_rgba(75,197,255,0.3)] hover:border-primary/30 transition-all duration-200' :
+    'hover:shadow-md hover:border-primary/20 transition-all duration-200';
 
   const icon = getIcon(item);
   const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
@@ -940,7 +1340,7 @@ function ItemCard({
   return (
     <div
       ref={(el) => { cardRefs.current[itemSlug] = el; }}
-      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectEnabled ? 'hover:shadow-md hover:border-primary/20 transition-all duration-200' : ''}`}
+      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass}`}
     >
       <motion.button
         onClick={() => onSelect(itemSlug)}

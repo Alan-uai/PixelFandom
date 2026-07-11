@@ -17,6 +17,7 @@ import { Select3D } from '@/components/ui/select3d';
 import { ImageUpload } from '@/components/ui/image-upload';
 import TiptapEditor, { type TiptapEditorHandle } from '@/components/editor/tiptap-editor';
 import LinkSuggestionPanel from '@/components/editor/link-suggestion-panel';
+import type { SuggestionState } from '@/components/editor/extensions/smart-mention';
 import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { extractPendingLinks } from '@/lib/smart-mention-queries';
@@ -91,6 +92,7 @@ function EditPageContent() {
   const isNewArticle = articleIdParam === 'new';
   const [articleId, setArticleId] = useState(isNewArticle ? crypto.randomUUID() : articleIdParam);
   const editorRef = useRef<TiptapEditorHandle>(null);
+  const [activeSuggestion, setActiveSuggestion] = useState<SuggestionState>({ active: false, type: null, search: '' });
 
   const [article, setArticle] = useState<any>(null);
   const [isArticleLoading, setIsArticleLoading] = useState(false);
@@ -648,6 +650,7 @@ function EditPageContent() {
                         placeholder={t('content_placeholder')}
                         articleId={articleId}
                         tenantId={params.slug as string}
+                        onSuggestionChange={setActiveSuggestion}
                       />
                     </FormControl>
                     <FormMessage />
@@ -685,6 +688,7 @@ function EditPageContent() {
                   onInsert={(tag) => {
                     editorRef.current?.insertText(tag);
                   }}
+                  activeSuggestion={activeSuggestion}
                 />
               </div>
 

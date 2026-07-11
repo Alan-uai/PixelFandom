@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getTableCatalog, getTableItems } from '@/lib/data-access';
 import type { CatalogEntry } from '@/lib/data-access';
+import type { MentionType } from '@/lib/smart-mention-types';
+import type { SuggestionState } from './extensions/smart-mention';
 
 interface SuggestionChip {
   label: string;
@@ -15,15 +17,20 @@ interface SuggestionChip {
 interface LinkSuggestionPanelProps {
   tenantSlug: string;
   onInsert: (tag: string) => void;
+  activeSuggestion: SuggestionState;
 }
 
-export default function LinkSuggestionPanel({ tenantSlug, onInsert }: LinkSuggestionPanelProps) {
+export default function LinkSuggestionPanel({ tenantSlug, onInsert, activeSuggestion }: LinkSuggestionPanelProps) {
   const [tables, setTables] = useState<SuggestionChip[]>([]);
   const [items, setItems] = useState<SuggestionChip[]>([]);
   const [articles, setArticles] = useState<SuggestionChip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (!activeSuggestion.active) return;
+    if (loadedRef.current) return;
+
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -71,6 +78,7 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert }: LinkSugges
             })));
           }
         }
+        if (!cancelled) loadedRef.current = true;
       } catch (err) {
         console.error('Erro ao carregar sugestões:', err);
       } finally {
@@ -79,15 +87,54 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert }: LinkSugges
     }
     load();
     return () => { cancelled = true; };
-  }, [tenantSlug]);
+  }, [activeSuggestion.active, tenantSlug]);
 
-  const allSections = useMemo(() => {
+  const { type, search } = activeSuggestion;
+
+  const sections = useMemo(() => {
+    if (!activeSuggestion.active) return [];
+
+    function filterChips(chips: SuggestionChip[]): SuggestionChip[] {
+      const q = search.toLowerCase();
+      if (!q) return chips;
+
+      const startsWith: SuggestionChip[] = [];
+      const includes: SuggestionChip[] = [];
+      for (const chip of chips) {
+        const label = chip.label.toLowerCase();
+        if (label.startsWith(q)) {
+          startsWith.push(chip);
+        } else if (label.includes(q)) {
+          includes.push(chip);
+        }
+      }
+      const rest = chips.filter((c) => {
+        const label = c.label.toLowerCase();
+        return !label.startsWith(q) && !label.includes(q);
+      }).sort((a, b) => a.label.localeCompare(b.label));
+
+      return [...startsWith, ...includes, ...rest];
+    }
+
     const sections: { label: string; icon: string; chips: SuggestionChip[] }[] = [];
-    if (tables.length > 0) sections.push({ label: 'Tabelas', icon: '▦', chips: tables });
-    if (items.length > 0) sections.push({ label: 'Itens', icon: '◇', chips: items });
-    if (articles.length > 0) sections.push({ label: 'Artigos', icon: '📄', chips: articles });
+
+    if (type === 'table' || (!type)) {
+      const filtered = filterChips(tables);
+      if (filtered.length > 0) sections.push({ label: 'Tabelas', icon: '▦', chips: filtered });
+    }
+    if (type === 'item' || (!type)) {
+      const filtered = filterChips(items);
+      if (filtered.length > 0) sections.push({ label: 'Itens', icon: '◇', chips: filtered });
+    }
+    if (type === 'article' || (!type)) {
+      const filtered = filterChips(articles);
+      if (filtered.length > 0) sections.push({ label: 'Artigos', icon: '📄', chips: filtered });
+    }
+
     return sections;
-  }, [tables, items, articles]);
+  }, [activeSuggestion.active, type, search, tables, items, articles]);
+
+  if (!activeSuggestion.active) return null;
 
   if (loading) {
     return (
@@ -98,11 +145,11 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert }: LinkSugges
     );
   }
 
-  if (allSections.length === 0) return null;
+  if (sections.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      {allSections.map((section) => (
+      {sections.map((section) => (
         <SectionCarousel
           key={section.label}
           label={section.label}

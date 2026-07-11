@@ -3,11 +3,14 @@
 import { Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import Suggestion from '@tiptap/suggestion';
-import { createRoot, type Root } from 'react-dom/client';
 import type { MentionResult, MentionType } from '@/lib/smart-mention-types';
 import { queryTables, queryItems, queryArticles, queryUsers } from '@/lib/smart-mention-queries';
-import { SmartMentionList, type SmartMentionListRef } from '../smart-mention-list';
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+
+export interface SuggestionState {
+  active: boolean;
+  type: MentionType | null;
+  search: string;
+}
 
 function parseQuery(query: string): { type: MentionType; search: string } | null {
   const match = query.match(/^([tia@l])<([^>]*)/);
@@ -59,6 +62,12 @@ function makeTextNode(schema: any, type: MentionType, label: string) {
 export const SmartMention = Extension.create({
   name: 'smartMention',
 
+  addOptions() {
+    return {
+      onSuggestionChange: null as ((state: SuggestionState) => void) | null,
+    };
+  },
+
   addProseMirrorPlugins() {
     const tenantSlug = getTenantSlug();
 
@@ -93,174 +102,31 @@ export const SmartMention = Extension.create({
         },
 
         render: () => {
-          let dom: HTMLDivElement | null = null;
-          let rootInstance: Root | null = null;
-          let listRef: SmartMentionListRef | null = null;
-          let currentType: MentionType = 'table';
-
-          function fetchAndRender(
-            query: string,
-            command: (item: MentionResult) => void,
-          ) {
-            if (!dom) return;
-            const parsed = parseQuery(query);
-            if (!parsed) { renderList([], false, ''); return; }
-            currentType = parsed.type;
-            const search = parsed.search;
-
-            (async () => {
-              try {
-                if (!tenantSlug && currentType !== 'user') {
-                  renderList([], false, search);
-                  return;
-                }
-                let results: MentionResult[];
-                switch (currentType) {
-                  case 'table':
-                    results = await queryTables(search, tenantSlug!);
-                    break;
-                  case 'item':
-                    results = await queryItems(search, tenantSlug!);
-                    break;
-                  case 'article':
-                    results = await queryArticles(search, tenantSlug!);
-                    break;
-                  case 'user':
-                    results = await queryUsers(search);
-                    break;
-                  case 'link':
-                    results = search
-                      ? [{ id: search, label: search, description: 'URL externa', slug: search }]
-                      : [];
-                    break;
-                }
-
-                const wrappedCommand = (item: MentionResult) => {
-                  command(item);
-                  renderList(results!, false, search);
-                };
-
-                renderList(results!, false, search, wrappedCommand);
-              } catch {
-                renderList([], false, search);
-              }
-            })();
-          }
-
-          function renderList(
-            items: MentionResult[],
-            loading: boolean,
-            query: string,
-            externalCommand?: (item: MentionResult) => void,
-          ) {
-            if (!dom) return;
-            if (!rootInstance) {
-              rootInstance = createRoot(dom);
-            }
-
-            const handleCommand = externalCommand || ((_item: MentionResult) => {});
-
-            rootInstance.render(
-              <SmartMentionList
-                ref={(ref) => {
-                  listRef = ref;
-                }}
-                items={items}
-                command={handleCommand}
-                query={query}
-                mentionType={currentType}
-                loading={loading}
-              />,
-            );
-          }
-
           return {
             onStart: (props) => {
-              dom = document.createElement('div');
-              dom.className =
-                'bg-popover text-popover-foreground border rounded-lg shadow-lg z-[9999]';
-              document.body.appendChild(dom);
-
-              renderList([], true, props.query || '');
-
-              fetchAndRender(props.query || '', (item) => {
-                if (!dom) return;
-                const { view } = props.editor;
-                const { tr, schema } = view.state;
-                const label = item.slug || item.id;
-                const textNode = makeTextNode(schema, currentType, label);
-                const resolvedRange = props.range;
-                if (resolvedRange) {
-                  view.dispatch(
-                    tr.replaceWith(resolvedRange.from, resolvedRange.to, textNode),
-                  );
-                }
-                view.focus();
-
-                if (rootInstance) {
-                  rootInstance.unmount();
-                  rootInstance = null;
-                }
-                if (dom) {
-                  dom.remove();
-                  dom = null;
-                }
+              const parsed = parseQuery(props.query || '');
+              this.options.onSuggestionChange?.({
+                active: true,
+                type: parsed?.type ?? null,
+                search: parsed?.search ?? props.query || '',
               });
             },
 
             onUpdate: (props) => {
-              fetchAndRender(props.query || '', (item) => {
-                if (!dom) return;
-                const { view } = props.editor;
-                const { tr, schema } = view.state;
-                const label = item.slug || item.id;
-                const textNode = makeTextNode(schema, currentType, label);
-                const resolvedRange = props.range;
-                if (resolvedRange) {
-                  view.dispatch(
-                    tr.replaceWith(resolvedRange.from, resolvedRange.to, textNode),
-                  );
-                }
-                view.focus();
-
-                if (rootInstance) {
-                  rootInstance.unmount();
-                  rootInstance = null;
-                }
-                if (dom) {
-                  dom.remove();
-                  dom = null;
-                }
+              const parsed = parseQuery(props.query || '');
+              this.options.onSuggestionChange?.({
+                active: true,
+                type: parsed?.type ?? null,
+                search: parsed?.search ?? props.query || '',
               });
             },
 
-            onKeyDown: (props) => {
-              if (props.event.key === 'Escape' && dom) {
-                if (rootInstance) {
-                  rootInstance.unmount();
-                  rootInstance = null;
-                }
-                dom.remove();
-                dom = null;
-                return true;
-              }
-
-              if (listRef) {
-                return listRef.onKeyDown(props.event as unknown as ReactKeyboardEvent);
-              }
-
-              return false;
-            },
-
-            onExit: (props) => {
-              if (dom) {
-                if (rootInstance) {
-                  rootInstance.unmount();
-                  rootInstance = null;
-                }
-                dom.remove();
-                dom = null;
-              }
+            onExit: () => {
+              this.options.onSuggestionChange?.({
+                active: false,
+                type: null,
+                search: '',
+              });
             },
           };
         },

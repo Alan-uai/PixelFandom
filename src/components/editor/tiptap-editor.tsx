@@ -32,6 +32,7 @@ import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import TurndownService from 'turndown';
 import { GameItemEmbed, TierlistBlock, SmartMention, SmartMentionHighlight } from './extensions';
+import type { SuggestionState } from './extensions/smart-mention';
 import { MediaLibrary } from '@/components/ui/media-library';
 
 const turndown = new TurndownService({
@@ -44,6 +45,7 @@ const turndown = new TurndownService({
 export interface TiptapEditorHandle {
   insertText: (text: string) => void;
   focus: () => void;
+  suggestion: SuggestionState;
 }
 
 type TiptapEditorProps = {
@@ -52,12 +54,15 @@ type TiptapEditorProps = {
   placeholder?: string;
   articleId?: string;
   tenantId?: string;
+  onSuggestionChange?: (state: SuggestionState) => void;
 };
 
 const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function TiptapEditor(
-  { content, onChange, placeholder, articleId, tenantId },
+  { content, onChange, placeholder, articleId, tenantId, onSuggestionChange },
   ref,
 ) {
+  const suggestionRef = useRef<SuggestionState>({ active: false, type: null, search: '' });
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -69,7 +74,12 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
       Underline,
       GameItemEmbed,
       TierlistBlock,
-      SmartMention,
+      SmartMention.configure({
+        onSuggestionChange: (state) => {
+          suggestionRef.current = state;
+          onSuggestionChange?.(state);
+        },
+      }),
       SmartMentionHighlight,
     ],
     content: parseInitialContent(content),
@@ -91,6 +101,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
     },
     focus() {
       editor?.chain().focus().run();
+    },
+    get suggestion() {
+      return suggestionRef.current;
     },
   }), [editor]);
 
@@ -378,12 +391,24 @@ function parseInitialContent(content: string): any {
   }
 
   // Convert markdown to HTML for proper rendering in TipTap
+  // Protect smart mention patterns ($t<slug>, $i<slug>, etc.) from micromark
+  // which treats <slug> as an HTML tag and strips it
   try {
-    return micromark(content, {
+    const placeholders = new Map<string, string>();
+    let phIdx = 0;
+    const protectedContent = content.replace(/\$([tia@l])<([^>]+)>/g, (match) => {
+      const ph = `\x00SMART_MENTION_${phIdx++}\x00`;
+      placeholders.set(ph, match);
+      return ph;
+    });
+
+    const html = micromark(protectedContent, {
       allowDangerousHtml: true,
       extensions: [gfmTable()],
       htmlExtensions: [gfmTableHtml()],
     });
+
+    return html.replace(/\x00SMART_MENTION_\d+\x00/g, (ph) => placeholders.get(ph) || ph);
   } catch {
     return content;
   }
