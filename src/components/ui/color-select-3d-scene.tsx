@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useMemo, useState, useCallback } from 'react';
-import { useFrame, ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { hexToHue, hueToHex } from '@/lib/color';
 
@@ -155,5 +155,9 @@ function ColorRing({ value, onChange }: ColorPickerSceneProps) {
 }
 
 export function ColorPickerScene(props: ColorPickerSceneProps) {
-  return <ColorRing {...props} />;
+  return (
+    <Canvas camera={{ position: [0, 0, 4.5], fov: 35 }}>
+      <ColorRing {...props} />
+    </Canvas>
+  );
 }

@@ -63,7 +63,6 @@ export interface Switch3DProps {
 }
 
 const PRIMARY = 'hsl(var(--primary))';
-const PRIMARY_FG = 'hsl(var(--primary-foreground))';
 
 const sizeMap = {
   sm: { trackClass: 'h-5 w-9', knobClass: 'h-[14px] w-[14px]', offset: 16 },
@@ -178,7 +177,7 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
                 '1px 1px 3px rgba(0,0,0,0.25)',
                 '-0.5px -0.5px 1px rgba(255,255,255,0.06)',
               ].join(', ')
-            : 'inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 2px rgba(255,255,255,0.06)',
+            : 'inset 2px 2px 2px rgba(0,0,0,0.35), inset -2px -2px 2px rgba(255,255,255,0.06)',
         }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         whileHover={!disabled ? { scale: 1.06, transition: { duration: 0.15 } } : undefined}
@@ -205,12 +204,12 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
           style={{ transformStyle: 'preserve-3d' }}
           animate={{
             x: checked ? dims.offset : 0,
-            translateZ: checked ? 4 : 2,
+            translateZ: checked ? 0 : 4,
             background: checked
-              ? `radial-gradient(circle at 32% 28%, ${PRIMARY_FG}, hsl(var(--primary-foreground)/0.8))`
+              ? 'radial-gradient(circle at 40% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.4))'
               : 'radial-gradient(circle at 32% 28%, hsl(var(--background)), hsl(var(--background)/0.75))',
             boxShadow: checked
-              ? `0 2px 8px ${PRIMARY}/0.5, 0 0 14px ${PRIMARY}/0.2, inset 0 1px 0 ${PRIMARY_FG}/0.3`
+              ? 'inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 1.5px rgba(255,255,255,0.06)'
               : '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
           }}
           transition={{
@@ -220,14 +219,22 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
             mass: 1,
           }}
         >
-          {/* Knob gloss highlight */}
-          <div
-            className="pointer-events-none absolute inset-0 rounded-full"
-            style={{
-              background:
-                'radial-gradient(circle at 33% 22%, rgba(255,255,255,0.35), transparent 55%)',
-            }}
-          />
+          {/* Knob gloss highlight — só na esfera (OFF) */}
+          <AnimatePresence>
+            {!checked && (
+              <motion.div
+                className="pointer-events-none absolute inset-0 rounded-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  background:
+                    'radial-gradient(circle at 33% 22%, rgba(255,255,255,0.35), transparent 55%)',
+                }}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Glow ring pulse (checked only) */}
