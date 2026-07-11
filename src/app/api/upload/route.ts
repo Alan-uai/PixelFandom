@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
-import { validateFile, validateExtension, sanitizeFilename } from '@/lib/upload-validation';
+import { validateFile, validateExtension, sanitizeFilename, sanitizePathPrefix } from '@/lib/upload-validation';
 import { virusScanner } from '@/lib/virus-scan';
 import { stripImageMetadata } from '@/lib/metadata-strip';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const tenantId = formData.get('tenant_id') as string | null;
     const bucket = (formData.get('bucket') as string) || 'wiki-images';
     const pathPrefix = (formData.get('path_prefix') as string) || 'uploads';
-    const sanitizedPrefix = sanitizeFilename(pathPrefix).replace(/\.\./g, '');
+    const sanitizedPrefix = sanitizePathPrefix(pathPrefix).replace(/\.\./g, '');
     const altText = (formData.get('alt_text') as string) || '';
 
     if (!file) {

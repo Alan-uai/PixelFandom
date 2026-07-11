@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser, supabase } from '@/supabase';
+import { usePageScrollRestoration } from '@/hooks/use-page-scroll-restoration';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
   LayoutDashboard,
@@ -46,6 +47,8 @@ export default function DashboardLayoutClient({
     supabase.from('tenants').select('custom_domain').eq('slug', wikiSlug).single()
       .then(({ data }) => setWikiCustomDomain(data?.custom_domain ?? null));
   }, [wikiSlug]);
+
+  usePageScrollRestoration();
 
   if (isLoading) {
     return (

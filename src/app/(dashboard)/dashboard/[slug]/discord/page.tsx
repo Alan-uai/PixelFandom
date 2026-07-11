@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { usePageState } from '@/hooks/use-page-state';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -96,6 +97,7 @@ export default function WikiDiscordPage() {
   const [autoPostUpdatesChannelName, setAutoPostUpdatesChannelName] = useState('');
 
   const [autoIngest, setAutoIngest] = useState<IngestConfig[]>([]);
+  const [discordTab, setDiscordTab] = usePageState('tab', 'geral');
 
   const migrateCommands = (raw: any): CustomCommand[] => {
     if (!raw || !Array.isArray(raw) || raw.length === 0) return [];
@@ -322,7 +324,7 @@ export default function WikiDiscordPage() {
           <DiscordLoginGate />
         </section>
 
-        <SliderTabs defaultValue="geral">
+        <SliderTabs value={discordTab} onValueChange={setDiscordTab} defaultValue="geral">
           <SliderTabsList className="w-full">
             <SliderTabsTrigger value="geral" icon={Bot}>
               {t('tab.general')}
@@ -337,7 +339,7 @@ export default function WikiDiscordPage() {
 
           <SliderTabsContentGroup>
             <SliderTabsContent value="geral" className="space-y-6">
-            <CollapsibleSection id="status" title={t('status.title')} description={t('status.description')}>
+            <CollapsibleSection id="status" title={t('status.title')} description={t('status.description')} storageKey="status">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">{t('status.active')}</p>
@@ -353,7 +355,7 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="identity" title={t('identity.title')} description={t('identity.description')}>
+            <CollapsibleSection id="identity" title={t('identity.title')} description={t('identity.description')} storageKey="identity">
               <div className="space-y-4">
                 <FloatingLabelInput
                   label={t('identity.bot_name')}
@@ -391,7 +393,7 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="messages" title={t('prefix.title')} description={t('prefix.description')}>
+            <CollapsibleSection id="messages" title={t('prefix.title')} description={t('prefix.description')} storageKey="messages">
               <div className="space-y-4">
                 <FloatingLabelInput
                   label={t('prefix.label')}
@@ -403,7 +405,7 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="commands" title={t('commands.title')} description={t('commands.description')}>
+            <CollapsibleSection id="commands" title={t('commands.title')} description={t('commands.description')} storageKey="commands">
               <div className="space-y-3">
                 {commands.length === 0 ? (
                   <div className="text-center py-6 space-y-3">
@@ -468,7 +470,7 @@ export default function WikiDiscordPage() {
               </div>
             </CollapsibleSection>
 
-            <CollapsibleSection id="servers" title={t('servers.title')} description={t('servers.description')}>
+            <CollapsibleSection id="servers" title={t('servers.title')} description={t('servers.description')} storageKey="servers">
               {dbGuilds.length > 0 ? (
                 <div className="space-y-3">
                   {dbGuilds.map((guild) => (
@@ -495,6 +497,7 @@ export default function WikiDiscordPage() {
               id="channels"
               title={t('channels.title')}
               description={t('channels.description')}
+              storageKey="channels"
             >
               <div className="space-y-4">
                 <ChannelSelect
@@ -518,6 +521,7 @@ export default function WikiDiscordPage() {
               id="roles"
               title={t('roles.title')}
               description={t('roles.description')}
+              storageKey="roles"
             >
               <div className="space-y-4">
                 <RoleSelect
@@ -557,6 +561,7 @@ export default function WikiDiscordPage() {
               id="auto-post"
               title={t('auto_post.title')}
               description={t('auto_post.description')}
+              storageKey="auto-post"
             >
               <div className="space-y-6">
                 <div className="space-y-3 rounded-lg border p-4">
@@ -640,6 +645,7 @@ export default function WikiDiscordPage() {
               id="auto-ingest"
               title={t('auto_ingest.title')}
               description={t('auto_ingest.description')}
+              storageKey="auto-ingest"
             >
               <div className="space-y-4">
                 {autoIngest.map((entry, i) => (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WeldingCard } from '@/components/ui/welding-card';
@@ -15,6 +15,22 @@ interface CollapsibleSectionProps {
   children: ReactNode;
   className?: string;
   corner?: ReactNode;
+  storageKey?: string;
+}
+
+function getStoredOpen(key: string, fallback: boolean): boolean {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw !== null) return JSON.parse(raw);
+  } catch { /* sessionStorage may be unavailable */ }
+  return fallback;
+}
+
+function saveStoredOpen(key: string, open: boolean): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(open));
+  } catch { /* sessionStorage may be unavailable */ }
 }
 
 export function CollapsibleSection({
@@ -27,10 +43,23 @@ export function CollapsibleSection({
   children,
   className,
   corner,
+  storageKey,
 }: CollapsibleSectionProps) {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const persistentKey = storageKey ? `pf:collapsible:${storageKey}` : undefined;
+  const initialOpen = persistentKey ? getStoredOpen(persistentKey, defaultOpen) : defaultOpen;
+  const [internalOpen, setInternalOpen] = useState(initialOpen);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen = onOpenChange || setInternalOpen;
+
+  const handleToggle = useCallback(() => {
+    const next = !open;
+    if (onOpenChange) {
+      onOpenChange(next);
+    } else {
+      setInternalOpen(next);
+      if (persistentKey) saveStoredOpen(persistentKey, next);
+    }
+  }, [open, onOpenChange, persistentKey]);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   const [overflowHidden, setOverflowHidden] = useState(true);
@@ -58,7 +87,7 @@ export function CollapsibleSection({
         </div>
       )}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         className="flex items-center justify-between gap-4 w-full px-6 py-4 text-left cursor-pointer select-none hover:bg-accent/50 transition-colors rounded-t-xl"
       >
         <div className="space-y-1 min-w-0 flex-1">

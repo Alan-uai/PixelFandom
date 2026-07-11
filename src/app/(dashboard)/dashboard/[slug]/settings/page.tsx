@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select3D } from '@/components/ui/select3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { MediaLibrary } from '@/components/ui/media-library';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import * as Popover from '@radix-ui/react-popover';
 import { useToast } from '@/hooks/use-toast';
@@ -97,6 +98,8 @@ export default function WikiSettingsPage() {
   const [articleColumnsCount, setArticleColumnsCount] = useState(3);
   const [articleShowImages, setArticleShowImages] = useState(true);
   const [articleShowSummaries, setArticleShowSummaries] = useState(true);
+  const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+  const mediaLibrarySetter = useRef<((url: string) => void) | null>(null);
 
   const cacheKey = `tenant:${slug}`;
   const { data: tenant, loading } = useCachedData<any>(
@@ -393,9 +396,10 @@ export default function WikiSettingsPage() {
   }
 
   return (
+    <>
     <div className="p-6 max-w-2xl mx-auto space-y-6">
 
-      <CollapsibleSection id="basic-info" title={t('basic_info.title')} description={t('basic_info.description')}>
+      <CollapsibleSection id="basic-info" title={t('basic_info.title')} description={t('basic_info.description')} storageKey="basic-info">
         <div className="space-y-4">
           <FloatingLabelInput
             label={t('basic_info.name_label')}
@@ -419,36 +423,36 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="media" title={t('media.title')} description={t('media.description')} defaultOpen={false}>
+      <CollapsibleSection id="media" title={t('media.title')} description={t('media.description')} defaultOpen={false} storageKey="media">
         <div className="space-y-6">
           <div>
             <h4 className="text-sm font-medium mb-2">{t('media.logo_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.logo_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label={t('media.logo_upload')} previewSize="w-20 h-20" tenantId={tenantState?.id} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label={t('media.logo_upload')} previewSize="w-20 h-20" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setLogoUrl; setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.logo_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.cover_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.cover_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label={t('media.cover_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label={t('media.cover_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setCoverImageUrl; setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.cover_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.favicon_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.favicon_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label={t('media.favicon_upload')} previewSize="w-10 h-10" tenantId={tenantState?.id} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label={t('media.favicon_upload')} previewSize="w-10 h-10" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setFaviconUrl; setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.favicon_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.og_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.og_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label={t('media.og_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label={t('media.og_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setOgImage; setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.og_recommendation')}</p>
           </div>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="theme" title={t('theme.title')} description={t('theme.description')}>
+      <CollapsibleSection id="theme" title={t('theme.title')} description={t('theme.description')} storageKey="theme">
         <div className="space-y-4">
           <div>
             <p className="text-xs font-medium mb-2">{t('theme.presets_label')}</p>
@@ -489,7 +493,7 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="layout" title={t('layout.title')} description={t('layout.description')}>
+      <CollapsibleSection id="layout" title={t('layout.title')} description={t('layout.description')} storageKey="layout">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>{t('layout.sidebar_width')}</Label>
@@ -815,7 +819,7 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="fonts" title={t('fonts.title')} description={t('fonts.description')}>
+      <CollapsibleSection id="fonts" title={t('fonts.title')} description={t('fonts.description')} storageKey="fonts">
         <div className="space-y-4">
           <div className="space-y-2">
             <Select3D label={t('fonts.primary')} value={fontFamily} options={[
@@ -841,7 +845,7 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="pages" title={t('pages.title')} description={t('pages.description')}>
+      <CollapsibleSection id="pages" title={t('pages.title')} description={t('pages.description')} storageKey="pages">
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             {t('pages.editor_hint')}
@@ -896,7 +900,7 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="links" title={t('links.title')} description={t('links.description')}>
+      <CollapsibleSection id="links" title={t('links.title')} description={t('links.description')} storageKey="links">
         <div className="space-y-4">
           <FloatingLabelInput
             label={t('links.discord')}
@@ -915,11 +919,24 @@ export default function WikiSettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="danger-zone" title={t('danger_zone.title')} description={t('danger_zone.description')} className="border-destructive/50">
+      <CollapsibleSection id="danger-zone" title={t('danger_zone.title')} description={t('danger_zone.description')} className="border-destructive/50" storageKey="danger-zone">
         <DeleteWikiSection slug={slug} tenantName={name} />
       </CollapsibleSection>
 
     </div>
+
+      <MediaLibrary
+        open={mediaLibraryOpen}
+        onOpenChange={setMediaLibraryOpen}
+        tenantId={tenantState?.id}
+        onSelect={(url) => {
+          mediaLibrarySetter.current?.(url);
+          setMediaLibraryOpen(false);
+        }}
+        bucket="wiki-images"
+        pathPrefix={`wiki-uploads/${slug}`}
+      />
+    </>
   );
 }
 

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Globe, Laptop } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
-import { ViewerConfigSchema } from '@/lib/viewer-config';
+import { parseViewerConfig } from '@/lib/viewer-config';
 import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 import { HeaderConfig } from './table-viewer-config/header-config';
@@ -32,7 +33,10 @@ export default function TableViewerConfig({
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedConfig, setSavedConfig] = useState<ViewerConfig>({});
-  const [activeSection, setActiveSection] = useState<string>('header');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlSection = searchParams.get('section');
+  const [activeSection, setActiveSection] = useState<string>(urlSection || 'header');
   const [source, setSource] = useState<'global' | 'local'>('local');
 
   const [globalDefaults, setGlobalDefaults] = useState<Record<string, any>>({});
@@ -114,16 +118,14 @@ export default function TableViewerConfig({
     if (tableData?.icon) setTableIcon(tableData.icon);
 
     if (tableData?.viewer_config) {
-      const parsed = ViewerConfigSchema.safeParse(tableData.viewer_config);
-      if (parsed.success) {
-        const merged = mergeWithGlobalDefaults(parsed.data, globalListing);
-        configCache.current = merged;
-        setSavedConfig(merged);
-        setConfig(merged);
-        setSource(merged.source || 'local');
-        setLoading(false);
-        return;
-      }
+      const migrated = parseViewerConfig(tableData.viewer_config);
+      const merged = mergeWithGlobalDefaults(migrated, globalListing);
+      configCache.current = merged;
+      setSavedConfig(merged);
+      setConfig(merged);
+      setSource(merged.source || 'local');
+      setLoading(false);
+      return;
     }
     setSavedConfig({});
     setLoading(false);
@@ -175,15 +177,11 @@ export default function TableViewerConfig({
   const handleSave = async () => {
     if (!tenantId) return false;
 
-    const parsed = ViewerConfigSchema.safeParse(config);
-    if (!parsed.success) {
-      toast({ variant: 'destructive', title: 'Erro de validação', description: 'Configuração inválida.' });
-      return false;
-    }
+    const parsed = parseViewerConfig(config);
 
-    const updatePayload: Record<string, unknown> = { viewer_config: parsed.data };
-    const iconValue = parsed.data?.header?.icon;
-    if (parsed.data?.header) {
+    const updatePayload: Record<string, unknown> = { viewer_config: parsed };
+    const iconValue = parsed?.header?.icon;
+    if (parsed?.header) {
       updatePayload.icon = iconValue || null;
     }
 
@@ -198,8 +196,8 @@ export default function TableViewerConfig({
       return false;
     }
 
-    configCache.current = parsed.data;
-    setSavedConfig(parsed.data);
+    configCache.current = parsed;
+    setSavedConfig(parsed);
     invalidateDataCache(slug);
     updateCachedCatalogEntry(slug, table, updatePayload);
   };
@@ -277,7 +275,12 @@ export default function TableViewerConfig({
           <button
             key={s.id}
             type="button"
-            onClick={() => setActiveSection(s.id)}
+            onClick={() => {
+              setActiveSection(s.id);
+              const params = new URLSearchParams(searchParams.toString());
+              params.set('section', s.id);
+              router.replace(`?${params.toString()}`, { scroll: false });
+            }}
             className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               activeSection === s.id
                 ? 'bg-primary/10 text-primary border border-primary/30'

@@ -56,6 +56,14 @@ export function sanitizeFilename(name: string): string {
   return clean;
 }
 
+export function sanitizePathPrefix(prefix: string): string {
+  return prefix
+    .split('/')
+    .map((segment) => sanitizeFilename(segment))
+    .filter(Boolean)
+    .join('/');
+}
+
 export function getMediaCategory(mime: string): 'image' | 'video' | 'audio' | 'file' {
   if (mime.startsWith('image/')) return 'image';
   if (mime.startsWith('video/')) return 'video';

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { usePageState } from '@/hooks/use-page-state';
 import { supabase } from '@/supabase';
 import { useUser } from '@/supabase';
 import { useCachedData } from '@/hooks/use-cached-data';
@@ -49,6 +50,7 @@ export default function WikiMembersPage() {
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [membersTab, setMembersTab] = usePageState('tab', 'members');
 
   const { data: tenantData, error: tenantError } = useCachedData<{ id: string }>(
     `tenant-id:${slug}`,
@@ -231,7 +233,7 @@ export default function WikiMembersPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <SliderTabs defaultValue="members">
+      <SliderTabs value={membersTab} onValueChange={setMembersTab} defaultValue="members">
         <SliderTabsList>
           <SliderTabsTrigger value="members" icon={Shield}>
             {t('tabs.members')} ({members.length})

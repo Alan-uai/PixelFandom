@@ -441,7 +441,7 @@ export default function WikiPage() {
           <div className="flex items-center gap-4 mb-4">
             {tenant.logo_url && (
               <div className="h-14 w-14 rounded-xl overflow-hidden border shrink-0">
-                <Image src={tenant.logo_url} alt="" fill className="object-cover" />
+                <Image src={tenant.logo_url} alt="" width={56} height={56} className="object-cover rounded-xl" />
               </div>
             )}
             <div>

@@ -387,7 +387,7 @@ export default function WikiAIConfigPage() {
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-6">
 
-      <CollapsibleSection id="activation" title={t('activation.title')} description={t('activation.description')}>
+      <CollapsibleSection id="activation" title={t('activation.title')} description={t('activation.description')} storageKey="activation">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium">{t('activation.label')}</p>
@@ -403,7 +403,7 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="model" title={t('modelConfig.title')} description={t('modelConfig.description')}>
+      <CollapsibleSection id="model" title={t('modelConfig.title')} description={t('modelConfig.description')} storageKey="model">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>{t('modelConfig.provider.label')}</Label>
@@ -719,7 +719,7 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="personality" title={t('personality.title')} description={t('personality.description')}>
+      <CollapsibleSection id="personality" title={t('personality.title')} description={t('personality.description')} storageKey="personality">
         <div className="space-y-4">
           <SelectCard
             options={AI_PERSONALITIES.map((p) => ({
@@ -810,7 +810,7 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="voice" title={t('voice.title')} description={t('voice.description')}>
+      <CollapsibleSection id="voice" title={t('voice.title')} description={t('voice.description')} storageKey="voice">
         <div className="space-y-4">
           <div>
             <FloatingLabelInput
@@ -826,7 +826,7 @@ export default function WikiAIConfigPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="test" title={t('voiceTest.title')} description={t('voiceTest.description')}>
+      <CollapsibleSection id="test" title={t('voiceTest.title')} description={t('voiceTest.description')} storageKey="test">
         {enabled && <WakeWordTest wakeWordText={wakeWordText} />}
       </CollapsibleSection>
     </div>

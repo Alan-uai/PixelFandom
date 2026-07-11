@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { usePageState } from '@/hooks/use-page-state';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/supabase';
 import { useTableCatalog } from '@/hooks/use-data-access';
@@ -28,6 +29,7 @@ import {
 import DataTableContent from '@/components/editor/data-table-content';
 import TableViewerConfig from '@/components/editor/table-viewer-config';
 import { translateGameTerm } from '@/lib/translate';
+import { parseViewerConfig } from '@/lib/viewer-config';
 import { invalidateDataCache } from '@/lib/data-access';
 import { TableIconDisplay } from '@/lib/table-icons';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
@@ -81,14 +83,14 @@ export default function EditorArticlesPage() {
   const [deleteLabel, setDeleteLabel] = useState('');
   const [deletingTable, setDeletingTable] = useState(false);
 
-  const [viewerTab, setViewerTab] = useState<Record<string, 'dados' | 'exibicao'>>({});
+  const [viewerTab, setViewerTab] = usePageState<Record<string, 'dados' | 'exibicao'>>('viewerTab', {});
 
   const [showCreateArticleDialog, setShowCreateArticleDialog] = useState(false);
   const [createArticleTitle, setCreateArticleTitle] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [creatingArticle, setCreatingArticle] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = usePageState<string>('statusFilter', 'all');
 
   useEffect(() => {
     supabase.from('tenants').select('id').eq('slug', slug).single().then(({ data }) => {
@@ -121,14 +123,44 @@ export default function EditorArticlesPage() {
 
   const searchParams = useSearchParams();
   const urlTab = searchParams.get('tab');
+  const urlView = searchParams.get('view');
 
   useEffect(() => {
     if (urlTab) setActiveTab(urlTab);
   }, [urlTab]);
 
+  useEffect(() => {
+    if (urlView && activeTab) {
+      setViewerTab((prev) => ({ ...prev, [activeTab]: urlView as 'dados' | 'exibicao' }));
+    }
+  }, [urlView, activeTab, setViewerTab]);
+
+  const buildTabUrl = useCallback(
+    (tab: string) => {
+      const view = viewerTab[tab];
+      const params = new URLSearchParams();
+      params.set('tab', tab);
+      if (view) params.set('view', view);
+      if (view === 'exibicao') {
+        const section = searchParams.get('section');
+        if (section) params.set('section', section);
+      }
+      return `?${params.toString()}`;
+    },
+    [viewerTab, searchParams],
+  );
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    router.replace(`?tab=${value}`, { scroll: false });
+    router.replace(buildTabUrl(value), { scroll: false });
+  };
+
+  const handleViewChange = (tableKey: string, view: 'dados' | 'exibicao') => {
+    setViewerTab((prev) => ({ ...prev, [tableKey]: view }));
+    const params = new URLSearchParams();
+    params.set('tab', tableKey);
+    params.set('view', view);
+    router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   useEffect(() => {
@@ -195,16 +227,7 @@ export default function EditorArticlesPage() {
         await supabase
           .from('tenant_game_tables')
           .update({
-            viewer_config: {
-              displayFormat: 'grid',
-              columnsCount: 4,
-              itemsPerPage: 20,
-              enableSearch: true,
-              enableFilters: true,
-              showHeader: true,
-              cardStyle: 'default',
-              detailPanel: 'modal',
-            },
+            viewer_config: parseViewerConfig({}),
           })
           .eq('tenant_id', tenantId)
           .eq('table_name', slug);
@@ -547,7 +570,7 @@ export default function EditorArticlesPage() {
               <div className="flex gap-1 border-b pb-1 mb-4 -mx-6 px-6 overflow-x-auto">
                 <button
                   type="button"
-                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'dados' }))}
+                  onClick={() => handleViewChange(key, 'dados')}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     subTab === 'dados'
                       ? 'bg-primary/10 text-primary border border-primary/30'
@@ -559,7 +582,7 @@ export default function EditorArticlesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setViewerTab((prev) => ({ ...prev, [key]: 'exibicao' }))}
+                  onClick={() => handleViewChange(key, 'exibicao')}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                     subTab === 'exibicao'
                       ? 'bg-primary/10 text-primary border border-primary/30'

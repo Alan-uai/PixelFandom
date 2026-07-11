@@ -1,17 +1,27 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { ImportWizard } from '@/components/importer/import-wizard';
 import { ExportPanel } from '@/components/importer/export-panel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Upload, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useTenantRole } from '@/hooks/use-tenant-role';
+import { usePageState } from '@/hooks/use-page-state';
 
 export default function ImporterPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { canManage } = useTenantRole(slug);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [importerTab, setImporterTab] = usePageState('tab', 'import');
+  const urlImporterTab = searchParams.get('tab');
+
+  useEffect(() => {
+    if (urlImporterTab) setImporterTab(urlImporterTab);
+  }, [urlImporterTab, setImporterTab]);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -35,7 +45,7 @@ export default function ImporterPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="import" className="w-full">
+      <Tabs value={importerTab} onValueChange={(v) => { setImporterTab(v); router.replace(`?tab=${v}`, { scroll: false }); }} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="import" className="flex items-center gap-1.5">
             <Upload className="h-4 w-4" />Importar
