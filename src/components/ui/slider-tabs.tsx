@@ -230,7 +230,7 @@ export function SliderTabsTrigger({
         className,
       )}
     >
-      {Icon && <Icon className="h-4 w-4 shrink-0" />}
+      {Icon && React.createElement(Icon, { className: 'h-4 w-4 shrink-0' })}
       {children}
     </button>
   );

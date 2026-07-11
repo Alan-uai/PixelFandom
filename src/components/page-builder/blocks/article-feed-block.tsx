@@ -49,7 +49,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
   const [loading, setLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  const SortIcon = sortLabels[sortBy]?.icon || Calendar;
+  const SortIcon = (sortLabels[sortBy]?.icon || Calendar) as React.ComponentType<{ className?: string }>;
 
   useEffect(() => {
     if (!tenantId) { setLoading(false); return; }

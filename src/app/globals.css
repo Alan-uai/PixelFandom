@@ -241,11 +241,6 @@
   }
 
 
-  @keyframes splash-particle-fade {
-    0%, 100% { opacity: 0; transform: scale(0.3); }
-    30%, 70% { opacity: 1; transform: scale(1); }
-  }
-
   /* Scroll-Reveal: enter and exit */
   @keyframes slide-reveal-down {
     from { transform: translateY(180px); }

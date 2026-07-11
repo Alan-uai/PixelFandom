@@ -34,7 +34,7 @@ export function FooterBrandBlock({ config }: { config: Record<string, unknown> }
       {showSocialLinks && socialLinks.length > 0 && (
         <div className={`flex gap-2 mt-1 ${align === 'left' ? '' : align === 'right' ? 'justify-end' : 'justify-center'}`}>
           {socialLinks.map((link, i) => {
-            const Icon = platformIconMap[link.platform] || Link;
+            const Icon = (platformIconMap[link.platform] || Link) as React.ComponentType<{ className?: string }>;
             return (
               <a
                 key={i}

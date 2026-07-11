@@ -51,7 +51,7 @@ export function SocialLinksBlock({ config }: { config: Record<string, unknown> }
       {title && <h3 className="text-lg font-semibold text-center">{title}</h3>}
       <div className={containerClass}>
         {links.map((link, i) => {
-          const Icon = platformIconMap[link.platform] || Link;
+          const Icon = (platformIconMap[link.platform] || Link) as React.ComponentType<{ className?: string }>;
           return (
             <a
               key={i}

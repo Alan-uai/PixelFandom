@@ -40,7 +40,7 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export function LeaderboardTable({ users, metric }: Props) {
-  const MetricIcon = metricIcons[metric] || Trophy;
+  const MetricIcon = (metricIcons[metric] || Trophy) as React.ComponentType<{ className?: string }>;
 
   return (
     <div className="space-y-1">

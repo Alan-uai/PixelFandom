@@ -1,14 +1,12 @@
 'use client';
 
-import { type ElementType } from 'react';
-
 export function HeadingBlock({ config, preview: _preview }: { config: Record<string, unknown>; preview?: boolean }) {
   const content = (config.content as string) || 'Heading';
   const level = (config.level as string) || 'h2';
   const color = config.color as string | undefined;
   const align = (config.align as string) || 'left';
 
-  const Tag = level as ElementType;
+  const Tag = level as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
   const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
 

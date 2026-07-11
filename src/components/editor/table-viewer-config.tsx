@@ -278,7 +278,7 @@ export default function TableViewerConfig({
       <div
         className="rounded-lg border p-4"
         style={activeSection === 'display' || activeSection === 'card' ? {
-          cornerTopRightShape: 'notch',
+          cornerTopRightShape: 'scoop',
           cornerTopRightRadius: '40px',
           position: 'relative',
         } as React.CSSProperties : undefined}

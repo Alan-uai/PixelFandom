@@ -56,12 +56,6 @@ export default function CookiesPage() {
                   <td className="py-2 pr-4">Identificação do tenant</td>
                   <td className="py-2">Sessão</td>
                 </tr>
-                <tr className="border-b border-border/20">
-                  <td className="py-2 pr-4 font-mono text-xs">pf_splash</td>
-                  <td className="py-2 pr-4">Preferência</td>
-                  <td className="py-2 pr-4">Controle da splash screen</td>
-                  <td className="py-2">Persistente</td>
-                </tr>
               </tbody>
             </table>
           </div>

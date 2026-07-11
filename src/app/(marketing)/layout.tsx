@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import { AuthDialogProvider } from '@/context/auth-dialog-context';
 import ThreeBackground from '@/components/marketing/three-background';
-import SplashScreen from '@/components/marketing/splash-screen';
 import FloatingNavStrip from '@/components/marketing/floating-nav-strip';
 
 function FloatingNav() {
@@ -85,15 +84,6 @@ export default function MarketingLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [splashDone, setSplashDone] = useState(false);
-
-  const handleSplashComplete = useCallback(() => {
-    try {
-      localStorage.setItem('pf_splash', new Date().toISOString());
-    } catch {/* noop */}
-    setSplashDone(true);
-  }, []);
-
   return (
     <AuthDialogProvider>
       <div className="flex min-h-screen w-full flex-col relative overflow-x-hidden">
@@ -101,7 +91,6 @@ export default function MarketingLayout({
         <LayoutContent>
           {children}
         </LayoutContent>
-        {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
       </div>
     </AuthDialogProvider>
   );

@@ -66,16 +66,7 @@ export function DisplayConfig({
         valueSuffix="px"
         onValueChange={(v) => onChange({ ...c, gap: v })}
       />
-      <ElasticSlider3D
-        label="Espessura do separador"
-        defaultValue={c.separatorWidth ?? 2}
-        startingValue={0}
-        maxValue={8}
-        showValue
-        valueSuffix="px"
-        onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
-      />
-
+      
       <div className="space-y-3 border-t pt-3">
         <div className="flex items-center gap-2">
           <Switch

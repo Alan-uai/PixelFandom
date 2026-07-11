@@ -304,6 +304,17 @@ export function CategorizationConfig({
                 onValueChange={(v) => onChange({ ...c, spacingValue: Math.round(v) })}
               />
             )}
+            {c.spacingStyle && c.spacingStyle !== 'none' && (
+              <ElasticSlider3D
+                label="Espessura da linha"
+                defaultValue={c.separatorWidth ?? 2}
+                startingValue={0}
+                maxValue={8}
+                showValue
+                valueSuffix="px"
+                onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
+              />
+            )}
           </div>
         )}
       </div>

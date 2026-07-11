@@ -49,7 +49,7 @@ export default function WikiDomainsPage() {
   const [verifying] = useState(false);
   const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
   const [copied, setCopied] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const dataLoadedRef = useRef(false);
 
   const { data: cachedTenant } = useCachedData<any>(

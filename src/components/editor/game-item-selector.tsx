@@ -80,7 +80,7 @@ export function GameItemSelector({ open, onClose, onSelect, tenantId: _tenantId 
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchResults = useCallback(async (table: string, query: string) => {
     if (!query.trim()) {

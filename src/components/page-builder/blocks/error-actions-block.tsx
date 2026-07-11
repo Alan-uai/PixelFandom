@@ -27,7 +27,7 @@ export function ErrorActionsBlock({ config }: { config: Record<string, unknown> 
       className={`flex ${layout === 'column' ? 'flex-col' : 'flex-row flex-wrap'} items-center justify-center gap-3`}
     >
       {buttons.map((btn, i) => {
-        const Icon = btn.icon ? iconMap[btn.icon] : null;
+        const Icon = btn.icon ? (iconMap[btn.icon] as React.ComponentType<{ className?: string }> | null) : null;
         return (
           <a
             key={i}
