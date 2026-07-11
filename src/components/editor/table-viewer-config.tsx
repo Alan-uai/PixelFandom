@@ -242,38 +242,6 @@ export default function TableViewerConfig({
             Personalize como esta tabela é exibida na wiki.
           </p>
         </div>
-        <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 p-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setSource('global');
-              setConfig((prev) => ({ ...prev, source: 'global' }));
-            }}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-              source === 'global'
-                ? 'bg-background shadow-sm text-foreground border'
-                : 'text-muted-foreground hover:text-foreground border border-transparent'
-            }`}
-          >
-            <Globe className="h-3 w-3" />
-            Global
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSource('local');
-              setConfig((prev) => ({ ...prev, source: 'local' }));
-            }}
-            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-              source === 'local'
-                ? 'bg-background shadow-sm text-foreground border'
-                : 'text-muted-foreground hover:text-foreground border border-transparent'
-            }`}
-          >
-            <Laptop className="h-3 w-3" />
-            Local
-          </button>
-        </div>
       </div>
 
       <div className="flex gap-1 border-b pb-1 overflow-x-auto">
@@ -307,7 +275,50 @@ export default function TableViewerConfig({
           }
         </div>
       )}
-      <div className="rounded-lg border p-4">
+      <div
+        className="rounded-lg border p-4"
+        style={activeSection === 'display' || activeSection === 'card' ? {
+          cornerTopRightShape: 'notch',
+          cornerTopRightRadius: '40px',
+          position: 'relative',
+        } as React.CSSProperties : undefined}
+      >
+        {(activeSection === 'display' || activeSection === 'card') && (
+          <div className="absolute -top-[10px] -right-[10px] z-10">
+            <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 p-0.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setSource('global');
+                  setConfig((prev) => ({ ...prev, source: 'global' }));
+                }}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  source === 'global'
+                    ? 'bg-background shadow-sm text-foreground border'
+                    : 'text-muted-foreground hover:text-foreground border border-transparent'
+                }`}
+              >
+                <Globe className="h-3 w-3" />
+                Global
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSource('local');
+                  setConfig((prev) => ({ ...prev, source: 'local' }));
+                }}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  source === 'local'
+                    ? 'bg-background shadow-sm text-foreground border'
+                    : 'text-muted-foreground hover:text-foreground border border-transparent'
+                }`}
+              >
+                <Laptop className="h-3 w-3" />
+                Local
+              </button>
+            </div>
+          </div>
+        )}
         {sections.map((s) => {
           if (s.id !== activeSection) return null;
           const Comp = s.component;
