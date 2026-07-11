@@ -1,11 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Loader2, Upload, X, ShieldAlert } from 'lucide-react';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { ImageCropper } from '@/components/ui/image-cropper';
 
 type MediaType = 'image' | 'video' | 'audio' | 'file';
 
@@ -31,7 +32,12 @@ export function MediaUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperUrl, setCropperUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  const isImage = mediaType === 'image';
 
   const acceptMap: Record<MediaType, string> = {
     image: 'image/*',
@@ -47,21 +53,7 @@ export function MediaUpload({
     file: 'Arquivo',
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const maxSize = 50 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast({
-        variant: 'destructive',
-        title: 'Arquivo muito grande',
-        description: 'O tamanho máximo permitido é 50MB.',
-      });
-      if (inputRef.current) inputRef.current.value = '';
-      return;
-    }
-
+  const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
     setScanError(null);
 
@@ -96,6 +88,69 @@ export function MediaUpload({
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
     }
+  }, [bucket, pathPrefix, tenantId, onChange, toast]);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo permitido é 50MB.',
+      });
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    if (isImage) {
+      const objectUrl = URL.createObjectURL(file);
+      setPendingFile(file);
+      setCropperUrl(objectUrl);
+      setCropperOpen(true);
+    } else {
+      uploadFile(file);
+    }
+  };
+
+  const handleCropConfirm = async (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], pendingFile?.name || 'cropped.png', {
+      type: 'image/png',
+    });
+    URL.revokeObjectURL(cropperUrl || '');
+    setCropperUrl(null);
+    setPendingFile(null);
+    await uploadFile(croppedFile);
+  };
+
+  const handleCropSkip = () => {
+    URL.revokeObjectURL(cropperUrl || '');
+    setCropperUrl(null);
+    if (pendingFile) {
+      const file = pendingFile;
+      setPendingFile(null);
+      uploadFile(file);
+    }
+  };
+
+  const handlePreviewClick = async () => {
+    if (!value || uploading || !isImage) return;
+    try {
+      const response = await fetch(value);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setCropperUrl(url);
+      setPendingFile(new File([blob], 'image.png', { type: blob.type }));
+      setCropperOpen(true);
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível carregar a imagem para edição.',
+      });
+    }
   };
 
   const handleUrlChange = (url: string) => {
@@ -116,11 +171,19 @@ export function MediaUpload({
 
       {value ? (
         mediaType === 'image' ? (
-          <div className="relative w-full aspect-video max-h-48 rounded-lg overflow-hidden border bg-muted/30">
+          <div
+            className="relative w-full aspect-video max-h-48 rounded-lg overflow-hidden border bg-muted/30 group cursor-pointer"
+            onClick={handlePreviewClick}
+          >
             <Image src={value} alt="Preview" fill className="object-contain" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 text-[10px] font-medium text-white bg-black/60 px-2 py-0.5 rounded transition-opacity">
+                Cortar
+              </span>
+            </div>
             <button
               type="button"
-              onClick={() => onChange('')}
+              onClick={(e) => { e.stopPropagation(); onChange(''); }}
               className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
             >
               <X className="h-3 w-3" />
@@ -198,6 +261,24 @@ export function MediaUpload({
         onChange={(e) => handleUrlChange(e.target.value)}
         className="text-xs"
       />
+
+      {cropperUrl && isImage && (
+        <ImageCropper
+          open={cropperOpen}
+          onOpenChange={(open) => {
+            if (!open && cropperUrl) {
+              URL.revokeObjectURL(cropperUrl);
+              setCropperUrl(null);
+              setPendingFile(null);
+            }
+            setCropperOpen(open);
+          }}
+          imageUrl={cropperUrl}
+          onCropConfirm={handleCropConfirm}
+          onCropSkip={handleCropSkip}
+          fileName={pendingFile?.name}
+        />
+      )}
     </div>
   );
 }

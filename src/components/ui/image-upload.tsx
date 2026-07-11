@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Loader2, Upload, X, ShieldAlert } from 'lucide-react';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
+import { ImageCropper } from '@/components/ui/image-cropper';
 
 type Props = {
   bucket?: string;
@@ -37,36 +38,15 @@ export function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [mode, setMode] = useState<Mode>('upload');
   const [scanError, setScanError] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperUrl, setCropperUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const showUpload = mode === 'upload';
   const showUrl = mode === 'url';
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const maxSize = 25 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast({
-        variant: 'destructive',
-        title: 'Arquivo muito grande',
-        description: 'O tamanho máximo permitido é 10MB.',
-      });
-      if (inputRef.current) inputRef.current.value = '';
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        variant: 'destructive',
-        title: 'Formato inválido',
-        description: 'Apenas arquivos de imagem são permitidos.',
-      });
-      if (inputRef.current) inputRef.current.value = '';
-      return;
-    }
-
+  const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
     setScanError(null);
 
@@ -101,6 +81,75 @@ export function ImageUpload({
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
     }
+  }, [bucket, pathPrefix, tenantId, onChange, toast]);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo muito grande',
+        description: 'O tamanho máximo permitido é 10MB.',
+      });
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Formato inválido',
+        description: 'Apenas arquivos de imagem são permitidos.',
+      });
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPendingFile(file);
+    setCropperUrl(objectUrl);
+    setCropperOpen(true);
+  };
+
+  const handleCropConfirm = async (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], pendingFile?.name || 'cropped.png', {
+      type: 'image/png',
+    });
+    URL.revokeObjectURL(cropperUrl || '');
+    setCropperUrl(null);
+    setPendingFile(null);
+    await uploadFile(croppedFile);
+  };
+
+  const handleCropSkip = () => {
+    URL.revokeObjectURL(cropperUrl || '');
+    setCropperUrl(null);
+    if (pendingFile) {
+      const file = pendingFile;
+      setPendingFile(null);
+      uploadFile(file);
+    }
+  };
+
+  const handlePreviewClick = async () => {
+    if (!value || uploading) return;
+    try {
+      const response = await fetch(value);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setCropperUrl(url);
+      setPendingFile(new File([blob], 'image.png', { type: blob.type }));
+      setCropperOpen(true);
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível carregar a imagem para edição.',
+      });
+    }
   };
 
   const handleUrlChange = (url: string) => {
@@ -129,11 +178,19 @@ export function ImageUpload({
                 transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               >
                 {value ? (
-                  <div className={`relative ${previewSize} flex items-center justify-center`}>
+                  <div
+                    className={`relative ${previewSize} flex items-center justify-center group cursor-pointer`}
+                    onClick={handlePreviewClick}
+                  >
                     <Image src={value} alt={label} fill className="object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 text-[10px] font-medium text-white bg-black/60 px-2 py-0.5 rounded transition-opacity">
+                        Cortar
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => onChange('')}
+                      onClick={(e) => { e.stopPropagation(); onChange(''); }}
                       className="absolute -top-1 -right-1 h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-embed z-10 flex items-center justify-center"
                       aria-label="Remover imagem"
                     >
@@ -208,6 +265,26 @@ export function ImageUpload({
           </AnimatePresence>
         </div>
       </div>
+
+      {cropperUrl && (
+        <>
+          <ImageCropper
+            open={cropperOpen}
+            onOpenChange={(open) => {
+              if (!open && cropperUrl) {
+                URL.revokeObjectURL(cropperUrl);
+                setCropperUrl(null);
+                setPendingFile(null);
+              }
+              setCropperOpen(open);
+            }}
+            imageUrl={cropperUrl}
+            onCropConfirm={handleCropConfirm}
+            onCropSkip={handleCropSkip}
+            fileName={pendingFile?.name}
+          />
+        </>
+      )}
     </div>
   );
 }
