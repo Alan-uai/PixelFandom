@@ -475,6 +475,19 @@ function inferSchema(data: Record<string, any>): ColumnInfo[] {
     });
 }
 
+function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnOrder?: string[]): T[] {
+  if (!columnOrder || columnOrder.length === 0) return cols;
+  const orderMap = new Map(columnOrder.map((col, i) => [col, i]));
+  return [...cols].sort((a, b) => {
+    const ai = orderMap.get(a.column_name);
+    const bi = orderMap.get(b.column_name);
+    if (ai != null && bi != null) return ai - bi;
+    if (ai != null) return -1;
+    if (bi != null) return 1;
+    return 0;
+  });
+}
+
 function renderDynamicSections(
   data: Record<string, any>,
   schema: ColumnInfo[] | undefined,
@@ -487,15 +500,16 @@ function renderDynamicSections(
   useSuffix?: boolean,
   chipWrap?: boolean,
   visibleColumnsSet?: Set<string> | null,
+  columnOrder?: string[],
 ) {
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
 
   // Filter out system fields, special-handled fields, and null values
-  const activeCols = cols.filter(
+  const activeCols = sortByColumnOrder(cols.filter(
     (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name])
       && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name)),
-  );
+  ), columnOrder);
 
   // 1. Numeric stat cards (skip 0)
   const numCols = activeCols.filter(
@@ -998,7 +1012,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode, chipWrap)}
 
       {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet)}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet, detailConfig?.columnOrder)}
 
       {/* Render-type-specific fields (color, rating, video, audio, etc.) */}
       {columnTypes && Object.entries(columnTypes).length > 0 && (
