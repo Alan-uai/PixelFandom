@@ -158,22 +158,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const urlItem = searchParams?.get('item') || null;
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   
   useEffect(() => {
     setSelectedSlug(urlItem);
   }, [urlItem]);
 
   useEffect(() => {
-    if (!activeTab && groupedItems && groupedItems.length > 0) {
-      setActiveTab(groupedItems[0][0]);
-    }
-  }, [groupedItems]);
-
-  useEffect(() => {
-    if (selectedSlug && cardRefs.current[selectedSlug]) {
+    if (selectedSlug && cardRefs.current.get(selectedSlug)) {
       setTimeout(() => {
-        cardRefs.current[selectedSlug]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cardRefs.current.get(selectedSlug)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
     }
   }, [selectedSlug]);
@@ -394,6 +388,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     return entries;
   }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
+
+  useEffect(() => {
+    if (!activeTab && groupedItems && groupedItems.length > 0) {
+      setActiveTab(groupedItems[0][0]);
+    }
+  }, [groupedItems]);
 
   const toggleFilter = (col: string, value: string) => {
     setActiveFilters(prev => {
@@ -1249,7 +1249,7 @@ function ItemCard({
   tenantId?: string;
   selectedSlug: string | null;
   onSelect: (slug: string | null) => void;
-  cardRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  cardRefs: React.MutableRefObject<Map<string, HTMLElement>>;
   onCompareStatClick?: (statKey: string) => void;
   useSuffix?: boolean;
   scaleFactor?: number;
@@ -1339,7 +1339,7 @@ function ItemCard({
 
   return (
     <div
-      ref={(el) => { cardRefs.current[itemSlug] = el; }}
+      ref={(el) => { if (itemSlug && el) cardRefs.current.set(itemSlug, el); }}
       className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass}`}
     >
       <motion.button

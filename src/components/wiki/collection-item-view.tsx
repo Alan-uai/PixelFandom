@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
   ScrollText, Lightbulb, MessageCircle, Eye, Crosshair,
-  Coins, Pickaxe, Sparkles, Crown,
+  Coins, Pickaxe, Sparkles, Crown, FileIcon,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { formatNumber } from '@/lib/format-number';
@@ -923,6 +923,134 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                   </div>
                   <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${pct}%`}</span>
                 </div>
+              </div>
+            );
+          }
+
+          if (fmt === 'tags') {
+            const arr = Array.isArray(val) ? val : typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+            if (arr.length === 0) return null;
+            return (
+              <div key={col} className="flex items-start gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px] pt-0.5">{label}</span>
+                <div className="flex flex-wrap gap-1">
+                  {arr.map((t: string, i: number) => (
+                    <span key={i} className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-muted/50 text-muted-foreground">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          if (fmt === 'boolean') {
+            const truthy = val === true || val === 'true' || val === 1 || val === '1' || val === 'yes' || val === 'sim';
+            const falsy = val === false || val === 'false' || val === 0 || val === '0' || val === 'no' || val === 'não' || val === 'nao';
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <span className={`text-sm ${truthy ? 'text-emerald-500' : falsy ? 'text-red-400' : 'text-muted-foreground'}`}>
+                  {truthy ? '✓' : falsy ? '✗' : String(val)}
+                </span>
+              </div>
+            );
+          }
+
+          if (fmt === 'date') {
+            const d = new Date(val);
+            const formatted = !isNaN(d.getTime()) ? d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : String(val);
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <span className="text-xs text-foreground">{formatted}</span>
+              </div>
+            );
+          }
+
+          if (fmt === 'duration') {
+            const str = String(val);
+            let display = str;
+            if (/^\d+:\d{2}(:\d{2})?$/.test(str)) {
+              const parts = str.split(':').map(Number);
+              if (parts.length === 3) {
+                display = `${parts[0]}h ${parts[1]}m${parts[2] > 0 ? ` ${parts[2]}s` : ''}`;
+              } else if (parts.length === 2) {
+                display = `${parts[0]}m ${parts[1]}s`;
+              }
+            }
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <span className="text-xs text-foreground">{display}</span>
+              </div>
+            );
+          }
+
+          if (fmt === 'file') {
+            const url = String(val);
+            const isValid = url.startsWith('http://') || url.startsWith('https://');
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                {isValid ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px] flex items-center gap-1" download>
+                    <FileIcon className="h-3 w-3" />
+                    {url.split('/').pop() || url}
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{url}</span>
+                )}
+              </div>
+            );
+          }
+
+          if (fmt === 'video') {
+            const url = String(val);
+            const isValid = url.startsWith('http://') || url.startsWith('https://');
+            if (!isValid) {
+              return (
+                <div key={col} className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                  <span className="text-xs text-muted-foreground">{url}</span>
+                </div>
+              );
+            }
+            return (
+              <div key={col} className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <div className="relative aspect-video rounded-lg overflow-hidden border bg-black/50 max-w-md">
+                  <video src={url} controls className="w-full h-full" preload="metadata">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">Abrir vídeo</a>
+                  </video>
+                </div>
+              </div>
+            );
+          }
+
+          if (fmt === 'audio') {
+            const url = String(val);
+            const isValid = url.startsWith('http://') || url.startsWith('https://');
+            return (
+              <div key={col} className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                {isValid ? (
+                  <audio src={url} controls className="h-8 max-w-xs" preload="none">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">Ouvir áudio</a>
+                  </audio>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{url}</span>
+                )}
+              </div>
+            );
+          }
+
+          if (fmt === 'emoji') {
+            const emoji = String(val);
+            return (
+              <div key={col} className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+                <span className="text-2xl leading-none">{emoji}</span>
               </div>
             );
           }

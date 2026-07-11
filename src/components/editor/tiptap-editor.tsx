@@ -75,7 +75,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
       GameItemEmbed,
       TierlistBlock,
       SmartMention.configure({
-        onSuggestionChange: (state) => {
+        onSuggestionChange: (state: SuggestionState) => {
           suggestionRef.current = state;
           onSuggestionChange?.(state);
         },

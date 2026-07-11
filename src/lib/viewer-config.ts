@@ -81,7 +81,7 @@ export const ViewerConfigSchema = z.object({
     hoverEffect: z.enum(['scale', 'glow', 'shadow', 'none']).default('scale'),
     visibleColumns: z.array(z.string()).default([]),
     columnOrder: z.array(z.string()).default([]),
-    columnFormats: z.record(z.string(), z.enum(['text', 'badge', 'color', 'icon', 'link', 'image', 'rating', 'progress'])).default({}),
+    columnFormats: z.record(z.string(), z.enum(['text', 'badge', 'color', 'icon', 'link', 'image', 'rating', 'progress', 'tags', 'boolean', 'date', 'duration', 'file', 'video', 'audio', 'emoji'])).default({}),
     showComparison: z.boolean().default(true),
     showHeader: z.boolean().default(false),
   }).optional(),

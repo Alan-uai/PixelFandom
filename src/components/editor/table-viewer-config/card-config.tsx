@@ -7,6 +7,7 @@ import { Select3D } from '@/components/ui/select3d';
 import { Input } from '@/components/ui/input';
 import { ColorSelect3D } from '@/components/ui/color-select-3d';
 import { isColorString, hexToStyle } from '@/lib/color';
+import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 
 const BADGE_DEFAULTS = ['rarity', 'tier', 'element'];
 
@@ -32,11 +33,13 @@ function inferFormat(col: string): string {
 export function CardConfig({
   config,
   columns = [],
+  columnTypes = {},
   onChange,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   columns?: string[];
+  columnTypes?: Record<string, string>;
   slug?: string;
 }) {
   const c: Record<string, any> = config || {};
@@ -98,7 +101,15 @@ export function CardConfig({
   };
 
   const getFormat = (col: string): string => {
-    return columnFormats[col] || inferFormat(col);
+    const saved = columnFormats[col];
+    if (saved) {
+      const compatible = getCompatibleFormats(columnTypes[col]);
+      if (compatible.some((f) => f.value === saved)) return saved;
+    }
+    const inferred = inferFormat(col);
+    const defCompatible = getCompatibleFormats(columnTypes[col]);
+    if (defCompatible.some((f) => f.value === inferred)) return inferred;
+    return getDefaultFormat(columnTypes[col]);
   };
 
   return (
@@ -291,16 +302,7 @@ export function CardConfig({
                   />
                   <label htmlFor={`detail-vis-${col}`} className="text-xs flex-1">{col}</label>
                   {isVisible && (
-                    <Select3D value={getFormat(col)} options={[
-                      {value: 'text', label: 'Texto'},
-                      {value: 'badge', label: 'Badge'},
-                      {value: 'color', label: 'Cor'},
-                      {value: 'icon', label: 'Ícone'},
-                      {value: 'link', label: 'Link'},
-                      {value: 'image', label: 'Imagem'},
-                      {value: 'rating', label: 'Avaliação'},
-                      {value: 'progress', label: 'Progresso'},
-                    ]} onChange={(v) => setFormat(col, v)} className="w-32" />
+                    <Select3D value={getFormat(col)} options={getCompatibleFormats(columnTypes[col]).map(f => ({value: f.value, label: f.label}))} onChange={(v) => setFormat(col, v)} className="w-32" />
                   )}
                 </div>
               );

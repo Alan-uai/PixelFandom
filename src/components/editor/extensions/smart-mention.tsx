@@ -108,7 +108,7 @@ export const SmartMention = Extension.create({
               this.options.onSuggestionChange?.({
                 active: true,
                 type: parsed?.type ?? null,
-                search: parsed?.search ?? props.query || '',
+                search: parsed?.search ?? (props.query || ''),
               });
             },
 
@@ -117,7 +117,7 @@ export const SmartMention = Extension.create({
               this.options.onSuggestionChange?.({
                 active: true,
                 type: parsed?.type ?? null,
-                search: parsed?.search ?? props.query || '',
+                search: parsed?.search ?? (props.query || ''),
               });
             },
 
