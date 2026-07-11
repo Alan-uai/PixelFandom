@@ -1,4 +1,3 @@
-'use server';
 import { z } from 'zod';
 import { chat, GENERIC_ERROR_MESSAGE } from '@/lib/openrouter-client';
 

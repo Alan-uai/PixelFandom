@@ -1,4 +1,3 @@
-'use server';
 import { z } from 'zod';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 

@@ -975,4 +975,5 @@ export interface FloatingIslandLayout {
   islands: FloatingIslandConfig[];
   slotFlow: SlotFlowId;
   clipStyle: ClipStyleId;
+  singleIslandWidth?: number;
 }

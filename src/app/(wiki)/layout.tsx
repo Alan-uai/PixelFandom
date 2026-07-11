@@ -73,6 +73,7 @@ function WikiLayoutContent({
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const [slotFlow, setSlotFlow] = useState<SlotFlowId>('current');
   const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
+  const [singleIslandWidth, setSingleIslandWidth] = useState<number | undefined>(undefined);
   const islandsCache = useRef<Record<string, any>>({});
   const [gameTableNames, setGameTableNames] = useState<string[]>([]);
 
@@ -109,6 +110,7 @@ function WikiLayoutContent({
       setFloatingIslands(cached.islands || cached);
       setSlotFlow(cached.slotFlow || 'current');
       setClipStyle(cached.clipStyle || 'trapezoid');
+      setSingleIslandWidth(cached.singleIslandWidth ?? undefined);
       return;
     }
     const controller = new AbortController();
@@ -120,10 +122,11 @@ function WikiLayoutContent({
       })
       .then((data) => {
         const islands = data?.floatingIslands?.length > 0 ? data.floatingIslands : [];
-        islandsCache.current[tenant.id] = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };
+        islandsCache.current[tenant.id] = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle, singleIslandWidth: data.singleIslandWidth ?? undefined };
         setFloatingIslands(islands);
         if (data.slotFlow) setSlotFlow(data.slotFlow);
         if (data.clipStyle) setClipStyle(data.clipStyle);
+        setSingleIslandWidth(data.singleIslandWidth ?? undefined);
       })
       .catch((e) => {
         if (e.name === 'AbortError') return;
@@ -278,7 +281,7 @@ function WikiLayoutContent({
 
         {floatingIslands.length > 0 && (
           <div className="sticky top-14 z-40">
-            <FloatingIslandsBar islands={floatingIslands} slotFlow={slotFlow} clipStyle={clipStyle} basePath={basePath} />
+            <FloatingIslandsBar islands={floatingIslands} slotFlow={slotFlow} clipStyle={clipStyle} singleIslandWidth={singleIslandWidth} basePath={basePath} />
           </div>
         )}
 

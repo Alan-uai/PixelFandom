@@ -10,11 +10,12 @@ interface FloatingIslandsBarProps {
   islands: FloatingIslandConfig[];
   slotFlow?: SlotFlowId;
   clipStyle?: ClipStyleId;
+  singleIslandWidth?: number;
   basePath?: string;
   className?: string;
 }
 
-export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 'trapezoid', basePath = '', className = '' }: FloatingIslandsBarProps) {
+export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 'trapezoid', singleIslandWidth, basePath = '', className = '' }: FloatingIslandsBarProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -39,6 +40,28 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
   };
 
   if (enabled.length === 0) return null;
+
+  if (enabled.length === 1) {
+    const island = enabled[0];
+    return (
+      <div className={`bg-muted/20 ${className}`}>
+        <div className="mx-auto max-w-6xl px-2">
+          <div className="flex justify-start" style={{ width: singleIslandWidth ? `${singleIslandWidth}%` : 'auto', maxWidth: '100%' }}>
+            <div className="flex-1">
+              <FloatingIslandWrapper
+                island={island}
+                position="center"
+                isExpanded={activeId === island.id}
+                onToggle={() => handleToggle(island.id)}
+                onAutoExpand={() => handleAutoExpand(island.id)}
+                basePath={basePath}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const flowDef = getSlotFlowDef(slotFlow);
 

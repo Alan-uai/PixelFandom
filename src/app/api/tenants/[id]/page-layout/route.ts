@@ -93,6 +93,7 @@ export async function GET(
       floatingIslands: (islandData.islands as any[]) || [],
       slotFlow: islandData.slotFlow || 'current',
       clipStyle: islandData.clipStyle || 'trapezoid',
+      singleIslandWidth: islandData.singleIslandWidth ?? undefined,
     });
   } catch (error) {
     console.error('Get layout error:', error);
@@ -155,6 +156,7 @@ export async function PUT(
         islands: sanitizedIslands,
         slotFlow: body.slotFlow || 'current',
         clipStyle: body.clipStyle || 'trapezoid',
+        ...(body.singleIslandWidth !== undefined ? { singleIslandWidth: body.singleIslandWidth } : {}),
       };
     }
 

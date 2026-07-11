@@ -21,6 +21,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
   const [floatingIslands, setFloatingIslands] = useState<FloatingIslandConfig[]>([]);
   const [slotFlow, setSlotFlow] = useState<SlotFlowId>('current');
   const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
+  const [singleIslandWidth, setSingleIslandWidth] = useState<number | undefined>(undefined);
   const islandCache = useRef<Record<string, any>>({});
   const [widgetsSave, setWidgetsSave] = useState<(() => Promise<void>) | null>(null);
   const [widgetsDirty, setWidgetsDirty] = useState(false);
@@ -37,6 +38,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
       setFloatingIslands(cached.islands || []);
       if (cached.slotFlow) setSlotFlow(cached.slotFlow);
       if (cached.clipStyle) setClipStyle(cached.clipStyle);
+      setSingleIslandWidth(cached.singleIslandWidth ?? undefined);
       islandsSnapshot.current = JSON.stringify(cached);
       return;
     }
@@ -44,15 +46,16 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
       const data = await res.json();
       const islands = data?.floatingIslands || [];
-      const snapshot = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle };
+      const snapshot = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle, singleIslandWidth: data.singleIslandWidth ?? undefined };
       islandCache.current[type] = snapshot;
       islandsSnapshot.current = JSON.stringify(snapshot);
       setFloatingIslands(islands);
       if (data.slotFlow) setSlotFlow(data.slotFlow);
       if (data.clipStyle) setClipStyle(data.clipStyle);
+      setSingleIslandWidth(data.singleIslandWidth ?? undefined);
     } catch {
       setFloatingIslands([]);
-      const defaultSnapshot = { islands: [], slotFlow: 'current' as const, clipStyle: 'trapezoid' as const };
+      const defaultSnapshot = { islands: [], slotFlow: 'current' as const, clipStyle: 'trapezoid' as const, singleIslandWidth: undefined };
       islandsSnapshot.current = JSON.stringify(defaultSnapshot);
       islandCache.current[type] = defaultSnapshot;
     }
@@ -91,7 +94,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
         const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ floatingIslands, slotFlow, clipStyle }),
+          body: JSON.stringify({ floatingIslands, slotFlow, clipStyle, singleIslandWidth }),
         });
         if (!res.ok) allOk = false;
       } catch {
@@ -101,12 +104,12 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
     if (!allOk) {
       throw new Error('Erro ao salvar ilhas flutuantes');
     }
-    const snapshot = { islands: floatingIslands, slotFlow, clipStyle };
+    const snapshot = { islands: floatingIslands, slotFlow, clipStyle, singleIslandWidth };
     islandsSnapshot.current = JSON.stringify(snapshot);
     for (const type of targets) {
       islandCache.current[type] = snapshot;
     }
-  }, [tenantId, floatingIslands, slotFlow, clipStyle, resolveTargetTypes]);
+  }, [tenantId, floatingIslands, slotFlow, clipStyle, singleIslandWidth, resolveTargetTypes]);
 
   const handleSave = useCallback(async () => {
     await handleSaveIslands();
@@ -119,10 +122,10 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
 
   useEffect(() => {
     const islandsDirty = islandsSnapshot.current
-      ? JSON.stringify({ floatingIslands, slotFlow, clipStyle }) !== islandsSnapshot.current
+      ? JSON.stringify({ floatingIslands, slotFlow, clipStyle, singleIslandWidth }) !== islandsSnapshot.current
       : false;
     onDirtyChange?.(islandsDirty || widgetsDirty);
-  }, [floatingIslands, slotFlow, clipStyle, widgetsDirty, onDirtyChange]);
+  }, [floatingIslands, slotFlow, clipStyle, singleIslandWidth, widgetsDirty, onDirtyChange]);
 
   return (
     <div className="flex flex-col h-full">
@@ -185,8 +188,10 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
             onChange={setFloatingIslands}
             slotFlow={slotFlow}
             clipStyle={clipStyle}
+            singleIslandWidth={singleIslandWidth}
             onSlotFlowChange={setSlotFlow}
             onClipStyleChange={setClipStyle}
+            onSingleIslandWidthChange={setSingleIslandWidth}
           />
         </div>
       ) : (

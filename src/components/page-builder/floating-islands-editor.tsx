@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List, Image as ImageIcon, ListOrdered } from 'lucide-react';
 import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia, SlotFlowId, ClipStyleId } from './types';
 import { SLOT_FLOWS } from '@/lib/floating-island-flows';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { CLIP_STYLES } from '@/lib/floating-island-clips';
+
+const CONTAINER_MAX_WIDTH = 1152;
 
 const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.ComponentType<{ className?: string }>; defaultConfig: Record<string, unknown> }[] = [
   {
@@ -77,12 +80,25 @@ interface FloatingIslandsEditorProps {
   onChange: (islands: FloatingIslandConfig[]) => void;
   slotFlow: SlotFlowId;
   clipStyle: ClipStyleId;
+  singleIslandWidth?: number;
   onSlotFlowChange: (id: SlotFlowId) => void;
   onClipStyleChange: (id: ClipStyleId) => void;
+  onSingleIslandWidthChange?: (v: number | undefined) => void;
 }
 
-export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, onSlotFlowChange, onClipStyleChange }: FloatingIslandsEditorProps) {
+export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, singleIslandWidth, onSlotFlowChange, onClipStyleChange, onSingleIslandWidthChange }: FloatingIslandsEditorProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [labelWidthPx, setLabelWidthPx] = useState(0);
+
+  useEffect(() => {
+    if (measureRef.current) {
+      setLabelWidthPx(measureRef.current.offsetWidth);
+    }
+  }, [islands[0]?.title]);
+
+  const labelWidthPct = islands[0] ? Math.max(1, Math.round((labelWidthPx / CONTAINER_MAX_WIDTH) * 100)) : 1;
+  const hasCustomWidth = singleIslandWidth !== undefined;
 
   const POSITION_PRIORITY = useMemo<FloatingIslandPosition[]>(() => ['center', 'left', 'right'], []);
 
@@ -227,6 +243,38 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
           })}
         </div>
       </div>
+
+      {islands.length === 1 && (
+        <div className="rounded-lg border border-border/50 bg-muted/10 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Largura da Ilha
+            </p>
+            <Checkbox3D
+              checked={hasCustomWidth}
+              onChange={(v) => onSingleIslandWidthChange?.(v ? labelWidthPct : undefined)}
+              size="sm"
+            />
+          </div>
+          {hasCustomWidth && (
+            <ElasticSlider3D
+              defaultValue={singleIslandWidth ?? labelWidthPct}
+              startingValue={labelWidthPct}
+              maxValue={100}
+              valueSuffix="%"
+              showValue
+              onValueChange={(v) => onSingleIslandWidthChange?.(v)}
+            />
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            Mín: {labelWidthPct}% (tamanho do label) · Máx: 100%
+          </p>
+          {/* Hidden measurement span */}
+          <span ref={measureRef} className="absolute -left-[9999px] top-0 text-xs font-medium whitespace-nowrap pointer-events-none">
+            {islands[0]?.title || ''}
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
