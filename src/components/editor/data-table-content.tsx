@@ -15,10 +15,7 @@ import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { invalidateDataCache, cacheSubscribe } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns';
+import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 
 import {
   Loader2,
@@ -32,7 +29,6 @@ import {
   Check,
   PlusCircle,
   ImageIcon,
-  CalendarIcon,
   Link2,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
@@ -765,42 +761,22 @@ export default function DataTableContent({
     }
 
     if (isDateColumn(col, dataType)) {
-      const date = value ? parse(value, 'yyyy-MM-dd', new Date()) : undefined;
       return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                'w-full justify-start text-left font-normal h-8 text-sm',
-                !date && 'text-muted-foreground'
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, 'dd/MM/yyyy') : <span>Selecionar data</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(selectedDate) => {
-                onChange(col, selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '');
-              }}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <DateTimePicker3D
+          mode="date"
+          value={value}
+          onChange={(v) => onChange(col, v)}
+        />
       );
     }
 
     if (isTimeColumn(col, dataType)) {
       return (
-        <input
-          type="time"
+        <DateTimePicker3D
+          mode="time"
           value={value}
-          onChange={(e) => onChange(col, e.target.value)}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 h-8"
+          onChange={(v) => onChange(col, v)}
+          className="h-8 text-sm"
         />
       );
     }

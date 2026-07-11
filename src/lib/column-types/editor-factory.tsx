@@ -3,14 +3,7 @@
 import type { ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
-import { format, parse } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { COLUMN_TYPES, type RenderType } from './registry';
 import {
   RatingEditor, ColorEditor, SliderEditor, DurationEditor,
@@ -184,11 +177,11 @@ function renderEditor(
 
     case 'time':
       return (
-        <input
-          type="time"
+        <DateTimePicker3D
+          mode="time"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 h-8"
+          onChange={onChange}
+          className="h-8 text-sm"
         />
       );
 
@@ -198,29 +191,12 @@ function renderEditor(
 }
 
 function DateEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const date = value ? parse(value, 'yyyy-MM-dd', new Date()) : undefined;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn('w-full justify-start text-left font-normal h-8 text-sm', !date && 'text-muted-foreground')}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'dd/MM/yyyy') : <span>Selecionar data</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(selectedDate) => {
-            onChange(selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '');
-          }}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
+    <DateTimePicker3D
+      mode="date"
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 

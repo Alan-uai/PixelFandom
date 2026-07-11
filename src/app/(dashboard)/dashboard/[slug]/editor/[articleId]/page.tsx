@@ -10,7 +10,6 @@ import { useTenantRole } from '@/hooks/use-tenant-role';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { FloatingLabelTextarea } from '@/components/ui/floating-label-textarea';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { extractPendingLinks } from '@/lib/smart-mention-queries';
 import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, History } from 'lucide-react';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -694,10 +694,10 @@ function EditPageContent() {
                   </Label>
                 </div>
                 {scheduleEnabled && (
-                  <Input
-                    type="datetime-local"
+                  <DateTimePicker3D
+                    mode="datetime"
                     value={scheduledAt}
-                    onChange={(e) => setScheduledAt(e.target.value)}
+                    onChange={setScheduledAt}
                     min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
                   />
                 )}

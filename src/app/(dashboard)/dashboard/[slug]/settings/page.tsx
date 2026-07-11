@@ -100,7 +100,7 @@ export default function WikiSettingsPage() {
   const [articleShowSummaries, setArticleShowSummaries] = useState(true);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
   const mediaLibrarySetter = useRef<((url: string) => void) | null>(null);
-  const mediaLibraryPathPrefix = useRef<string>('uploads');
+  const [mediaLibraryPathPrefix, setMediaLibraryPathPrefix] = useState('uploads');
 
   const cacheKey = `tenant:${slug}`;
   const { data: tenant, loading } = useCachedData<any>(
@@ -429,25 +429,25 @@ export default function WikiSettingsPage() {
           <div>
             <h4 className="text-sm font-medium mb-2">{t('media.logo_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.logo_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label={t('media.logo_upload')} previewSize="w-20 h-20" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setLogoUrl; mediaLibraryPathPrefix.current = `wiki-logos/${slug}`; setMediaLibraryOpen(true); }} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-logos/${slug}`} value={logoUrl} onChange={setLogoUrl} label={t('media.logo_upload')} previewSize="w-20 h-20" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setLogoUrl; setMediaLibraryPathPrefix(`wiki-logos/${slug}`); setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.logo_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.cover_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.cover_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label={t('media.cover_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setCoverImageUrl; mediaLibraryPathPrefix.current = `wiki-covers/${slug}`; setMediaLibraryOpen(true); }} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-covers/${slug}`} value={coverImageUrl} onChange={setCoverImageUrl} label={t('media.cover_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setCoverImageUrl; setMediaLibraryPathPrefix(`wiki-covers/${slug}`); setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.cover_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.favicon_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.favicon_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label={t('media.favicon_upload')} previewSize="w-10 h-10" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setFaviconUrl; mediaLibraryPathPrefix.current = `wiki-favicons/${slug}`; setMediaLibraryOpen(true); }} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-favicons/${slug}`} value={faviconUrl} onChange={setFaviconUrl} label={t('media.favicon_upload')} previewSize="w-10 h-10" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setFaviconUrl; setMediaLibraryPathPrefix(`wiki-favicons/${slug}`); setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.favicon_recommendation')}</p>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium mb-2">{t('media.og_label')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('media.og_hint')}</p>
-            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label={t('media.og_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setOgImage; mediaLibraryPathPrefix.current = `wiki-og/${slug}`; setMediaLibraryOpen(true); }} />
+            <ImageUpload bucket="wiki-images" pathPrefix={`wiki-og/${slug}`} value={ogImage} onChange={setOgImage} label={t('media.og_upload')} previewSize="w-40 h-24" tenantId={tenantState?.id} onOpenLibrary={() => { mediaLibrarySetter.current = setOgImage; setMediaLibraryPathPrefix(`wiki-og/${slug}`); setMediaLibraryOpen(true); }} />
             <p className="text-xs text-muted-foreground mt-2">{t('media.og_recommendation')}</p>
           </div>
         </div>
@@ -935,7 +935,7 @@ export default function WikiSettingsPage() {
           setMediaLibraryOpen(false);
         }}
         bucket="wiki-images"
-        pathPrefix={mediaLibraryPathPrefix.current}
+        pathPrefix={mediaLibraryPathPrefix}
       />
     </>
   );

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -666,12 +667,12 @@ export default function EditorArticlesPage() {
                 </span>
               </div>
               {scheduleEnabled && (
-                <Input
-                  type="datetime-local"
+                <DateTimePicker3D
+                  mode="datetime"
                   value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  className="mt-1"
+                  onChange={setScheduledAt}
                   min={new Date().toISOString().slice(0, 16)}
+                  className="mt-1"
                 />
               )}
             </div>

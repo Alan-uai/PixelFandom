@@ -7,6 +7,7 @@ import { Plus, Trash2, ChevronDown, ChevronUp, Clock, Timer, Video, Table2, List
 import type { FloatingIslandConfig, FloatingIslandType, FloatingIslandPosition, IslandMedia, SlotFlowId, ClipStyleId } from './types';
 import { SLOT_FLOWS } from '@/lib/floating-island-flows';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { CLIP_STYLES } from '@/lib/floating-island-clips';
 
 const ISLAND_TYPES: { type: FloatingIslandType; label: string; icon: React.ComponentType<{ className?: string }>; defaultConfig: Record<string, unknown> }[] = [
@@ -328,14 +329,11 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
                   </div>
 
                   <Field label="Expirar em (opcional)">
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker3D
+                      mode="datetime"
                       value={island.endsAt ? island.endsAt.slice(0, 16) : ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        updateIsland(island.id, { endsAt: val ? new Date(val).toISOString() : null });
-                      }}
-                      className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                      onChange={(val) => updateIsland(island.id, { endsAt: val ? new Date(val).toISOString() : null })}
+                      className="text-xs"
                     />
                   </Field>
 
@@ -730,16 +728,27 @@ function ArrayEditor({
                   className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
                 />
               ) : fields ? (
-                fields.map((f) => (
-                  <input
-                    key={f.key}
-                    type={f.type || 'text'}
-                    value={item[f.key] || ''}
-                    onChange={(e) => updateItem(index, f.key, e.target.value)}
-                    className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-                    placeholder={f.placeholder}
-                  />
-                ))
+                fields.map((f) =>
+                  f.type === 'datetime-local' ? (
+                    <div key={f.key} className="w-full">
+                      <DateTimePicker3D
+                        mode="datetime"
+                        value={item[f.key] || ''}
+                        onChange={(v) => updateItem(index, f.key, v)}
+                        className="text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      key={f.key}
+                      type={f.type || 'text'}
+                      value={item[f.key] || ''}
+                      onChange={(e) => updateItem(index, f.key, e.target.value)}
+                      className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                      placeholder={f.placeholder}
+                    />
+                  )
+                )
               ) : null}
             </div>
             <button
