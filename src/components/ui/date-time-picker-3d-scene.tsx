@@ -28,7 +28,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState<{ type: 'h' | 'm'; idx: number } | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const pulse = useRef(0);
+  const [pulse, setPulse] = useState(0);
 
   const { h, m } = parseTime(value);
   const selH12 = h % 12;
@@ -88,7 +88,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
   );
 
   useFrame((_, delta) => {
-    pulse.current += delta;
+    setPulse((p) => p + delta);
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -172,7 +172,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
                   <meshBasicMaterial
                     color={c}
                     transparent
-                    opacity={0.12 + Math.sin(pulse.current * 2) * 0.04}
+                    opacity={0.12 + Math.sin(pulse * 2) * 0.04}
                     depthWrite={false}
                   />
                 </mesh>
@@ -213,7 +213,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
           metalness={0.3}
           roughness={0.15}
           emissive={new THREE.Color('#4BC5FF')}
-          emissiveIntensity={0.1 + Math.sin(pulse.current * 1.5) * 0.04}
+          emissiveIntensity={0.1 + Math.sin(pulse * 1.5) * 0.04}
         />
       </mesh>
     </group>
@@ -239,7 +239,7 @@ function CalendarRing({
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const pulse = useRef(0);
+  const [pulse, setPulse] = useState(0);
 
   let valMonth = new Date().getMonth();
   let valDay: number | null = null;
@@ -310,7 +310,7 @@ function CalendarRing({
   );
 
   useFrame((_, delta) => {
-    pulse.current += delta;
+    setPulse((p) => p + delta);
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -363,7 +363,7 @@ function CalendarRing({
                   <meshBasicMaterial
                     color={c}
                     transparent
-                    opacity={0.12 + Math.sin(pulse.current * 2) * 0.04}
+                    opacity={0.12 + Math.sin(pulse * 2) * 0.04}
                     depthWrite={false}
                   />
                 </mesh>

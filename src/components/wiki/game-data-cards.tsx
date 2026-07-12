@@ -73,7 +73,7 @@ export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat
     5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
   } as Record<number, string>)[cols];
 
-  const allEntries = useMemo(() => (catalog ?? []).filter(e => e.count > 0), [catalog]);
+  const allEntries = useMemo(() => (catalog ?? []).filter(e => !e.is_hidden && e.count > 0), [catalog]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();

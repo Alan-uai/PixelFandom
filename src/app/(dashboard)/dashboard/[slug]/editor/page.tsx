@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2, Plus, Edit, Trash2, FileText,
-  BookOpen, Clock, Eye, Database, Minus,
+  BookOpen, Clock, Eye, EyeOff, Database, Minus,
 } from 'lucide-react';
 import DataTableContent from '@/components/editor/data-table-content';
 import TableViewerConfig from '@/components/editor/table-viewer-config';
@@ -51,6 +51,7 @@ interface TenantTable {
   display_label: string;
   parent_table: string | null;
   icon?: string | null;
+  is_hidden?: boolean | null;
 }
 
 export default function EditorArticlesPage() {
@@ -592,6 +593,34 @@ export default function EditorArticlesPage() {
                 >
                   <Eye className="h-3.5 w-3.5" />
                   {t('tableTabs.display')}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const { data, error } = await supabase.rpc('toggle_table_visibility', {
+                      p_table: key,
+                      p_tenant_id: tenantId,
+                    });
+                    if (error) {
+                      toast({ variant: 'destructive', title: tc('error'), description: error.message });
+                      return;
+                    }
+                    if (data?.is_hidden !== undefined) {
+                      setCatalog((prev) =>
+                        prev.map((t) =>
+                          t.table_name === key ? { ...t, is_hidden: data.is_hidden } : t,
+                        ),
+                      );
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium border border-transparent transition-colors ${
+                    tableInfo?.is_hidden
+                      ? 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title={tableInfo?.is_hidden ? t('tableTabs.show') : t('tableTabs.hide')}
+                >
+                  {tableInfo?.is_hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
                 <button
                   type="button"

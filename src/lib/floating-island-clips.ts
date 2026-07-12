@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { ClipStyleId, FloatingIslandPosition } from '@/components/page-builder/types';
 
 export interface ClipStyleDef {
@@ -142,4 +143,37 @@ export function getClipStyleDef(id: ClipStyleId): ClipStyleDef {
 
 export function getClipPath(id: ClipStyleId, pos: FloatingIslandPosition): string {
   return getClipStyleDef(id).getClipPath(pos);
+}
+
+function getTrapezoidPx(id: ClipStyleId): number | null {
+  if (id === 'trapezoid-subtle') return 14;
+  if (id === 'trapezoid') return 28;
+  if (id === 'trapezoid-sharp') return 48;
+  if (id === 'trapezoid-extreme') return 64;
+  return null;
+}
+
+export function getContentPadding(id: ClipStyleId, pos: FloatingIslandPosition): CSSProperties {
+  const clipPx = getTrapezoidPx(id);
+  if (clipPx !== null) {
+    switch (pos) {
+      case 'left': return { paddingRight: clipPx };
+      case 'center': return { paddingLeft: clipPx, paddingRight: clipPx };
+      case 'right': return { paddingLeft: clipPx };
+    }
+  }
+
+  if (id === 'chevron') {
+    switch (pos) {
+      case 'left': return { paddingRight: 28 };
+      case 'center': return { paddingLeft: 28, paddingRight: 28 };
+      case 'right': return { paddingLeft: 28 };
+    }
+  }
+
+  if (id === 'pentagon' && pos === 'center') {
+    return { paddingLeft: '20%', paddingRight: '20%' };
+  }
+
+  return {};
 }

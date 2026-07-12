@@ -110,6 +110,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const spacingEnabled = catConfig.spacingEnabled !== false;
   const spacingStyle: string = spacingEnabled ? (catConfig.spacingStyle || 'none') : 'none';
   const spacingValue = spacingEnabled ? (catConfig.spacingValue ?? 16) : 0;
+  const separatorWidth = spacingEnabled ? (catConfig.separatorWidth ?? 2) : 0;
 
   const displayConfig = (viewerConfig?.display || {}) as Record<string, any>;
   const fmt = displayConfig.format || displayFormat || 'grid';
@@ -494,7 +495,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         );
       }
       return (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap }}>
           {items.map((item) => renderItemByLayout(item, ''))}
         </div>
       );
@@ -505,7 +506,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         <InfiniteCarousel
           items={items}
           columnsCount={cols}
-          gap={12}
+          gap={gap}
           renderItem={(item: any) => (
             renderItemByLayout(item, '')
           )}
@@ -515,12 +516,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     if (fmt === 'carousel') {
       return (
-        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none snap-x snap-mandatory">
+        <div className="flex overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory" style={{ gap }}>
           {items.map((item) => (
             <div
               key={item.id}
               className="snap-start shrink-0"
-              style={{ flex: `0 0 calc((100% - ${(cols - 1) * 12}px) / ${cols})` }}
+              style={{ flex: `0 0 calc((100% - ${(cols - 1) * gap}px) / ${cols})` }}
             >
               {renderItemByLayout(item, '')}
             </div>
@@ -873,7 +874,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             return groupedItems.map(([category, catItems], idx) => (
               <div key={category}>
                 {idx > 0 && separatorClass && (
-                  <div className={separatorClass} style={{ marginBottom: spacingValue }} />
+                  <div className={separatorClass} style={{ marginBottom: spacingValue, borderTopWidth: separatorWidth }} />
                 )}
                 {idx > 0 && !separatorClass && (
                   <div style={{ height: spacingValue }} />

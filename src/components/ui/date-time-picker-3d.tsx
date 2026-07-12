@@ -8,7 +8,7 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { format, parse, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay, isBefore, isAfter, startOfDay, setHours, setMinutes } from 'date-fns';
+import { format, parse, addMonths, subMonths, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, CalendarIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -34,7 +34,6 @@ interface DateTimePicker3DProps {
   disabled?: boolean;
 }
 
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
@@ -61,143 +60,6 @@ function getPlaceholder(mode: PickerMode): string {
     case 'time': return 'Selecionar horário...';
     case 'datetime': return 'Selecionar data e hora...';
   }
-}
-
-function SelectionParticles({ color = 'hsl(var(--primary))' }: { color?: string }) {
-  const particles = useMemo(() =>
-    Array.from({ length: 8 }, (_, i) => ({
-      id: i,
-      angle: (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.5,
-      distance: 14 + Math.random() * 24,
-      size: 1.5 + Math.random() * 2,
-    })),
-    [],
-  );
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute left-1/2 top-1/2 rounded-full"
-          style={{
-            width: p.size,
-            height: p.size,
-            backgroundColor: color,
-            boxShadow: `0 0 4px ${color}`,
-          }}
-          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-          animate={{
-            x: Math.cos(p.angle) * p.distance,
-            y: Math.sin(p.angle) * p.distance,
-            opacity: [1, 0.6, 0],
-            scale: [1, 0.4, 0],
-          }}
-          transition={{ duration: 0.5, ease: [0.17, 0.67, 0.12, 0.99] }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function CalendarGrid3D({
-  currentDate,
-  selectedDate,
-  onSelect,
-  minDate,
-  maxDate,
-}: {
-  currentDate: Date;
-  selectedDate?: Date;
-  onSelect: (d: Date) => void;
-  minDate?: Date;
-  maxDate?: Date;
-}) {
-  const [particleKey, setParticleKey] = useState(0);
-  const daysInMonth = useMemo(() => {
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
-    return eachDayOfInterval({ start, end });
-  }, [currentDate]);
-
-  const startDay = getDay(startOfMonth(currentDate));
-  const emptyCells = startDay;
-
-  const handleSelect = useCallback((day: Date) => {
-    onSelect(day);
-    setParticleKey((k) => k + 1);
-  }, [onSelect]);
-
-  return (
-    <div className="relative">
-      <div className="grid grid-cols-7 gap-0.5">
-        {WEEKDAYS.map((wd) => (
-          <div
-            key={wd}
-            className="text-center text-[10px] font-medium text-muted-foreground/60 py-1"
-          >
-            {wd}
-          </div>
-        ))}
-        {Array.from({ length: emptyCells }).map((_, i) => (
-          <div key={`empty-${i}`} />
-        ))}
-        {daysInMonth.map((day) => {
-          const isSelected = selectedDate && isSameDay(day, selectedDate);
-          const isToday = isSameDay(day, new Date());
-          const isDisabled =
-            (minDate && isBefore(day, startOfDay(minDate))) ||
-            (maxDate && isAfter(day, startOfDay(maxDate)));
-          return (
-            <motion.button
-              key={day.toISOString()}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => !isDisabled && handleSelect(day)}
-              whileHover={!isDisabled ? { scale: 1.15, z: 8 } : undefined}
-              whileTap={!isDisabled ? { scale: 0.9 } : undefined}
-              className={cn(
-                'relative h-8 w-8 rounded-lg text-xs font-medium transition-colors',
-                'flex items-center justify-center',
-                'outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                isSelected
-                  ? 'bg-primary text-primary-foreground shadow-[0_0_12px_-2px_hsl(var(--primary)/0.5)]'
-                  : isToday
-                    ? 'text-primary border border-primary/30'
-                    : isDisabled
-                      ? 'text-muted-foreground/30 cursor-not-allowed'
-                      : 'text-foreground/80 hover:bg-accent/50 hover:text-foreground',
-              )}
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              {format(day, 'd')}
-              {isSelected && (
-                <motion.div
-                  className="absolute inset-0 rounded-lg bg-primary/20"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                />
-              )}
-            </motion.button>
-          );
-        })}
-      </div>
-      <AnimatePresence mode="wait">
-        {particleKey > 0 && (
-          <motion.div
-            key={particleKey}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <SelectionParticles />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
 }
 
 function TimeWheel3D({
@@ -322,8 +184,8 @@ export function DateTimePicker3D({
   mode,
   value,
   onChange,
-  min,
-  max,
+  min: _min,
+  max: _max,
   placeholder,
   className,
   disabled,
@@ -368,9 +230,6 @@ export function DateTimePicker3D({
     [mode, value],
   );
 
-  const minDate = min ? new Date(min) : undefined;
-  const maxDate = max ? new Date(max) : undefined;
-
   const handleDateSelect = useCallback((d: Date) => {
     setCurrentMonth(d);
     const newValue = formatDateValue(mode, d, parsedTime);
@@ -400,7 +259,6 @@ export function DateTimePicker3D({
   const displayText = value ? formatDisplayValue(mode, value) : '';
 
   const showCalendar = mode === 'date' || mode === 'datetime';
-  const showTime = mode === 'time' || mode === 'datetime';
 
   const handlePrevMonth = useCallback(() => setCurrentMonth((m) => subMonths(m, 1)), []);
   const handleNextMonth = useCallback(() => setCurrentMonth((m) => addMonths(m, 1)), []);

@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import type { FloatingIslandConfig, ClipStyleId, FloatingIslandPosition } from '@/components/page-builder/types';
-import { getClipPath } from '@/lib/floating-island-clips';
+import type { FloatingIslandConfig, FloatingIslandPosition } from '@/components/page-builder/types';
 import { MultiTimerIsland } from './multi-timer-island';
 import { QueueTimerIsland } from './queue-timer-island';
 import { VideoListIsland } from './video-list-island';
@@ -39,14 +38,13 @@ function getCronFirstTarget(island: FloatingIslandConfig): string | null {
 interface FloatingIslandWrapperProps {
   island: FloatingIslandConfig;
   position?: FloatingIslandPosition;
-  clipStyle?: ClipStyleId;
   isExpanded: boolean;
   onToggle: () => void;
   onAutoExpand: () => void;
   basePath?: string;
 }
 
-export function FloatingIslandWrapper({ island, position, clipStyle, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
+export function FloatingIslandWrapper({ island, position, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isExpandedRef = useRef(isExpanded);
   useEffect(() => { isExpandedRef.current = isExpanded; }, [isExpanded]);
@@ -91,49 +89,37 @@ export function FloatingIslandWrapper({ island, position, clipStyle, isExpanded,
   };
 
   const isCenter = position === 'center';
-  const clipPathValue = clipStyle && position ? getClipPath(clipStyle, position) : undefined;
-  const contentHeightRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="relative">
-      {/* Decorative clip-path background */}
-      {clipPathValue && (
-        <div
-          className="absolute inset-0 border bg-card pointer-events-none"
-          style={{ clipPath: clipPathValue, borderRadius: 0 }}
-        />
-      )}
-      {/* Content layer */}
-      <div className="relative z-[1]">
-        <div className="border bg-card">
-          <button
-            onClick={onToggle}
-            className={`flex w-full items-center gap-2 px-4 py-2 text-xs font-medium hover:bg-muted/50 transition-colors ${
-              isCenter ? 'justify-center' : 'text-left'
-            }`}
-          >
-            {cronFirst && cronTarget ? (
-              <span className="flex-1">
-                <CountdownDisplay targetDate={cronTarget} compact />
-              </span>
-            ) : (
-              <span className="flex-1 truncate">{island.title || island.type}</span>
-            )}
-          </button>
-        </div>
-        {isExpanded && (
-          <div
-            ref={contentHeightRef}
-            className="absolute top-full left-0 right-0 z-50 border border-t-0 bg-card px-4 pb-4 pt-2 shadow-lg"
-            style={{ maxHeight: '70vh', overflowY: 'auto' }}
-          >
-            {cronFirst && cronTarget && (
-              <p className="text-xs font-medium mb-2 truncate">{island.title || island.type}</p>
-            )}
-            {renderContent()}
-          </div>
-        )}
+      <div className={`border bg-card transition-all ${
+        isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md'
+      } ${isCenter ? 'text-center' : ''}`}>
+        <button
+          onClick={onToggle}
+          className={`flex w-full items-center gap-2 px-4 py-2 text-xs font-medium hover:bg-muted/50 transition-colors ${
+            isCenter ? 'justify-center' : 'text-left'
+          }`}
+        >
+          {cronFirst && cronTarget ? (
+            <span className="flex-1">
+              <CountdownDisplay targetDate={cronTarget} compact />
+            </span>
+          ) : (
+            <span className="flex-1 truncate">{island.title || island.type}</span>
+          )}
+        </button>
       </div>
+      {isExpanded && (
+        <div className="absolute top-full left-0 right-0 z-50 border border-t-0 bg-card px-4 pb-4 pt-2 shadow-lg"
+          style={{ maxHeight: '70vh', overflowY: 'auto' }}
+        >
+          {cronFirst && cronTarget && (
+            <p className="text-xs font-medium mb-2 truncate">{island.title || island.type}</p>
+          )}
+          {renderContent()}
+        </div>
+      )}
     </div>
   );
 }

@@ -235,7 +235,7 @@ export default function WikiPage() {
   }
 
   // ── Game table listing ──
-  if (articleSlug && !articleSlug.includes('/') && catalog?.some((t) => t.table_name === articleSlug)) {
+  if (articleSlug && !articleSlug.includes('/') && catalog?.some((t) => t.table_name === articleSlug && !t.is_hidden)) {
     const tableDisplayFormat = tableEntry?.display_format || (gameTablesDisplay.default_format as string) || (gameTableListingDisplay.default_format as string) || 'grid';
     const tableColumnsCount = tableEntry?.columns_count || (gameTablesDisplay.default_columns as number) || (gameTableListingDisplay.default_columns as number) || 4;
     return (

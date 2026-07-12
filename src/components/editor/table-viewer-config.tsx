@@ -278,8 +278,7 @@ export default function TableViewerConfig({
       <div
         className="rounded-lg border p-4"
         style={activeSection === 'display' || activeSection === 'card' ? {
-          cornerTopRightShape: 'scoop',
-          cornerTopRightRadius: '40px',
+          clipPath: 'polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)',
           position: 'relative',
         } as React.CSSProperties : undefined}
       >

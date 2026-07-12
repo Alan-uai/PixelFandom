@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 import { getSlotFlowDef } from '@/lib/floating-island-flows';
+import { getClipPath, getContentPadding } from '@/lib/floating-island-clips';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
 interface FloatingIslandsBarProps {
@@ -50,7 +51,6 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
               <FloatingIslandWrapper
                 island={island}
                 position="center"
-                clipStyle={clipStyle}
                 isExpanded={activeId === island.id}
                 onToggle={() => handleToggle(island.id)}
                 onAutoExpand={() => handleAutoExpand(island.id)}
@@ -75,12 +75,15 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
           {positions.map((pos, idx) => {
             const island = sorted[idx] || null;
             return (
-              <div key={pos} className="flex-1">
+              <div
+                key={pos}
+                className="flex-1"
+                style={{ clipPath: getClipPath(clipStyle, pos), ...getContentPadding(clipStyle, pos) }}
+              >
                 {island ? (
                   <FloatingIslandWrapper
                     island={island}
                     position={pos}
-                    clipStyle={clipStyle}
                     isExpanded={activeId === island.id}
                     onToggle={() => handleToggle(island.id)}
                     onAutoExpand={() => handleAutoExpand(island.id)}

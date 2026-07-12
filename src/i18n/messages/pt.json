@@ -513,6 +513,8 @@
     "tableTabs": {
       "data": "Dados",
       "display": "Exibição",
+      "hide": "Ocultar da Wiki",
+      "show": "Mostrar na Wiki",
       "remove_tab": "Remover esta aba do editor"
     },
     "articles_section": {
