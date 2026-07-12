@@ -82,6 +82,65 @@ function isArrStr(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((i) => typeof i === 'string');
 }
 
+function renderJsonValue(v: unknown): React.ReactNode {
+  if (v == null) return <span className="text-muted-foreground">—</span>;
+  if (Array.isArray(v)) {
+    if (v.length === 0) return <span className="text-muted-foreground italic">vazio</span>;
+    if (v.every((i) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
+      return (
+        <div className="space-y-1">
+          {v.map((obj, i) => (
+            <div key={i} className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+              {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
+                <span key={k} className="text-muted-foreground">
+                  <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}</span>
+                  {' '}{renderJsonValueInline(val)}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (v.every((i) => typeof i === 'string')) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {(v as string[]).map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
+        </div>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">[{v.map((i) => String(i)).join(', ')}]</span>;
+  }
+  if (typeof v === 'object') {
+    return (
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+        {Object.entries(v as Record<string, unknown>).map(([k, val]) => (
+          <span key={k} className="text-muted-foreground">
+            <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}</span>
+            {' '}{renderJsonValueInline(val)}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  if (typeof v === 'boolean') return <span>{v ? 'Sim' : 'Não'}</span>;
+  if (typeof v === 'number') return <span className="font-mono">{formatNumber(v, true)}</span>;
+  return <span>{String(v)}</span>;
+}
+
+function renderJsonValueInline(v: unknown): React.ReactNode {
+  if (v == null) return <span className="text-muted-foreground">—</span>;
+  if (typeof v === 'object') {
+    if (Array.isArray(v)) {
+      return <span className="text-muted-foreground">[{v.map((i) => String(i)).join(', ')}]</span>;
+    }
+    return <span className="text-muted-foreground">{'{…}'}</span>;
+  }
+  if (typeof v === 'boolean') return <span>{v ? 'Sim' : 'Não'}</span>;
+  if (typeof v === 'number') return <span className="font-mono">{formatNumber(v, true)}</span>;
+  return <span>{String(v)}</span>;
+}
+
 function toList(v: unknown): string[] | null {
   if (Array.isArray(v)) return v.map((i) => String(i));
   if (typeof v === 'string') return v.split(',').map((s) => s.trim());
@@ -619,7 +678,7 @@ function renderDynamicSections(
         <ChipCarousel wrap={chipWrap}>
           {data[c.column_name].map((item: unknown, i: number) => (
             <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+              {typeof item === 'object' ? renderJsonValue(item) : String(item)}
             </Tag>
           ))}
         </ChipCarousel>
@@ -647,7 +706,7 @@ function renderDynamicSections(
               <span className="text-xs font-medium text-muted-foreground min-w-[100px] shrink-0">
                 {k.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
               </span>
-              <span className="text-foreground">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              <span className="text-foreground">{typeof v === 'object' ? renderJsonValue(v) : String(v)}</span>
             </div>
           ))}
         </div>
@@ -704,13 +763,7 @@ function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, 
               </span>
               <div className="text-sm flex-1">
                 {typeof v === 'object' && v !== null ? (
-                  isArrStr(v) ? (
-                    <div className="flex flex-wrap gap-1">
-                      {v.map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
-                    </div>
-                  ) : (
-                    <code className="text-xs bg-muted rounded px-1.5 py-0.5">{JSON.stringify(v)}</code>
-                  )
+                  renderJsonValue(v)
                 ) : (
                   <ColoredText text={fmt(v, useSuffix)} />
                 )}

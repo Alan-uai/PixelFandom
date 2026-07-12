@@ -1,6 +1,6 @@
 'use client';
 
-import { Switch } from '@/components/ui/switch';
+import { Switch3DCanvas } from '@/components/ui/switch-3d-canvas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -57,7 +57,7 @@ export function HeaderConfig({
         />
       </div>
       <div className="flex items-center gap-2">
-        <Switch
+        <Switch3DCanvas
           id="show-breadcrumb"
           checked={c.showBreadcrumb !== false}
           onCheckedChange={(v) => onChange({ ...c, showBreadcrumb: v })}

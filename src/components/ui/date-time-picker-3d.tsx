@@ -388,6 +388,12 @@ export function DateTimePicker3D({
     onChange(newValue);
   }, [mode, onChange, parsedDate, parsedTime]);
 
+  const handle3DTimeChange = useCallback((time: string) => {
+    if (mode === 'time') {
+      onChange(time);
+    }
+  }, [mode, onChange]);
+
   const currentTime = parsedTime || '00:00';
   const [currentHours, currentMinutes] = currentTime.split(':');
 
@@ -478,63 +484,64 @@ export function DateTimePicker3D({
               'overflow-hidden',
             )}
           >
-            {THREE_SCENE_ENABLED && (
-              <div className="absolute inset-0 opacity-30 pointer-events-none">
-                <DateTimeScene3D mode={mode} selectedValue={value} />
-              </div>
-            )}
-
-            <div className="relative p-3 space-y-3">
+            <div className="relative p-3 space-y-2">
               {showCalendar && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <motion.button
-                      type="button"
-                      onClick={handlePrevMonth}
-                      whileHover={{ scale: 1.1, x: -1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                <div className="flex items-center justify-between">
+                  <motion.button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    whileHover={{ scale: 1.1, x: -1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </motion.button>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={format(currentMonth, 'yyyy-MM')}
+                      initial={{ opacity: 0, rotateY: -45, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, rotateY: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, rotateY: 45, filter: 'blur(4px)' }}
+                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                      className="text-xs font-semibold"
+                      style={{ perspective: 500, transformStyle: 'preserve-3d' }}
                     >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </motion.button>
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={format(currentMonth, 'yyyy-MM')}
-                        initial={{ opacity: 0, rotateY: -45, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, rotateY: 0, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, rotateY: 45, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                        className="text-xs font-semibold"
-                        style={{ perspective: 500, transformStyle: 'preserve-3d' }}
-                      >
-                        {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                      </motion.span>
-                    </AnimatePresence>
-                    <motion.button
-                      type="button"
-                      onClick={handleNextMonth}
-                      whileHover={{ scale: 1.1, x: 1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </motion.button>
-                  </div>
-                  <CalendarGrid3D
-                    currentDate={currentMonth}
-                    selectedDate={parsedDate}
-                    onSelect={handleDateSelect}
-                    minDate={minDate}
-                    maxDate={maxDate}
-                  />
+                      {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+                    </motion.span>
+                  </AnimatePresence>
+                  <motion.button
+                    type="button"
+                    onClick={handleNextMonth}
+                    whileHover={{ scale: 1.1, x: 1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </motion.button>
                 </div>
               )}
 
-              {showTime && (
-                <div className={cn(
-                  'flex items-center justify-center gap-3',
-                  showCalendar && 'border-t border-border/30 pt-3',
-                )}>
+              <div className="relative w-full h-[190px] rounded-lg overflow-hidden bg-black/10">
+                {THREE_SCENE_ENABLED && (
+                  <DateTimeScene3D
+                    mode={mode}
+                    value={value}
+                    onTimeChange={handle3DTimeChange}
+                    onDateSelect={handleDateSelect}
+                    displayMonth={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                  />
+                )}
+              </div>
+
+              <div className="text-center py-0.5">
+                <span className="text-sm font-semibold text-foreground/80">
+                  {value ? formatDisplayValue(mode, value) : (mode === 'time' ? '--:--' : 'Selecione...')}
+                </span>
+              </div>
+
+              {mode === 'datetime' && (
+                <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/30">
                   <TimeWheel3D
                     label="Hora"
                     items={HOURS}

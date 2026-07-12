@@ -129,12 +129,12 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   }
   const scaleFactor = Math.max(0.5, 1 - (cols - 1) * 0.125);
   const gridColsClass = ({
-    1: 'grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1',
-    2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
-    3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
-    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
-    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
-  } as Record<number, string>)[cols] || 'grid-cols-2';
+    1: 'grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1',
+    2: 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
+    3: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
+    4: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
+    5: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
+  } as Record<number, string>)[cols] || 'grid grid-cols-2';
 
   const searchDebounceMs = viewerConfig?.search?.debounceMs ?? 300;
   const searchMinChars = viewerConfig?.search?.minChars ?? 1;
@@ -426,13 +426,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       tableName,
       tenantSlug,
       tenantId,
-      selectedSlug,
-      onSelect: selectItem,
       cardRefs,
       useSuffix,
       scaleFactor,
       cardConfig,
       detailConfig,
+    };
+
+    const rowSelectionProps = {
+      selectedSlug,
+      onSelect: selectItem,
     };
 
     const effectiveLayout = cardConfig?.layout || 'card';
@@ -444,6 +447,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             key={item.id}
             item={item}
             {...baseItemCardProps}
+            {...rowSelectionProps}
             onCompareStatClick={() => { setCompareStat(statKey); setCompareItemId(item.id); }}
           />
         );
@@ -454,6 +458,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             key={item.id}
             item={item}
             {...baseItemCardProps}
+            {...rowSelectionProps}
             onCompareStatClick={() => { setCompareStat(statKey); setCompareItemId(item.id); }}
           />
         );
@@ -464,6 +469,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             key={item.id}
             item={item}
             {...baseItemCardProps}
+            {...rowSelectionProps}
             onCompareStatClick={(sk: string) => { setCompareStat(sk); setCompareItemId(item.id); }}
           />
         );
@@ -479,6 +485,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     };
 
     if (fmt === 'list') {
+      if (cols > 1) {
+        const gridGap = typeof gap === 'number' ? gap : 12;
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-2" style={{ gap: gridGap }}>
+            {items.map((item) => renderItemByLayout(item, ''))}
+          </div>
+        );
+      }
       return (
         <div className="space-y-3">
           {items.map((item) => renderItemByLayout(item, ''))}
@@ -1234,12 +1248,9 @@ function ItemCard({
   tableName,
   tenantSlug,
   tenantId,
-  selectedSlug,
-  onSelect,
   cardRefs,
   onCompareStatClick,
   useSuffix,
-  scaleFactor = 1,
   cardConfig,
   detailConfig,
 }: {
@@ -1247,26 +1258,14 @@ function ItemCard({
   tableName: string;
   tenantSlug: string;
   tenantId?: string;
-  selectedSlug: string | null;
-  onSelect: (slug: string | null) => void;
-  cardRefs: React.MutableRefObject<Map<string, HTMLElement>>;
+  cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
   onCompareStatClick?: (statKey: string) => void;
   useSuffix?: boolean;
-  scaleFactor?: number;
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
-  const isOpen = selectedSlug === itemSlug;
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (contentRef.current) {
-      setHeight(Math.ceil(contentRef.current.scrollHeight * scaleFactor));
-    }
-  }, [isOpen, item, scaleFactor]);
 
   const showCardIcon = cardConfig?.showIcon !== false;
   const showCardImage = cardConfig?.showImage !== false;
@@ -1339,127 +1338,58 @@ function ItemCard({
 
   return (
     <div
-      ref={(el) => { if (itemSlug && el) cardRefs.current.set(itemSlug, el); }}
+      ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
       className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass}`}
     >
-      <motion.button
-        onClick={() => onSelect(itemSlug)}
-        className="w-full text-left cursor-pointer"
-        whileTap={{ scale: 0.995 }}
-        style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
+      <div
+        className="relative overflow-hidden"
+        style={imageUrl ? {
+          backgroundImage: `url(${imageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : undefined}
       >
-        <div
-          className="relative overflow-hidden"
-          style={imageUrl ? {
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : undefined}
-        >
-          <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
-          {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
-          <div className={`relative ${cardPadding} flex items-start gap-3`}>
-            {showCardIcon && (
-            <div className={`relative ${iconSize} rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden`}>
-              {icon || collIcon}
-            </div>
-            )}
-            {showCardLabel && (
-            <div className="flex-1 min-w-0 self-center">
-              <motion.h3
-                className={`${titleSize} leading-tight relative`}
-                animate={{ x: isOpen ? 4 : 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-              >
-                <motion.span
-                  className="block text-white"
-                  animate={{ opacity: isOpen ? 0 : 1 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  {label}
-                </motion.span>
-                <motion.span
-                  className="absolute inset-0 bg-gradient-to-r from-primary via-primary/70 to-primary/40 bg-clip-text text-transparent"
-                  animate={{ opacity: isOpen ? 1 : 0 }}
-                  transition={{ duration: 0.25 }}
-                  aria-hidden
-                >
-                  {label}
-                </motion.span>
-              </motion.h3>
-            </div>
-            )}
-            {activeBadges.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
-              {activeBadges.map(col => renderBadge(col))}
-            </div>
-            )}
-            <motion.div
-              animate={{ rotate: isOpen ? 180 : 0, scale: isOpen ? 1.2 : 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 12, mass: 0.8 }}
-              style={{ transformStyle: 'preserve-3d' }}
-              className="shrink-0 self-center mt-0.5"
-            >
-              <ChevronDown className="h-4 w-4 text-white/70" />
-            </motion.div>
+        <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
+        {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
+        <div className={`relative ${cardPadding} flex items-start gap-3`}>
+          {showCardIcon && (
+          <div className={`relative ${iconSize} rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden`}>
+            {icon || collIcon}
           </div>
+          )}
+          {showCardLabel && (
+          <div className="flex-1 min-w-0 self-center">
+            <h3 className={`${titleSize} leading-tight text-white`}>
+              {label}
+            </h3>
+          </div>
+          )}
+          {activeBadges.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
+            {activeBadges.map(col => renderBadge(col))}
+          </div>
+          )}
         </div>
-      </motion.button>
+      </div>
 
-      <motion.div
-        initial={false}
-        animate={{
-          height: isOpen ? height : 0,
-          opacity: isOpen ? 1 : 0,
-          rotateX: isOpen ? 0 : -15,
-          scaleY: isOpen ? 1 : 0.92,
-          filter: isOpen ? 'blur(0px)' : 'blur(6px)',
-        }}
-        transition={{
-          duration: 0.5,
-          ease: [0.22, 1, 0.36, 1],
-          height: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-          opacity: { duration: 0.3, delay: isOpen ? 0.08 : 0 },
-          rotateX: { duration: 0.45 },
-          scaleY: { duration: 0.4 },
-          filter: { duration: 0.35, delay: isOpen ? 0.05 : 0 },
-        }}
-        style={{
-          transformOrigin: 'top center',
-          perspective: 1200,
-          transformStyle: 'preserve-3d',
-          overflow: 'hidden',
-        }}
-      >
-        <div ref={contentRef}>
-          <div
-            style={{
-              transform: `scale(${scaleFactor})`,
-              transformOrigin: 'top left',
-              width: `${100 / scaleFactor}%`,
-            }}
-          >
-            <div className="px-4 pb-4 pt-3 border-t border-border/50">
-              {tenantId ? (
-                <CollectionItemView
-                  data={item}
-                  tenantId={tenantId}
-                  tenantSlug={tenantSlug}
-                  sourceTable={tableName}
-                  comparisonMode="modal"
-                  hideHeader
-                  chipWrap
-                  useSuffix={useSuffix}
-                  onCompareStatClick={onCompareStatClick}
-                  detailConfig={detailConfig}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">{item.description || ''}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <div className="px-4 pb-4 pt-3 border-t border-border/50">
+        {tenantId ? (
+          <CollectionItemView
+            data={item}
+            tenantId={tenantId}
+            tenantSlug={tenantSlug}
+            sourceTable={tableName}
+            comparisonMode="modal"
+            hideHeader
+            chipWrap
+            useSuffix={useSuffix}
+            onCompareStatClick={onCompareStatClick}
+            detailConfig={detailConfig}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">{item.description || ''}</p>
+        )}
+      </div>
     </div>
   );
 }
