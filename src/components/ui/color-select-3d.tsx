@@ -57,7 +57,7 @@ export function ColorSelect3D({
     setOpen(false);
   }, [onChange]);
 
-  const currentColor = value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : undefined;
+  const currentColor = value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#888888';
   const hsl = currentColor ? hexToHsl(currentColor) : null;
 
   return (

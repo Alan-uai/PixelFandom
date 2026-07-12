@@ -17,6 +17,12 @@ const DEFAULT_BADGE_COLORS: Record<string, string> = {
   element: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
 };
 
+const DEFAULT_BADGE_HEX_COLORS: Record<string, string> = {
+  rarity: '#F59E0B',
+  tier: '#06B6D4',
+  element: '#10B981',
+};
+
 const LABEL_COLS = new Set(['name', 'title', 'description', 'summary', 'slug']);
 const BADGE_COLS = new Set(['rarity', 'tier', 'element']);
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'icon', 'icon_url', 'image', 'image_url']);
@@ -229,7 +235,7 @@ export function CardConfig({
                       <div className="flex items-center gap-2">
                         <Label className="text-[10px] text-muted-foreground">Cor</Label>
                         <ColorSelect3D
-                          value={isColorString(badgeColors[col] || '') ? badgeColors[col] : undefined}
+                          value={isColorString(badgeColors[col] || '') ? badgeColors[col] : (DEFAULT_BADGE_HEX_COLORS[col] || '#888888')}
                           onChange={(v) => updateBadgeColor(col, v)}
                           className="flex-1"
                           placeholder="Selecionar cor..."

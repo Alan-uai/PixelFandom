@@ -77,6 +77,12 @@ function ColorRing({ value, onChange }: ColorPickerSceneProps) {
     if (groupRef.current && !dragState.current.active && Math.abs(dragState.current.velocity) < 0.001) {
       groupRef.current.rotation.y += delta * 0.08;
     }
+    if (groupRef.current) {
+      const tiltX = Math.sin(clock.current * 0.3) * 0.04;
+      const tiltZ = Math.cos(clock.current * 0.4) * 0.03;
+      groupRef.current.rotation.x = tiltX;
+      groupRef.current.rotation.z = tiltZ;
+    }
     if (centerRef.current) {
       const pulse = 1 + Math.sin(clock.current * 2) * 0.04;
       centerRef.current.scale.setScalar(pulse);
