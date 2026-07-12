@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 import { getSlotFlowDef } from '@/lib/floating-island-flows';
-import { getClipPath } from '@/lib/floating-island-clips';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
 interface FloatingIslandsBarProps {
@@ -46,11 +45,12 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
     return (
       <div className={`bg-muted/20 ${className}`}>
         <div className="mx-auto max-w-6xl px-2">
-          <div className="flex justify-start" style={{ width: singleIslandWidth ? `${singleIslandWidth}%` : 'auto', maxWidth: '100%' }}>
+          <div className="flex justify-center" style={{ width: singleIslandWidth ? `${singleIslandWidth}%` : 'auto', maxWidth: '100%' }}>
             <div className="flex-1">
               <FloatingIslandWrapper
                 island={island}
                 position="center"
+                clipStyle={clipStyle}
                 isExpanded={activeId === island.id}
                 onToggle={() => handleToggle(island.id)}
                 onAutoExpand={() => handleAutoExpand(island.id)}
@@ -75,15 +75,12 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
           {positions.map((pos, idx) => {
             const island = sorted[idx] || null;
             return (
-              <div
-                key={pos}
-                className="flex-1"
-                style={{ clipPath: getClipPath(clipStyle, pos) }}
-              >
+              <div key={pos} className="flex-1">
                 {island ? (
                   <FloatingIslandWrapper
                     island={island}
                     position={pos}
+                    clipStyle={clipStyle}
                     isExpanded={activeId === island.id}
                     onToggle={() => handleToggle(island.id)}
                     onAutoExpand={() => handleAutoExpand(island.id)}

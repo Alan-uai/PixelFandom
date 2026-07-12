@@ -118,7 +118,10 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
 
   useImperativeHandle(ref, () => ({
     insertText(text: string) {
-      editor?.chain().focus().insertContent(text).run();
+      editor?.chain().focus().command(({ tr, dispatch }) => {
+        if (dispatch) tr.insertText(text);
+        return true;
+      }).run();
     },
     focus() {
       editor?.chain().focus().run();

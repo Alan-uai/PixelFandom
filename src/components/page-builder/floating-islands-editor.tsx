@@ -9,7 +9,7 @@ import { SLOT_FLOWS } from '@/lib/floating-island-flows';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
-import { CLIP_STYLES } from '@/lib/floating-island-clips';
+import { CLIP_STYLES, getClipPath } from '@/lib/floating-island-clips';
 
 const CONTAINER_MAX_WIDTH = 1152;
 
@@ -91,11 +91,12 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
   const measureRef = useRef<HTMLSpanElement>(null);
   const [labelWidthPx, setLabelWidthPx] = useState(0);
 
+  const firstIslandTitle = islands[0]?.title;
   useEffect(() => {
     if (measureRef.current) {
       setLabelWidthPx(measureRef.current.offsetWidth);
     }
-  }, [islands[0]?.title]);
+  }, [firstIslandTitle]);
 
   const labelWidthPct = islands[0] ? Math.max(1, Math.round((labelWidthPx / CONTAINER_MAX_WIDTH) * 100)) : 1;
   const hasCustomWidth = singleIslandWidth !== undefined;
@@ -201,7 +202,7 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
       {/* Animated preview */}
       <div className="rounded-lg border bg-muted/20 p-3">
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Pré-visualização</p>
-        <div className="flex items-stretch gap-1 h-12">
+        <div className="flex items-stretch gap-0 h-12">
           {(['left', 'center', 'right'] as const).map((pos) => {
             const filled = previewSlots.includes(pos);
             return (
@@ -213,11 +214,12 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
                   opacity: filled ? 1 : 0.3,
                 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                className={`rounded flex items-center justify-center text-[10px] font-medium ${
+                className={`flex items-center justify-center text-[10px] font-medium overflow-hidden ${
                   filled
                     ? 'bg-primary/20 text-primary border border-primary/30'
                     : 'bg-muted text-muted-foreground/40 border border-dashed border-muted-foreground/20'
                 }`}
+                style={filled ? { clipPath: getClipPath(clipStyle, pos) } : undefined}
               >
                 {filled && (pos === 'left' ? 'L' : pos === 'center' ? 'C' : 'R')}
               </motion.div>
