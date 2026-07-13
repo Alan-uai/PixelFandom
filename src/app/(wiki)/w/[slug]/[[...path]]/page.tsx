@@ -473,7 +473,6 @@ export default function WikiPage() {
                 displayFormat={gameTablesDisplay.default_format as string}
                 columnsCount={gameTablesDisplay.default_columns as number}
                 tabsEnabled={gameTablesDisplay.tabs_enabled as boolean}
-                tabsSubFormat={gameTablesDisplay.tabs_sub_format as string}
               />
             )}
 

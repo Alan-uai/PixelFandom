@@ -45,7 +45,7 @@ export default function WikiAIConfigPage() {
     enabled: false,
     provider: 'openrouter' as 'openrouter' | 'gemini' | 'hybrid',
     primaryProvider: 'openrouter' as 'openrouter' | 'gemini',
-    model: 'openai/gpt-4o-mini',
+    model: 'openrouter/free',
     modelSource: 'free' as 'free' | 'custom',
     customModel: '',
     customApiKey: '',
@@ -68,7 +68,7 @@ export default function WikiAIConfigPage() {
 
   const [enabled, setEnabled] = useState(false);
   const [provider, setProvider] = useState<'openrouter' | 'gemini' | 'hybrid'>('openrouter');
-  const [model, setModel] = useState('openai/gpt-4o-mini');
+  const [model, setModel] = useState('openrouter/free');
   const [modelSource, setModelSource] = useState<'free' | 'custom'>('free');
   const [customModel, setCustomModel] = useState('');
   const [customApiKey, setCustomApiKey] = useState('');
@@ -132,12 +132,12 @@ export default function WikiAIConfigPage() {
     const savedPrimaryProvider = (config.primary_provider as string) || 'openrouter';
     setPrimaryProvider(savedPrimaryProvider as 'openrouter' | 'gemini');
 
-    const savedModel = (config.model as string) || 'openai/gpt-4o-mini';
+    const savedModel = (config.model as string) || 'openrouter/free';
     const savedCustomApiKey = (config.custom_api_key as string) || '';
     const savedFallbackChain = (config.fallback_chain as string[]) || [];
     const isCustomModel = savedCustomApiKey && !freeModels.some((m) => m.id === savedModel);
 
-    setModel(isCustomModel ? 'openai/gpt-4o-mini' : savedModel);
+    setModel(isCustomModel ? 'openrouter/free' : savedModel);
     setCustomModel(isCustomModel ? savedModel : '');
     setModelSource(isCustomModel ? 'custom' : 'free');
     setCustomApiKey(savedCustomApiKey);
@@ -169,7 +169,7 @@ export default function WikiAIConfigPage() {
       enabled: aiConfig.ai_enabled,
       provider: savedProvider as any,
       primaryProvider: savedPrimaryProvider as any,
-      model: isCustomModel ? 'openai/gpt-4o-mini' : savedModel,
+      model: isCustomModel ? 'openrouter/free' : savedModel,
       modelSource: isCustomModel ? 'custom' : 'free',
       customModel: isCustomModel ? savedModel : '',
       customApiKey: savedCustomApiKey,
@@ -267,7 +267,7 @@ export default function WikiAIConfigPage() {
         enabled,
         provider,
         primaryProvider,
-        model: modelSource === 'custom' ? 'openai/gpt-4o-mini' : model,
+        model: modelSource === 'custom' ? 'openrouter/free' : model,
         modelSource,
         customModel,
         customApiKey: responseKey,
@@ -342,7 +342,7 @@ export default function WikiAIConfigPage() {
     setEnabled(savedConfig.enabled);
     setProvider(savedConfig.provider);
     setPrimaryProvider(savedConfig.primaryProvider);
-    setModel(savedConfig.modelSource === 'custom' ? 'openai/gpt-4o-mini' : savedConfig.model);
+    setModel(savedConfig.modelSource === 'custom' ? 'openrouter/free' : savedConfig.model);
     setModelSource(savedConfig.modelSource);
     setCustomModel(savedConfig.customModel);
     setCustomApiKey(savedConfig.customApiKey);

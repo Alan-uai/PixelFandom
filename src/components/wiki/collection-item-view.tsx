@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
@@ -9,7 +9,6 @@ import {
   Coins, Pickaxe, Sparkles, Crown,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { formatNumber } from '@/lib/format-number';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import type { ColumnInfo } from '@/lib/game-schema';
@@ -19,13 +18,8 @@ import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
-  elementClass, elIcon, effectColor, COLL_ICON,
+  elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
-
-function ColoredText({ text }: { text: string }) {
-  const c = effectColor(text);
-  return c ? <span className={c}>{text}</span> : <>{text}</>;
-}
 
 function Tag({ children, className = '', icon, title }: { children: React.ReactNode; className?: string; icon?: React.ReactNode; title?: string }) {
   return (
@@ -35,7 +29,7 @@ function Tag({ children, className = '', icon, title }: { children: React.ReactN
   );
 }
 
-function StatCard({ label, value, icon, color, onClick, title }: { label: string; value: string; icon?: React.ReactNode; color?: string; onClick?: () => void; title?: string }) {
+function StatCard({ label, value, icon, color, onClick, title }: { label: string; value: React.ReactNode; icon?: React.ReactNode; color?: string; onClick?: () => void; title?: string }) {
   const Comp = onClick ? 'button' : 'div';
   return (
     <Comp
@@ -61,82 +55,6 @@ function Accordion({ title, icon, defaultOpen, children }: { title: string; icon
       {o && <div className="px-4 py-3">{children}</div>}
     </div>
   );
-}
-
-
-
-function fmt(v: unknown, useSuffix?: boolean): string {
-  if (v === null || v === undefined) return '—';
-  if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
-  if (typeof v === 'object') {
-    if (Array.isArray(v)) return v.map((i) => (typeof i === 'object' ? JSON.stringify(i) : String(i))).join(', ');
-    return JSON.stringify(v);
-  }
-  if (typeof v === 'number') {
-    return formatNumber(v, useSuffix ?? true);
-  }
-  return String(v);
-}
-
-function renderJsonValue(v: unknown): React.ReactNode {
-  if (v == null) return <span className="text-muted-foreground">—</span>;
-  if (Array.isArray(v)) {
-    if (v.length === 0) return <span className="text-muted-foreground italic">vazio</span>;
-    if (v.every((i) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
-      return (
-        <div className="flex flex-wrap gap-2">
-          {v.map((obj, i) => (
-            <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
-              {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
-                <div key={k} className="flex items-center gap-1.5">
-                  <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                  {renderJsonValueInline(val)}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (v.every((i) => typeof i === 'string')) {
-      return (
-        <div className="flex flex-wrap gap-1">
-          {(v as string[]).map((x, i) => <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{x}</span>)}
-        </div>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">[{v.map((i) => String(i)).join(', ')}]</span>;
-  }
-  if (typeof v === 'object') {
-    return (
-      <div className="rounded-xl border bg-card p-4 text-xs space-y-1.5">
-        {Object.entries(v as Record<string, unknown>).map(([k, val]) => (
-          <div key={k} className="flex items-start gap-2">
-            <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">
-              {k.replace(/_/g, ' ')}:
-            </span>
-            <span className="text-muted-foreground">{renderJsonValueInline(val)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (typeof v === 'boolean') return <span>{v ? 'Sim' : 'Não'}</span>;
-  if (typeof v === 'number') return <span className="font-mono">{formatNumber(v, true)}</span>;
-  return <span>{String(v)}</span>;
-}
-
-function renderJsonValueInline(v: unknown): React.ReactNode {
-  if (v == null) return <span className="text-muted-foreground">—</span>;
-  if (typeof v === 'object') {
-    if (Array.isArray(v)) {
-      return <span className="text-muted-foreground">[{v.map((i) => String(i)).join(', ')}]</span>;
-    }
-    return <span className="text-muted-foreground">{'{…}'}</span>;
-  }
-  if (typeof v === 'boolean') return <span>{v ? 'Sim' : 'Não'}</span>;
-  if (typeof v === 'number') return <span className="font-mono">{formatNumber(v, true)}</span>;
-  return <span>{String(v)}</span>;
 }
 
 type FieldMeta = {
@@ -208,11 +126,6 @@ function isLongText(v: unknown): boolean {
   return v.length > 60 || v.includes('\n');
 }
 
-function isShortText(v: unknown): boolean {
-  if (typeof v !== 'string') return false;
-  return v.length <= 60 && !v.includes('\n');
-}
-
 function fieldLabel(key: string): string {
   const known = FIELD_LABELS[key];
   if (known) return known.label;
@@ -268,198 +181,29 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
   });
 }
 
-function renderDynamicSections(
-  data: Record<string, any>,
-  schema: ColumnInfo[] | undefined,
-  tenantId: string | undefined,
-  tenantSlug: string | undefined,
-  table: string,
-  comparisonMode_: 'modal' | 'page',
-  onStatClick: ((statKey: string) => void) | undefined,
-  rendered: Set<string>,
-  useSuffix?: boolean,
-  chipWrap?: boolean,
-  visibleColumnsSet?: Set<string> | null,
-  columnOrder?: string[],
-  columnTypes?: Record<string, string>,
-) {
-  const sections: React.ReactNode[] = [];
-  const cols = schema ?? inferSchema(data);
 
-  // Filter out system fields, already-rendered fields, null values, and columns with explicit render types
-  const activeCols = sortByColumnOrder(cols.filter(
-    (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name])
-      && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name))
-      && (!columnTypes || !columnTypes[c.column_name]),
-  ), columnOrder);
 
-  // 1. Numeric stat cards (skip 0)
-  const numCols = activeCols.filter(
-    (c) => isNumericType(c.data_type) && data[c.column_name] !== 0,
-  );
-  if (numCols.length > 0) {
-    numCols.forEach((c) => rendered.add(c.column_name));
-    sections.push(
-      <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
-        {numCols.map((c) => {
-          const meta = FIELD_LABELS[c.column_name];
-          return (
-            <StatCard
-              key={c.column_name}
-              label={meta?.label || fieldLabel(c.column_name)}
-              value={fmt(data[c.column_name], useSuffix)}
-              icon={meta?.icon || fieldIcon(c.column_name)}
-              color={meta?.color || fieldColor(c.column_name)}
-              onClick={tenantId ? () => {
-                if (comparisonMode_ === 'page') {
-                  window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
-                } else if (onStatClick) {
-                  onStatClick(c.column_name);
-                }
-              } : undefined}
-              title={comparisonMode_ === 'modal' && tenantId ? 'Clique para comparar' : undefined}
-            />
-          );
-        })}
-      </div>,
-    );
-  }
-
-  // 2. Booleans → tags
-  const boolCols = activeCols.filter((c) => c.data_type === 'boolean');
-  if (boolCols.length > 0) {
-    boolCols.forEach((c) => rendered.add(c.column_name));
-    sections.push(
-      <div key="dyn-bools" className="mb-6">
-        <ChipCarousel wrap={chipWrap}>
-          {boolCols.map((c) => (
-            <Tag key={c.column_name}
-              className={data[c.column_name]
-                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
-                : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
-              }
-            >
-              {fieldLabel(c.column_name)}: {data[c.column_name] ? 'Sim' : 'Não'}
-            </Tag>
-          ))}
-        </ChipCarousel>
-      </div>,
-    );
-  }
-
-  // 3. Short text → tags
-  const textCols = activeCols.filter(
-    (c) =>
-      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
-      isShortText(data[c.column_name]),
-  );
-  if (textCols.length > 0) {
-    textCols.forEach((c) => rendered.add(c.column_name));
-    sections.push(
-      <div key="dyn-tags" className="mb-6">
-        <ChipCarousel wrap={chipWrap}>
-          {textCols.map((c) => (
-            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-              {metaLabel(c, data)}: {String(data[c.column_name])}
-            </Tag>
-          ))}
-        </ChipCarousel>
-      </div>,
-    );
-  }
-
-  // 4. Long text → labeled sections
-  const longCols = activeCols.filter(
-    (c) =>
-      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
-      isLongText(data[c.column_name]),
-  );
-  for (const c of longCols) {
-    rendered.add(c.column_name);
-    sections.push(
-      <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data[c.column_name])}</p>
-      </div>,
-    );
-  }
-
-  // 5. JSON arrays → structured cards for objects, tag lists for primitives
-  const arrCols = activeCols.filter(
-    (c) =>
-      (c.data_type === 'jsonb' || c.data_type === 'json') &&
-      Array.isArray(data[c.column_name]) &&
-      data[c.column_name].length > 0,
-  );
-  for (const c of arrCols) {
-    rendered.add(c.column_name);
-    const arr = data[c.column_name];
-    const allObjects = arr.every((item: unknown) => typeof item === 'object' && item !== null && !Array.isArray(item));
-    sections.push(
-      <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        {allObjects ? (
-          renderJsonValue(arr)
-        ) : (
-          <ChipCarousel wrap={chipWrap}>
-            {arr.map((item: unknown, i: number) => (
-              <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
-                {String(item)}
-              </Tag>
-            ))}
-          </ChipCarousel>
-        )}
-      </div>,
-    );
-  }
-
-  // 6. JSON objects → sub-sections
-  const objCols = activeCols.filter(
-    (c) =>
-      (c.data_type === 'jsonb' || c.data_type === 'json') &&
-      typeof data[c.column_name] === 'object' &&
-      data[c.column_name] !== null &&
-      !Array.isArray(data[c.column_name]),
-  );
-  for (const c of objCols) {
-    rendered.add(c.column_name);
-    const obj = data[c.column_name] as Record<string, unknown>;
-    sections.push(
-      <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
-        <div className="space-y-2">
-          {Object.entries(obj).map(([k, v]) => (
-            <div key={k} className="flex items-start gap-3 text-sm">
-              <span className="text-xs font-medium text-muted-foreground min-w-[100px] shrink-0">
-                {k.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-              </span>
-              <span className="text-foreground">{typeof v === 'object' ? renderJsonValue(v) : String(v)}</span>
-            </div>
-          ))}
-        </div>
-      </div>,
-    );
-  }
-
-  if (sections.length === 0) return null;
-  return <>{sections}</>;
-}
-
-function metaLabel(col: ColumnInfo, _data: Record<string, any>): string {
-  const known = FIELD_LABELS[col.column_name];
-  if (known) return known.label;
-  return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function RenderTypeFields({ data, columnTypes, columnFormats, formatVariants, rendered, visibleColumnsSet }: {
+function RenderTypeFields({
+  data, columnTypes, columnFormats, formatVariants, rendered, visibleColumnsSet,
+  schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder,
+}: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
   columnFormats?: Record<string, string>;
   formatVariants?: Record<string, number>;
   rendered: Set<string>;
   visibleColumnsSet?: Set<string> | null;
+  schema?: ColumnInfo[];
+  tenantId?: string;
+  tenantSlug?: string;
+  table?: string;
+  comparisonMode?: 'modal' | 'page';
+  onStatClick?: (statKey: string) => void;
+  chipWrap?: boolean;
+  columnOrder?: string[];
 }) {
   const sections: React.ReactNode[] = [];
+  const activeMode = comparisonMode || 'modal';
 
   // 1. Custom format overrides from card detail config
   if (columnFormats) {
@@ -514,38 +258,166 @@ function RenderTypeFields({ data, columnTypes, columnFormats, formatVariants, re
     sections.push(<>{typeSections}</>);
   }
 
+  // 3. Auto-classified sections (schema-driven)
+  const cols = schema ?? inferSchema(data);
+  const activeCols = sortByColumnOrder(cols.filter(
+    (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name])
+      && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name))
+      && (!columnTypes || !columnTypes[c.column_name]),
+  ), columnOrder);
+
+  // 3a. Numeric → StatCards grid
+  const numCols = activeCols.filter(
+    (c) => isNumericType(c.data_type) && data[c.column_name] !== 0,
+  );
+  if (numCols.length > 0) {
+    numCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+        {numCols.map((c) => {
+          const meta = FIELD_LABELS[c.column_name];
+          return (
+            <StatCard
+              key={c.column_name}
+              label={meta?.label || fieldLabel(c.column_name)}
+              value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />}
+              icon={meta?.icon || fieldIcon(c.column_name)}
+              color={meta?.color || fieldColor(c.column_name)}
+              onClick={tenantId ? () => {
+                if (activeMode === 'page') {
+                  window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
+                } else if (onStatClick) {
+                  onStatClick(c.column_name);
+                }
+              } : undefined}
+              title={activeMode === 'modal' && tenantId ? 'Clique para comparar' : undefined}
+            />
+          );
+        })}
+      </div>,
+    );
+  }
+
+  // 3b. Booleans → ChipCarousel tags
+  const boolCols = activeCols.filter((c) => c.data_type === 'boolean');
+  if (boolCols.length > 0) {
+    boolCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-bools" className="mb-6">
+        <ChipCarousel wrap={chipWrap}>
+          {boolCols.map((c) => (
+            <Tag key={c.column_name}
+              className={data[c.column_name]
+                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
+              }
+            >
+              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+            </Tag>
+          ))}
+        </ChipCarousel>
+      </div>,
+    );
+  }
+
+  // 3c. Short text → ChipCarousel tags
+  const textCols = activeCols.filter(
+    (c) =>
+      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
+      !isLongText(data[c.column_name]),
+  );
+  if (textCols.length > 0) {
+    textCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-tags" className="mb-6">
+        <ChipCarousel wrap={chipWrap}>
+          {textCols.map((c) => (
+            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
+              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+            </Tag>
+          ))}
+        </ChipCarousel>
+      </div>,
+    );
+  }
+
+  // 3d. Long text → labeled sections
+  const longCols = activeCols.filter(
+    (c) =>
+      (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar') &&
+      isLongText(data[c.column_name]),
+  );
+  for (const c of longCols) {
+    rendered.add(c.column_name);
+    sections.push(
+      <div key={c.column_name} className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+      </div>,
+    );
+  }
+
+  // 3e. JSON arrays (from jsonb/json columns)
+  const arrCols = activeCols.filter(
+    (c) =>
+      (c.data_type === 'jsonb' || c.data_type === 'json') &&
+      Array.isArray(data[c.column_name]) &&
+      data[c.column_name].length > 0,
+  );
+  for (const c of arrCols) {
+    rendered.add(c.column_name);
+    sections.push(
+      <div key={c.column_name} className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+      </div>,
+    );
+  }
+
+  // 3f. JSON objects → border cards
+  const objCols = activeCols.filter(
+    (c) =>
+      (c.data_type === 'jsonb' || c.data_type === 'json') &&
+      typeof data[c.column_name] === 'object' &&
+      data[c.column_name] !== null &&
+      !Array.isArray(data[c.column_name]),
+  );
+  for (const c of objCols) {
+    rendered.add(c.column_name);
+    sections.push(
+      <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
+        <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+      </div>,
+    );
+  }
+
+  // 3g. Catch-all: remaining fields accordion
+  const remainingCols = activeCols.filter((c) => !rendered.has(c.column_name));
+  if (remainingCols.length > 0) {
+    remainingCols.forEach((c) => rendered.add(c.column_name));
+    sections.push(
+      <div key="dyn-remaining" className="mb-3">
+        <Accordion title="Informações Adicionais" icon={<ScrollText className="h-4 w-4 text-primary" />}>
+          <div>
+            {remainingCols.map((c) => (
+              <div key={c.column_name} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
+                <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0">
+                  {fieldLabel(c.column_name)}
+                </span>
+                <div className="text-sm flex-1">
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Accordion>
+      </div>,
+    );
+  }
+
   if (sections.length === 0) return null;
   return <>{sections}</>;
-}
-
-function renderFallbackFields(data: Record<string, any>, rendered: Set<string>, useSuffix?: boolean, visibleColumnsSet?: Set<string> | null) {
-  const extra = Object.entries(data).filter(
-    ([k, v]) => !SYSTEM_FIELDS.has(k) && !rendered.has(k) && hasValue(v)
-      && (!visibleColumnsSet || visibleColumnsSet.has(k)),
-  );
-  if (extra.length === 0) return null;
-  return (
-    <div className="mb-3">
-      <Accordion title="Informações Adicionais" icon={<ScrollText className="h-4 w-4 text-primary" />}>
-        <div>
-          {extra.map(([k, v]) => (
-            <div key={k} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
-              <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0">
-                {fieldLabel(k)}
-              </span>
-              <div className="text-sm flex-1">
-                {typeof v === 'object' && v !== null ? (
-                  renderJsonValue(v)
-                ) : (
-                  <ColoredText text={fmt(v, useSuffix)} />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Accordion>
-    </div>
-  );
 }
 
 type DetailConfig = {
@@ -575,7 +447,7 @@ type Props = {
   detailConfig?: DetailConfig;
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix: _useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -674,23 +546,23 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
       )}
 
-      {/* Custom format overrides + explicit render types — highest priority */}
-      {(columnTypes && Object.entries(columnTypes).length > 0) || (columnFormats && Object.entries(columnFormats).length > 0) ? (
-        <RenderTypeFields
-          data={data}
-          columnTypes={columnTypes || {}}
-          columnFormats={columnFormats}
-          formatVariants={formatVariants}
-          rendered={rendered}
-          visibleColumnsSet={visibleColumnsSet}
-        />
-      ) : null}
-
-      {/* Dynamic schema-driven sections (type-inferred) */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet, detailConfig?.columnOrder, columnTypes)}
-
-      {/* Fallback: any remaining unrendered fields */}
-      {renderFallbackFields(data, rendered, useSuffix, visibleColumnsSet)}
+      {/* Unified rendering pipeline: formats → types → auto-classified → catch-all */}
+      <RenderTypeFields
+        data={data}
+        columnTypes={columnTypes || {}}
+        columnFormats={columnFormats}
+        formatVariants={formatVariants}
+        rendered={rendered}
+        visibleColumnsSet={visibleColumnsSet}
+        schema={schema}
+        tenantId={tenantId}
+        tenantSlug={tenantSlug}
+        table={table}
+        comparisonMode={comparisonMode}
+        onStatClick={handleStatClick}
+        chipWrap={chipWrap}
+        columnOrder={detailConfig?.columnOrder}
+      />
 
       {/* Footer */}
       {(updatedAt || createdAt) && (

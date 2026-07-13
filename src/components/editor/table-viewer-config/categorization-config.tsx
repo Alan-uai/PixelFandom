@@ -242,6 +242,26 @@ export function CategorizationConfig({
         onChange={(v) => onChange({ ...c, style: v })}
       />
 
+      <ElasticSlider3D
+        label="Tamanho do ícone"
+        defaultValue={c.iconSize ?? 16}
+        startingValue={12}
+        maxValue={64}
+        showValue
+        valueSuffix="px"
+        onValueChange={(v) => onChange({ ...c, iconSize: Math.round(v) })}
+      />
+
+      <ElasticSlider3D
+        label="Tamanho do label"
+        defaultValue={c.labelSize ?? 12}
+        startingValue={10}
+        maxValue={32}
+        showValue
+        valueSuffix="px"
+        onValueChange={(v) => onChange({ ...c, labelSize: Math.round(v) })}
+      />
+
       <div className="flex items-center gap-2">
         <Switch
           id="group-empty"
@@ -260,14 +280,16 @@ export function CategorizationConfig({
         <Label htmlFor="show-empty-cats" className="text-xs">Mostrar categorias vazias</Label>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch
-          id="default-expanded"
-          checked={c.defaultExpanded !== false}
-          onCheckedChange={(v) => onChange({ ...c, defaultExpanded: v })}
-        />
-        <Label htmlFor="default-expanded" className="text-xs">Expandido por padrão (acordeão)</Label>
-      </div>
+      {c.style === 'accordion' && (
+        <div className="flex items-center gap-2">
+          <Switch
+            id="default-expanded"
+            checked={c.defaultExpanded !== false}
+            onCheckedChange={(v) => onChange({ ...c, defaultExpanded: v })}
+          />
+          <Label htmlFor="default-expanded" className="text-xs">Expandido por padrão</Label>
+        </div>
+      )}
 
       {/* === Espaçamento entre categorias === */}
       <div className="space-y-3 border-t pt-3">
@@ -298,7 +320,7 @@ export function CategorizationConfig({
                 label="Espaçamento entre linha e conteúdo"
                 defaultValue={c.spacingValue || 16}
                 startingValue={2}
-                maxValue={32}
+                maxValue={64}
                 showValue
                 valueSuffix="px"
                 onValueChange={(v) => onChange({ ...c, spacingValue: Math.round(v) })}
@@ -309,7 +331,7 @@ export function CategorizationConfig({
                 label="Espessura da linha"
                 defaultValue={c.separatorWidth ?? 2}
                 startingValue={0}
-                maxValue={8}
+                maxValue={16}
                 showValue
                 valueSuffix="px"
                 onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
@@ -411,117 +433,76 @@ export function CategorizationConfig({
         </div>
       )}
 
-      {/* === Ordem das sub-categorias === */}
-      {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
-        <div className="space-y-2 border-t pt-3">
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs text-muted-foreground">Ordem das sub-categorias</Label>
-            <button
-              type="button"
-              onClick={() => {
-                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
-                onChange({ ...c, categorySortDirection: dir });
-              }}
-              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
-              ) : (
-                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
-              )}
-            </button>
-          </div>
-          <p className="text-[10px] text-muted-foreground">Clique para definir posição.</p>
-          <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-            {Object.entries(secondaryValuesByCategory).flatMap(([cat, subs]) =>
-              subs.map((sub) => {
-                const key = `${cat}::${sub}`;
-                const orderIndex = ((c.subOrder as string[]) || []).indexOf(key);
-                const isOrdered = orderIndex >= 0;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      const currentOrder = (c.subOrder as string[]) || [];
-                      if (isOrdered) {
-                        onChange({ ...c, subOrder: currentOrder.filter((v) => v !== key) });
-                      } else {
-                        onChange({ ...c, subOrder: [...currentOrder, key] });
-                      }
-                    }}
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
-                      isOrdered
-                        ? 'bg-primary/10 border-primary/30 text-primary'
-                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
-                    }`}
-                  >
-                    {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    <span className="text-[10px] opacity-60">{cat}:</span> {sub}
-                    {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
-                  </button>
-                );
-              })
+      {/* === Ordenação dos itens === */}
+      <div className="space-y-4 border-t pt-3">
+        <Label className="text-xs font-semibold text-foreground">Ordenação dos itens</Label>
+
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <Label className="text-xs text-muted-foreground">Itens nas categorias</Label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Select3D
+                label="Coluna para ordenar"
+                value={c.categoryItemSortColumn || 'none'}
+                options={[
+                  { label: 'Ordem padrão', value: 'none' },
+                  ...(columns as string[]).map((col) => ({ label: col, value: col })),
+                ]}
+                onChange={(v) => onChange({ ...c, categoryItemSortColumn: v === 'none' ? null : v })}
+              />
+            </div>
+            {c.categoryItemSortColumn && (
+              <button
+                type="button"
+                onClick={() => {
+                  const dir = c.categoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                  onChange({ ...c, categoryItemSortDirection: dir });
+                }}
+                className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-5"
+              >
+                {c.categoryItemSortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                ) : (
+                  <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                )}
+              </button>
             )}
           </div>
         </div>
-      )}
 
-      {/* === Ordem das categorias === */}
-      <div className="space-y-2 border-t pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
-          {categoryValues.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
-                onChange({ ...c, categorySortDirection: dir });
-              }}
-              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-              title="Alternar direção da ordenação"
-            >
-              {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
-              ) : (
-                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
-              )}
-            </button>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground">Clique para definir posição. Vazias seguem ordem definida.</p>
-        {categoryValues.length > 0 ? (
-          <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
-            {categoryValues.map((cat) => {
-              const orderIndex = ((c.order as string[]) || []).indexOf(cat);
-              const isOrdered = orderIndex >= 0;
-              return (
+        {secondaryColumn && (
+          <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+            <Label className="text-xs text-muted-foreground">Itens nas sub-categorias</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Select3D
+                  label="Coluna para ordenar"
+                  value={c.subCategoryItemSortColumn || 'none'}
+                  options={[
+                    { label: 'Ordem padrão', value: 'none' },
+                    ...(columns as string[]).map((col) => ({ label: col, value: col })),
+                  ]}
+                  onChange={(v) => onChange({ ...c, subCategoryItemSortColumn: v === 'none' ? null : v })}
+                />
+              </div>
+              {c.subCategoryItemSortColumn && (
                 <button
-                  key={cat}
                   type="button"
                   onClick={() => {
-                    const currentOrder = (c.order as string[]) || [];
-                    if (isOrdered) {
-                      onChange({ ...c, order: currentOrder.filter((v) => v !== cat) });
-                    } else {
-                      onChange({ ...c, order: [...currentOrder, cat] });
-                    }
+                    const dir = c.subCategoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                    onChange({ ...c, subCategoryItemSortDirection: dir });
                   }}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
-                    isOrdered
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
-                  }`}
+                  className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-5"
                 >
-                  {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                  {cat}
-                  {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                  {c.subCategoryItemSortDirection === 'asc' ? (
+                    <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                  ) : (
+                    <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                  )}
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
-        ) : (
-          <p className="text-[10px] text-muted-foreground py-0.5">Nenhuma categoria disponível.</p>
         )}
       </div>
 

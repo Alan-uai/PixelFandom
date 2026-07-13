@@ -24,6 +24,7 @@ import {
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { resolveTableIcon } from '@/lib/table-icons';
 import { isColorString, hexToStyle } from '@/lib/color';
+import { smartCompare } from '@/lib/sort-utils';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -435,6 +436,21 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       entries.sort(([a], [b]) => sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b));
     }
 
+    // Sort items within each category
+    const catSortCol = viewerConfig?.categorization?.categoryItemSortColumn;
+    const catSortDir = viewerConfig?.categorization?.categoryItemSortDirection || 'asc';
+    if (catSortCol) {
+      entries = entries.map(([cat, items]) => [
+        cat,
+        [...items].sort((a, b) => {
+          const va = String(a[catSortCol] ?? '');
+          const vb = String(b[catSortCol] ?? '');
+          const cmp = smartCompare(va, vb);
+          return catSortDir === 'desc' ? -cmp : cmp;
+        }),
+      ]);
+    }
+
     // Filter empty categories if configured
     if (!viewerConfig?.categorization?.showEmptyCategories) {
       entries = entries.filter(([, cats]) => cats.length > 0);
@@ -603,6 +619,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   ) => {
     const catIcon = vc?.categorization?.categoryIcons?.[category];
     const secondaryColumn = vc?.categorization?.secondaryColumn;
+    const iconSize = vc?.categorization?.iconSize ?? 16;
+    const labelSize = vc?.categorization?.labelSize ?? 12;
     const isExpanded = expanded.has(category) || (vc?.categorization?.defaultExpanded !== false && expanded.size === 0);
 
     // Compute secondary groups
@@ -614,6 +632,21 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (!sgMap[sub]) sgMap[sub] = [];
         sgMap[sub].push(item);
       }
+
+      // Sort items within each sub-group
+      const subSortCol = vc?.categorization?.subCategoryItemSortColumn;
+      const subSortDir = vc?.categorization?.subCategoryItemSortDirection || 'asc';
+      if (subSortCol) {
+        for (const key of Object.keys(sgMap)) {
+          sgMap[key] = [...sgMap[key]].sort((a, b) => {
+            const va = String(a[subSortCol] ?? '');
+            const vb = String(b[subSortCol] ?? '');
+            const cmp = smartCompare(va, vb);
+            return subSortDir === 'desc' ? -cmp : cmp;
+          });
+        }
+      }
+
       const subOrder = (vc?.categorization?.subOrder as string[]) ?? [];
       const catDirection = vc?.categorization?.categorySortDirection || 'asc';
       secondaryGroups = Object.entries(sgMap).sort(([a], [b]) => {
@@ -630,14 +663,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       <div className="flex items-center gap-3 mb-3">
         {catIcon ? (
           catIcon.startsWith('http://') || catIcon.startsWith('https://') || catIcon.startsWith('data:') ? (
-            <div className="relative w-4 h-4 shrink-0"><Image src={catIcon} alt="" fill className="object-contain" /></div>
+            <div className="relative shrink-0" style={{ width: iconSize, height: iconSize }}><Image src={catIcon} alt="" fill className="object-contain" /></div>
           ) : (
-            <IconRenderer icon={catIcon} size="sm" />
+            <IconRenderer icon={catIcon} size={iconSize} />
           )
         ) : (
           <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
         )}
-        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider capitalize">{category}</span>
+        <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{category}</span>
         <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
       </div>
     );
@@ -651,14 +684,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               <div className="flex items-center gap-2 mb-2">
                 {subIcon ? (
                   subIcon.startsWith('http://') || subIcon.startsWith('https://') || subIcon.startsWith('data:') ? (
-                    <div className="relative w-3 h-3 shrink-0"><Image src={subIcon} alt="" fill className="object-contain" /></div>
+                    <div className="relative shrink-0" style={{ width: Math.max(12, iconSize * 0.75), height: Math.max(12, iconSize * 0.75) }}><Image src={subIcon} alt="" fill className="object-contain" /></div>
                   ) : (
-                    <IconRenderer icon={subIcon} size="sm" />
+                    <IconRenderer icon={subIcon} size={Math.max(12, iconSize * 0.75)} />
                   )
                 ) : (
                   <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
                 )}
-                <span className="text-xs font-medium text-muted-foreground/70 capitalize">{sub}</span>
+                <span className="font-medium text-muted-foreground/70 capitalize" style={{ fontSize: Math.max(10, labelSize * 0.85) }}>{sub}</span>
                 <span className="text-[10px] text-muted-foreground/40">{subItems.length}</span>
               </div>
               {renderItems(pg ? subItems.slice(0, ipp) : subItems, `${category}::${sub}`)}

@@ -19,7 +19,7 @@ export default function SecurityPage() {
           <ul>
             <li><strong>Em trânsito:</strong> TLS 1.3 para todas as conexões HTTP e WebSocket;</li>
             <li><strong>Em repouso:</strong> criptografia AES-256 para dados armazenados no banco de dados;</li>
-            <li><strong>Chaves de API:</strong> criptografadas individualmente com AES-256-GCM utilizando chave derivada do <code>API_KEY_ENCRYPTION_SECRET</code>;</li>
+            <li><strong>Chaves de API:</strong> criptografadas individualmente com AES-256-GCM;</li>
             <li><strong>Senhas:</strong> não armazenamos senhas — utilizamos autenticação OAuth via Google e Discord.</li>
           </ul>
         </section>

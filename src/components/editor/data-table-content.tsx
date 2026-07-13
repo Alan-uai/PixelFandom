@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -56,7 +57,50 @@ const tableLabels: Record<string, string> = {
   build_presets: 'Presets',
 };
 
+async function persistColumnForAll(
+  columnName: string,
+  dataType: string,
+  slug: string,
+  table: string,
+  tenantId: string,
+): Promise<boolean> {
+  const imageLike = ['image', 'icon', 'cover', 'logo', 'banner', 'photo', 'img', 'avatar', 'thumbnail'];
+  const isImage = imageLike.some((kw) => columnName.includes(kw));
+  const renderType = isImage ? 'image' : dataType === 'boolean' ? 'text' : 'text';
 
+  const { data: existingConfig } = await supabase
+    .from('tenant_game_tables')
+    .select('viewer_config')
+    .eq('tenant_id', tenantId)
+    .eq('slug', table)
+    .maybeSingle();
+
+  const current = parseViewerConfig(existingConfig?.viewer_config);
+  const updates: Record<string, unknown> = {};
+
+  if (isImage) {
+    const uploadCols = current.uploadColumns || [];
+    if (!uploadCols.includes(columnName)) {
+      updates.uploadColumns = [...uploadCols, columnName];
+    }
+  }
+
+  const existingTypes = current.columnTypes || {};
+  if (!existingTypes[columnName]) {
+    existingTypes[columnName] = renderType;
+    updates.columnTypes = existingTypes;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    const { error } = await supabase
+      .from('tenant_game_tables')
+      .update({ viewer_config: { ...current, ...updates } })
+      .eq('tenant_id', tenantId)
+      .eq('slug', table);
+    if (error) return false;
+  }
+  return true;
+}
 
 const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
 const newFormDefaultFields = ['name'];
@@ -371,6 +415,13 @@ export default function DataTableContent({
         form[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
       }
     });
+    if (tableColumns) {
+      tableColumns.forEach((col) => {
+        if (!isSystemColumn(col.column_name) && !(col.column_name in form)) {
+          form[col.column_name] = '';
+        }
+      });
+    }
     setEditForm(form);
     fetchAvailableColumns();
   };
@@ -697,7 +748,7 @@ export default function DataTableContent({
 
     if (isImageColumn(col)) {
       return (
-        <ImageUpload
+        <ImagePicker
           bucket="game-items"
           pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
           value={value}
@@ -738,7 +789,7 @@ export default function DataTableContent({
 
     if (uploadColumns.has(col)) {
       return (
-        <ImageUpload
+        <ImagePicker
           bucket="game-items"
           pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
           value={value}
@@ -1010,11 +1061,21 @@ export default function DataTableContent({
                     key={col.column_name}
                     type="button"
                     className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
-                    title="Clique: usar neste item apenas"
+                    title="Clique: usar neste item apenas | Duplo clique: adicionar para todos os itens"
                     onClick={() => {
                       setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
                       setShowAddField(false);
                       setNewFieldName('');
+                    }}
+                    onDoubleClick={async () => {
+                      setNewForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                      setShowAddField(false);
+                      setNewFieldName('');
+                      const ok = await persistColumnForAll(col.column_name, col.data_type, slug, table, tenantId!);
+                      if (ok) {
+                        toast({ title: `Campo "${col.column_name}" adicionado para todos os itens.` });
+                        fetchColumns();
+                      }
                     }}
                   >
                     {col.column_name}
@@ -1207,11 +1268,23 @@ export default function DataTableContent({
                               key={col.column_name}
                               type="button"
                               className="flex-shrink-0 px-2 py-1 rounded text-xs bg-secondary/50 hover:bg-secondary transition-colors font-mono cursor-pointer"
-                              title="Clique: usar neste item apenas"
+                              title="Clique: usar neste item apenas | Duplo clique: adicionar para todos os itens"
                               onClick={() => {
                                 setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
                                 setShowAddField(false);
                                 setNewFieldName('');
+                              }}
+                              onDoubleClick={async () => {
+                                setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                                setShowAddField(false);
+                                setNewFieldName('');
+                                if (tenantId) {
+                                  const ok = await persistColumnForAll(col.column_name, col.data_type, slug, table, tenantId);
+                                  if (ok) {
+                                    toast({ title: `Campo "${col.column_name}" adicionado para todos os itens.` });
+                                    fetchColumns();
+                                  }
+                                }
                               }}
                             >
                               {col.column_name}

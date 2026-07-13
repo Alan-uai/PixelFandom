@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { formatNumber } from '@/lib/format-number';
 import { COLUMN_TYPES } from './registry';
 
 export interface DisplayProps {
@@ -193,6 +194,65 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
           {String(value)}
         </span>
       );
+
+    case 'auto': {
+      if (value === null || value === undefined || value === '') return null;
+      if (typeof value === 'boolean') {
+        return (
+          <span className={value ? 'text-green-500 font-medium' : 'text-red-500 font-medium'}>
+            {value ? 'Sim' : 'Não'}
+          </span>
+        );
+      }
+      if (typeof value === 'number') {
+        return <span className="font-mono">{formatNumber(value, true)}</span>;
+      }
+      if (typeof value === 'string') {
+        if (value.length > 60 || value.includes('\n')) {
+          return <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{value}</p>;
+        }
+        return <span className="text-sm text-foreground">{value}</span>;
+      }
+      if (Array.isArray(value)) {
+        if (value.length === 0) return <span className="text-xs text-muted-foreground italic">vazio</span>;
+        if (value.every((i: unknown) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
+          return (
+            <div className="flex flex-wrap gap-2">
+              {value.map((obj: Record<string, unknown>, i: number) => (
+                <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
+                  {Object.entries(obj).map(([k, val]) => (
+                    <div key={k} className="flex items-center gap-1.5">
+                      <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                      <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {value.map((item: unknown, i: number) => (
+              <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{String(item)}</span>
+            ))}
+          </div>
+        );
+      }
+      if (typeof value === 'object' && value !== null) {
+        return (
+          <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
+            {Object.entries(value as Record<string, unknown>).map(([k, val]) => (
+              <div key={k} className="flex items-start gap-2">
+                <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
+                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return <span className="text-sm">{String(value)}</span>;
+    }
 
     case 'select':
     case 'text':

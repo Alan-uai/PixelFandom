@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Upload, X, ShieldAlert } from 'lucide-react';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +10,7 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { ImageCropper } from '@/components/ui/image-cropper';
 
 type MediaType = 'image' | 'video' | 'audio' | 'file';
+type Mode = 'upload' | 'url';
 
 interface MediaUploadProps {
   bucket?: string;
@@ -18,6 +20,7 @@ interface MediaUploadProps {
   mediaType: MediaType;
   tenantId?: string;
   label?: string;
+  onOpenLibrary?: () => void;
 }
 
 export function MediaUpload({
@@ -27,6 +30,7 @@ export function MediaUpload({
   onChange,
   mediaType,
   label,
+  onOpenLibrary,
   tenantId,
 }: MediaUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,9 +39,12 @@ export function MediaUpload({
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperUrl, setCropperUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [mode, setMode] = useState<Mode>('upload');
   const { toast } = useToast();
 
   const isImage = mediaType === 'image';
+  const showUpload = mode === 'upload';
+  const showUrl = mode === 'url';
 
   const acceptMap: Record<MediaType, string> = {
     image: 'image/*',
@@ -159,6 +166,84 @@ export function MediaUpload({
 
   const labelText = label || labelMap[mediaType];
 
+  const renderPreview = () => {
+    if (mediaType === 'image') {
+      return (
+        <div
+          className="relative w-full aspect-video max-h-48 rounded-lg overflow-hidden border bg-muted/30 group cursor-pointer"
+          onClick={handlePreviewClick}
+        >
+          <Image src={value} alt="Preview" fill className="object-contain" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <span className="opacity-0 group-hover:opacity-100 text-[10px] font-medium text-white bg-black/60 px-2 py-0.5 rounded transition-opacity">
+              Cortar
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onChange(''); }}
+            className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      );
+    }
+
+    if (mediaType === 'video') {
+      return (
+        <div className="relative rounded-lg overflow-hidden border bg-muted/30 aspect-video">
+          {value.includes('youtube') || value.includes('youtu.be') ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${extractYoutubeId(value)}`}
+              className="w-full h-full"
+              allowFullScreen
+              title="Video preview"
+              sandbox="allow-same-origin allow-scripts allow-presentation"
+            />
+          ) : (
+            <video src={value} controls className="w-full h-full" />
+          )}
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      );
+    }
+
+    if (mediaType === 'audio') {
+      return (
+        <div className="relative rounded-lg overflow-hidden border bg-muted/30 p-3">
+          <audio src={value} controls className="w-full h-8" />
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative rounded-lg border bg-muted/30 p-3">
+        <p className="text-xs text-muted-foreground truncate">{value}</p>
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
       <input
@@ -170,97 +255,97 @@ export function MediaUpload({
       />
 
       {value ? (
-        mediaType === 'image' ? (
-          <div
-            className="relative w-full aspect-video max-h-48 rounded-lg overflow-hidden border bg-muted/30 group cursor-pointer"
-            onClick={handlePreviewClick}
-          >
-            <Image src={value} alt="Preview" fill className="object-contain" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-              <span className="opacity-0 group-hover:opacity-100 text-[10px] font-medium text-white bg-black/60 px-2 py-0.5 rounded transition-opacity">
-                Cortar
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onChange(''); }}
-              className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : mediaType === 'video' ? (
-          <div className="relative rounded-lg overflow-hidden border bg-muted/30 aspect-video">
-            {value.includes('youtube') || value.includes('youtu.be') ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${extractYoutubeId(value)}`}
-                className="w-full h-full"
-                allowFullScreen
-                title="Video preview"
-                sandbox="allow-same-origin allow-scripts allow-presentation"
-              />
-            ) : (
-              <video src={value} controls className="w-full h-full" />
-            )}
-            <button
-              type="button"
-              onClick={() => onChange('')}
-              className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : mediaType === 'audio' ? (
-          <div className="relative rounded-lg overflow-hidden border bg-muted/30 p-3">
-            <audio src={value} controls className="w-full h-8" />
-            <button
-              type="button"
-              onClick={() => onChange('')}
-              className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : (
-          <div className="relative rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground truncate">{value}</p>
-            <button
-              type="button"
-              onClick={() => onChange('')}
-              className="absolute top-1 right-1 h-5 w-5 rounded-full border bg-background text-muted-foreground hover:text-foreground transition-colors z-10 flex items-center justify-center"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )
+        <>
+          {renderPreview()}
+          <FloatingLabelInput
+            label={`URL da ${labelText.toLowerCase()}`}
+            info={mediaType === 'video' ? 'YouTube, Vimeo ou URL direta' : 'Cole o link direto'}
+            value={value}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className="text-xs"
+          />
+        </>
       ) : (
-        <div
-          className="flex flex-col items-center justify-center gap-2 py-6 rounded-lg border-2 border-dashed border-muted-foreground/25 cursor-pointer transition-colors hover:border-muted-foreground/50 hover:bg-accent/30"
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          ) : scanError ? (
-            <ShieldAlert className="h-5 w-5 text-destructive" />
-          ) : (
-            <Upload className="h-5 w-5 text-muted-foreground" />
-          )}
-          <span className="text-[11px] font-medium text-muted-foreground text-center px-4">
-            {uploading ? 'Verificando...' : scanError ? 'Arquivo rejeitado' : `Clique para fazer upload de ${labelText.toLowerCase()}`}
-          </span>
-          {scanError && (
-            <span className="text-[10px] text-destructive text-center px-4">{scanError}</span>
-          )}
-        </div>
-      )}
+        <>
+          <div className={showUpload ? 'border rounded-lg relative' : 'border-b'}>
+            <div className="overflow-hidden">
+              <AnimatePresence initial={false} mode="wait">
+                {showUpload && (
+                  <motion.div
+                    key="upload"
+                    initial={{ y: 24, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -24, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div
+                      className="flex flex-col items-center justify-center gap-2 py-6 rounded-lg border-2 border-dashed border-muted-foreground/25 cursor-pointer transition-colors hover:border-muted-foreground/50 hover:bg-accent/30"
+                      onClick={() => {
+                        if (onOpenLibrary) {
+                          onOpenLibrary();
+                        } else {
+                          inputRef.current?.click();
+                        }
+                      }}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      ) : scanError ? (
+                        <ShieldAlert className="h-5 w-5 text-destructive" />
+                      ) : (
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <span className="text-[11px] font-medium text-muted-foreground text-center px-4">
+                        {uploading ? 'Verificando...' : scanError ? 'Arquivo rejeitado' : `Clique para fazer upload de ${labelText.toLowerCase()}`}
+                      </span>
+                      {scanError && (
+                        <span className="text-[10px] text-destructive text-center px-4">{scanError}</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
 
-      <FloatingLabelInput
-        label={`URL da ${labelText.toLowerCase()}`}
-        info={mediaType === 'video' ? 'YouTube, Vimeo ou URL direta' : 'Cole o link direto'}
-        value={value}
-        onChange={(e) => handleUrlChange(e.target.value)}
-        className="text-xs"
-      />
+          <div className="flex justify-center -my-2.5 relative z-20">
+            <button
+              type="button"
+              onClick={() => setMode(mode === 'upload' ? 'url' : 'upload')}
+              className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-[9px] font-bold leading-none text-muted-foreground hover:text-foreground transition-colors inset-embed"
+              aria-label="Alternar para URL"
+            >
+              ou
+            </button>
+          </div>
+
+          <div className={showUrl ? 'border rounded-lg' : 'border-t'}>
+            <div className="overflow-hidden">
+              <AnimatePresence initial={false} mode="wait">
+                {showUrl && (
+                  <motion.div
+                    key="url"
+                    initial={{ y: -24, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 24, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div className="p-3">
+                      <FloatingLabelInput
+                        label={`URL da ${labelText.toLowerCase()}`}
+                        info={mediaType === 'video' ? 'YouTube, Vimeo ou URL direta' : 'Cole o link direto'}
+                        value={value}
+                        onChange={(e) => handleUrlChange(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </>
+      )}
 
       {cropperUrl && isImage && (
         <ImageCropper
