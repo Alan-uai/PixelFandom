@@ -78,8 +78,9 @@ function ColorRing({ value, onChange }: ColorPickerSceneProps) {
       groupRef.current.rotation.y += delta * 0.08;
     }
     if (groupRef.current) {
-      const tiltX = Math.sin(clock.current * 0.3) * 0.04;
-      const tiltZ = Math.cos(clock.current * 0.4) * 0.03;
+      const wave = clock.current * 0.4;
+      const tiltX = Math.sin(wave) * 0.12;
+      const tiltZ = Math.cos(wave) * 0.1;
       groupRef.current.rotation.x = tiltX;
       groupRef.current.rotation.z = tiltZ;
     }

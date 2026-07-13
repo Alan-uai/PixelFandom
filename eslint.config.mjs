@@ -63,7 +63,7 @@ export default [
     },
   },
   {
-    files: ['**/color-select-3d-scene.tsx', '**/date-time-picker-3d-scene.tsx', '**/switch-3d-scene.tsx'],
+    files: ['**/color-select-3d-scene.tsx', '**/date-time-picker-3d-scene.tsx'],
     rules: {
       'react/no-unknown-property': 'off',
     },

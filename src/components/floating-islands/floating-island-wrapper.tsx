@@ -42,9 +42,10 @@ interface FloatingIslandWrapperProps {
   onToggle: () => void;
   onAutoExpand: () => void;
   basePath?: string;
+  cardBackground?: boolean;
 }
 
-export function FloatingIslandWrapper({ island, position, isExpanded, onToggle, onAutoExpand, basePath = '' }: FloatingIslandWrapperProps) {
+export function FloatingIslandWrapper({ island, position, isExpanded, onToggle, onAutoExpand, basePath = '', cardBackground = true }: FloatingIslandWrapperProps) {
   const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isExpandedRef = useRef(isExpanded);
   useEffect(() => { isExpandedRef.current = isExpanded; }, [isExpanded]);
@@ -92,7 +93,7 @@ export function FloatingIslandWrapper({ island, position, isExpanded, onToggle, 
 
   return (
     <div className="relative">
-      <div className={`border bg-card transition-all ${
+      <div className={`${cardBackground ? 'border bg-card' : ''} transition-all ${
         isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md'
       } ${isCenter ? 'text-center' : ''}`}>
         <button

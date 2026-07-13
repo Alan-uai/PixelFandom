@@ -44,7 +44,6 @@ function PageBuilderPageInner() {
   const [isDirty, setIsDirty] = useState(false);
   const saveBlocksRef = useRef<(() => Promise<void>) | null>(null);
   const saveWidgetsRef = useRef<(() => Promise<void>) | null>(null);
-  const pendingPageTypeRef = useRef<string | null>(null);
 
   const { data: tenant } = useCachedData<{ id: string }>(
     `tenant:${slug}`,
@@ -71,16 +70,11 @@ function PageBuilderPageInner() {
   );
 
   useEffect(() => {
-    if (!layoutData && loading) return;
-    if (layoutData && pendingPageTypeRef.current === pageType) {
+    if (layoutData) {
       setLayout(layoutData);
       setLoadedPageType(pageType);
     }
-  }, [layoutData, loading, pageType]);
-
-  useEffect(() => {
-    pendingPageTypeRef.current = pageType;
-  }, [pageType]);
+  }, [layoutData, pageType]);
 
   const handleTypeChange = (type: string) => {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);

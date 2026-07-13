@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   PointerSensor,
   TouchSensor,
@@ -65,6 +66,7 @@ export function PageBuilderEditor({
   const [blocks, setBlocks] = useState<BlockConfig[]>(initialLayout?.blocks || []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [showMobileToolbar, setShowMobileToolbar] = useState(false);
   const [showMobileConfig, setShowMobileConfig] = useState(false);
@@ -113,8 +115,23 @@ export function PageBuilderEditor({
     setActiveId(event.active.id as string);
   }, []);
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (active.data.current?.isNew) {
+      if (over && over.id !== 'page-drop-zone') {
+        const overIndex = blocks.findIndex((b) => b.id === over.id);
+        setDropTargetIndex(overIndex >= 0 ? overIndex : blocks.length - 1);
+      } else {
+        setDropTargetIndex(blocks.length);
+      }
+    } else {
+      setDropTargetIndex(null);
+    }
+  }, [blocks]);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveId(null);
+    setDropTargetIndex(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -238,12 +255,13 @@ export function PageBuilderEditor({
       </div>
 
       {/* Editor content */}
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <div className="flex flex-col flex-1 relative">
+          {/* Desktop toolbar */}
+          <div className="hidden md:block shrink-0 border-b bg-muted/30 overflow-hidden">
+            <BlockToolbar pageType={pageType} />
+          </div>
           <div className="flex flex-1 relative">
-            {/* Desktop toolbar */}
-            <div className="hidden md:block w-48 shrink-0 border-r bg-muted/30 p-3 overflow-y-auto">
-              <BlockToolbar pageType={pageType} />
-            </div>
 
             {/* Mobile toolbar toggle */}
             <div className="md:hidden fixed bottom-20 left-4 z-50">
@@ -267,14 +285,34 @@ export function PageBuilderEditor({
             <PagePreview
               blocks={blocks} selectedId={selectedId} onSelect={setSelectedId}
               onDelete={handleDeleteBlock} tenantId={tenantId} mobilePreview={mobilePreview}
+              dropTargetIndex={dropTargetIndex}
             />
 
             <DragOverlay>
-              {activeId && (
-                <div className="rounded-lg border bg-card px-4 py-3 shadow-lg text-sm">
-                  Adicionar bloco...
-                </div>
-              )}
+              {activeId?.startsWith('new-') && (() => {
+                const def = BLOCK_REGISTRY.find((b) => `new-${b.type}` === activeId);
+                if (!def) return null;
+                const Icon = def.icon;
+                return (
+                  <div className="rounded-lg border bg-card px-4 py-3 shadow-lg text-sm flex items-center gap-2 min-w-[200px]">
+                    <Icon className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-medium">{def.label}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{def.category}</span>
+                  </div>
+                );
+              })()}
+              {activeId && !activeId.startsWith('new-') && (() => {
+                const block = findBlock(blocks, activeId);
+                if (!block) return null;
+                const def = BLOCK_REGISTRY.find((b) => b.type === block.type);
+                const Icon = def?.icon;
+                return (
+                  <div className="rounded-lg border bg-card px-4 py-3 shadow-lg text-sm flex items-center gap-2 min-w-[200px]">
+                    {Icon && <Icon className="h-4 w-4 text-primary shrink-0" />}
+                    <span className="font-medium">{def?.label || block.type}</span>
+                  </div>
+                );
+              })()}
             </DragOverlay>
 
             {selectedBlock && (
@@ -299,6 +337,7 @@ export function PageBuilderEditor({
                 )}
               </>
             )}
+          </div>
           </div>
         </DndContext>
 

@@ -37,7 +37,7 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>, 
 
   const fetcherRef = useRef(fetcher);
   const keyRef = useRef(key);
-  const loadingRef = useRef(false);
+  const fetchGenerationRef = useRef(0);
 
   useEffect(() => {
     fetcherRef.current = fetcher;
@@ -50,19 +50,21 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>, 
       setLoading(false);
       return;
     }
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+    const generation = ++fetchGenerationRef.current;
     setLoading(true);
     setError(null);
     try {
       const result = await withTimeout(fetcherRef.current(), timeoutMs);
-      globalCache.set(currentKey, { data: result, timestamp: Date.now() });
-      setData(result);
+      if (generation === fetchGenerationRef.current) {
+        globalCache.set(currentKey, { data: result, timestamp: Date.now() });
+        setData(result);
+        setLoading(false);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
+      if (generation === fetchGenerationRef.current) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+        setLoading(false);
+      }
     }
   }, [timeoutMs]);
 

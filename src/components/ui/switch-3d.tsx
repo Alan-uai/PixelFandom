@@ -195,16 +195,27 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
           transition={{ duration: 0.3 }}
         />
 
-        {/* Knob */}
+        {/* Knob — morphs entre esfera (OFF) e buraco (ON) com transição contínua */}
         <motion.div
           className={cn(
             'relative z-10 rounded-full',
             dims.knobClass,
           )}
-          style={{ transformStyle: 'preserve-3d' }}
+          style={{
+            transformStyle: 'preserve-3d',
+            background: checked
+              ? 'radial-gradient(circle at 32% 28%, rgba(0,0,0,0.2), rgba(0,0,0,0.45))'
+              : 'radial-gradient(circle at 32% 28%, rgba(45,47,53,0.95), rgba(30,32,38,0.7))',
+            boxShadow: checked
+              ? '0 1px 1px rgba(0,0,0,0.1), inset 0 2px 3px rgba(0,0,0,0.35)'
+              : '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+            transition:
+              'background 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s cubic-bezier(0.22,1,0.36,1)',
+          }}
           animate={{
             x: checked ? dims.offset : 0,
             translateZ: checked ? 0 : 4,
+            scale: checked ? 0.75 : 1,
           }}
           transition={{
             type: 'spring',
@@ -212,53 +223,7 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
             damping: 32,
             mass: 1,
           }}
-        >
-          <AnimatePresence mode="wait">
-            {/* Layer ESFERA — convexa, com brilho (OFF) */}
-            {!checked && (
-              <motion.div
-                key="sphere"
-                className="pointer-events-none absolute inset-0 rounded-full"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                style={{
-                  background:
-                    'radial-gradient(circle at 32% 28%, hsl(var(--background)), hsl(var(--background)/0.75))',
-                  boxShadow:
-                    '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
-                }}
-              >
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-full"
-                  style={{
-                    background:
-                      'radial-gradient(circle at 33% 22%, rgba(255,255,255,0.35), transparent 55%)',
-                  }}
-                />
-              </motion.div>
-            )}
-
-            {/* Layer BURACO — côncava, escura (ON) */}
-            {checked && (
-              <motion.div
-                key="hole"
-                className="pointer-events-none absolute inset-0 rounded-full"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }}
-                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                style={{
-                  background:
-                    'radial-gradient(circle at 40% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.4))',
-                  boxShadow:
-                    'inset 1px 1px 2px rgba(0,0,0,0.35), inset -1px -1px 1.5px rgba(255,255,255,0.06)',
-                }}
-              />
-            )}
-          </AnimatePresence>
-        </motion.div>
+        />
 
         {/* Glow ring pulse (checked only) */}
         <AnimatePresence>

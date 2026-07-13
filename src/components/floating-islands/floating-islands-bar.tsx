@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 import { getSlotFlowDef } from '@/lib/floating-island-flows';
-import { getClipPath, getContentPadding } from '@/lib/floating-island-clips';
+import { getClipPath } from '@/lib/floating-island-clips';
 import { FloatingIslandWrapper } from './floating-island-wrapper';
 
 interface FloatingIslandsBarProps {
@@ -75,23 +75,23 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
           {positions.map((pos, idx) => {
             const island = sorted[idx] || null;
             return (
-              <div
-                key={pos}
-                className="flex-1"
-                style={{ clipPath: getClipPath(clipStyle, pos), ...getContentPadding(clipStyle, pos) }}
-              >
-                {island ? (
-                  <FloatingIslandWrapper
-                    island={island}
-                    position={pos}
-                    isExpanded={activeId === island.id}
-                    onToggle={() => handleToggle(island.id)}
-                    onAutoExpand={() => handleAutoExpand(island.id)}
-                    basePath={basePath}
-                  />
-                ) : (
-                  <div className="h-full" />
-                )}
+              <div key={pos} className="relative flex-1">
+                <div className="absolute inset-0 bg-card border" style={{ clipPath: getClipPath(clipStyle, pos) }} />
+                <div className="relative">
+                  {island ? (
+                    <FloatingIslandWrapper
+                      island={island}
+                      position={pos}
+                      isExpanded={activeId === island.id}
+                      onToggle={() => handleToggle(island.id)}
+                      onAutoExpand={() => handleAutoExpand(island.id)}
+                      basePath={basePath}
+                      cardBackground={false}
+                    />
+                  ) : (
+                    <div className="h-full" />
+                  )}
+                </div>
               </div>
             );
           })}

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, Fragment } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -75,6 +75,7 @@ export function PagePreview({
   onDelete,
   tenantId,
   mobilePreview,
+  dropTargetIndex,
 }: {
   blocks: BlockConfig[];
   selectedId: string | null;
@@ -82,6 +83,7 @@ export function PagePreview({
   onDelete: (id: string) => void;
   tenantId?: string;
   mobilePreview?: boolean;
+  dropTargetIndex?: number | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'page-drop-zone' });
 
@@ -92,23 +94,46 @@ export function PagePreview({
     >
       <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
         {blocks.length > 0 ? (
-          blocks.map((block) => (
-            <SortableBlock
-              key={block.id}
-              block={block}
-              tenantId={tenantId}
-              isSelected={selectedId === block.id}
-              onSelect={() => onSelect(block.id)}
-              onDelete={() => onDelete(block.id)}
-            />
+          blocks.map((block, index) => (
+            <Fragment key={block.id}>
+              {dropTargetIndex === index && (
+                <DropIndicator />
+              )}
+              <SortableBlock
+                block={block}
+                tenantId={tenantId}
+                isSelected={selectedId === block.id}
+                onSelect={() => onSelect(block.id)}
+                onDelete={() => onDelete(block.id)}
+              />
+            </Fragment>
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border-2 border-dashed border-muted-foreground/25">
-            <p className="text-sm text-muted-foreground">Arraste blocos da barra lateral para começar</p>
-            <p className="text-xs text-muted-foreground mt-1">ou clique em + para adicionar</p>
+            {dropTargetIndex !== null && dropTargetIndex !== undefined ? (
+              <DropIndicator />
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Arraste blocos da barra lateral para começar</p>
+                <p className="text-xs text-muted-foreground mt-1">ou clique em + para adicionar</p>
+              </>
+            )}
           </div>
         )}
+        {dropTargetIndex !== null && dropTargetIndex !== undefined && dropTargetIndex === blocks.length && blocks.length > 0 && (
+          <DropIndicator />
+        )}
       </SortableContext>
+    </div>
+  );
+}
+
+function DropIndicator() {
+  return (
+    <div className="flex items-center gap-2 py-1 animate-in fade-in slide-in-from-top-1 duration-200">
+      <div className="flex-1 h-[2px] bg-primary/60 rounded-full" />
+      <span className="text-[10px] text-primary font-medium whitespace-nowrap">Inserir aqui</span>
+      <div className="flex-1 h-[2px] bg-primary/60 rounded-full" />
     </div>
   );
 }
