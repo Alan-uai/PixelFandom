@@ -37,11 +37,11 @@ export default function WikiSettingsPage() {
     discordUrl: string; gameUrl: string; faviconUrl: string; ogImage: string;
     primaryColor: string; backgroundColor: string; cardColor: string; sidebarColor: string; accentColor: string;
     fontFamily: string; headingFont: string; borderRadius: string;
-    sidebarWidth: 'narrow' | 'normal' | 'wide'; headerStyle: 'compact' | 'expanded' | 'minimal'; articlesPerRow: number;
+    sidebarWidth: 'narrow' | 'normal' | 'wide'; headerStyle: 'compact' | 'expanded' | 'minimal';
     gameTableDisplayFormat: string; gameTableColumnsCount: number;
     gameTableTabsEnabled: boolean; gameTableTabsSubFormat: string;
     listingDisplayFormat: string; listingColumnsCount: number;
-    listingItemsPerPage: number; listingPagination: string;
+    listingItemsPerPage: number; listingPagination: string; listingPaginationStyle: string;
     listingShowSearch: boolean; listingShowFilters: boolean; listingShowHeader: boolean;
     listingCardStyle: string; listingCardLayout: string; listingHoverEffect: string;
     articleDisplayFormat: string; articleColumnsCount: number;
@@ -51,11 +51,11 @@ export default function WikiSettingsPage() {
     discordUrl: '', gameUrl: '', faviconUrl: '', ogImage: '',
     primaryColor: '198 100% 65%', backgroundColor: '', cardColor: '', sidebarColor: '', accentColor: '',
     fontFamily: '', headingFont: '', borderRadius: '',
-    sidebarWidth: 'normal', headerStyle: 'compact', articlesPerRow: 3,
+    sidebarWidth: 'normal', headerStyle: 'compact',
     gameTableDisplayFormat: 'grid', gameTableColumnsCount: 4,
     gameTableTabsEnabled: false, gameTableTabsSubFormat: 'list',
     listingDisplayFormat: 'grid', listingColumnsCount: 4,
-    listingItemsPerPage: 20, listingPagination: 'paginated',
+    listingItemsPerPage: 50, listingPagination: 'paginated', listingPaginationStyle: 'arrows',
     listingShowSearch: true, listingShowFilters: true, listingShowHeader: true,
     listingCardStyle: 'default', listingCardLayout: 'card', listingHoverEffect: 'scale',
     articleDisplayFormat: 'grid', articleColumnsCount: 3,
@@ -79,15 +79,15 @@ export default function WikiSettingsPage() {
   const [borderRadius, setBorderRadius] = useState('');
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
-  const [articlesPerRow, setArticlesPerRow] = useState(3);
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
   const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
   const [gameTableTabsSubFormat, setGameTableTabsSubFormat] = useState('list');
   const [listingDisplayFormat, setListingDisplayFormat] = useState('grid');
   const [listingColumnsCount, setListingColumnsCount] = useState(4);
-  const [listingItemsPerPage, setListingItemsPerPage] = useState(20);
+  const [listingItemsPerPage, setListingItemsPerPage] = useState(50);
   const [listingPagination, setListingPagination] = useState('paginated');
+  const [listingPaginationStyle, setListingPaginationStyle] = useState('arrows');
   const [listingShowSearch, setListingShowSearch] = useState(true);
   const [listingShowFilters, setListingShowFilters] = useState(true);
   const [listingShowHeader, setListingShowHeader] = useState(true);
@@ -133,7 +133,6 @@ export default function WikiSettingsPage() {
     setBorderRadius(theme.border_radius || '');
     setSidebarWidth(theme.sidebar_width || 'normal');
     setHeaderStyle(theme.header_style || 'compact');
-    setArticlesPerRow(theme.articles_per_row || 3);
     const gtDisplay = (theme.game_tables_display as Record<string, any>) || {};
     setGameTableDisplayFormat(gtDisplay.default_format || 'grid');
     setGameTableColumnsCount(gtDisplay.default_columns || 4);
@@ -142,8 +141,9 @@ export default function WikiSettingsPage() {
     const listingDisplay = (theme.game_table_listing_display as Record<string, any>) || {};
     setListingDisplayFormat(listingDisplay.default_format || 'grid');
     setListingColumnsCount(listingDisplay.default_columns || 4);
-    setListingItemsPerPage(listingDisplay.items_per_page || 20);
+    setListingItemsPerPage(listingDisplay.items_per_page || 50);
     setListingPagination(listingDisplay.pagination || 'paginated');
+    setListingPaginationStyle(listingDisplay.pagination_style || 'arrows');
     setListingShowSearch(listingDisplay.show_search ?? true);
     setListingShowFilters(listingDisplay.show_filters ?? true);
     setListingShowHeader(listingDisplay.show_header ?? true);
@@ -174,15 +174,15 @@ export default function WikiSettingsPage() {
       borderRadius: theme.border_radius || '',
       sidebarWidth: theme.sidebar_width || 'normal',
       headerStyle: theme.header_style || 'compact',
-      articlesPerRow: theme.articles_per_row || 3,
       gameTableDisplayFormat: gtDisplay.default_format || 'grid',
       gameTableColumnsCount: gtDisplay.default_columns || 4,
       gameTableTabsEnabled: gtDisplay.tabs_enabled || false,
       gameTableTabsSubFormat: gtDisplay.tabs_sub_format || 'list',
       listingDisplayFormat: listingDisplay.default_format || 'grid',
       listingColumnsCount: listingDisplay.default_columns || 4,
-      listingItemsPerPage: listingDisplay.items_per_page || 20,
+      listingItemsPerPage: listingDisplay.items_per_page || 50,
       listingPagination: listingDisplay.pagination || 'paginated',
+      listingPaginationStyle: listingDisplay.pagination_style || 'arrows',
       listingShowSearch: listingDisplay.show_search ?? true,
       listingShowFilters: listingDisplay.show_filters ?? true,
       listingShowHeader: listingDisplay.show_header ?? true,
@@ -224,7 +224,6 @@ export default function WikiSettingsPage() {
             border_radius: borderRadius || null,
             sidebar_width: sidebarWidth,
             header_style: headerStyle,
-            articles_per_row: articlesPerRow,
             game_tables_display: {
               default_format: gameTableDisplayFormat,
               default_columns: gameTableColumnsCount,
@@ -236,6 +235,7 @@ export default function WikiSettingsPage() {
               default_columns: listingColumnsCount,
               items_per_page: listingItemsPerPage,
               pagination: listingPagination,
+              pagination_style: listingPaginationStyle,
               show_search: listingShowSearch,
               show_filters: listingShowFilters,
               show_header: listingShowHeader,
@@ -264,10 +264,10 @@ export default function WikiSettingsPage() {
         discordUrl, gameUrl, faviconUrl, ogImage,
         primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
         fontFamily, headingFont, borderRadius,
-        sidebarWidth, headerStyle, articlesPerRow,
+        sidebarWidth, headerStyle,
         gameTableDisplayFormat, gameTableColumnsCount,
         gameTableTabsEnabled, gameTableTabsSubFormat,
-        listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+        listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination, listingPaginationStyle,
         listingShowSearch, listingShowFilters, listingShowHeader,
         listingCardStyle, listingCardLayout, listingHoverEffect,
         articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
@@ -294,7 +294,6 @@ export default function WikiSettingsPage() {
           border_radius: borderRadius || null,
           sidebar_width: sidebarWidth,
           header_style: headerStyle,
-          articles_per_row: articlesPerRow,
           game_tables_display: {
             default_format: gameTableDisplayFormat,
             default_columns: gameTableColumnsCount,
@@ -306,6 +305,7 @@ export default function WikiSettingsPage() {
             default_columns: listingColumnsCount,
             items_per_page: listingItemsPerPage,
             pagination: listingPagination,
+            pagination_style: listingPaginationStyle,
             show_search: listingShowSearch,
             show_filters: listingShowFilters,
             show_header: listingShowHeader,
@@ -346,7 +346,6 @@ export default function WikiSettingsPage() {
     borderRadius !== savedConfig.borderRadius ||
     sidebarWidth !== savedConfig.sidebarWidth ||
     headerStyle !== savedConfig.headerStyle ||
-    articlesPerRow !== savedConfig.articlesPerRow ||
     gameTableDisplayFormat !== savedConfig.gameTableDisplayFormat ||
     gameTableColumnsCount !== savedConfig.gameTableColumnsCount ||
     gameTableTabsEnabled !== savedConfig.gameTableTabsEnabled ||
@@ -355,6 +354,7 @@ export default function WikiSettingsPage() {
     listingColumnsCount !== savedConfig.listingColumnsCount ||
     listingItemsPerPage !== savedConfig.listingItemsPerPage ||
     listingPagination !== savedConfig.listingPagination ||
+    listingPaginationStyle !== savedConfig.listingPaginationStyle ||
     listingShowSearch !== savedConfig.listingShowSearch ||
     listingShowFilters !== savedConfig.listingShowFilters ||
     listingShowHeader !== savedConfig.listingShowHeader ||
@@ -367,9 +367,9 @@ export default function WikiSettingsPage() {
     articleShowSummaries !== savedConfig.articleShowSummaries,
   [name, description, logoUrl, coverImageUrl, discordUrl, gameUrl, faviconUrl, ogImage,
     primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
-    fontFamily, headingFont, borderRadius, sidebarWidth, headerStyle, articlesPerRow,
+    fontFamily, headingFont, borderRadius, sidebarWidth, headerStyle,
     gameTableDisplayFormat, gameTableColumnsCount, gameTableTabsEnabled, gameTableTabsSubFormat,
-    listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+    listingDisplayFormat, listingColumnsCount,     listingItemsPerPage, listingPagination, listingPaginationStyle,
     listingShowSearch, listingShowFilters, listingShowHeader,
     listingCardStyle, listingCardLayout, listingHoverEffect,
     articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
@@ -384,10 +384,10 @@ export default function WikiSettingsPage() {
       discordUrl, gameUrl, faviconUrl, ogImage,
       primaryColor, backgroundColor, cardColor, sidebarColor, accentColor,
       fontFamily, headingFont, borderRadius,
-      sidebarWidth, headerStyle, articlesPerRow,
+      sidebarWidth, headerStyle,
       gameTableDisplayFormat, gameTableColumnsCount,
       gameTableTabsEnabled, gameTableTabsSubFormat,
-      listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination,
+      listingDisplayFormat, listingColumnsCount, listingItemsPerPage, listingPagination, listingPaginationStyle,
       listingShowSearch, listingShowFilters, listingShowHeader,
       listingCardStyle, listingCardLayout, listingHoverEffect,
       articleDisplayFormat, articleColumnsCount, articleShowImages, articleShowSummaries,
@@ -540,14 +540,6 @@ export default function WikiSettingsPage() {
               ))}
             </div>
           </div>
-          <ElasticSlider3D
-            label={t('layout.articles_per_row')}
-            defaultValue={articlesPerRow}
-            startingValue={1}
-            maxValue={6}
-            showValue
-            onValueChange={setArticlesPerRow}
-          />
           <div className="space-y-2">
             <Select3D label={t('layout.border_radius')} value={borderRadius} options={[
               {value: '', label: t('layout.border_radius_default')},
@@ -587,10 +579,13 @@ export default function WikiSettingsPage() {
               <ElasticSlider3D
                 label={t('layout.columns_label')}
                 defaultValue={gameTableColumnsCount}
-                startingValue={2}
-                maxValue={5}
+                startingValue={gameTableDisplayFormat === 'list' ? 1 : 2}
+                maxValue={gameTableDisplayFormat === 'list' ? 2 : 5}
                 showValue
-                onValueChange={setGameTableColumnsCount}
+                onValueChange={(v) => {
+                  const min = gameTableDisplayFormat === 'list' ? 1 : 2;
+                  setGameTableColumnsCount(Math.max(min, Math.round(v)));
+                }}
               />
 
               <div className="flex items-center gap-3">
@@ -665,23 +660,12 @@ export default function WikiSettingsPage() {
                 label={t('layout.columns_label')}
                 defaultValue={listingColumnsCount}
                 startingValue={listingDisplayFormat === 'list' ? 1 : 2}
-                maxValue={5}
+                maxValue={listingDisplayFormat === 'list' ? 2 : 5}
                 showValue
                 onValueChange={(v) => {
                   const min = listingDisplayFormat === 'list' ? 1 : 2;
                   setListingColumnsCount(Math.max(min, Math.round(v)));
                 }}
-              />
-
-              <ElasticSlider3D
-                label={t('layout.items_per_page')}
-                defaultValue={listingItemsPerPage}
-                startingValue={5}
-                maxValue={100}
-                isStepped
-                stepSize={5}
-                showValue
-                onValueChange={setListingItemsPerPage}
               />
 
               <div className="space-y-2">
@@ -705,6 +689,41 @@ export default function WikiSettingsPage() {
                   ))}
                 </div>
               </div>
+
+              {listingPagination === 'paginated' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Estilo da paginação</Label>
+                    <div className="flex gap-2">
+                      {[
+                        { v: 'arrows', l: 'Setas' },
+                        { v: 'numbers', l: 'Números' },
+                        { v: 'emoji', l: 'Emojis' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => setListingPaginationStyle(opt.v)}
+                          className={`flex-1 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                            listingPaginationStyle === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-accent'
+                          }`}
+                        >
+                          {opt.l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <ElasticSlider3D
+                    label={t('layout.items_per_page')}
+                    defaultValue={listingItemsPerPage}
+                    startingValue={10}
+                    maxValue={200}
+                    showValue
+                    onValueChange={setListingItemsPerPage}
+                  />
+                </>
+              )}
 
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="listingSearch" className="text-xs">{t('layout.show_search')}</Label>

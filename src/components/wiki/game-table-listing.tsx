@@ -88,6 +88,59 @@ function getIcon(item: Record<string, any>) {
   return null;
 }
 
+function renderBadgeItem(
+  col: string,
+  item: Record<string, any>,
+  badgeConfig: Record<string, any>,
+  badgeColors: Record<string, string>,
+  onCompareStatClick?: (statKey: string) => void,
+): React.ReactNode {
+  const val = item[col];
+  if (val == null || val === '' || val === 'none') return null;
+  const strVal = String(val);
+  const bc = badgeConfig[col] || {};
+  const rawColor = badgeColors[col] || '';
+  const isColor = isColorString(rawColor);
+  const hasHover = bc.hover === true;
+  const hasAction = (bc.clickAction || 'none') !== 'none';
+  const baseClass = 'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium';
+  const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
+  const classes = `${baseClass} ${colorClass} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
+  const style = isColor ? (hexToStyle(rawColor) || undefined) : undefined;
+
+  const content = (
+    <>
+      {col === 'element' && elIcon(strVal)}
+      {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
+      {strVal}
+    </>
+  );
+
+  if (hasAction) {
+    return (
+      <button key={col} type="button" onClick={(e) => {
+        e.stopPropagation();
+        const action = bc.clickAction || 'none';
+        if (action === 'comparison') {
+          onCompareStatClick?.(col);
+        } else if (action === 'external-link') {
+          const url = bc.clickUrl || '';
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        }
+      }} className={classes} style={style}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <span key={col} className={classes} style={style}>
+      {content}
+    </span>
+  );
+}
+
 type Props = {
   tenantSlug: string;
   tableName: string;
@@ -1043,6 +1096,13 @@ function ItemListRow({
   const isSelected = selectedSlug === slug;
   const description = item.description || item.subtitle || '';
 
+  const showCardIcon = cardConfig?.showIcon !== false;
+  const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
+  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
+  const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
+
+  const icon = getIcon(item);
+
   return (
     <div
       id={slug ? `item-${slug}` : undefined}
@@ -1052,18 +1112,19 @@ function ItemListRow({
       }`}
       onClick={() => onSelect?.(slug)}
     >
-      {item.icon_url ? (
-        <div className="relative w-7 h-7 shrink-0 rounded-md overflow-hidden bg-muted">
-          <Image src={item.icon_url} alt="" fill className="object-contain" />
+      {showCardIcon && (
+        <div className="relative w-7 h-7 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+          {icon || <span className="text-muted-foreground text-xs">—</span>}
         </div>
-      ) : item.icon ? (
-        <div className="w-7 h-7 shrink-0 rounded-md bg-muted flex items-center justify-center text-xs">
-          <IconRenderer icon={item.icon} size="sm" />
-        </div>
-      ) : null}
+      )}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium truncate">{name}</p>
         {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
+        {activeBadges.length > 0 && (
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors))}
+          </div>
+        )}
       </div>
       {cardConfig?.showComparison !== false && (
         <button
@@ -1113,6 +1174,11 @@ function ItemTableRow({
     ? cardConfig.columnOrder
     : cardConfig?.visibleColumns || [];
 
+  const showCardIcon = cardConfig?.showIcon !== false;
+  const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
+  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
+  const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
+
   return (
     <tr
       id={slug ? `item-${slug}` : undefined}
@@ -1124,16 +1190,21 @@ function ItemTableRow({
     >
       <td className="py-2 px-3">
         <div className="flex items-center gap-2">
-          {item.icon_url ? (
+          {showCardIcon && item.icon_url ? (
             <div className="relative w-6 h-6 shrink-0 rounded overflow-hidden bg-muted">
               <Image src={item.icon_url} alt="" fill className="object-contain" />
             </div>
-          ) : item.icon ? (
+          ) : showCardIcon && item.icon ? (
             <div className="w-6 h-6 shrink-0 rounded bg-muted flex items-center justify-center text-xs">
               <IconRenderer icon={item.icon} size="sm" />
             </div>
           ) : null}
           <span className="text-sm font-medium truncate">{name}</span>
+          {activeBadges.length > 0 && (
+            <div className="flex items-center gap-1 ml-2">
+              {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors))}
+            </div>
+          )}
         </div>
       </td>
       {visibleColumns.map(col => (
@@ -1167,7 +1238,7 @@ function ItemAccordionBox({
   cardRefs,
   useSuffix,
   _scaleFactor,
-  _cardConfig,
+  cardConfig,
   detailConfig,
   onCompareStatClick,
 }: {
@@ -1180,14 +1251,22 @@ function ItemAccordionBox({
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
   useSuffix?: boolean;
   _scaleFactor?: number;
-  _cardConfig?: Record<string, any>;
+  cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   onCompareStatClick: (statKey: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(detailConfig?.defaultExpanded === true);
   const name = item.name || item.title || item.slug || 'Item';
   const slug = item.slug || '';
   const isSelected = selectedSlug === slug;
+
+  const showCardIcon = cardConfig?.showIcon !== false;
+  const showCardLabel = cardConfig?.showLabel !== false;
+  const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
+  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
+  const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
+
+  const icon = getIcon(item);
 
   return (
     <div
@@ -1202,16 +1281,19 @@ function ItemAccordionBox({
         onClick={() => { setExpanded(!expanded); onSelect?.(slug); }}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
       >
-        {item.icon_url ? (
-          <div className="relative w-8 h-8 shrink-0 rounded-lg overflow-hidden bg-muted">
-            <Image src={item.icon_url} alt="" fill className="object-contain" />
+        {showCardIcon && (
+          <div className="relative w-8 h-8 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+            {icon || <span className="text-muted-foreground text-xs">—</span>}
           </div>
-        ) : item.icon ? (
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-muted flex items-center justify-center">
-            <IconRenderer icon={item.icon} size="sm" />
+        )}
+        {showCardLabel && (
+          <span className="text-sm font-medium flex-1 text-left truncate">{name}</span>
+        )}
+        {activeBadges.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick))}
           </div>
-        ) : null}
-        <span className="text-sm font-medium flex-1 text-left truncate">{name}</span>
+        )}
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
       <motion.div

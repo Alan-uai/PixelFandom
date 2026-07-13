@@ -14,7 +14,6 @@ export interface TenantTheme {
   border_radius?: string;
   sidebar_width?: 'narrow' | 'normal' | 'wide';
   header_style?: 'compact' | 'expanded' | 'minimal';
-  articles_per_row?: number;
 }
 
 type ThemeMode = Theme;
@@ -38,7 +37,6 @@ const defaultTheme: TenantTheme = {
   border_radius: '0.5rem',
   sidebar_width: 'normal',
   header_style: 'compact',
-  articles_per_row: 3,
 };
 
 const ThemeContext = createContext<ThemeContextValue>({

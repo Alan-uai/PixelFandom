@@ -451,23 +451,68 @@ function metaLabel(col: ColumnInfo, _data: Record<string, any>): string {
   return col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function RenderTypeFields({ data, columnTypes, rendered }: { data: Record<string, any>; columnTypes: Record<string, string>; rendered: Set<string> }) {
-  const entries = Object.entries(columnTypes).filter(([col]) => !rendered.has(col) && hasValue(data[col]));
-  if (entries.length === 0) return null;
+function RenderTypeFields({ data, columnTypes, columnFormats, formatVariants, rendered, visibleColumnsSet }: {
+  data: Record<string, any>;
+  columnTypes: Record<string, string>;
+  columnFormats?: Record<string, string>;
+  formatVariants?: Record<string, number>;
+  rendered: Set<string>;
+  visibleColumnsSet?: Set<string> | null;
+}) {
+  const sections: React.ReactNode[] = [];
 
-  const sections = entries.map(([col, renderType]) => {
-    const def = getTypeDef(renderType);
-    if (!def) return null;
-    rendered.add(col);
-    return (
-      <div key={`rt-${col}`} className="mb-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-        </h3>
-        <ColumnDisplay value={data[col]} column={col} renderType={renderType} />
-      </div>
+  // 1. Custom format overrides from card detail config
+  if (columnFormats) {
+    const formatEntries = Object.entries(columnFormats).filter(
+      ([col, fmt]) => {
+        if (rendered.has(col)) return false;
+        if (SYSTEM_FIELDS.has(col)) return false;
+        if (visibleColumnsSet && !visibleColumnsSet.has(col)) return false;
+        if (!hasValue(data[col])) return false;
+        if (fmt === 'text') return false;
+        return true;
+      },
     );
-  }).filter(Boolean);
+    if (formatEntries.length > 0) {
+      sections.push(
+        <div key="custom-formats" className="space-y-3 mb-6">
+          {formatEntries.map(([col, fmt]) => {
+            rendered.add(col);
+            return (
+              <FormatVariantRenderer
+                key={col}
+                format={fmt as DisplayFormat}
+                variant={formatVariants?.[col] || 1}
+                value={data[col]}
+                label={fieldLabel(col)}
+              />
+            );
+          })}
+        </div>,
+      );
+    }
+  }
+
+  // 2. Columns with explicit render types from table schema
+  const entries = Object.entries(columnTypes).filter(
+    ([col]) => !rendered.has(col) && hasValue(data[col]),
+  );
+  if (entries.length > 0) {
+    const typeSections = entries.map(([col, renderType]) => {
+      const def = getTypeDef(renderType);
+      if (!def) return null;
+      rendered.add(col);
+      return (
+        <div key={`rt-${col}`} className="mb-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+          </h3>
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} />
+        </div>
+      );
+    }).filter(Boolean);
+    sections.push(<>{typeSections}</>);
+  }
 
   if (sections.length === 0) return null;
   return <>{sections}</>;
@@ -573,37 +618,6 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     }
   };
 
-  function renderFormattedFields(data: Record<string, any>, rendered: Set<string>) {
-    const formatEntries = Object.entries(columnFormats).filter(
-      ([col, fmt]) => {
-        if (rendered.has(col)) return false;
-        if (SYSTEM_FIELDS.has(col)) return false;
-        if (visibleColumnsSet && !visibleColumnsSet.has(col)) return false;
-        if (!hasValue(data[col])) return false;
-        if (fmt === 'text') return false;
-        return true;
-      },
-    );
-    if (formatEntries.length === 0) return null;
-
-    return (
-      <div className="space-y-3 mb-6">
-        {formatEntries.map(([col, fmt]) => {
-          rendered.add(col);
-          return (
-            <FormatVariantRenderer
-              key={col}
-              format={fmt as DisplayFormat}
-              variant={formatVariants[col] || 1}
-              value={data[col]}
-              label={fieldLabel(col)}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
   const rendered = new Set<string>();
 
   return (
@@ -660,16 +674,20 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
       )}
 
-      {/* Render-type-specific fields (explicit registry-based) — highest priority */}
-      {columnTypes && Object.entries(columnTypes).length > 0 && (
-        <RenderTypeFields data={data} columnTypes={columnTypes} rendered={rendered} />
-      )}
+      {/* Custom format overrides + explicit render types — highest priority */}
+      {(columnTypes && Object.entries(columnTypes).length > 0) || (columnFormats && Object.entries(columnFormats).length > 0) ? (
+        <RenderTypeFields
+          data={data}
+          columnTypes={columnTypes || {}}
+          columnFormats={columnFormats}
+          formatVariants={formatVariants}
+          rendered={rendered}
+          visibleColumnsSet={visibleColumnsSet}
+        />
+      ) : null}
 
       {/* Dynamic schema-driven sections (type-inferred) */}
       {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet, detailConfig?.columnOrder, columnTypes)}
-
-      {/* Columns with custom format overrides from detail config */}
-      {renderFormattedFields(data, rendered)}
 
       {/* Fallback: any remaining unrendered fields */}
       {renderFallbackFields(data, rendered, useSuffix, visibleColumnsSet)}

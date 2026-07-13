@@ -86,6 +86,7 @@ export const ViewerConfigSchema = z.object({
     columnFormatVariants: z.record(z.string(), z.number().min(1).max(5)).default({}),
     showComparison: z.boolean().default(true),
     showHeader: z.boolean().default(false),
+    defaultExpanded: z.boolean().default(false),
   }).optional(),
   search: z.object({
     enabled: z.boolean().default(true),

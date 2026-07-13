@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { Input } from '@/components/ui/input';
 import { ColorSelect3D } from '@/components/ui/color-select-3d';
+import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 
@@ -166,6 +168,27 @@ export function CardConfig({
             onChange={(v) => onChange({ ...c, hoverEffect: v })}
           />
 
+          <AnimatePresence>
+            {layout === 'accordion' && (
+              <motion.div
+                initial={{ opacity: 0, rotateX: -90, height: 0 }}
+                animate={{ opacity: 1, rotateX: 0, height: 'auto' }}
+                exit={{ opacity: 0, rotateX: 90, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                style={{ transformStyle: 'preserve-3d', perspective: '800px', transformOrigin: 'top center' }}
+              >
+                <div className="flex items-center gap-2 pt-1 pb-2">
+                  <Switch
+                    id="default-expanded"
+                    checked={c.defaultExpanded === true}
+                    onCheckedChange={(v) => onChange({ ...c, defaultExpanded: v })}
+                  />
+                  <Label htmlFor="default-expanded" className="text-xs">Expandido por padrão</Label>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-center gap-2">
             <Switch
               id="show-icon"
@@ -308,12 +331,12 @@ export function CardConfig({
               const isVisible = effectiveVisible.includes(col);
               return (
                 <div key={col} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id={`detail-vis-${col}`}
+                  <Checkbox3D
                     checked={isVisible}
                     onChange={() => toggleColumn(col)}
-                    className="h-3.5 w-3.5 rounded border-gray-300"
+                    size="sm"
+                    showParticles={false}
+                    id={`detail-vis-${col}`}
                   />
                   <label htmlFor={`detail-vis-${col}`} className="text-xs flex-1">{col}</label>
                   {isVisible && (

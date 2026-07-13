@@ -40,12 +40,11 @@ export default function WikiPage() {
   const tenant = wiki?.tenant;
   const articles = wiki?.articles;
   const tenantTheme = useMemo(() => (tenant?.theme as Record<string, unknown>) || {}, [tenant?.theme]);
-  const articlesPerRow = (tenantTheme.articles_per_row as number) || 3;
   const gameTablesDisplay = (tenantTheme.game_tables_display as Record<string, unknown>) || {};
   const gameTableListingDisplay = useMemo(() => (tenantTheme.game_table_listing_display as Record<string, unknown>) || {}, [tenantTheme]);
   const articlesDisplay = useMemo(() => (tenantTheme.articles_display as Record<string, unknown>) || {}, [tenantTheme]);
   const articleDisplayFormat = (articlesDisplay.default_format as string) || 'grid';
-  const articleColumns = Math.min(Math.max(((articlesDisplay.default_columns as number) || articlesPerRow), 1), 6);
+  const articleColumns = Math.min(Math.max(((articlesDisplay.default_columns as number) || 3), 1), 6);
 
   const mergeListingDefaults = (vc: import('@/lib/viewer-config').ViewerConfig | null, global: Record<string, unknown>): import('@/lib/viewer-config').ViewerConfig => {
     const useGlobalOnly = vc?.source === 'global';
@@ -55,6 +54,7 @@ export default function WikiPage() {
     if (merged.display.columnsCount === undefined && global.default_columns) merged.display.columnsCount = global.default_columns as number;
     if (merged.display.itemsPerPage === undefined && global.items_per_page) merged.display.itemsPerPage = global.items_per_page as number;
     if (merged.display.pagination === undefined && global.pagination) merged.display.pagination = global.pagination === 'paginated';
+    if (merged.display.paginationStyle === undefined && global.pagination_style) merged.display.paginationStyle = global.pagination_style as string;
     if (!merged.card) merged.card = {};
     if (merged.card.hoverEffect === undefined && global.hover_effect) merged.card.hoverEffect = global.hover_effect as string;
     if (merged.card.layout === undefined && global.card_layout) merged.card.layout = global.card_layout as string;
