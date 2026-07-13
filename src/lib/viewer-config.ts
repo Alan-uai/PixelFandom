@@ -73,8 +73,10 @@ export const ViewerConfigSchema = z.object({
     labelSize: z.number().min(10).max(32).default(12),
     categoryItemSortColumn: z.string().nullable().default(null),
     categoryItemSortDirection: z.enum(['asc', 'desc']).default('asc'),
+    categoryItemOrder: z.array(z.string()).default([]),
     subCategoryItemSortColumn: z.string().nullable().default(null),
     subCategoryItemSortDirection: z.enum(['asc', 'desc']).default('asc'),
+    subCategoryItemOrder: z.array(z.string()).default([]),
   }).optional(),
   card: z.object({
     layout: z.enum(['card', 'accordion', 'list', 'table']).default('card'),
@@ -90,6 +92,7 @@ export const ViewerConfigSchema = z.object({
     columnOrder: z.array(z.string()).default([]),
     columnFormats: z.record(z.string(), z.enum(['text', 'badge', 'color', 'icon', 'link', 'image', 'rating', 'progress', 'tags', 'boolean', 'date', 'duration', 'file', 'video', 'audio', 'emoji', 'jsonb-structured'])).default({}),
     columnFormatVariants: z.record(z.string(), z.number().min(1).max(5)).default({}),
+    columnOpEnabled: z.record(z.string(), z.boolean()).default({}),
     showComparison: z.boolean().default(true),
     showHeader: z.boolean().default(false),
     defaultExpanded: z.boolean().default(false),

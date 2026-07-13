@@ -14,6 +14,7 @@ import { percentageDetector } from './detectors/percentage';
 import { gradeDetector } from './detectors/grade';
 import { coordinatesDetector } from './detectors/coordinates';
 import { materialsDetector } from './detectors/materials';
+import { fractionDetector } from './detectors/fraction';
 
 const ALL_DETECTORS = [
   statBlockDetector,
@@ -31,6 +32,7 @@ const ALL_DETECTORS = [
   gradeDetector,
   coordinatesDetector,
   materialsDetector,
+  fractionDetector,
 ];
 
 let registered = false;

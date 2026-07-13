@@ -17,6 +17,20 @@ import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp } from 
 import { Icon } from '@iconify/react';
 import { parseSmartNumber } from '@/lib/sort-utils';
 
+const NON_CAT_COLUMNS = new Set([
+  'id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug',
+  'image_url', 'image', 'cover_url', 'logo_url', 'banner_url',
+  'icon_url', 'icon_id', 'icon',
+  'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
+  'content', 'details', 'items_dropped', 'notable_loot',
+]);
+
+function isCategorizableColumn(col: string): boolean {
+  if (NON_CAT_COLUMNS.has(col)) return false;
+  if (col.endsWith('_url') || col.endsWith('_id')) return false;
+  return true;
+}
+
 export function CategorizationConfig({
   config,
   columns = [],
@@ -113,6 +127,48 @@ export function CategorizationConfig({
   }, [secondaryValuesByCategory]);
   const subValuesNumeric = isNumericValues(flatSubValues);
 
+  const catItemSortValues = useMemo(() => {
+    const sortCol = c.categoryItemSortColumn;
+    if (!sortCol || !items || items.length === 0) return [];
+    const values = new Set<string>();
+    for (const item of items) {
+      const v = item[sortCol];
+      if (v != null && v !== '' && v !== 'none') values.add(String(v));
+    }
+    return Array.from(values);
+  }, [c.categoryItemSortColumn, items]);
+
+  const sortedCatItemChips = useMemo(() => {
+    const order = (c.categoryItemOrder as string[]) || [];
+    const dir = c.categoryItemSortDirection || 'asc';
+    const ordered = order.filter((v) => catItemSortValues.includes(v));
+    const remaining = catItemSortValues.filter((v) => !ordered.includes(v));
+    if (dir === 'desc') ordered.reverse();
+    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    return [...ordered, ...remaining];
+  }, [catItemSortValues, c.categoryItemOrder, c.categoryItemSortDirection]);
+
+  const subCatItemSortValues = useMemo(() => {
+    const sortCol = c.subCategoryItemSortColumn;
+    if (!sortCol || !items || items.length === 0) return [];
+    const values = new Set<string>();
+    for (const item of items) {
+      const v = item[sortCol];
+      if (v != null && v !== '' && v !== 'none') values.add(String(v));
+    }
+    return Array.from(values);
+  }, [c.subCategoryItemSortColumn, items]);
+
+  const sortedSubCatItemChips = useMemo(() => {
+    const order = (c.subCategoryItemOrder as string[]) || [];
+    const dir = c.subCategoryItemSortDirection || 'asc';
+    const ordered = order.filter((v) => subCatItemSortValues.includes(v));
+    const remaining = subCatItemSortValues.filter((v) => !ordered.includes(v));
+    if (dir === 'desc') ordered.reverse();
+    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    return [...ordered, ...remaining];
+  }, [subCatItemSortValues, c.subCategoryItemOrder, c.subCategoryItemSortDirection]);
+
   const sortedCategoryChips = useMemo(() => {
     const order = (c.order as string[]) || [];
     const dir = c.categorySortDirection || 'asc';
@@ -176,7 +232,7 @@ export function CategorizationConfig({
         <Label htmlFor="cat-enabled" className="text-xs">Categorização habilitada</Label>
       </div>
 
-      <Select3D label="Coluna de categoria" value={c.column || 'none'} options={[{label: 'Auto-detect', value: 'none'}, ...(columns as string[]).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, column: v === 'none' ? null : v })} />
+      <Select3D label="Coluna de categoria" value={c.column || 'none'} options={[{label: 'Auto-detect', value: 'none'}, ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, column: v === 'none' ? null : v })} />
 
       {detectedColumn && (
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -395,7 +451,7 @@ export function CategorizationConfig({
         </>
       )}
 
-      <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
+      <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column && col !== detectedColumn && isCategorizableColumn(col)).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
 
       {/* Sub-category icons per category */}
       {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
@@ -560,7 +616,7 @@ export function CategorizationConfig({
                 value={c.categoryItemSortColumn || 'none'}
                 options={[
                   { label: 'Ordem padrão', value: 'none' },
-                  ...(columns as string[]).map((col) => ({ label: col, value: col })),
+                  ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({ label: col, value: col })),
                 ]}
                 onChange={(v) => onChange({ ...c, categoryItemSortColumn: v === 'none' ? null : v })}
               />
@@ -582,6 +638,48 @@ export function CategorizationConfig({
               </button>
             )}
           </div>
+
+          {c.categoryItemSortColumn && (
+            <div className="mt-2 space-y-1">
+              <p className="text-[10px] text-muted-foreground">Clique para definir ordem dos valores.</p>
+              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                <AnimatePresence mode="popLayout">
+                  {sortedCatItemChips.map((val) => {
+                    const orderIndex = ((c.categoryItemOrder as string[]) || []).indexOf(val);
+                    const isOrdered = orderIndex >= 0;
+                    return (
+                      <motion.button
+                        key={val}
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        type="button"
+                        onClick={() => {
+                          const currentOrder = (c.categoryItemOrder as string[]) || [];
+                          if (isOrdered) {
+                            onChange({ ...c, categoryItemOrder: currentOrder.filter((v) => v !== val) });
+                          } else {
+                            onChange({ ...c, categoryItemOrder: [...currentOrder, val] });
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                          isOrdered
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                        {val}
+                        {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -652,7 +750,7 @@ export function CategorizationConfig({
                   value={c.subCategoryItemSortColumn || 'none'}
                   options={[
                     { label: 'Ordem padrão', value: 'none' },
-                    ...(columns as string[]).map((col) => ({ label: col, value: col })),
+                    ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({ label: col, value: col })),
                   ]}
                   onChange={(v) => onChange({ ...c, subCategoryItemSortColumn: v === 'none' ? null : v })}
                 />
@@ -674,6 +772,48 @@ export function CategorizationConfig({
                 </button>
               )}
             </div>
+
+            {c.subCategoryItemSortColumn && (
+              <div className="mt-2 space-y-1">
+                <p className="text-[10px] text-muted-foreground">Clique para definir ordem dos valores.</p>
+                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                  <AnimatePresence mode="popLayout">
+                    {sortedSubCatItemChips.map((val) => {
+                      const orderIndex = ((c.subCategoryItemOrder as string[]) || []).indexOf(val);
+                      const isOrdered = orderIndex >= 0;
+                      return (
+                        <motion.button
+                          key={val}
+                          layout
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                          type="button"
+                          onClick={() => {
+                            const currentOrder = (c.subCategoryItemOrder as string[]) || [];
+                            if (isOrdered) {
+                              onChange({ ...c, subCategoryItemOrder: currentOrder.filter((v) => v !== val) });
+                            } else {
+                              onChange({ ...c, subCategoryItemOrder: [...currentOrder, val] });
+                            }
+                          }}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                            isOrdered
+                              ? 'bg-primary/10 border-primary/30 text-primary'
+                              : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                          }`}
+                        >
+                          {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                          {val}
+                          {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                        </motion.button>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -91,6 +91,16 @@ export function CardConfig({
   // Detail state
   const columnFormats: Record<string, string> = c.columnFormats || {};
   const formatVariants: Record<string, number> = c.columnFormatVariants || {};
+  const columnOpEnabled: Record<string, boolean> = c.columnOpEnabled || {};
+
+  const isOpEnabled = (col: string): boolean => columnOpEnabled[col] !== false;
+
+  const toggleOp = (col: string) => {
+    onChange({
+      ...c,
+      columnOpEnabled: { ...columnOpEnabled, [col]: !isOpEnabled(col) },
+    });
+  };
 
   const effectiveVisible = useMemo(() => {
     const visibleColumns: string[] = c.visibleColumns || [];
@@ -341,6 +351,18 @@ export function CardConfig({
                   <label htmlFor={`detail-vis-${col}`} className="text-xs flex-1">{col}</label>
                   {isVisible && (
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleOp(col)}
+                        className={`h-5 rounded px-1.5 text-[10px] font-bold leading-none border transition-colors ${
+                          isOpEnabled(col)
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border/50'
+                        }`}
+                        title="Converter operadores textuais em símbolos (×, −, +, ², etc.)"
+                      >
+                        OP
+                      </button>
                       <button
                         type="button"
                         onClick={() => cycleVariant(col)}

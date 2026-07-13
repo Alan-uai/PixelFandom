@@ -451,12 +451,19 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     // Sort items within each category
     const catSortCol = viewerConfig?.categorization?.categoryItemSortColumn;
     const catSortDir = viewerConfig?.categorization?.categoryItemSortDirection || 'asc';
+    const catItemOrder = viewerConfig?.categorization?.categoryItemOrder ?? [];
+    const catItemOrderMap = new Map(catItemOrder.map((v, i) => [v, i]));
     if (catSortCol) {
       entries = entries.map(([cat, items]) => [
         cat,
         [...items].sort((a, b) => {
           const va = String(a[catSortCol] ?? '');
           const vb = String(b[catSortCol] ?? '');
+          const ia = catItemOrderMap.get(va);
+          const ib = catItemOrderMap.get(vb);
+          if (ia != null && ib != null) return ia - ib;
+          if (ia != null) return -1;
+          if (ib != null) return 1;
           const cmp = smartCompare(va, vb);
           return catSortDir === 'desc' ? -cmp : cmp;
         }),
@@ -649,11 +656,18 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       // Sort items within each sub-group
       const subSortCol = vc?.categorization?.subCategoryItemSortColumn;
       const subSortDir = vc?.categorization?.subCategoryItemSortDirection || 'asc';
+      const subItemOrder = vc?.categorization?.subCategoryItemOrder ?? [];
+      const subItemOrderMap = new Map(subItemOrder.map((v, i) => [v, i]));
       if (subSortCol) {
         for (const key of Object.keys(sgMap)) {
           sgMap[key] = [...sgMap[key]].sort((a, b) => {
             const va = String(a[subSortCol] ?? '');
             const vb = String(b[subSortCol] ?? '');
+            const ia = subItemOrderMap.get(va);
+            const ib = subItemOrderMap.get(vb);
+            if (ia != null && ib != null) return ia - ib;
+            if (ia != null) return -1;
+            if (ib != null) return 1;
             const cmp = smartCompare(va, vb);
             return subSortDir === 'desc' ? -cmp : cmp;
           });

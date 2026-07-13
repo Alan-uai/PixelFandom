@@ -184,13 +184,14 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 
 
 function RenderTypeFields({
-  data, columnTypes, columnFormats, formatVariants, rendered, visibleColumnsSet,
+  data, columnTypes, columnFormats, formatVariants, columnOpEnabled, rendered, visibleColumnsSet,
   schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix,
 }: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
   columnFormats?: Record<string, string>;
   formatVariants?: Record<string, number>;
+  columnOpEnabled?: Record<string, boolean>;
   rendered: Set<string>;
   visibleColumnsSet?: Set<string> | null;
   schema?: ColumnInfo[];
@@ -230,6 +231,8 @@ function RenderTypeFields({
                 variant={formatVariants?.[col] || 1}
                 value={data[col]}
                 label={fieldLabel(col)}
+                useSuffix={useSuffix}
+                opEnabled={columnOpEnabled?.[col] !== false}
               />
             );
           })}
@@ -426,6 +429,7 @@ type DetailConfig = {
   columnOrder?: string[];
   columnFormats?: Record<string, string>;
   columnFormatVariants?: Record<string, number>;
+  columnOpEnabled?: Record<string, boolean>;
   showComparison?: boolean;
   showHeader?: boolean;
 };
@@ -462,6 +466,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const visibleColumnsSet = effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null;
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
+  const columnOpEnabled = detailConfig?.columnOpEnabled || {};
   const showComparisonEnabled = detailConfig?.showComparison !== false;
 
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
@@ -553,6 +558,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         columnTypes={columnTypes || {}}
         columnFormats={columnFormats}
         formatVariants={formatVariants}
+        columnOpEnabled={columnOpEnabled}
         rendered={rendered}
         visibleColumnsSet={visibleColumnsSet}
         schema={schema}
