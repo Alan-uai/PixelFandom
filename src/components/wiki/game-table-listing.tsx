@@ -25,6 +25,8 @@ import type { ViewerConfig } from '@/lib/viewer-config';
 import { resolveTableIcon } from '@/lib/table-icons';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
+import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { formatNumber } from '@/lib/format-number';
 
 const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
 const LONG_TEXT_COLS = new Set([
@@ -95,10 +97,19 @@ function renderBadgeItem(
   badgeConfig: Record<string, any>,
   badgeColors: Record<string, string>,
   onCompareStatClick?: (statKey: string) => void,
+  columnTypes?: Record<string, string>,
+  useSuffix?: boolean,
 ): React.ReactNode {
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
-  const strVal = String(val);
+
+  let displayValue: React.ReactNode;
+  if (typeof val === 'number') {
+    displayValue = formatNumber(val, useSuffix ?? true);
+  } else {
+    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" />;
+  }
+
   const bc = badgeConfig[col] || {};
   const rawColor = badgeColors[col] || '';
   const isColor = isColorString(rawColor);
@@ -111,9 +122,9 @@ function renderBadgeItem(
 
   const content = (
     <>
-      {col === 'element' && elIcon(strVal)}
+      {col === 'element' && elIcon(String(val))}
       {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
-      {strVal}
+      {displayValue}
     </>
   );
 
@@ -175,6 +186,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const detailConfig: Record<string, any> = viewerConfig?.card || {};
+  const columnTypes: Record<string, string> = (viewerConfig?.columnTypes || {}) as Record<string, string>;
 
   let cols: number;
   if (fmt === 'list') {
@@ -501,6 +513,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       scaleFactor,
       cardConfig,
       detailConfig,
+      columnTypes,
     };
 
     const rowSelectionProps = {
@@ -757,9 +770,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         );
       }
       const Icon = resolveTableIcon(headerIcon);
-      return <Icon className="h-5 w-5" />;
+      return <Icon className="h-16 w-16 text-primary" />;
     }
-    return <Database className="h-5 w-5" />;
+    return <Database className="h-16 w-16 text-primary" />;
   };
 
   const renderHeaderTitle = () => {
@@ -798,12 +811,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
       <div className="mb-8">
         <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+            <div className="flex items-center gap-3">
               {renderHeaderIcon()}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{renderHeaderTitle()}</h1>
+              <div>
+                <h1 className="text-[2rem] font-bold">{renderHeaderTitle()}</h1>
               {viewerConfig?.header?.subtitle && (
                 <p className="text-sm text-muted-foreground/70">{viewerConfig.header.subtitle}</p>
               )}
@@ -1105,11 +1116,12 @@ function ItemListRow({
   selectedSlug,
   onSelect,
   cardRefs,
-  _useSuffix,
+  useSuffix,
   _scaleFactor,
   cardConfig,
   _detailConfig,
   onCompareStatClick,
+  columnTypes,
 }: {
   item: any;
   _tableName?: string;
@@ -1118,11 +1130,12 @@ function ItemListRow({
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
-  _useSuffix?: boolean;
+  useSuffix?: boolean;
   _scaleFactor?: number;
   cardConfig?: Record<string, any>;
   _detailConfig?: Record<string, any>;
   onCompareStatClick: () => void;
+  columnTypes?: Record<string, string>;
 }) {
   const name = item.name || item.title || item.slug || 'Item';
   const slug = item.slug || '';
@@ -1155,7 +1168,7 @@ function ItemListRow({
         {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
         {activeBadges.length > 0 && (
           <div className="flex items-center gap-1 mt-1 flex-wrap">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, undefined, columnTypes, useSuffix))}
           </div>
         )}
       </div>
@@ -1181,11 +1194,12 @@ function ItemTableRow({
   selectedSlug,
   onSelect,
   cardRefs,
-  _useSuffix,
+  useSuffix,
   _scaleFactor,
   cardConfig,
   _detailConfig,
   onCompareStatClick,
+  columnTypes,
 }: {
   item: any;
   _tableName?: string;
@@ -1194,11 +1208,12 @@ function ItemTableRow({
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
   cardRefs?: React.MutableRefObject<Map<string, HTMLElement>>;
-  _useSuffix?: boolean;
+  useSuffix?: boolean;
   _scaleFactor?: number;
   cardConfig?: Record<string, any>;
   _detailConfig?: Record<string, any>;
   onCompareStatClick: () => void;
+  columnTypes?: Record<string, string>;
 }) {
   const name = item.name || item.title || item.slug || 'Item';
   const slug = item.slug || '';
@@ -1235,7 +1250,7 @@ function ItemTableRow({
           <span className="text-sm font-medium truncate">{name}</span>
           {activeBadges.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
-              {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors))}
+              {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, undefined, columnTypes, useSuffix))}
             </div>
           )}
         </div>
@@ -1273,6 +1288,7 @@ function ItemAccordionBox({
   _scaleFactor,
   cardConfig,
   detailConfig,
+  columnTypes,
   onCompareStatClick,
 }: {
   item: any;
@@ -1286,6 +1302,7 @@ function ItemAccordionBox({
   _scaleFactor?: number;
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
+  columnTypes?: Record<string, string>;
   onCompareStatClick: (statKey: string) => void;
 }) {
   const [expanded, setExpanded] = useState(detailConfig?.defaultExpanded === true);
@@ -1324,7 +1341,7 @@ function ItemAccordionBox({
         )}
         {activeBadges.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
           </div>
         )}
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
@@ -1351,6 +1368,7 @@ function ItemAccordionBox({
               useSuffix={useSuffix}
               onCompareStatClick={onCompareStatClick as any}
               detailConfig={detailConfig}
+              columnTypes={columnTypes}
             />
           ) : null}
         </div>
@@ -1369,6 +1387,7 @@ function ItemCard({
   useSuffix,
   cardConfig,
   detailConfig,
+  columnTypes,
 }: {
   item: any;
   tableName: string;
@@ -1379,6 +1398,7 @@ function ItemCard({
   useSuffix?: boolean;
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
+  columnTypes?: Record<string, string>;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = toSlug(String(label));
@@ -1420,7 +1440,14 @@ function ItemCard({
   function renderBadge(col: string): React.ReactNode {
     const val = item[col];
     if (val == null || val === '' || val === 'none') return null;
-    const strVal = String(val);
+
+    let displayValue: React.ReactNode;
+    if (typeof val === 'number') {
+      displayValue = formatNumber(val, useSuffix ?? true);
+    } else {
+      displayValue = <ColumnDisplay value={val} column={col} renderType="auto" />;
+    }
+
     const bc = badgeConfig[col] || {};
     const rawColor = badgeColors[col] || '';
     const isColor = isColorString(rawColor);
@@ -1433,17 +1460,17 @@ function ItemCard({
     if (hasAction) {
       return (
         <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes} style={style}>
-          {col === 'element' && elIcon(strVal)}
+          {col === 'element' && elIcon(String(val))}
           {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
-          {strVal}
+          {displayValue}
         </button>
       );
     }
     return (
       <span key={col} className={classes} style={style}>
-        {col === 'element' && elIcon(strVal)}
+        {col === 'element' && elIcon(String(val))}
         {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
-        {strVal}
+        {displayValue}
       </span>
     );
   }
@@ -1469,7 +1496,7 @@ function ItemCard({
         {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
         <div className={`relative ${cardPadding} flex items-start gap-3`}>
           {showCardIcon && (
-          <div className={`relative ${iconSize} rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden`}>
+          <div className={`relative ${iconSize} flex items-center justify-center shrink-0`}>
             {icon || collIcon}
           </div>
           )}
@@ -1501,6 +1528,7 @@ function ItemCard({
             useSuffix={useSuffix}
             onCompareStatClick={onCompareStatClick}
             detailConfig={detailConfig}
+            columnTypes={columnTypes}
           />
         ) : (
           <p className="text-sm text-muted-foreground">{item.description || ''}</p>

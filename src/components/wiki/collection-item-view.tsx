@@ -185,7 +185,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 
 function RenderTypeFields({
   data, columnTypes, columnFormats, formatVariants, rendered, visibleColumnsSet,
-  schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder,
+  schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix,
 }: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
@@ -201,6 +201,7 @@ function RenderTypeFields({
   onStatClick?: (statKey: string) => void;
   chipWrap?: boolean;
   columnOrder?: string[];
+  useSuffix?: boolean;
 }) {
   const sections: React.ReactNode[] = [];
   const activeMode = comparisonMode || 'modal';
@@ -251,7 +252,7 @@ function RenderTypeFields({
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} />
         </div>
       );
     }).filter(Boolean);
@@ -280,7 +281,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={meta?.label || fieldLabel(c.column_name)}
-              value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />}
+              value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} />}
               icon={meta?.icon || fieldIcon(c.column_name)}
               color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -447,7 +448,7 @@ type Props = {
   detailConfig?: DetailConfig;
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix: _useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
   const description = data.description as string | undefined;
@@ -562,6 +563,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         onStatClick={handleStatClick}
         chipWrap={chipWrap}
         columnOrder={detailConfig?.columnOrder}
+        useSuffix={useSuffix}
       />
 
       {/* Footer */}

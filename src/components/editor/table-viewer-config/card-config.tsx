@@ -323,7 +323,7 @@ export function CardConfig({
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Colunas visíveis ao expandir</Label>
+          <Label className="text-xs text-muted-foreground">colunas visíveis</Label>
           <p className="text-[10px] text-muted-foreground">Marque as colunas que aparecem no detalhe.</p>
           <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
             {(columns as string[]).map((col) => {

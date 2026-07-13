@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp } from 'lucide-react';
 import { Icon } from '@iconify/react';
+import { parseSmartNumber } from '@/lib/sort-utils';
 
 export function CategorizationConfig({
   config,
@@ -99,6 +101,45 @@ export function CategorizationConfig({
       Object.entries(map).map(([k, v]) => [k, Array.from(v).sort()]),
     );
   }, [secondaryColumn, items, detectedColumn]);
+
+  const isNumericValues = (vals: string[]) =>
+    vals.length > 0 && vals.every((v) => parseSmartNumber(v) !== null);
+
+  const catValuesNumeric = isNumericValues(categoryValues);
+  const flatSubValues = useMemo(() => {
+    const vals: string[] = [];
+    for (const subs of Object.values(secondaryValuesByCategory)) vals.push(...subs);
+    return vals;
+  }, [secondaryValuesByCategory]);
+  const subValuesNumeric = isNumericValues(flatSubValues);
+
+  const sortedCategoryChips = useMemo(() => {
+    const order = (c.order as string[]) || [];
+    const dir = c.categorySortDirection || 'asc';
+    const ordered = order.filter((v) => categoryValues.includes(v));
+    const remaining = categoryValues.filter((v) => !ordered.includes(v));
+    if (dir === 'desc') ordered.reverse();
+    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    return [...ordered, ...remaining];
+  }, [categoryValues, c.order, c.categorySortDirection]);
+
+  const flatSubEntries = useMemo(() => {
+    const entries: { key: string; cat: string; sub: string }[] = [];
+    for (const [cat, subs] of Object.entries(secondaryValuesByCategory)) {
+      for (const sub of subs) entries.push({ key: `${cat}::${sub}`, cat, sub });
+    }
+    return entries;
+  }, [secondaryValuesByCategory]);
+
+  const sortedSubChips = useMemo(() => {
+    const order = (c.subOrder as string[]) || [];
+    const dir = c.categorySortDirection || 'asc';
+    const ordered = order.filter((k) => flatSubEntries.some((e) => e.key === k));
+    const remaining = flatSubEntries.filter((e) => !ordered.includes(e.key));
+    if (dir === 'desc') ordered.reverse();
+    remaining.sort((a, b) => (dir === 'desc' ? b.key.localeCompare(a.key) : a.key.localeCompare(b.key)));
+    return [...ordered.map((k) => flatSubEntries.find((e) => e.key === k)!), ...remaining];
+  }, [flatSubEntries, c.subOrder, c.categorySortDirection]);
 
   // Manual group icon/image helpers
   const manualGroups: any[] = c.manualGroups || [];
@@ -300,55 +341,59 @@ export function CategorizationConfig({
         </div>
       )}
 
-      {/* === Espaçamento entre categorias === */}
-      <div className="space-y-3 border-t pt-3">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="spacing-enabled"
-            checked={c.spacingEnabled !== false}
-            onCheckedChange={(v) => onChange({ ...c, spacingEnabled: v })}
-          />
-          <Label htmlFor="spacing-enabled" className="text-xs">Espaçamento entre categorias</Label>
-        </div>
+      {c.style !== 'tabs' && (
+        <>
+          {/* === Espaçamento entre categorias === */}
+          <div className="space-y-3 border-t pt-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="spacing-enabled"
+                checked={c.spacingEnabled !== false}
+                onCheckedChange={(v) => onChange({ ...c, spacingEnabled: v })}
+              />
+              <Label htmlFor="spacing-enabled" className="text-xs">Espaçamento entre categorias</Label>
+            </div>
 
-        {c.spacingEnabled !== false && (
-          <div className="space-y-3 pl-4 border-l-2 border-primary/20">
-            <Select3D
-              label="Estilo do espaçamento"
-              value={c.spacingStyle || 'none'}
-              options={[
-                { label: 'Padrão (sem linha)', value: 'none' },
-                { label: '--- (linha simples)', value: 'single-line' },
-                { label: '=== (linhas duplas)', value: 'double-line' },
-                { label: '- - - (tracejada)', value: 'dashed' },
-              ]}
-              onChange={(v) => onChange({ ...c, spacingStyle: v })}
-            />
-            {c.spacingStyle && c.spacingStyle !== 'none' && (
-              <ElasticSlider3D
-                label="Espaçamento entre linha e conteúdo"
-                defaultValue={c.spacingValue || 16}
-                startingValue={2}
-                maxValue={64}
-                showValue
-                valueSuffix="px"
-                onValueChange={(v) => onChange({ ...c, spacingValue: Math.round(v) })}
-              />
-            )}
-            {c.spacingStyle && c.spacingStyle !== 'none' && (
-              <ElasticSlider3D
-                label="Espessura da linha"
-                defaultValue={c.separatorWidth ?? 2}
-                startingValue={0}
-                maxValue={16}
-                showValue
-                valueSuffix="px"
-                onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
-              />
+            {c.spacingEnabled !== false && (
+              <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+                <Select3D
+                  label="Estilo do espaçamento"
+                  value={c.spacingStyle || 'none'}
+                  options={[
+                    { label: 'Padrão (sem linha)', value: 'none' },
+                    { label: '--- (linha simples)', value: 'single-line' },
+                    { label: '=== (linhas duplas)', value: 'double-line' },
+                    { label: '- - - (tracejada)', value: 'dashed' },
+                  ]}
+                  onChange={(v) => onChange({ ...c, spacingStyle: v })}
+                />
+                {c.spacingStyle && c.spacingStyle !== 'none' && (
+                  <ElasticSlider3D
+                    label="Espaçamento entre linha e conteúdo"
+                    defaultValue={c.spacingValue || 16}
+                    startingValue={2}
+                    maxValue={64}
+                    showValue
+                    valueSuffix="px"
+                    onValueChange={(v) => onChange({ ...c, spacingValue: Math.round(v) })}
+                  />
+                )}
+                {c.spacingStyle && c.spacingStyle !== 'none' && (
+                  <ElasticSlider3D
+                    label="Espessura da linha"
+                    defaultValue={c.separatorWidth ?? 2}
+                    startingValue={0}
+                    maxValue={16}
+                    showValue
+                    valueSuffix="px"
+                    onValueChange={(v) => onChange({ ...c, separatorWidth: v })}
+                  />
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
 
@@ -458,42 +503,49 @@ export function CategorizationConfig({
               title="Alternar direção da ordenação"
             >
               {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                <><ArrowUpDown className="h-3 w-3" /> {catValuesNumeric ? '0→1' : 'A→Z'}</>
               ) : (
-                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                <><ArrowDownUp className="h-3 w-3" /> {catValuesNumeric ? '1→0' : 'Z→A'}</>
               )}
             </button>
           </div>
         )}
         {categoryValues.length > 0 ? (
           <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
-            {categoryValues.map((cat) => {
-              const orderIndex = ((c.order as string[]) || []).indexOf(cat);
-              const isOrdered = orderIndex >= 0;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    const currentOrder = (c.order as string[]) || [];
-                    if (isOrdered) {
-                      onChange({ ...c, order: currentOrder.filter((v) => v !== cat) });
-                    } else {
-                      onChange({ ...c, order: [...currentOrder, cat] });
-                    }
-                  }}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
-                    isOrdered
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
-                  }`}
-                >
-                  {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                  {cat}
-                  {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
-                </button>
-              );
-            })}
+            <AnimatePresence mode="popLayout">
+              {sortedCategoryChips.map((cat) => {
+                const orderIndex = ((c.order as string[]) || []).indexOf(cat);
+                const isOrdered = orderIndex >= 0;
+                return (
+                  <motion.button
+                    key={cat}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    type="button"
+                    onClick={() => {
+                      const currentOrder = (c.order as string[]) || [];
+                      if (isOrdered) {
+                        onChange({ ...c, order: currentOrder.filter((v) => v !== cat) });
+                      } else {
+                        onChange({ ...c, order: [...currentOrder, cat] });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                      isOrdered
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                    {cat}
+                    {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
           </div>
         ) : (
           <p className="text-[10px] text-muted-foreground py-0.5">Nenhuma categoria disponível.</p>
@@ -548,21 +600,25 @@ export function CategorizationConfig({
               className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                <><ArrowUpDown className="h-3 w-3" /> {subValuesNumeric ? '0→1' : 'A→Z'}</>
               ) : (
-                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                <><ArrowDownUp className="h-3 w-3" /> {subValuesNumeric ? '1→0' : 'Z→A'}</>
               )}
             </button>
           </div>
           <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-            {Object.entries(secondaryValuesByCategory).flatMap(([cat, subs]) =>
-              subs.map((sub) => {
-                const key = `${cat}::${sub}`;
+            <AnimatePresence mode="popLayout">
+              {sortedSubChips.map(({ key, cat, sub }) => {
                 const orderIndex = ((c.subOrder as string[]) || []).indexOf(key);
                 const isOrdered = orderIndex >= 0;
                 return (
-                  <button
+                  <motion.button
                     key={key}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     type="button"
                     onClick={() => {
                       const currentOrder = (c.subOrder as string[]) || [];
@@ -581,10 +637,10 @@ export function CategorizationConfig({
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
                     <span className="text-[10px] opacity-60">{cat}:</span> {sub}
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
-                  </button>
+                  </motion.button>
                 );
-              })
-            )}
+              })}
+            </AnimatePresence>
           </div>
 
           <div className="border-t border-border/30 pt-2 mt-2">

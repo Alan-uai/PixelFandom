@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { formatNumber } from '@/lib/format-number';
 import { COLUMN_TYPES } from './registry';
+import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
 
 export interface DisplayProps {
   value: unknown;
@@ -11,7 +12,7 @@ export interface DisplayProps {
   renderType: string;
 }
 
-export function ColumnDisplay({ value, column, renderType }: DisplayProps): ReactNode {
+export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayProps & { useSuffix?: boolean }): ReactNode {
   if (value === null || value === undefined || value === '') return null;
 
   const def = COLUMN_TYPES[renderType as keyof typeof COLUMN_TYPES];
@@ -145,22 +146,30 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
       return <span className="text-sm font-medium">{String(value)}</span>;
 
     case 'jsonb': {
+      ensureDetectorsRegistered();
       const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (Array.isArray(parsed)) {
         if (parsed.length === 0) return <span className="text-xs text-muted-foreground italic">vazio</span>;
         if (parsed.every((i: unknown) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
           return (
             <div className="flex flex-wrap gap-2">
-              {parsed.map((obj: Record<string, unknown>, i: number) => (
-                <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
-                  {Object.entries(obj).map(([k, val]) => (
-                    <div key={k} className="flex items-center gap-1.5">
-                      <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                      <span className="text-muted-foreground">{String(val ?? '—')}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+              {parsed.map((obj: Record<string, unknown>, i: number) => {
+                const d = findBestDetector(obj);
+                return d ? (
+                  <div key={i} className="min-w-[130px]">
+                    {d.render({ value: obj })}
+                  </div>
+                ) : (
+                  <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
+                    {Object.entries(obj).map(([k, val]) => (
+                      <div key={k} className="flex items-center gap-1.5">
+                        <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                        <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           );
         }
@@ -174,6 +183,8 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
         );
       }
       if (typeof parsed === 'object' && parsed !== null) {
+        const detector = findBestDetector(parsed);
+        if (detector) return detector.render({ value: parsed });
         return (
           <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
             {Object.entries(parsed as Record<string, unknown>).map(([k, val]) => (
@@ -205,7 +216,7 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
         );
       }
       if (typeof value === 'number') {
-        return <span className="font-mono">{formatNumber(value, true)}</span>;
+        return <span className="font-mono">{formatNumber(value, useSuffix ?? true)}</span>;
       }
       if (typeof value === 'string') {
         if (value.length > 60 || value.includes('\n')) {
@@ -216,18 +227,26 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
       if (Array.isArray(value)) {
         if (value.length === 0) return <span className="text-xs text-muted-foreground italic">vazio</span>;
         if (value.every((i: unknown) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
+          ensureDetectorsRegistered();
           return (
             <div className="flex flex-wrap gap-2">
-              {value.map((obj: Record<string, unknown>, i: number) => (
-                <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
-                  {Object.entries(obj).map(([k, val]) => (
-                    <div key={k} className="flex items-center gap-1.5">
-                      <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                      <span className="text-muted-foreground">{String(val ?? '—')}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+              {value.map((obj: Record<string, unknown>, i: number) => {
+                const d = findBestDetector(obj);
+                return d ? (
+                  <div key={i} className="min-w-[130px]">
+                    {d.render({ value: obj })}
+                  </div>
+                ) : (
+                  <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
+                    {Object.entries(obj).map(([k, val]) => (
+                      <div key={k} className="flex items-center gap-1.5">
+                        <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                        <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           );
         }
@@ -240,14 +259,25 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
         );
       }
       if (typeof value === 'object' && value !== null) {
+        ensureDetectorsRegistered();
+        const detector = findBestDetector(value);
+        if (detector) return detector.render({ value });
         return (
           <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
-            {Object.entries(value as Record<string, unknown>).map(([k, val]) => (
-              <div key={k} className="flex items-start gap-2">
-                <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
-                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
-              </div>
-            ))}
+            {Object.entries(value as Record<string, unknown>).map(([k, val]) => {
+              const innerDetector = typeof val === 'object' && val !== null && !Array.isArray(val) ? findBestDetector(val) : null;
+              return (
+                <div key={k} className="flex items-start gap-2">
+                  <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
+                  <span className="text-muted-foreground">
+                    {innerDetector
+                      ? innerDetector.render({ value: val })
+                      : typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')
+                    }
+                  </span>
+                </div>
+              );
+            })}
           </div>
         );
       }

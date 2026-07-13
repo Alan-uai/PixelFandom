@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
+import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
 
 type Props = {
   format: DisplayFormat;
@@ -977,9 +979,21 @@ function renderEmoji(v: number, str: string, label: string) {
   );
 }
 
+function isComplexValue(value: unknown): boolean {
+  return value !== null && value !== undefined && (typeof value === 'object' || Array.isArray(value));
+}
+
 // ── Main component ────────────────────────────────────────
 export default function FormatVariantRenderer({ format, variant, value, label }: Props) {
   const n = v(variant);
+
+  // For complex values (objects/arrays), use dynamic detection instead of string coercion
+  if (isComplexValue(value)) {
+    return (
+      <ColumnDisplay value={value} column={label} renderType="auto" />
+    );
+  }
+
   const str = String(value ?? '');
 
   switch (format) {
@@ -999,6 +1013,15 @@ export default function FormatVariantRenderer({ format, variant, value, label }:
     case 'video':    return renderVideo(n, str, label);
     case 'audio':    return renderAudio(n, str, label);
     case 'emoji':    return renderEmoji(n, str, label);
+    case 'jsonb-structured': {
+      ensureDetectorsRegistered();
+      const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+      if (typeof detectValue === 'object' && detectValue !== null) {
+        const detector = findBestDetector(detectValue);
+        if (detector) return detector.render({ value: detectValue }, n);
+      }
+      return <ColumnDisplay value={detectValue} column={label} renderType="auto" />;
+    }
     default:         return renderText(n, str, label);
   }
 }

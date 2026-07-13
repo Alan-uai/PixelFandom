@@ -15,6 +15,7 @@ export const ALL_FORMATS = [
   'video',
   'audio',
   'emoji',
+  'jsonb-structured',
 ] as const;
 
 export type DisplayFormat = typeof ALL_FORMATS[number];
@@ -42,6 +43,7 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   video:    { value: 'video',    label: 'Vídeo',     description: 'Player de vídeo' },
   audio:    { value: 'audio',    label: 'Áudio',     description: 'Player de áudio' },
   emoji:    { value: 'emoji',    label: 'Emoji',     description: 'Emoji ampliado' },
+  'jsonb-structured': { value: 'jsonb-structured', label: 'JSONB Estruturado', description: 'Detecção automática de formato JSONB' },
 };
 
 const COMPAT: Record<string, DisplayFormat[]> = {
@@ -49,7 +51,7 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   link:          ['text', 'badge', 'link'],
   tags:          ['text', 'badge', 'tags'],
   'entity-link': ['text', 'badge', 'link'],
-  jsonb:         ['text', 'tags'],
+  jsonb:         ['text', 'tags', 'jsonb-structured'],
 
   integer:  ['text', 'badge', 'rating', 'progress', 'duration'],
   bigint:   ['text', 'badge', 'rating', 'progress', 'duration'],
