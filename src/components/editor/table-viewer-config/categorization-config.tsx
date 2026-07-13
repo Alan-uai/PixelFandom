@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -13,23 +13,9 @@ import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
 import { Icon } from '@iconify/react';
-import { parseSmartNumber } from '@/lib/sort-utils';
-
-const NON_CAT_COLUMNS = new Set([
-  'id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug',
-  'image_url', 'image', 'cover_url', 'logo_url', 'banner_url',
-  'icon_url', 'icon_id', 'icon',
-  'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
-  'content', 'details', 'items_dropped', 'notable_loot',
-]);
-
-function isCategorizableColumn(col: string): boolean {
-  if (NON_CAT_COLUMNS.has(col)) return false;
-  if (col.endsWith('_url') || col.endsWith('_id')) return false;
-  return true;
-}
+import { getCategorizableColumns, getColumnSortLabel, analyzeColumnValues, hexToColorName, getHexHue } from '@/lib/categorizable-columns';
 
 export function CategorizationConfig({
   config,
@@ -39,6 +25,7 @@ export function CategorizationConfig({
   items,
   itemsLoading,
   tenantId,
+  columnTypes,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
@@ -47,8 +34,22 @@ export function CategorizationConfig({
   items?: Record<string, unknown>[];
   itemsLoading?: boolean;
   tenantId?: string;
+  columnTypes?: Record<string, string>;
 }) {
   const c: Record<string, any> = config || {};
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [catDirActive, setCatDirActive] = useState(false);
+  const [subDirActive, setSubDirActive] = useState(false);
+  const [catItemDirActive, setCatItemDirActive] = useState(false);
+  const [subCatItemDirActive, setSubCatItemDirActive] = useState(false);
+
+  const categorizableColumns = useMemo(
+    () => getCategorizableColumns(columns as string[], {
+      columnTypes: columnTypes as Record<string, string> | undefined,
+      items: items as Record<string, unknown>[] | undefined,
+    }),
+    [columns, columnTypes, items],
+  );
 
   const detectedColumn = useMemo(() => {
     if (c.column && c.column !== 'none') return c.column;
@@ -78,6 +79,13 @@ export function CategorizationConfig({
     }
     return Array.from(values).sort();
   }, [detectedColumn, items]);
+
+  const catColumnAnalysis = useMemo(
+    () => detectedColumn && items && items.length > 0
+      ? analyzeColumnValues(items as Record<string, unknown>[], detectedColumn)
+      : undefined,
+    [detectedColumn, items],
+  );
 
   const isAutoDetect = !c.column || c.column === 'none';
   const categoryIcons: Record<string, string> = c.categoryIcons || {};
@@ -116,16 +124,21 @@ export function CategorizationConfig({
     );
   }, [secondaryColumn, items, detectedColumn]);
 
-  const isNumericValues = (vals: string[]) =>
-    vals.length > 0 && vals.every((v) => parseSmartNumber(v) !== null);
-
-  const catValuesNumeric = isNumericValues(categoryValues);
   const flatSubValues = useMemo(() => {
     const vals: string[] = [];
     for (const subs of Object.values(secondaryValuesByCategory)) vals.push(...subs);
     return vals;
   }, [secondaryValuesByCategory]);
-  const subValuesNumeric = isNumericValues(flatSubValues);
+
+  const subColumnAnalysis = useMemo(
+    () => secondaryColumn && items && items.length > 0
+      ? analyzeColumnValues(items as Record<string, unknown>[], secondaryColumn)
+      : undefined,
+    [secondaryColumn, items],
+  );
+
+  const catSortLabel = getColumnSortLabel(categoryValues, catColumnAnalysis);
+  const subSortLabel = getColumnSortLabel(flatSubValues, subColumnAnalysis);
 
   const catItemSortValues = useMemo(() => {
     const sortCol = c.categoryItemSortColumn;
@@ -138,15 +151,28 @@ export function CategorizationConfig({
     return Array.from(values);
   }, [c.categoryItemSortColumn, items]);
 
+  const catItemSortAnalysis = useMemo(
+    () => c.categoryItemSortColumn && items && items.length > 0
+      ? analyzeColumnValues(items as Record<string, unknown>[], c.categoryItemSortColumn)
+      : undefined,
+    [c.categoryItemSortColumn, items],
+  );
+
   const sortedCatItemChips = useMemo(() => {
     const order = (c.categoryItemOrder as string[]) || [];
     const dir = c.categoryItemSortDirection || 'asc';
+    const colorMode = c.colorSortMode || 'value';
+    const isColor = catItemSortAnalysis?.type === 'color';
     const ordered = order.filter((v) => catItemSortValues.includes(v));
     const remaining = catItemSortValues.filter((v) => !ordered.includes(v));
     if (dir === 'desc') ordered.reverse();
-    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    if (isColor && colorMode === 'value') {
+      remaining.sort((a, b) => getHexHue(a) - getHexHue(b));
+    } else {
+      remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    }
     return [...ordered, ...remaining];
-  }, [catItemSortValues, c.categoryItemOrder, c.categoryItemSortDirection]);
+  }, [catItemSortValues, c.categoryItemOrder, c.categoryItemSortDirection, c.colorSortMode, catItemSortAnalysis]);
 
   const subCatItemSortValues = useMemo(() => {
     const sortCol = c.subCategoryItemSortColumn;
@@ -159,25 +185,47 @@ export function CategorizationConfig({
     return Array.from(values);
   }, [c.subCategoryItemSortColumn, items]);
 
+  const subCatItemSortAnalysis = useMemo(
+    () => c.subCategoryItemSortColumn && items && items.length > 0
+      ? analyzeColumnValues(items as Record<string, unknown>[], c.subCategoryItemSortColumn)
+      : undefined,
+    [c.subCategoryItemSortColumn, items],
+  );
+
   const sortedSubCatItemChips = useMemo(() => {
     const order = (c.subCategoryItemOrder as string[]) || [];
     const dir = c.subCategoryItemSortDirection || 'asc';
+    const colorMode = c.colorSortMode || 'value';
+    const isColor = subCatItemSortAnalysis?.type === 'color';
     const ordered = order.filter((v) => subCatItemSortValues.includes(v));
     const remaining = subCatItemSortValues.filter((v) => !ordered.includes(v));
     if (dir === 'desc') ordered.reverse();
-    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    if (isColor && colorMode === 'value') {
+      remaining.sort((a, b) => getHexHue(a) - getHexHue(b));
+    } else {
+      remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    }
     return [...ordered, ...remaining];
-  }, [subCatItemSortValues, c.subCategoryItemOrder, c.subCategoryItemSortDirection]);
+  }, [subCatItemSortValues, c.subCategoryItemOrder, c.subCategoryItemSortDirection, c.colorSortMode, subCatItemSortAnalysis]);
+
+  const catItemSortLabel = getColumnSortLabel(catItemSortValues, catItemSortAnalysis);
+  const subCatItemSortLabel = getColumnSortLabel(subCatItemSortValues, subCatItemSortAnalysis);
 
   const sortedCategoryChips = useMemo(() => {
     const order = (c.order as string[]) || [];
     const dir = c.categorySortDirection || 'asc';
+    const colorMode = c.colorSortMode || 'value';
+    const isColor = catColumnAnalysis?.type === 'color';
     const ordered = order.filter((v) => categoryValues.includes(v));
     const remaining = categoryValues.filter((v) => !ordered.includes(v));
     if (dir === 'desc') ordered.reverse();
-    remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    if (isColor && colorMode === 'value') {
+      remaining.sort((a, b) => getHexHue(a) - getHexHue(b));
+    } else {
+      remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
+    }
     return [...ordered, ...remaining];
-  }, [categoryValues, c.order, c.categorySortDirection]);
+  }, [categoryValues, c.order, c.categorySortDirection, c.colorSortMode, catColumnAnalysis]);
 
   const flatSubEntries = useMemo(() => {
     const entries: { key: string; cat: string; sub: string }[] = [];
@@ -190,12 +238,18 @@ export function CategorizationConfig({
   const sortedSubChips = useMemo(() => {
     const order = (c.subOrder as string[]) || [];
     const dir = c.categorySortDirection || 'asc';
+    const colorMode = c.colorSortMode || 'value';
+    const isColor = subColumnAnalysis?.type === 'color';
     const ordered = order.filter((k) => flatSubEntries.some((e) => e.key === k));
     const remaining = flatSubEntries.filter((e) => !ordered.includes(e.key));
     if (dir === 'desc') ordered.reverse();
-    remaining.sort((a, b) => (dir === 'desc' ? b.key.localeCompare(a.key) : a.key.localeCompare(b.key)));
+    if (isColor && colorMode === 'value') {
+      remaining.sort((a, b) => getHexHue(a.sub) - getHexHue(b.sub));
+    } else {
+      remaining.sort((a, b) => (dir === 'desc' ? b.key.localeCompare(a.key) : a.key.localeCompare(b.key)));
+    }
     return [...ordered.map((k) => flatSubEntries.find((e) => e.key === k)!), ...remaining];
-  }, [flatSubEntries, c.subOrder, c.categorySortDirection]);
+  }, [flatSubEntries, c.subOrder, c.categorySortDirection, c.colorSortMode, subColumnAnalysis]);
 
   // Manual group icon/image helpers
   const manualGroups: any[] = c.manualGroups || [];
@@ -232,7 +286,7 @@ export function CategorizationConfig({
         <Label htmlFor="cat-enabled" className="text-xs">Categorização habilitada</Label>
       </div>
 
-      <Select3D label="Coluna de categoria" value={c.column || 'none'} options={[{label: 'Auto-detect', value: 'none'}, ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, column: v === 'none' ? null : v })} />
+      <Select3D label="Coluna de categoria" value={c.column || 'none'} options={[{label: 'Auto-detect', value: 'none'}, ...categorizableColumns.map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, column: v === 'none' ? null : v })} />
 
       {detectedColumn && (
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -451,7 +505,7 @@ export function CategorizationConfig({
         </>
       )}
 
-      <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...(columns as string[]).filter((col) => col !== c.column && col !== detectedColumn && isCategorizableColumn(col)).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
+      <Select3D label="Categorização secundária" value={c.secondaryColumn || 'none'} options={[{label: 'Nenhuma', value: 'none'}, ...categorizableColumns.filter((col) => col !== detectedColumn).map((col) => ({label: col, value: col}))]} onChange={(v) => onChange({ ...c, secondaryColumn: v === 'none' ? null : v })} />
 
       {/* Sub-category icons per category */}
       {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
@@ -552,16 +606,48 @@ export function CategorizationConfig({
             <button
               type="button"
               onClick={() => {
-                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
-                onChange({ ...c, categorySortDirection: dir });
+                if (catColumnAnalysis?.type === 'color') {
+                  if (clickTimer.current) {
+                    clearTimeout(clickTimer.current);
+                    clickTimer.current = null;
+                    setCatDirActive(!catDirActive);
+                  } else {
+                    clickTimer.current = setTimeout(() => {
+                      clickTimer.current = null;
+                      if (catDirActive) {
+                        const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                        onChange({ ...c, categorySortDirection: dir });
+                      } else {
+                        onChange({ ...c, colorSortMode: c.colorSortMode === 'value' ? 'name' : 'value' });
+                      }
+                    }, 250);
+                  }
+                } else {
+                  const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                  onChange({ ...c, categorySortDirection: dir });
+                }
               }}
               className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-              title="Alternar direção da ordenação"
+              title={catColumnAnalysis?.type === 'color' ? 'Clique simples: alternar modo/direção. Clique duplo: alternar entre modo e direção.' : 'Alternar direção da ordenação'}
             >
-              {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> {catValuesNumeric ? '0→1' : 'A→Z'}</>
+              {catColumnAnalysis?.type === 'color' ? (
+                !catDirActive
+                  ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
+                  : (c.colorSortMode === 'value'
+                    ? (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
+                    : (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>))
+              ) : catSortLabel.mode === 'boolean' ? (
+                c.categorySortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> {catSortLabel.label}</>
+                ) : (
+                  <><ArrowDownUp className="h-3 w-3" /> {catSortLabel.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
+                )
               ) : (
-                <><ArrowDownUp className="h-3 w-3" /> {catValuesNumeric ? '1→0' : 'Z→A'}</>
+                c.categorySortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> {catSortLabel.label}</>
+                ) : (
+                  <><ArrowDownUp className="h-3 w-3" /> {catSortLabel.isNumeric ? '1→0' : 'Z→A'}</>
+                )
               )}
             </button>
           </div>
@@ -596,7 +682,12 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    {cat}
+                    {catColumnAnalysis?.type === 'color' ? (
+                      <>
+                        <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat }} />
+                        {c.colorSortMode === 'name' ? hexToColorName(cat) : cat}
+                      </>
+                    ) : cat}
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -616,7 +707,7 @@ export function CategorizationConfig({
                 value={c.categoryItemSortColumn || 'none'}
                 options={[
                   { label: 'Ordem padrão', value: 'none' },
-                  ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({ label: col, value: col })),
+                  ...categorizableColumns.map((col) => ({ label: col, value: col })),
                 ]}
                 onChange={(v) => onChange({ ...c, categoryItemSortColumn: v === 'none' ? null : v })}
               />
@@ -625,15 +716,47 @@ export function CategorizationConfig({
               <button
                 type="button"
                 onClick={() => {
-                  const dir = c.categoryItemSortDirection === 'asc' ? 'desc' : 'asc';
-                  onChange({ ...c, categoryItemSortDirection: dir });
+                  if (catItemSortAnalysis?.type === 'color') {
+                    if (clickTimer.current) {
+                      clearTimeout(clickTimer.current);
+                      clickTimer.current = null;
+                      setCatItemDirActive(!catItemDirActive);
+                    } else {
+                      clickTimer.current = setTimeout(() => {
+                        clickTimer.current = null;
+                        if (catItemDirActive) {
+                          const dir = c.categoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                          onChange({ ...c, categoryItemSortDirection: dir });
+                        } else {
+                          onChange({ ...c, colorSortMode: c.colorSortMode === 'value' ? 'name' : 'value' });
+                        }
+                      }, 250);
+                    }
+                  } else {
+                    const dir = c.categoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                    onChange({ ...c, categoryItemSortDirection: dir });
+                  }
                 }}
                 className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-4"
               >
-                {c.categoryItemSortDirection === 'asc' ? (
-                  <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                {catItemSortAnalysis?.type === 'color' ? (
+                  !catItemDirActive
+                    ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
+                    : (c.colorSortMode === 'value'
+                      ? (c.categoryItemSortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
+                      : (c.categoryItemSortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>))
+                ) : catItemSortLabel.mode === 'boolean' ? (
+                  c.categoryItemSortDirection === 'asc' ? (
+                    <><ArrowUpDown className="h-3 w-3" /> {catItemSortLabel.label}</>
+                  ) : (
+                    <><ArrowDownUp className="h-3 w-3" /> {catItemSortLabel.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
+                  )
                 ) : (
-                  <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                  c.categoryItemSortDirection === 'asc' ? (
+                    <><ArrowUpDown className="h-3 w-3" /> {catItemSortLabel.label}</>
+                  ) : (
+                    <><ArrowDownUp className="h-3 w-3" /> {catItemSortLabel.isNumeric ? '1→0' : 'Z→A'}</>
+                  )
                 )}
               </button>
             )}
@@ -671,7 +794,12 @@ export function CategorizationConfig({
                         }`}
                       >
                         {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                        {val}
+                        {catItemSortAnalysis?.type === 'color' ? (
+                          <>
+                            <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: val }} />
+                            {c.colorSortMode === 'name' ? hexToColorName(val) : val}
+                          </>
+                        ) : val}
                         {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                       </motion.button>
                     );
@@ -692,15 +820,47 @@ export function CategorizationConfig({
             <button
               type="button"
               onClick={() => {
-                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
-                onChange({ ...c, categorySortDirection: dir });
+                if (subColumnAnalysis?.type === 'color') {
+                  if (clickTimer.current) {
+                    clearTimeout(clickTimer.current);
+                    clickTimer.current = null;
+                    setSubDirActive(!subDirActive);
+                  } else {
+                    clickTimer.current = setTimeout(() => {
+                      clickTimer.current = null;
+                      if (subDirActive) {
+                        const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                        onChange({ ...c, categorySortDirection: dir });
+                      } else {
+                        onChange({ ...c, colorSortMode: c.colorSortMode === 'value' ? 'name' : 'value' });
+                      }
+                    }, 250);
+                  }
+                } else {
+                  const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                  onChange({ ...c, categorySortDirection: dir });
+                }
               }}
               className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {c.categorySortDirection === 'asc' ? (
-                <><ArrowUpDown className="h-3 w-3" /> {subValuesNumeric ? '0→1' : 'A→Z'}</>
+              {subColumnAnalysis?.type === 'color' ? (
+                !subDirActive
+                  ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
+                  : (c.colorSortMode === 'value'
+                    ? (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
+                    : (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>))
+              ) : subSortLabel.mode === 'boolean' ? (
+                c.categorySortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> {subSortLabel.label}</>
+                ) : (
+                  <><ArrowDownUp className="h-3 w-3" /> {subSortLabel.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
+                )
               ) : (
-                <><ArrowDownUp className="h-3 w-3" /> {subValuesNumeric ? '1→0' : 'Z→A'}</>
+                c.categorySortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> {subSortLabel.label}</>
+                ) : (
+                  <><ArrowDownUp className="h-3 w-3" /> {subSortLabel.isNumeric ? '1→0' : 'Z→A'}</>
+                )
               )}
             </button>
           </div>
@@ -733,7 +893,13 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    <span className="text-[10px] opacity-60">{cat}:</span> {sub}
+                    <span className="text-[10px] opacity-60">{cat}:</span>
+                    {subColumnAnalysis?.type === 'color' ? (
+                      <>
+                        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: sub }} />
+                        {c.colorSortMode === 'name' ? hexToColorName(sub) : sub}
+                      </>
+                    ) : sub}
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -745,29 +911,61 @@ export function CategorizationConfig({
             <Label className="text-[10px] text-muted-foreground">Ordenação dos itens para sub-categorias</Label>
             <div className="flex items-center gap-2 mt-1">
               <div className="flex-1">
-                <Select3D
-                  label="Coluna"
-                  value={c.subCategoryItemSortColumn || 'none'}
-                  options={[
-                    { label: 'Ordem padrão', value: 'none' },
-                    ...(columns as string[]).filter(isCategorizableColumn).map((col) => ({ label: col, value: col })),
-                  ]}
-                  onChange={(v) => onChange({ ...c, subCategoryItemSortColumn: v === 'none' ? null : v })}
-                />
+              <Select3D
+                label="Coluna"
+                value={c.subCategoryItemSortColumn || 'none'}
+                options={[
+                  { label: 'Ordem padrão', value: 'none' },
+                  ...categorizableColumns.map((col) => ({ label: col, value: col })),
+                ]}
+                onChange={(v) => onChange({ ...c, subCategoryItemSortColumn: v === 'none' ? null : v })}
+              />
               </div>
               {c.subCategoryItemSortColumn && (
                 <button
                   type="button"
                   onClick={() => {
-                    const dir = c.subCategoryItemSortDirection === 'asc' ? 'desc' : 'asc';
-                    onChange({ ...c, subCategoryItemSortDirection: dir });
+                    if (subCatItemSortAnalysis?.type === 'color') {
+                      if (clickTimer.current) {
+                        clearTimeout(clickTimer.current);
+                        clickTimer.current = null;
+                        setSubCatItemDirActive(!subCatItemDirActive);
+                      } else {
+                        clickTimer.current = setTimeout(() => {
+                          clickTimer.current = null;
+                          if (subCatItemDirActive) {
+                            const dir = c.subCategoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                            onChange({ ...c, subCategoryItemSortDirection: dir });
+                          } else {
+                            onChange({ ...c, colorSortMode: c.colorSortMode === 'value' ? 'name' : 'value' });
+                          }
+                        }, 250);
+                      }
+                    } else {
+                      const dir = c.subCategoryItemSortDirection === 'asc' ? 'desc' : 'asc';
+                      onChange({ ...c, subCategoryItemSortDirection: dir });
+                    }
                   }}
                   className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-4"
                 >
-                  {c.subCategoryItemSortDirection === 'asc' ? (
-                    <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+                  {subCatItemSortAnalysis?.type === 'color' ? (
+                    !subCatItemDirActive
+                      ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
+                      : (c.colorSortMode === 'value'
+                        ? (c.subCategoryItemSortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
+                        : (c.subCategoryItemSortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>))
+                  ) : subCatItemSortLabel.mode === 'boolean' ? (
+                    c.subCategoryItemSortDirection === 'asc' ? (
+                      <><ArrowUpDown className="h-3 w-3" /> {subCatItemSortLabel.label}</>
+                    ) : (
+                      <><ArrowDownUp className="h-3 w-3" /> {subCatItemSortLabel.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
+                    )
                   ) : (
-                    <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+                    c.subCategoryItemSortDirection === 'asc' ? (
+                      <><ArrowUpDown className="h-3 w-3" /> {subCatItemSortLabel.label}</>
+                    ) : (
+                      <><ArrowDownUp className="h-3 w-3" /> {subCatItemSortLabel.isNumeric ? '1→0' : 'Z→A'}</>
+                    )
                   )}
                 </button>
               )}
@@ -805,7 +1003,12 @@ export function CategorizationConfig({
                           }`}
                         >
                           {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                          {val}
+                          {subCatItemSortAnalysis?.type === 'color' ? (
+                            <>
+                              <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: val }} />
+                              {c.colorSortMode === 'name' ? hexToColorName(val) : val}
+                            </>
+                          ) : val}
                           {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                         </motion.button>
                       );

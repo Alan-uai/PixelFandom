@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 export interface DetectionContext {
   value: unknown;
   columnName?: string;
+  useSuffix?: boolean;
 }
 
 export interface ShapeDetector {

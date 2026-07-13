@@ -157,7 +157,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayP
                 const d = findBestDetector(obj);
                 return d ? (
                   <div key={i} className="min-w-[130px]">
-                    {d.render({ value: obj })}
+                    {d.render({ value: obj, useSuffix })}
                   </div>
                 ) : (
                   <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
@@ -184,7 +184,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayP
       }
       if (typeof parsed === 'object' && parsed !== null) {
         const detector = findBestDetector(parsed);
-        if (detector) return detector.render({ value: parsed });
+        if (detector) return detector.render({ value: parsed, useSuffix });
         return (
           <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
             {Object.entries(parsed as Record<string, unknown>).map(([k, val]) => (
@@ -234,7 +234,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayP
                 const d = findBestDetector(obj);
                 return d ? (
                   <div key={i} className="min-w-[130px]">
-                    {d.render({ value: obj })}
+                    {d.render({ value: obj, useSuffix })}
                   </div>
                 ) : (
                   <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
@@ -261,7 +261,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayP
       if (typeof value === 'object' && value !== null) {
         ensureDetectorsRegistered();
         const detector = findBestDetector(value);
-        if (detector) return detector.render({ value });
+        if (detector) return detector.render({ value, useSuffix });
         return (
           <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
             {Object.entries(value as Record<string, unknown>).map(([k, val]) => {
@@ -271,7 +271,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayP
                   <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
                   <span className="text-muted-foreground">
                     {innerDetector
-                      ? innerDetector.render({ value: val })
+                      ? innerDetector.render({ value: val, useSuffix })
                       : typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')
                     }
                   </span>

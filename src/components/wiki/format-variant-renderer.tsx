@@ -9,7 +9,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue } from '@/lib/operator-symbols';
 
 type Props = {
   format: DisplayFormat;
@@ -992,12 +992,13 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   // For complex values (objects/arrays), use dynamic detection instead of string coercion
   if (isComplexValue(value)) {
+    const normalized = normalizeValue(value, useSuffix, opEnabled);
     return (
-      <ColumnDisplay value={value} column={label} renderType="auto" useSuffix={useSuffix} />
+      <ColumnDisplay value={normalized} column={label} renderType="auto" useSuffix={useSuffix} />
     );
   }
 
-  const str = opEnabled ? normalizeOperatorText(String(value ?? '')) : String(value ?? '');
+  const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
   switch (format) {
     case 'text':     return renderText(n, str, label);
@@ -1021,7 +1022,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null) {
         const detector = findBestDetector(detectValue);
-        if (detector) return detector.render({ value: detectValue }, n);
+        if (detector) return detector.render({ value: detectValue, useSuffix }, n);
       }
       return <ColumnDisplay value={detectValue} column={label} renderType="auto" useSuffix={useSuffix} />;
     }

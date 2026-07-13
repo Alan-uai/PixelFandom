@@ -74,6 +74,7 @@ export const ViewerConfigSchema = z.object({
     categoryItemSortColumn: z.string().nullable().default(null),
     categoryItemSortDirection: z.enum(['asc', 'desc']).default('asc'),
     categoryItemOrder: z.array(z.string()).default([]),
+    colorSortMode: z.enum(['value', 'name']).default('value'),
     subCategoryItemSortColumn: z.string().nullable().default(null),
     subCategoryItemSortDirection: z.enum(['asc', 'desc']).default('asc'),
     subCategoryItemOrder: z.array(z.string()).default([]),
