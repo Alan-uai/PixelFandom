@@ -195,7 +195,7 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
           transition={{ duration: 0.3 }}
         />
 
-        {/* Knob — morphs entre esfera (OFF) e buraco (ON) com transição contínua */}
+        {/* Knob — morphs entre esfera 3D (OFF) e buraco (ON) */}
         <motion.div
           className={cn(
             'relative z-10 rounded-full',
@@ -205,12 +205,14 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
             transformStyle: 'preserve-3d',
             background: checked
               ? 'radial-gradient(circle at 32% 28%, rgba(0,0,0,0.2), rgba(0,0,0,0.45))'
-              : 'radial-gradient(circle at 32% 28%, rgba(45,47,53,0.95), rgba(30,32,38,0.7))',
+              : 'radial-gradient(circle at 30% 25%, rgba(75,77,83,1) 0%, rgba(50,52,58,0.95) 25%, rgba(35,37,42,0.85) 65%, rgba(22,24,28,0.8) 100%)',
             boxShadow: checked
               ? '0 1px 1px rgba(0,0,0,0.1), inset 0 2px 3px rgba(0,0,0,0.35)'
-              : '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+              : '0 2px 4px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
             transition:
               'background 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s cubic-bezier(0.22,1,0.36,1)',
+            rotateX: checked ? 0 : rotateX,
+            rotateY: checked ? 0 : rotateY,
           }}
           animate={{
             x: checked ? dims.offset : 0,
@@ -223,7 +225,19 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
             damping: 32,
             mass: 1,
           }}
-        />
+        >
+          {/* Specular highlight (esfera) — fade suave ao virar buraco */}
+          <div
+            className="pointer-events-none absolute inset-0 rounded-full"
+            style={{
+              background:
+                'radial-gradient(circle at 32% 20%, rgba(255,255,255,0.18), transparent 55%)',
+              opacity: checked ? 0 : 1,
+              transition:
+                'opacity 0.35s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          />
+        </motion.div>
 
         {/* Glow ring pulse (checked only) */}
         <AnimatePresence>
@@ -241,16 +255,6 @@ export const Switch3D = forwardRef<HTMLButtonElement, Switch3DProps>(
             />
           )}
         </AnimatePresence>
-
-        {/* 3D tilt overlay */}
-        <motion.div
-          className="pointer-events-none absolute inset-0 rounded-full"
-          style={{
-            rotateX: checked ? 0 : rotateX,
-            rotateY: checked ? 0 : rotateY,
-            transformStyle: 'preserve-3d',
-          }}
-        />
 
         {/* Particles */}
         {!disabled && showParticles && (

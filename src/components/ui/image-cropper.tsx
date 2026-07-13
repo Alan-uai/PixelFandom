@@ -8,6 +8,8 @@ type Area = { width: number; height: number; x: number; y: number };
 
 type AspectPreset = { label: string; ratio: number | null };
 
+type Corner = 'tl' | 'tr' | 'bl' | 'br';
+
 const ASPECT_PRESETS: AspectPreset[] = [
   { label: 'Livre', ratio: null },
   { label: '1:1', ratio: 1 },
@@ -36,8 +38,15 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
   const [cropSize, setCropSize] = useState({ width: 300, height: 300 });
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [loading, setLoading] = useState(false);
+  const [draggingCorner, setDraggingCorner] = useState<Corner | null>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    startCrop: { x: number; y: number };
+    startSize: { width: number; height: number };
+  } | null>(null);
 
   useEffect(() => {
     if (open && containerRef.current) {
@@ -79,6 +88,74 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
     }
   };
 
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+
+  const handleCornerPointerDown = useCallback((corner: Corner, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startCrop: { ...crop },
+      startSize: { ...cropSize },
+    };
+    setDraggingCorner(corner);
+  }, [crop, cropSize]);
+
+  const handleCornerPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!draggingCorner || !dragRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const { startX, startY, startCrop, startSize } = dragRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let w = startSize.width;
+    let h = startSize.height;
+    let cx = startCrop.x;
+    let cy = startCrop.y;
+
+    switch (draggingCorner) {
+      case 'br':
+        w = clamp(startSize.width + dx, MIN_CROP, MAX_CROP);
+        h = clamp(startSize.height + dy, MIN_CROP, MAX_CROP);
+        cx = startCrop.x + (w - startSize.width) / 2;
+        cy = startCrop.y + (h - startSize.height) / 2;
+        break;
+      case 'bl':
+        w = clamp(startSize.width - dx, MIN_CROP, MAX_CROP);
+        h = clamp(startSize.height + dy, MIN_CROP, MAX_CROP);
+        cx = startCrop.x - (w - startSize.width) / 2;
+        cy = startCrop.y + (h - startSize.height) / 2;
+        break;
+      case 'tl':
+        w = clamp(startSize.width - dx, MIN_CROP, MAX_CROP);
+        h = clamp(startSize.height - dy, MIN_CROP, MAX_CROP);
+        cx = startCrop.x - (w - startSize.width) / 2;
+        cy = startCrop.y - (h - startSize.height) / 2;
+        break;
+      case 'tr':
+        w = clamp(startSize.width + dx, MIN_CROP, MAX_CROP);
+        h = clamp(startSize.height - dy, MIN_CROP, MAX_CROP);
+        cx = startCrop.x + (w - startSize.width) / 2;
+        cy = startCrop.y - (h - startSize.height) / 2;
+        break;
+    }
+
+    setCropSize({ width: w, height: h });
+    setCrop({ x: cx, y: cy });
+  }, [draggingCorner]);
+
+  const handleCornerPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!draggingCorner) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingCorner(null);
+    dragRef.current = null;
+  }, [draggingCorner]);
+
   const isFree = aspect === null;
 
   return (
@@ -102,6 +179,48 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
           />
+
+          {isFree && (
+            <>
+              {(['tl', 'tr', 'bl', 'br'] as Corner[]).map((corner) => {
+                const isLeft = corner === 'tl' || corner === 'bl';
+                const isTop = corner === 'tl' || corner === 'tr';
+                const x = isLeft ? crop.x - cropSize.width / 2 : crop.x + cropSize.width / 2;
+                const y = isTop ? crop.y - cropSize.height / 2 : crop.y + cropSize.height / 2;
+                return (
+                  <div
+                    key={corner}
+                    onPointerDown={(e) => handleCornerPointerDown(corner, e)}
+                    onPointerMove={handleCornerPointerMove}
+                    onPointerUp={handleCornerPointerUp}
+                    style={{
+                      position: 'absolute',
+                      left: x - 10,
+                      top: y - 10,
+                      width: 20,
+                      height: 20,
+                      cursor: (isLeft === isTop) ? 'nwse-resize' : 'nesw-resize',
+                      touchAction: 'none',
+                      zIndex: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 14,
+                        height: 14,
+                        margin: 3,
+                        border: '2px solid #fff',
+                        borderRadius: 2,
+                        background: 'rgba(0,0,0,0.35)',
+                        boxShadow: '0 0 6px rgba(0,0,0,0.6)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
 
         <div className="space-y-3 pt-4">

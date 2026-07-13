@@ -114,6 +114,7 @@ export const ViewerConfigSchema = z.object({
   source: z.enum(['global', 'local']).default('local').optional(),
   uploadColumns: z.array(z.string()).default([]).optional(),
   columnTypes: z.record(z.string(), z.string()).default({}).optional(),
+  rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});
 
 export type ViewerConfig = z.infer<typeof ViewerConfigSchema>;

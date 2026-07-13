@@ -162,6 +162,7 @@ export default function DataTableContent({
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
+  const [rowHiddenFields, setRowHiddenFields] = useState<Record<string, string[]>>({});
   const [iconPickerState, setIconPickerState] = useState<{
     col: string;
     value: string;
@@ -235,6 +236,9 @@ export default function DataTableContent({
         }
         if (parsed.columnTypes) {
           setColumnRenderTypes(parsed.columnTypes);
+        }
+        if (parsed.rowHiddenFields) {
+          setRowHiddenFields(parsed.rowHiddenFields);
         }
       }
 
@@ -410,6 +414,7 @@ export default function DataTableContent({
   const startEdit = (row: Row) => {
     setEditingId(row.id as string);
     const form: Record<string, string> = {};
+    const hiddenForRow = rowHiddenFields[row.id as string] || [];
     Object.entries(row).forEach(([key, val]) => {
       if (!isSystemColumn(key) && val != null && val !== '') {
         form[key] = typeof val === 'object' ? JSON.stringify(val) : String(val);
@@ -417,7 +422,7 @@ export default function DataTableContent({
     });
     if (tableColumns) {
       tableColumns.forEach((col) => {
-        if (!isSystemColumn(col.column_name) && !(col.column_name in form)) {
+        if (!isSystemColumn(col.column_name) && !(col.column_name in form) && !hiddenForRow.includes(col.column_name)) {
           form[col.column_name] = '';
         }
       });
@@ -487,6 +492,27 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      if (tenantId) {
+        const { data: configData } = await supabase
+          .from('tenant_game_tables')
+          .select('viewer_config')
+          .eq('tenant_id', tenantId)
+          .eq('slug', table)
+          .maybeSingle();
+        const parsed = parseViewerConfig(configData?.viewer_config);
+        const rowHidden = { ...(parsed.rowHiddenFields || {}) };
+        const localForRow = rowHiddenFields[rowId] || [];
+        const finalForRow = [...new Set([...localForRow, ...removedFields])];
+        if (finalForRow.length > 0) {
+          rowHidden[rowId] = finalForRow;
+        }
+        await supabase
+          .from('tenant_game_tables')
+          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden } })
+          .eq('tenant_id', tenantId)
+          .eq('slug', table);
+        setRowHiddenFields(rowHidden);
+      }
       invalidateDataCache(slug);
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
@@ -1271,11 +1297,21 @@ export default function DataTableContent({
                               title="Clique: usar neste item apenas | Duplo clique: adicionar para todos os itens"
                               onClick={() => {
                                 setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                                setRemovedFields((prev) => { const next = new Set(prev); next.delete(col.column_name); return next; });
+                                setRowHiddenFields((prev) => {
+                                  const hidden = prev[row.id] || [];
+                                  return { ...prev, [row.id]: hidden.filter(f => f !== col.column_name) };
+                                });
                                 setShowAddField(false);
                                 setNewFieldName('');
                               }}
                               onDoubleClick={async () => {
                                 setEditForm((prev) => ({ ...prev, [col.column_name]: '' }));
+                                setRemovedFields((prev) => { const next = new Set(prev); next.delete(col.column_name); return next; });
+                                setRowHiddenFields((prev) => {
+                                  const hidden = prev[row.id] || [];
+                                  return { ...prev, [row.id]: hidden.filter(f => f !== col.column_name) };
+                                });
                                 setShowAddField(false);
                                 setNewFieldName('');
                                 if (tenantId) {

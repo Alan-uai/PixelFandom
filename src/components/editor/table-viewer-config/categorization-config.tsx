@@ -231,17 +231,6 @@ export function CategorizationConfig({
         </div>
       )}
 
-      <Select3D
-        label="Estilo das categorias"
-        value={c.style || 'headings'}
-        options={[
-          { label: 'Títulos', value: 'headings' },
-          { label: 'Abas', value: 'tabs' },
-          { label: 'Acordeão', value: 'accordion' },
-        ]}
-        onChange={(v) => onChange({ ...c, style: v })}
-      />
-
       <ElasticSlider3D
         label="Tamanho do ícone"
         defaultValue={c.iconSize ?? 16}
@@ -261,6 +250,26 @@ export function CategorizationConfig({
         valueSuffix="px"
         onValueChange={(v) => onChange({ ...c, labelSize: Math.round(v) })}
       />
+
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Estilo das categorias</Label>
+        <div className="flex gap-1">
+          {(['headings', 'tabs', 'accordion'] as const).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange({ ...c, style: opt })}
+              className={`flex-1 rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+                (c.style || 'headings') === opt
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+              }`}
+            >
+              {opt === 'headings' ? 'Títulos' : opt === 'tabs' ? 'Abas' : 'Acordeão'}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex items-center gap-2">
         <Switch
@@ -433,16 +442,69 @@ export function CategorizationConfig({
         </div>
       )}
 
-      {/* === Ordenação dos itens === */}
-      <div className="space-y-4 border-t pt-3">
-        <Label className="text-xs font-semibold text-foreground">Ordenação dos itens</Label>
+      {/* === Ordem das categorias === */}
+      <div className="space-y-2 border-t pt-3">
+        <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
+        {categoryValues.length > 0 && (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] text-muted-foreground">Clique para definir posição. Vazias seguem ordem definida.</p>
+            <button
+              type="button"
+              onClick={() => {
+                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                onChange({ ...c, categorySortDirection: dir });
+              }}
+              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              title="Alternar direção da ordenação"
+            >
+              {c.categorySortDirection === 'asc' ? (
+                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+              ) : (
+                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+              )}
+            </button>
+          </div>
+        )}
+        {categoryValues.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
+            {categoryValues.map((cat) => {
+              const orderIndex = ((c.order as string[]) || []).indexOf(cat);
+              const isOrdered = orderIndex >= 0;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    const currentOrder = (c.order as string[]) || [];
+                    if (isOrdered) {
+                      onChange({ ...c, order: currentOrder.filter((v) => v !== cat) });
+                    } else {
+                      onChange({ ...c, order: [...currentOrder, cat] });
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                    isOrdered
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                  }`}
+                >
+                  {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                  {cat}
+                  {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground py-0.5">Nenhuma categoria disponível.</p>
+        )}
 
-        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-          <Label className="text-xs text-muted-foreground">Itens nas categorias</Label>
-          <div className="flex items-center gap-2">
+        <div className="border-t border-border/30 pt-2 mt-2">
+          <Label className="text-[10px] text-muted-foreground">Ordenação dos itens para categorias</Label>
+          <div className="flex items-center gap-2 mt-1">
             <div className="flex-1">
               <Select3D
-                label="Coluna para ordenar"
+                label="Coluna"
                 value={c.categoryItemSortColumn || 'none'}
                 options={[
                   { label: 'Ordem padrão', value: 'none' },
@@ -458,7 +520,7 @@ export function CategorizationConfig({
                   const dir = c.categoryItemSortDirection === 'asc' ? 'desc' : 'asc';
                   onChange({ ...c, categoryItemSortDirection: dir });
                 }}
-                className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-5"
+                className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-4"
               >
                 {c.categoryItemSortDirection === 'asc' ? (
                   <><ArrowUpDown className="h-3 w-3" /> A→Z</>
@@ -469,14 +531,68 @@ export function CategorizationConfig({
             )}
           </div>
         </div>
+      </div>
 
-        {secondaryColumn && (
-          <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-            <Label className="text-xs text-muted-foreground">Itens nas sub-categorias</Label>
-            <div className="flex items-center gap-2">
+      {/* === Ordem das sub-categorias === */}
+      {secondaryColumn && Object.keys(secondaryValuesByCategory).length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-xs text-muted-foreground">Ordem das sub-categorias</Label>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] text-muted-foreground">Clique para definir posição.</p>
+            <button
+              type="button"
+              onClick={() => {
+                const dir = c.categorySortDirection === 'asc' ? 'desc' : 'asc';
+                onChange({ ...c, categorySortDirection: dir });
+              }}
+              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {c.categorySortDirection === 'asc' ? (
+                <><ArrowUpDown className="h-3 w-3" /> A→Z</>
+              ) : (
+                <><ArrowDownUp className="h-3 w-3" /> Z→A</>
+              )}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+            {Object.entries(secondaryValuesByCategory).flatMap(([cat, subs]) =>
+              subs.map((sub) => {
+                const key = `${cat}::${sub}`;
+                const orderIndex = ((c.subOrder as string[]) || []).indexOf(key);
+                const isOrdered = orderIndex >= 0;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      const currentOrder = (c.subOrder as string[]) || [];
+                      if (isOrdered) {
+                        onChange({ ...c, subOrder: currentOrder.filter((v) => v !== key) });
+                      } else {
+                        onChange({ ...c, subOrder: [...currentOrder, key] });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${
+                      isOrdered
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                    }`}
+                  >
+                    {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
+                    <span className="text-[10px] opacity-60">{cat}:</span> {sub}
+                    {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="border-t border-border/30 pt-2 mt-2">
+            <Label className="text-[10px] text-muted-foreground">Ordenação dos itens para sub-categorias</Label>
+            <div className="flex items-center gap-2 mt-1">
               <div className="flex-1">
                 <Select3D
-                  label="Coluna para ordenar"
+                  label="Coluna"
                   value={c.subCategoryItemSortColumn || 'none'}
                   options={[
                     { label: 'Ordem padrão', value: 'none' },
@@ -492,7 +608,7 @@ export function CategorizationConfig({
                     const dir = c.subCategoryItemSortDirection === 'asc' ? 'desc' : 'asc';
                     onChange({ ...c, subCategoryItemSortDirection: dir });
                   }}
-                  className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-5"
+                  className="flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-4"
                 >
                   {c.subCategoryItemSortDirection === 'asc' ? (
                     <><ArrowUpDown className="h-3 w-3" /> A→Z</>
@@ -503,8 +619,8 @@ export function CategorizationConfig({
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* === Grupos manuais (categorias personalizadas) === */}
       <div className="space-y-2 border-t pt-3">
