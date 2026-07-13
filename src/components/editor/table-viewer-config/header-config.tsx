@@ -54,6 +54,7 @@ export function HeaderConfig({
           onChange={(url) => onChange({ ...c, backgroundImage: url })}
           label="Fundo do header"
           previewSize="w-full h-20"
+          tenantId={tenantId ?? undefined}
         />
       </div>
       <div className="flex items-center gap-2">

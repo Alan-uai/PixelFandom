@@ -704,6 +704,7 @@ export default function DataTableContent({
           onChange={(url) => onChange(col, url)}
           label="Imagem"
           previewSize="w-16 h-16"
+          tenantId={tenantId ?? undefined}
         />
       );
     }
@@ -724,6 +725,7 @@ export default function DataTableContent({
               onChange={(url) => onChange(col, url)}
               previewSize="w-8 h-8"
               label="Ícone"
+              tenantId={tenantId ?? undefined}
             />
           ) : null}
           <IconPickerTrigger
@@ -742,6 +744,7 @@ export default function DataTableContent({
           value={value}
           onChange={(url) => onChange(col, url)}
           label="Upload"
+          tenantId={tenantId ?? undefined}
         />
       );
     }

@@ -144,11 +144,47 @@ export function ColumnDisplay({ value, column, renderType }: DisplayProps): Reac
       return <span className="text-sm font-medium">{String(value)}</span>;
 
     case 'jsonb': {
-      let formatted = String(value);
-      try { formatted = JSON.stringify(JSON.parse(String(value)), null, 2); } catch { /* not JSON */ }
-      return (
-        <pre className="text-xs font-mono bg-muted/30 rounded-lg p-2 overflow-x-auto max-h-32">{formatted}</pre>
-      );
+      const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) return <span className="text-xs text-muted-foreground italic">vazio</span>;
+        if (parsed.every((i: unknown) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
+          return (
+            <div className="flex flex-wrap gap-2">
+              {parsed.map((obj: Record<string, unknown>, i: number) => (
+                <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
+                  {Object.entries(obj).map(([k, val]) => (
+                    <div key={k} className="flex items-center gap-1.5">
+                      <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                      <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        }
+        const strItems = parsed.map((i: unknown) => String(i));
+        return (
+          <div className="flex flex-wrap gap-1">
+            {strItems.map((item: string, i: number) => (
+              <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{item}</span>
+            ))}
+          </div>
+        );
+      }
+      if (typeof parsed === 'object' && parsed !== null) {
+        return (
+          <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
+            {Object.entries(parsed as Record<string, unknown>).map(([k, val]) => (
+              <div key={k} className="flex items-start gap-2">
+                <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
+                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return <span className="text-sm">{String(parsed)}</span>;
     }
 
     case 'toggle-group':

@@ -269,6 +269,12 @@ function Slider({
           ),
           transformStyle: 'preserve-3d',
         }}
+        onClick={() => {
+          const newVal = Math.max(startingValue, value - stepSize);
+          setValue(newVal);
+          onValueChange?.(newVal);
+        }}
+        className="cursor-pointer"
       >
         {leftIcon}
       </motion.div>
@@ -336,6 +342,12 @@ function Slider({
           ),
           transformStyle: 'preserve-3d',
         }}
+        onClick={() => {
+          const newVal = Math.min(maxValue, value + stepSize);
+          setValue(newVal);
+          onValueChange?.(newVal);
+        }}
+        className="cursor-pointer"
       >
         {rightIcon}
       </motion.div>

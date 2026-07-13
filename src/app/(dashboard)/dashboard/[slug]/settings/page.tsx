@@ -647,7 +647,14 @@ export default function WikiSettingsPage() {
                     { value: 'table', label: t('layout.format_table'), icon: <Database /> },
                   ]}
                   value={listingDisplayFormat}
-                  onChange={(v) => setListingDisplayFormat(v as string)}
+                  onChange={(v) => {
+                    setListingDisplayFormat(v as string);
+                    const isList = v === 'list';
+                    const defaultCols = isList ? 1 : 2;
+                    if (listingColumnsCount < defaultCols) {
+                      setListingColumnsCount(defaultCols);
+                    }
+                  }}
                   layout="grid"
                   columns={4}
                   size="sm"
@@ -657,10 +664,13 @@ export default function WikiSettingsPage() {
               <ElasticSlider3D
                 label={t('layout.columns_label')}
                 defaultValue={listingColumnsCount}
-                startingValue={1}
+                startingValue={listingDisplayFormat === 'list' ? 1 : 2}
                 maxValue={5}
                 showValue
-                onValueChange={setListingColumnsCount}
+                onValueChange={(v) => {
+                  const min = listingDisplayFormat === 'list' ? 1 : 2;
+                  setListingColumnsCount(Math.max(min, Math.round(v)));
+                }}
               />
 
               <ElasticSlider3D

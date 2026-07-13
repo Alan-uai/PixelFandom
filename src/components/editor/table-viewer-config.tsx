@@ -78,7 +78,10 @@ export default function TableViewerConfig({
     const merged: Record<string, any> = { ...local };
     if (!merged.display) merged.display = {};
     if (!merged.display.format && global.default_format) merged.display.format = global.default_format;
-    if (!merged.display.columnsCount && global.default_columns) merged.display.columnsCount = global.default_columns;
+    if (!merged.display.columnsCount && global.default_columns) {
+      const minForFormat = merged.display.format === 'list' ? 1 : 2;
+      merged.display.columnsCount = Math.max(global.default_columns, minForFormat);
+    }
     if (!merged.display.itemsPerPage && global.items_per_page) merged.display.itemsPerPage = global.items_per_page;
     if (merged.display.pagination === undefined && global.pagination) merged.display.pagination = global.pagination === 'paginated';
     if (!merged.card) merged.card = {};

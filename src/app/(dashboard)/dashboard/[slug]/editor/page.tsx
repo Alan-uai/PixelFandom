@@ -233,6 +233,10 @@ export default function EditorArticlesPage() {
           })
           .eq('tenant_id', tenantId)
           .eq('table_name', slug);
+        setCatalog((prev) => [
+          ...prev,
+          { table_name: slug, display_label: label, parent_table: null, icon: createIcon, is_hidden: false },
+        ]);
         invalidateDataCache(slug);
         setShowCreateDialog(false);
         setActiveTab(slug);

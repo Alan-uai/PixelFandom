@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
-  ScrollText, Lightbulb, MessageCircle, Eye, Crosshair,
+  ScrollText, MessageCircle, Crosshair,
   Coins, Pickaxe, Sparkles, Crown,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -78,24 +78,20 @@ function fmt(v: unknown, useSuffix?: boolean): string {
   return String(v);
 }
 
-function isArrStr(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every((i) => typeof i === 'string');
-}
-
 function renderJsonValue(v: unknown): React.ReactNode {
   if (v == null) return <span className="text-muted-foreground">—</span>;
   if (Array.isArray(v)) {
     if (v.length === 0) return <span className="text-muted-foreground italic">vazio</span>;
     if (v.every((i) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
       return (
-        <div className="space-y-1">
+        <div className="flex flex-wrap gap-2">
           {v.map((obj, i) => (
-            <div key={i} className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+            <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
               {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
-                <span key={k} className="text-muted-foreground">
-                  <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}</span>
-                  {' '}{renderJsonValueInline(val)}
-                </span>
+                <div key={k} className="flex items-center gap-1.5">
+                  <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                  {renderJsonValueInline(val)}
+                </div>
               ))}
             </div>
           ))}
@@ -113,12 +109,14 @@ function renderJsonValue(v: unknown): React.ReactNode {
   }
   if (typeof v === 'object') {
     return (
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+      <div className="rounded-xl border bg-card p-4 text-xs space-y-1.5">
         {Object.entries(v as Record<string, unknown>).map(([k, val]) => (
-          <span key={k} className="text-muted-foreground">
-            <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}</span>
-            {' '}{renderJsonValueInline(val)}
-          </span>
+          <div key={k} className="flex items-start gap-2">
+            <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">
+              {k.replace(/_/g, ' ')}:
+            </span>
+            <span className="text-muted-foreground">{renderJsonValueInline(val)}</span>
+          </div>
         ))}
       </div>
     );
@@ -139,12 +137,6 @@ function renderJsonValueInline(v: unknown): React.ReactNode {
   if (typeof v === 'boolean') return <span>{v ? 'Sim' : 'Não'}</span>;
   if (typeof v === 'number') return <span className="font-mono">{formatNumber(v, true)}</span>;
   return <span>{String(v)}</span>;
-}
-
-function toList(v: unknown): string[] | null {
-  if (Array.isArray(v)) return v.map((i) => String(i));
-  if (typeof v === 'string') return v.split(',').map((s) => s.trim());
-  return null;
 }
 
 type FieldMeta = {
@@ -248,280 +240,7 @@ function hasValue(v: unknown): boolean {
   return v != null && v !== '' && v !== 0 && v !== 'none';
 }
 
-function renderSpecials(
-  data: Record<string, any>,
-  rendered: Set<string>,
-  tenantId: string | undefined,
-  tenantSlug: string | undefined,
-  table: string,
-  comparisonMode: 'modal' | 'page',
-  handleStatClick: (key: string) => void,
-  copiedCode: boolean,
-  setCopiedCode: (v: boolean) => void,
-  chipWrap?: boolean,
-): React.ReactNode[] {
-  const nodes: React.ReactNode[] = [];
 
-  // Code block
-  const code = data.code || data.name;
-  if (data.code != null || data.code_type != null) {
-    rendered.add('code'); rendered.add('code_type'); rendered.add('rewards'); rendered.add('reward_type');
-    rendered.add('verified_date'); rendered.add('verified_by'); rendered.add('expired_date');
-    nodes.push(
-      <div key="code-block" className="mb-6">
-        <div className="flex items-center gap-2 rounded-xl border bg-muted/50 p-4">
-          <ScrollText className="h-5 w-5 text-primary shrink-0" />
-          <code className="flex-1 font-mono text-lg font-bold tracking-wider">{String(code)}</code>
-          <button onClick={() => { navigator.clipboard.writeText(String(code)); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="text-xs text-primary hover:text-primary/80 font-medium shrink-0">{copiedCode ? 'Copiado!' : 'Copiar'}</button>
-        </div>
-        {data.rewards && <p className="text-sm text-muted-foreground mt-2">Recompensa: <span className="text-foreground">{isArrStr(data.rewards) ? data.rewards.join(', ') : String(data.rewards)}</span></p>}
-        {data.code_type && <p className="text-xs text-muted-foreground mt-1">Tipo: <span className="font-medium text-foreground">{String(data.code_type)}</span>{data.verified_date && <> · Verificado: {data.verified_date}</>}</p>}
-      </div>,
-    );
-  }
-
-  // Ability card
-  if (data.ability && typeof data.ability === 'object') {
-    rendered.add('ability');
-    const a = data.ability as Record<string, any>;
-    nodes.push(
-      <div key="ability" className="rounded-xl border bg-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3"><Sparkles className="h-4 w-4 text-yellow-400" /><h3 className="font-semibold text-sm">Habilidade: {String(a.name || '')}</h3></div>
-        {a.description && <p className="text-sm text-muted-foreground mb-3"><ColoredText text={String(a.description)} /></p>}
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {a.energy_cost !== undefined && <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-purple-400" /> Custo: {String(a.energy_cost)}</span>}
-          {a.cooldown !== undefined && <span className="inline-flex items-center gap-1">⏱ Cooldown: {String(a.cooldown)}s</span>}
-          {a.effect && <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3 text-yellow-400" /><ColoredText text={String(a.effect)} /></span>}
-        </div>
-      </div>,
-    );
-  }
-
-  // Passive ability
-  if (hasValue(data.passive_ability)) {
-    rendered.add('passive_ability'); rendered.add('passive_ability_level');
-    nodes.push(
-      <div key="passive" className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 mb-6">
-        <div className="flex items-center gap-2 mb-1"><Star className="h-4 w-4 text-purple-400" /><h3 className="text-sm font-semibold text-purple-400">Habilidade Passiva</h3></div>
-        <p className="text-sm text-muted-foreground">{String(data.passive_ability)}</p>
-        {hasValue(data.passive_ability_level) && <p className="text-xs text-muted-foreground mt-1">Nível: {String(data.passive_ability_level)}</p>}
-      </div>,
-    );
-  }
-
-  // Set bonus
-  if (hasValue(data.set_bonus)) {
-    rendered.add('set_bonus');
-    nodes.push(
-      <div key="set-bonus" className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 mb-6">
-        <div className="flex items-center gap-2 mb-1"><Sparkles className="h-4 w-4 text-emerald-400" /><h3 className="text-sm font-semibold text-emerald-400">Bônus de Set</h3></div>
-        <p className="text-sm text-muted-foreground">{String(data.set_bonus)}</p>
-      </div>,
-    );
-  }
-
-  // Phase mechanics
-  if (hasValue(data.phase_mechanics)) {
-    rendered.add('phase_mechanics');
-    nodes.push(
-      <div key="phase-mechanics" className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 mb-6">
-        <div className="flex items-center gap-2 mb-1"><Eye className="h-4 w-4 text-yellow-400" /><h3 className="text-sm font-semibold text-yellow-400">Mecânica de Fase</h3></div>
-        <p className="text-sm text-muted-foreground">{String(data.phase_mechanics)}</p>
-      </div>,
-    );
-  }
-
-  // Key buffs
-  if (isArrStr(data.key_buffs)) {
-    rendered.add('key_buffs');
-    nodes.push(
-      <div key="key-buffs" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Bônus Principais</h3>
-        <ChipCarousel wrap={chipWrap}>
-          {data.key_buffs.map((b: string) => {
-            const c = effectColor(b) || 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
-            return <Tag key={b} className={`${c} border-current/30 bg-current/10`} icon={<Sparkles className="h-3 w-3" />}>{b}</Tag>;
-          })}
-        </ChipCarousel>
-      </div>,
-    );
-  }
-
-  // Possible stats
-  if (isArrStr(data.possible_stats)) {
-    rendered.add('possible_stats');
-    nodes.push(
-      <div key="possible-stats" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stats Possíveis</h3>
-        <ChipCarousel wrap={chipWrap}>{data.possible_stats.map((s: string) => <Tag key={s} className="border-purple-500/30 text-purple-400 bg-purple-500/10">{s}</Tag>)}</ChipCarousel>
-      </div>,
-    );
-  }
-
-  // Synergy
-  if (hasValue(data.synergy)) {
-    rendered.add('synergy');
-    nodes.push(
-      <div key="synergy" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sinergia</h3>
-        <p className="text-sm text-muted-foreground">{String(data.synergy)}</p>
-      </div>,
-    );
-  }
-
-  // Per-rank effect
-  if (hasValue(data.per_rank_effect)) {
-    rendered.add('per_rank_effect');
-    nodes.push(
-      <div key="per-rank" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeito por Rank</h3>
-        <p className="text-sm"><ColoredText text={String(data.per_rank_effect)} /></p>
-      </div>,
-    );
-  }
-
-  // Damage per spirit
-  if (data.damage_per_spirit && typeof data.damage_per_spirit === 'object') {
-    rendered.add('damage_per_spirit');
-    const d = data.damage_per_spirit as Record<string, unknown>;
-    nodes.push(
-      <div key="dmg-spirit" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dano por Espírito</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {d.normal !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Normal</span><p className="text-sm font-medium">{String(d.normal)}</p></div>}
-          {d.boss !== undefined && <div className="rounded-lg border bg-card p-3"><span className="text-xs text-muted-foreground">Boss</span><p className="text-sm font-medium">{String(d.boss)}</p></div>}
-        </div>
-      </div>,
-    );
-  }
-
-  // Weakness
-  if (hasValue(data.weakness)) {
-    rendered.add('weakness');
-    const els = toList(data.weakness);
-    if (els) {
-      nodes.push(
-        <div key="weakness" className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fraquezas</h3>
-          <ChipCarousel wrap={chipWrap}>{els.map((el: string) => <Tag key={el} className={`${elementClass(el)}`} icon={elIcon(el)}>{el}</Tag>)}</ChipCarousel>
-        </div>,
-      );
-    }
-  }
-
-  // Effects
-  if (hasValue(data.effects)) {
-    rendered.add('effects');
-    const list = toList(data.effects);
-    if (list) {
-      nodes.push(
-        <div key="effects" className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Efeitos</h3>
-          <ul className="space-y-1">{list.map((e: string, i: number) => <li key={i} className="text-sm flex items-start gap-2"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground shrink-0" /><ColoredText text={e} /></li>)}</ul>
-        </div>,
-      );
-    }
-  }
-
-  // Attacks
-  if (hasValue(data.attacks)) {
-    rendered.add('attacks');
-    const list = toList(data.attacks);
-    if (list) {
-      nodes.push(
-        <div key="attacks" className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ataques</h3>
-          <ChipCarousel wrap={chipWrap}>{list.map((a: string, i: number) => <Tag key={i} icon={<Crosshair className="h-3 w-3" />} className="border-red-500/30 text-red-400 bg-red-500/10">{a}</Tag>)}</ChipCarousel>
-        </div>,
-      );
-    }
-  }
-
-  // Drops
-  const drops = data.items_dropped || data.notable_loot;
-  if (drops) {
-    rendered.add('items_dropped'); rendered.add('notable_loot');
-    const list = toList(drops);
-    if (list) {
-      nodes.push(
-        <div key="drops" className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens Dropados</h3>
-          <ChipCarousel wrap={chipWrap}>{list.map((item: string, i: number) => <Tag key={i} icon={<Gem className="h-3 w-3" />} className="border-primary/30 text-primary bg-primary/10">{item}</Tag>)}</ChipCarousel>
-        </div>,
-      );
-    }
-  }
-
-  // Strategy
-  if (hasValue(data.strategy)) {
-    rendered.add('strategy');
-    nodes.push(
-      <div key="strategy" className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Estratégia</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{String(data.strategy)}</p>
-      </div>,
-    );
-  }
-
-  // Materials
-  const mats = data.craft_materials || data.crafting_materials || data.materials;
-  if (mats) {
-    rendered.add('craft_materials'); rendered.add('crafting_materials'); rendered.add('materials');
-    let list: string[];
-    if (isArrStr(mats)) list = mats;
-    else if (Array.isArray(mats)) list = mats.map((m: any) => typeof m === 'object' ? `${m.name || m.item || ''}: ${m.quantity || m.amount || ''}` : String(m));
-    else list = [];
-    if (list.length > 0) {
-      nodes.push(
-        <div key="materials" className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Materiais</h3>
-          <ChipCarousel wrap={chipWrap}>{list.map((mat: string, i: number) => <Tag key={i} icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">{mat}</Tag>)}</ChipCarousel>
-        </div>,
-      );
-    }
-  }
-
-  // Environment / chapters / warning (world info)
-  if (hasValue(data.environment) || hasValue(data.chapters) || hasValue(data.warning)) {
-    rendered.add('environment'); rendered.add('chapters'); rendered.add('warning');
-    nodes.push(
-      <div key="world-info" className="rounded-xl border bg-card p-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Globe className="h-4 w-4 text-cyan-400" /> Sobre o Mundo</h3>
-        <div className="space-y-3">
-          {hasValue(data.environment) && <div><div className="text-xs text-muted-foreground mb-0.5">Ambiente</div><p className="text-sm">{String(data.environment)}</p></div>}
-          {hasValue(data.chapters) && <div><div className="text-xs text-muted-foreground mb-0.5">Capítulos</div><p className="text-sm">{isArrStr(data.chapters) ? (data.chapters as string[]).join(', ') : String(data.chapters)}</p></div>}
-          {hasValue(data.warning) && <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3"><div className="text-xs text-yellow-400 mb-0.5">⚠ Atenção</div><p className="text-sm text-yellow-300">{String(data.warning)}</p></div>}
-        </div>
-      </div>,
-    );
-  }
-
-  // Accordions (tips, notes)
-  const tips = data.tips || data.important_notes;
-  if (hasValue(tips)) {
-    rendered.add('tips'); rendered.add('important_notes');
-    nodes.push(
-      <div key="tips" className="mb-3">
-        <Accordion title="Dicas" icon={<Lightbulb className="h-4 w-4 text-yellow-400" />} defaultOpen>
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(tips)}</p>
-        </Accordion>
-      </div>,
-    );
-  }
-
-  if (hasValue(data.notes) && data.notes !== tips) {
-    rendered.add('notes');
-    nodes.push(
-      <div key="notes" className="mb-3">
-        <Accordion title="Observações" icon={<MessageCircle className="h-4 w-4 text-cyan-400" />}>
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{String(data.notes)}</p>
-        </Accordion>
-      </div>,
-    );
-  }
-
-  return nodes;
-}
 
 function inferSchema(data: Record<string, any>): ColumnInfo[] {
   return Object.entries(data)
@@ -562,14 +281,16 @@ function renderDynamicSections(
   chipWrap?: boolean,
   visibleColumnsSet?: Set<string> | null,
   columnOrder?: string[],
+  columnTypes?: Record<string, string>,
 ) {
   const sections: React.ReactNode[] = [];
   const cols = schema ?? inferSchema(data);
 
-  // Filter out system fields, special-handled fields, and null values
+  // Filter out system fields, already-rendered fields, null values, and columns with explicit render types
   const activeCols = sortByColumnOrder(cols.filter(
     (c) => !SYSTEM_FIELDS.has(c.column_name) && !rendered.has(c.column_name) && hasValue(data[c.column_name])
-      && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name)),
+      && (!visibleColumnsSet || visibleColumnsSet.has(c.column_name))
+      && (!columnTypes || !columnTypes[c.column_name]),
   ), columnOrder);
 
   // 1. Numeric stat cards (skip 0)
@@ -663,7 +384,7 @@ function renderDynamicSections(
     );
   }
 
-  // 5. JSON arrays → tag lists
+  // 5. JSON arrays → structured cards for objects, tag lists for primitives
   const arrCols = activeCols.filter(
     (c) =>
       (c.data_type === 'jsonb' || c.data_type === 'json') &&
@@ -672,16 +393,22 @@ function renderDynamicSections(
   );
   for (const c of arrCols) {
     rendered.add(c.column_name);
+    const arr = data[c.column_name];
+    const allObjects = arr.every((item: unknown) => typeof item === 'object' && item !== null && !Array.isArray(item));
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ChipCarousel wrap={chipWrap}>
-          {data[c.column_name].map((item: unknown, i: number) => (
-            <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
-              {typeof item === 'object' ? renderJsonValue(item) : String(item)}
-            </Tag>
-          ))}
-        </ChipCarousel>
+        {allObjects ? (
+          renderJsonValue(arr)
+        ) : (
+          <ChipCarousel wrap={chipWrap}>
+            {arr.map((item: unknown, i: number) => (
+              <Tag key={i} className="border-purple-500/30 text-purple-400 bg-purple-500/10">
+                {String(item)}
+              </Tag>
+            ))}
+          </ChipCarousel>
+        )}
       </div>,
     );
   }
@@ -803,25 +530,6 @@ type Props = {
   detailConfig?: DetailConfig;
 };
 
-const TAG_FIELDS: Record<string, (v: any) => { icon?: React.ReactNode; className: string; label: string } | null> = {
-  weapon_type: (v) => ({ icon: <Sword className="h-3 w-3" />, className: 'border-blue-500/30 text-blue-400 bg-blue-500/10', label: String(v) }),
-  attack_speed: (v) => {
-    const c = v === 'fast' ? 'text-emerald-400' : v === 'slow' ? 'text-red-400' : 'text-yellow-400';
-    return { icon: <Zap className="h-3 w-3" />, className: `shrink-0 border-current/30 ${c} bg-current/10`, label: String(v) };
-  },
-  enemy_type: (v) => ({ className: 'border-red-500/30 text-red-400 bg-red-500/10', label: String(v) }),
-  difficulty: (v) => ({
-    className: `shrink-0 ${String(v).toLowerCase().includes('hard') ? 'border-red-500/30 text-red-400 bg-red-500/10' : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'}`,
-    label: String(v),
-  }),
-  boss_type: (v) => ({ className: 'border-purple-500/30 text-purple-400 bg-purple-500/10', label: String(v) }),
-  category: (v) => ({ className: 'border-cyan-500/30 text-cyan-400 bg-cyan-500/10', label: String(v) }),
-  health_level: (v) => {
-    const c = String(v).toLowerCase() === 'high' ? 'text-red-400' : String(v).toLowerCase() === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
-    return { className: `shrink-0 border-current/30 ${c} bg-current/10`, label: `HP: ${String(v)}` };
-  },
-};
-
 export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
   const name = (data.name || data.title || data.item_name || data.code || '') as string;
@@ -839,7 +547,6 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const showComparisonEnabled = detailConfig?.showComparison !== false;
 
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
 
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
@@ -953,35 +660,13 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
       )}
 
-      {/* Data-driven tags */}
-      <div className="mb-6">
-        <ChipCarousel wrap={chipWrap}>
-          {Object.entries(TAG_FIELDS).map(([key, renderFn]) => {
-            const v = data[key];
-            if (!hasValue(v)) return null;
-            rendered.add(key);
-            const result = renderFn(v);
-            if (!result) return null;
-            return <Tag key={key} className={result.className} icon={result.icon}>{result.label}</Tag>;
-          })}
-          {data.is_must_pick === true && (() => { rendered.add('is_must_pick'); return <Tag key="must-pick" icon={<Star className="h-3 w-3" />} className="border-yellow-500/30 text-yellow-400 bg-yellow-500/10">Must Pick</Tag>; })()}
-          {(data.is_worth_crafting === true || data.is_worth_crafting === 'YES') && (() => { rendered.add('is_worth_crafting'); return <Tag key="worth-craft" icon={<Sparkles className="h-3 w-3" />} className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Vale a pena craftar</Tag>; })()}
-          {data.is_active === true && (() => { rendered.add('is_active'); return <Tag key="active" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">Ativo</Tag>; })()}
-          {data.is_expired === true && (() => { rendered.add('is_expired'); return <Tag key="expired" className="border-red-500/30 text-red-400 bg-red-500/10">Expirado</Tag>; })()}
-          {data.is_craftable === true && (() => { rendered.add('is_craftable'); return <Tag key="craftable" icon={<Pickaxe className="h-3 w-3" />} className="border-amber-500/30 text-amber-400 bg-amber-500/10">Craftável</Tag>; })()}
-        </ChipCarousel>
-      </div>
-
-      {/* Special field renderers (data-gated, no type detection) */}
-      {renderSpecials(data, rendered, tenantId, tenantSlug, table, comparisonMode, handleStatClick, copiedCode, setCopiedCode, chipWrap)}
-
-      {/* Dynamic schema-driven sections */}
-      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet, detailConfig?.columnOrder)}
-
-      {/* Render-type-specific fields (color, rating, video, audio, etc.) */}
+      {/* Render-type-specific fields (explicit registry-based) — highest priority */}
       {columnTypes && Object.entries(columnTypes).length > 0 && (
         <RenderTypeFields data={data} columnTypes={columnTypes} rendered={rendered} />
       )}
+
+      {/* Dynamic schema-driven sections (type-inferred) */}
+      {renderDynamicSections(data, schema, tenantId, tenantSlug, table, comparisonMode, handleStatClick, rendered, useSuffix, chipWrap, visibleColumnsSet, detailConfig?.columnOrder, columnTypes)}
 
       {/* Columns with custom format overrides from detail config */}
       {renderFormattedFields(data, rendered)}

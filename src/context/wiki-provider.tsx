@@ -34,7 +34,7 @@ export function WikiDataProvider({
   const [data, setData] = useState<WikiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const cacheRef = useRef<WikiData | null>(null);
+  const cacheRef = useRef<{ slug: string; data: WikiData } | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!slug) {
@@ -43,8 +43,8 @@ export function WikiDataProvider({
       return;
     }
 
-    if (cacheRef.current) {
-      setData(cacheRef.current);
+    if (cacheRef.current && cacheRef.current.slug === slug) {
+      setData(cacheRef.current.data);
       setLoading(false);
       return;
     }
@@ -62,7 +62,7 @@ export function WikiDataProvider({
 
       if (!err) {
         const wikiData = result as unknown as WikiData;
-        cacheRef.current = wikiData;
+        cacheRef.current = { slug, data: wikiData };
         setData(wikiData);
         setLoading(false);
         return;

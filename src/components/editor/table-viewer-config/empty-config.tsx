@@ -7,11 +7,13 @@ import { ImageUpload } from '@/components/ui/image-upload';
 export function EmptyConfig({
   config,
   slug,
+  tenantId,
   onChange,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   slug?: string;
+  tenantId?: string;
   columns?: string[];
 }) {
   const c: Record<string, any> = config || {};
@@ -35,6 +37,7 @@ export function EmptyConfig({
           onChange={(url) => onChange({ ...c, imageUrl: url })}
           label="Ilustração vazia"
           previewSize="w-16 h-16"
+          tenantId={tenantId ?? undefined}
         />
       </div>
       <div className="space-y-1">

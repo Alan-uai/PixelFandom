@@ -44,7 +44,11 @@ export function DisplayConfig({
         return (
           <ElasticSlider3D
             label={isList ? 'Colunas' : 'Colunas no grid'}
-            defaultValue={c.columnsCount ?? defaultCols}
+            defaultValue={
+              c.columnsCount !== undefined && c.columnsCount >= minCols
+                ? c.columnsCount
+                : defaultCols
+            }
             startingValue={minCols}
             maxValue={maxCols}
             showValue
