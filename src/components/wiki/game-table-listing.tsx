@@ -107,7 +107,7 @@ function renderBadgeItem(
   if (typeof val === 'number') {
     displayValue = formatNumber(val, useSuffix ?? true);
   } else {
-    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" />;
+    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} />;
   }
 
   const bc = badgeConfig[col] || {};
@@ -627,6 +627,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     );
   }
 
+  const renderCatIcon = (cat: string, iconSize = 16) => {
+    const icon = viewerConfig?.categorization?.categoryIcons?.[cat];
+    if (!icon) return <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />;
+    if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:')) {
+      return <div className="relative shrink-0" style={{ width: iconSize, height: iconSize }}><Image src={icon} alt="" fill className="object-contain" /></div>;
+    }
+    return <IconRenderer icon={icon} size={iconSize} />;
+  };
+
   const renderCategory = (
     category: string,
     catItems: any[],
@@ -636,8 +645,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     style: string,
     expanded: Set<string>,
     setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>,
+    hideCategoryTitle?: boolean,
   ) => {
-    const catIcon = vc?.categorization?.categoryIcons?.[category];
     const secondaryColumn = vc?.categorization?.secondaryColumn;
     const iconSize = vc?.categorization?.iconSize ?? 16;
     const labelSize = vc?.categorization?.labelSize ?? 12;
@@ -686,17 +695,16 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       });
     }
 
-    const heading = (
+    const heading = hideCategoryTitle ? (
+      catItems.length > 0 ? (
+        <div className="flex items-center gap-3 mb-3">
+          {renderCatIcon(category, iconSize)}
+          <span className="text-xs text-muted-foreground/60">{catItems.length}</span>
+        </div>
+      ) : null
+    ) : (
       <div className="flex items-center gap-3 mb-3">
-        {catIcon ? (
-          catIcon.startsWith('http://') || catIcon.startsWith('https://') || catIcon.startsWith('data:') ? (
-            <div className="relative shrink-0" style={{ width: iconSize, height: iconSize }}><Image src={catIcon} alt="" fill className="object-contain" /></div>
-          ) : (
-            <IconRenderer icon={catIcon} size={iconSize} />
-          )
-        ) : (
-          <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-        )}
+        {renderCatIcon(category, iconSize)}
         <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{category}</span>
         <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
       </div>
@@ -953,6 +961,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             // Tabs style: render tab buttons then filter
             if (catStyle === 'tabs') {
               const currentTab = activeTab || groupedItems[0]?.[0] || '';
+              const tabLabelDisplay = viewerConfig?.categorization?.tabLabelDisplay || 'both';
               return (
                 <>
                   <div className="flex gap-1 border-b pb-1 overflow-x-auto mb-4">
@@ -961,19 +970,20 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                         key={category}
                         type="button"
                         onClick={() => setActiveTab(category)}
-                        className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                        className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
                           currentTab === category
                             ? 'bg-primary/10 text-primary border border-primary/30'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                         }`}
                       >
-                        <span className="capitalize">{category}</span>
+                        {tabLabelDisplay !== 'name' && renderCatIcon(category, 14)}
+                        {tabLabelDisplay !== 'icon' && <span className="capitalize">{category}</span>}
                       </button>
                     ))}
                   </div>
                   {groupedItems
                     .filter(([category]) => category === currentTab)
-                    .map(([category, catItems]) => renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, 'headings', expandedAccordion, setExpandedAccordion))}
+                    .map(([category, catItems]) => renderCategory(category, catItems, viewerConfig, pagination, itemsPerPage, 'headings', expandedAccordion, setExpandedAccordion, true))}
                 </>
               );
             }
@@ -1459,7 +1469,7 @@ function ItemCard({
     if (typeof val === 'number') {
       displayValue = formatNumber(val, useSuffix ?? true);
     } else {
-      displayValue = <ColumnDisplay value={val} column={col} renderType="auto" />;
+      displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} />;
     }
 
     const bc = badgeConfig[col] || {};

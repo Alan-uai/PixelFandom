@@ -42,9 +42,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="shortcut icon" href="/icon-512.png" />
+        <link rel="icon" href="/api/favicon" />
+        <link rel="shortcut icon" href="/api/favicon" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`font-body antialiased ${inter.className}`}>

@@ -1,11 +1,16 @@
 import type { ReactNode } from 'react';
 import type { ShapeDetector, DetectionContext } from '../types';
+import { abbreviateNumber } from '@/lib/format-number';
 
 function hasKey(obj: Record<string, unknown>, keys: string[]): boolean {
   return keys.some(k => k in obj);
 }
 
-
+function fmtVal(v: unknown, useSuffix?: boolean): string {
+  const n = Number(v);
+  if (useSuffix && isFinite(n)) return abbreviateNumber(n);
+  return String(v ?? '—');
+}
 
 export const statBlockDetector: ShapeDetector = {
   id: 'stat-block',
@@ -25,7 +30,7 @@ export const statBlockDetector: ShapeDetector = {
     if (hasValue && hasType) return 0.75;
     return 0;
   },
-  render({ value }: DetectionContext, variant = 1): ReactNode {
+  render({ value, useSuffix }: DetectionContext, variant = 1): ReactNode {
     const obj = value as Record<string, unknown>;
     const label = String(obj.stat ?? obj.name ?? obj.label ?? obj.title ?? obj.key ?? '');
     const val = obj.value ?? obj.amount ?? obj.val ?? obj.current ?? obj.score ?? obj.points ?? obj.total ?? obj.count;
@@ -36,7 +41,7 @@ export const statBlockDetector: ShapeDetector = {
         <div className="flex items-center gap-2 rounded-lg border bg-card p-2.5 text-xs">
           {type && <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">{type}</span>}
           <span className="font-medium text-foreground">{label}</span>
-          <span className="text-sm font-bold text-primary ml-auto">{String(val ?? '—')}</span>
+          <span className="text-sm font-bold text-primary ml-auto">{fmtVal(val, useSuffix)}</span>
         </div>
       );
     }
@@ -44,7 +49,7 @@ export const statBlockDetector: ShapeDetector = {
       return (
         <div className="flex flex-col items-center justify-center rounded-xl border bg-card p-3 min-w-[80px]">
           {type && <span className="text-[10px] text-muted-foreground mb-0.5">{type}</span>}
-          <span className="text-lg font-bold text-primary">{String(val ?? '—')}</span>
+          <span className="text-lg font-bold text-primary">{fmtVal(val, useSuffix)}</span>
           <span className="text-xs text-muted-foreground">{label}</span>
         </div>
       );
@@ -54,7 +59,7 @@ export const statBlockDetector: ShapeDetector = {
         <div className="flex items-center gap-2 rounded-full border bg-primary/5 px-3 py-1.5 text-xs">
           {type && <span className="text-muted-foreground italic">{type}</span>}
           <span className="font-medium text-foreground">{label}</span>
-          <span className="font-bold text-primary">{String(val ?? '—')}</span>
+          <span className="font-bold text-primary">{fmtVal(val, useSuffix)}</span>
         </div>
       );
     }
@@ -66,7 +71,7 @@ export const statBlockDetector: ShapeDetector = {
             <span className="font-medium text-foreground">{label}</span>
             {type && <span className="text-[10px] text-muted-foreground">{type}</span>}
           </div>
-          <span className="text-lg font-bold text-primary ml-auto">{String(val ?? '—')}</span>
+          <span className="text-lg font-bold text-primary ml-auto">{fmtVal(val, useSuffix)}</span>
         </div>
       );
     }
@@ -74,7 +79,7 @@ export const statBlockDetector: ShapeDetector = {
       <div className="flex items-center gap-2 rounded-lg border bg-card p-2.5 text-xs">
         {type && <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">{type}</span>}
         <span className="font-medium text-foreground">{label}</span>
-        <span className="text-sm font-bold text-primary ml-auto">{String(val ?? '—')}</span>
+        <span className="text-sm font-bold text-primary ml-auto">{fmtVal(val, useSuffix)}</span>
       </div>
     );
   },

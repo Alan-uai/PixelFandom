@@ -15,7 +15,7 @@ import { useUserPreferences } from '@/context/user-preferences-context';
 import { ThemeProvider } from '@/context/theme-context';
 import HubLink from '@/components/hub-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { MAIN_DOMAIN, isCustomDomain } from '@/lib/constants';
+import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import type { TenantTheme } from '@/context/theme-context';
@@ -160,33 +160,6 @@ function WikiLayoutContent({
       }
     }
   }, []);
-
-  const faviconUrl = (tenant as any)?.favicon_url;
-  const originalFaviconRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const link = document.querySelector('link[rel="icon"][sizes="512x512"]')
-      || document.querySelector('link[rel="icon"]')
-      || document.querySelector('link[rel="shortcut icon"]');
-    if (!link) return;
-
-    if (!originalFaviconRef.current) {
-      originalFaviconRef.current = link.getAttribute('href');
-    }
-
-    if (isCustomDomain(window.location.hostname) && faviconUrl) {
-      link.setAttribute('href', faviconUrl);
-      link.setAttribute('type', 'image/png');
-    } else {
-      link.setAttribute('href', '/icon-512.png');
-    }
-
-    return () => {
-      if (originalFaviconRef.current) {
-        link.setAttribute('href', originalFaviconRef.current);
-      }
-    };
-  }, [faviconUrl]);
 
   const handleModeChange = useCallback((mode: 'system' | 'light' | 'dark') => {
     updatePreference('theme_mode', mode);

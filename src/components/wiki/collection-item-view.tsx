@@ -255,7 +255,7 @@ function RenderTypeFields({
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} />
         </div>
       );
     }).filter(Boolean);
@@ -284,7 +284,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={meta?.label || fieldLabel(c.column_name)}
-              value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} />}
+               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />}
               icon={meta?.icon || fieldIcon(c.column_name)}
               color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -316,7 +316,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -337,7 +337,7 @@ function RenderTypeFields({
         <ChipCarousel wrap={chipWrap}>
           {textCols.map((c) => (
             <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -356,7 +356,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
       </div>,
     );
   }
@@ -373,7 +373,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
       </div>,
     );
   }
@@ -391,7 +391,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
       </div>,
     );
   }
@@ -410,7 +410,7 @@ function RenderTypeFields({
                   {fieldLabel(c.column_name)}
                 </span>
                 <div className="text-sm flex-1">
-                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" />
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
                 </div>
               </div>
             ))}

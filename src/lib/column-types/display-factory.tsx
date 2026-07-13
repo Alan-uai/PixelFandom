@@ -5,6 +5,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { formatNumber } from '@/lib/format-number';
 import { COLUMN_TYPES } from './registry';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
+import { normalizeValue } from '@/lib/operator-symbols';
 
 export interface DisplayProps {
   value: unknown;
@@ -12,7 +13,8 @@ export interface DisplayProps {
   renderType: string;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix }: DisplayProps & { useSuffix?: boolean }): ReactNode {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled }: DisplayProps & { useSuffix?: boolean; opEnabled?: boolean }): ReactNode {
+  value = normalizeValue(value, useSuffix, opEnabled);
   if (value === null || value === undefined || value === '') return null;
 
   const def = COLUMN_TYPES[renderType as keyof typeof COLUMN_TYPES];

@@ -422,6 +422,39 @@ export function CategorizationConfig({
         </div>
       </div>
 
+      <AnimatePresence>
+        {(c.style || 'headings') === 'tabs' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+            animate={{ opacity: 1, height: 'auto', scale: 1 }}
+            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-1 pb-1">
+              <ElasticSlider3D
+                label="Exibição das abas"
+                defaultValue={c.tabLabelDisplay === 'name' ? 0 : c.tabLabelDisplay === 'icon' ? 2 : 1}
+                startingValue={0}
+                maxValue={2}
+                isStepped
+                stepSize={1}
+                showValue={false}
+                onValueChange={(v) => {
+                  const map = ['name', 'both', 'icon'] as const;
+                  onChange({ ...c, tabLabelDisplay: map[Math.round(v)] });
+                }}
+              />
+              <div className="flex justify-between px-1">
+                {['Nome', 'Ambos', 'Ícone'].map((l) => (
+                  <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center gap-2">
         <Switch
           id="group-empty"

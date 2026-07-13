@@ -71,6 +71,7 @@ export const ViewerConfigSchema = z.object({
     subOrder: z.array(z.string()).default([]),
     iconSize: z.number().min(12).max(64).default(16),
     labelSize: z.number().min(10).max(32).default(12),
+    tabLabelDisplay: z.enum(['name', 'both', 'icon']).default('both'),
     categoryItemSortColumn: z.string().nullable().default(null),
     categoryItemSortDirection: z.enum(['asc', 'desc']).default('asc'),
     categoryItemOrder: z.array(z.string()).default([]),
