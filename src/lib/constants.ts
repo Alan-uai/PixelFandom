@@ -1,4 +1,4 @@
-export const MAIN_DOMAIN = 'pixelfandom.vercel.app';
+export const MAIN_DOMAIN = process.env.SITE_DOMAIN || 'pixelfandom.vercel.app';
 export const MAIN_URL = `https://${MAIN_DOMAIN}`;
 
 export const GENERIC_ERROR_MESSAGE = 'Desculpe não pude te responder, porém acredito que @suporte pode te ajudar';

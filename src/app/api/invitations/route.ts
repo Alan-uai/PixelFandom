@@ -62,6 +62,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('name')
+      .eq('id', tenant_id)
+      .single();
+
     const { data, error } = await supabase
       .from('invitations')
       .insert({
@@ -78,6 +84,26 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Failed to create invitation:', error);
       return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 });
+    }
+
+    const { data: invitedProfile } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (invitedProfile) {
+      const origin = request.headers.get('origin') || MAIN_URL;
+      const notifLink = `${origin}/notifications`;
+      await supabase.from('notifications').insert({
+        user_id: invitedProfile.id,
+        tenant_id,
+        type: 'invitation_created',
+        title: `Convite para ${tenant?.name || 'wiki'}`,
+        body: `Você foi convidado como ${role || 'viewer'} por ${user.email}`,
+        link: notifLink,
+        metadata: { invited_by: user.id, role, email },
+      });
     }
 
     const origin = request.headers.get('origin') || MAIN_URL;

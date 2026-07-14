@@ -300,6 +300,80 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "retry": "Try again"
+  },
+  "members": {
+    "error": {
+      "title": "Error loading members."
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "toast": {
+      "error": {
+        "title": "Error"
+      },
+      "role_updated": "Role updated.",
+      "member_removed": "Member removed.",
+      "invite_created": "Invite created!",
+      "invite_link_prefix": "Link: ",
+      "invite_revoked": "Invite revoked.",
+      "revoke_error": "Error revoking invite",
+      "link_copied": "Link copied!",
+      "qr_error": "Error generating QR Code"
+    },
+    "tabs": {
+      "members": "Members",
+      "invites": "Invites"
+    },
+    "members_list": {
+      "card_title": "Members",
+      "card_description": "Users with access to this wiki.",
+      "self_label": "You",
+      "search_placeholder": "Search by name, email or @username...",
+      "all_roles": "All roles",
+      "no_results": "No members found",
+      "no_members": "No members in this wiki",
+      "view_profile": "View public profile"
+    },
+    "remove_dialog": {
+      "title": "Remove member",
+      "description": "Are you sure you want to remove",
+      "confirm": "Remove"
+    },
+    "invites": {
+      "create_card": {
+        "title": "Invite Member",
+        "description": "Type email or @username to invite.",
+        "email_label": "Email or @user",
+        "role_label": "Role",
+        "expiry_label": "Expiration",
+        "expiry_1hour": "1 hour",
+        "expiry_24hours": "24 hours",
+        "expiry_7days": "7 days",
+        "expiry_30days": "30 days",
+        "expiry_never": "Never expires",
+        "sending": "Sending...",
+        "submit": "Create Invite",
+        "already_member": "This user is already a member.",
+        "already_invited": "A pending invite already exists for this email."
+      },
+      "pending_list": {
+        "card_title": "Pending Invites",
+        "expires_prefix": "Expires ",
+        "no_expiry": "No expiration",
+        "copy_link": "Copy link",
+        "qr_code": "QR Code",
+        "revoke": "Revoke",
+        "resend": "Resend",
+        "expired": "Expired",
+        "accepted": "Accepted",
+        "qr_filename_prefix": "invite-"
+      }
+    }
   }
 }

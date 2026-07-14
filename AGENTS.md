@@ -104,6 +104,7 @@ com o usuário, e siga para implementação. Se o usuário quiser rever o plano
 completo com as correções, ele pedirá explicitamente.
 
 ## Key env vars
+`SITE_DOMAIN` — domínio principal do site (fallback: `pixelfandom.vercel.app`). Usado para determinar favicon padrão nas rotas marketing e dashboard.
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, `FALLBACK_CHAIN` (comma-separated model list)
 `PSYCHO_BACKEND_URL` — Python backend URL for dev API proxy (default `http://localhost:8000`)
 `VERCEL_API_TOKEN` — Vercel Personal Access Token (domínios customizados)

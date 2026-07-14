@@ -5,7 +5,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { formatNumber } from '@/lib/format-number';
 import { COLUMN_TYPES } from './registry';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeValue } from '@/lib/operator-symbols';
+import { normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
 
 export interface DisplayProps {
   value: unknown;
@@ -166,7 +166,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
                     {Object.entries(obj).map(([k, val]) => (
                       <div key={k} className="flex items-center gap-1.5">
                         <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                        <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                        <span className="text-muted-foreground">{typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')}</span>
                       </div>
                     ))}
                   </div>
@@ -192,7 +192,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
             {Object.entries(parsed as Record<string, unknown>).map(([k, val]) => (
               <div key={k} className="flex items-start gap-2">
                 <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
-                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}</span>
+                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')}</span>
               </div>
             ))}
           </div>
@@ -243,7 +243,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
                     {Object.entries(obj).map(([k, val]) => (
                       <div key={k} className="flex items-center gap-1.5">
                         <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                        <span className="text-muted-foreground">{String(val ?? '—')}</span>
+                        <span className="text-muted-foreground">{typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')}</span>
                       </div>
                     ))}
                   </div>
@@ -272,9 +272,9 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
                 <div key={k} className="flex items-start gap-2">
                   <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
                   <span className="text-muted-foreground">
-                    {innerDetector
-                      ? innerDetector.render({ value: val, useSuffix })
-                      : typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')
+                      {innerDetector
+                        ? innerDetector.render({ value: val, useSuffix })
+                        : typeof val === 'object' ? JSON.stringify(val) : typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')
                     }
                   </span>
                 </div>

@@ -97,7 +97,8 @@
     "continue": "Continuar",
     "copied": "Copiado",
     "copy": "Copiar",
-    "unexpected_error": "Erro inesperado"
+    "unexpected_error": "Erro inesperado",
+    "retry": "Tentar novamente"
   },
   "settings": {
     "title": "Configurações",
@@ -948,13 +949,23 @@
     "members_list": {
       "card_title": "Membros",
       "card_description": "Usuários com acesso a esta wiki.",
-      "self_label": "Você"
+      "self_label": "Você",
+      "search_placeholder": "Buscar por nome, email ou @username...",
+      "all_roles": "Todas as funções",
+      "no_results": "Nenhum membro encontrado",
+      "no_members": "Nenhum membro nesta wiki",
+      "view_profile": "Ver perfil público"
+    },
+    "remove_dialog": {
+      "title": "Remover membro",
+      "description": "Tem certeza que deseja remover",
+      "confirm": "Remover"
     },
     "invites": {
       "create_card": {
         "title": "Convidar Membro",
-        "description": "Envie um convite para acessar esta wiki.",
-        "email_label": "Email",
+        "description": "Digite email ou @username para convidar.",
+        "email_label": "Email ou @usuario",
         "role_label": "Papel",
         "expiry_label": "Expiração",
         "expiry_1hour": "1 hora",
@@ -963,16 +974,9 @@
         "expiry_30days": "30 dias",
         "expiry_never": "Nunca expira",
         "sending": "Enviando...",
-        "submit": "Criar Convite"
-      },
-      "pending_list": {
-        "card_title": "Convites Pendentes",
-        "expires_prefix": "Expira ",
-        "no_expiry": "Sem expiração",
-        "copy_link": "Copiar link",
-        "qr_code": "QR Code",
-        "revoke": "Revogar",
-        "qr_filename_prefix": "convite-"
+        "submit": "Criar Convite",
+        "already_member": "Este usuário já é membro.",
+        "already_invited": "Já existe um convite pendente para este email."
       }
     }
   },

@@ -2,7 +2,6 @@
 
 import { useRef, useMemo, useState, useCallback } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 type PickerMode = 'date' | 'time' | 'datetime';
@@ -28,7 +27,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState<{ type: 'h' | 'm'; idx: number } | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const [pulse, setPulse] = useState(0);
+  const pulse = useRef(0);
 
   const { h, m } = parseTime(value);
   const selH12 = h % 12;
@@ -88,7 +87,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
   );
 
   useFrame((_, delta) => {
-    setPulse((p) => p + delta);
+    pulse.current += delta;
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -172,15 +171,13 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
                   <meshBasicMaterial
                     color={c}
                     transparent
-                    opacity={0.12 + Math.sin(pulse * 2) * 0.04}
+                    opacity={0.14}
                     depthWrite={false}
                   />
                 </mesh>
               )}
             </mesh>
-            <Text position={[pos.x, pos.y - 0.38, pos.z]} fontSize={0.13} color="#ffffffaa" anchorX="center" anchorY="top">
-              {String(hourNum)}
-            </Text>
+
           </group>
         );
       })}
@@ -213,7 +210,7 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
           metalness={0.3}
           roughness={0.15}
           emissive={new THREE.Color('#4BC5FF')}
-          emissiveIntensity={0.1 + Math.sin(pulse * 1.5) * 0.04}
+          emissiveIntensity={0.12}
         />
       </mesh>
     </group>
@@ -221,8 +218,6 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
 }
 
 /* ─────────────── DATE: 3D Calendar Ring ─────────────── */
-
-const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function CalendarRing({
   value,
@@ -239,7 +234,7 @@ function CalendarRing({
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const [pulse, setPulse] = useState(0);
+  const pulse = useRef(0);
 
   let valMonth = new Date().getMonth();
   let valDay: number | null = null;
@@ -310,7 +305,7 @@ function CalendarRing({
   );
 
   useFrame((_, delta) => {
-    setPulse((p) => p + delta);
+    pulse.current += delta;
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -363,15 +358,13 @@ function CalendarRing({
                   <meshBasicMaterial
                     color={c}
                     transparent
-                    opacity={0.12 + Math.sin(pulse * 2) * 0.04}
+                    opacity={0.12}
                     depthWrite={false}
                   />
                 </mesh>
               )}
             </mesh>
-            <Text position={[pos.x, pos.y - 0.38, pos.z]} fontSize={0.13} color="#ffffffaa" anchorX="center" anchorY="top">
-              {MONTH_NAMES[i]}
-            </Text>
+
           </group>
         );
       })}

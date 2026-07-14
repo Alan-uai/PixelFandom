@@ -37,6 +37,10 @@ function walkValue(v: unknown, useSuffix?: boolean): unknown {
   return v;
 }
 
+export function humanizeLabel(text: string): string {
+  return text.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+}
+
 export function normalizeValue(value: unknown, useSuffix?: boolean, opEnabled?: boolean): unknown {
   if (!opEnabled) return value;
   return walkValue(value, useSuffix);
