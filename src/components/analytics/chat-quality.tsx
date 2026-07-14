@@ -4,7 +4,6 @@ import { type DailyChat, type ModelUsageItem } from './types';
 import { WeldingCard } from '@/components/ui/welding-card';
 import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ThumbsUp, ThumbsDown, Brain, Clock, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ChatQualityProps {
   dailyData: DailyChat[];
