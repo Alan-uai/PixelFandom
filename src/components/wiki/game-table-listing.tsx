@@ -695,14 +695,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       });
     }
 
-    const heading = hideCategoryTitle ? (
-      catItems.length > 0 ? (
-        <div className="flex items-center gap-3 mb-3">
-          {renderCatIcon(category, iconSize)}
-          <span className="text-xs text-muted-foreground/60">{catItems.length}</span>
-        </div>
-      ) : null
-    ) : (
+    const heading = hideCategoryTitle ? null : (
       <div className="flex items-center gap-3 mb-3">
         {renderCatIcon(category, iconSize)}
         <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{category}</span>
@@ -962,6 +955,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             if (catStyle === 'tabs') {
               const currentTab = activeTab || groupedItems[0]?.[0] || '';
               const tabLabelDisplay = viewerConfig?.categorization?.tabLabelDisplay || 'both';
+              const tabIconSize = viewerConfig?.categorization?.iconSize ?? 16;
+              const tabLabelSize = viewerConfig?.categorization?.labelSize ?? 12;
               return (
                 <>
                   <div className="flex gap-1 border-b pb-1 overflow-x-auto mb-4">
@@ -970,13 +965,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                         key={category}
                         type="button"
                         onClick={() => setActiveTab(category)}
-                        className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+                        className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition-colors inline-flex items-center gap-1.5 ${
                           currentTab === category
                             ? 'bg-primary/10 text-primary border border-primary/30'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
                         }`}
+                        style={{ fontSize: tabLabelSize }}
                       >
-                        {tabLabelDisplay !== 'name' && renderCatIcon(category, 14)}
+                        {tabLabelDisplay !== 'name' && renderCatIcon(category, tabIconSize)}
                         {tabLabelDisplay !== 'icon' && <span className="capitalize">{category}</span>}
                       </button>
                     ))}

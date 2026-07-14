@@ -60,7 +60,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
       return (
         <div className="flex items-center gap-0.5">
           {Array.from({ length: Math.min(rating, 10) }, (_, i) => (
-            <span key={i} className="text-yellow-400 text-sm">★</span>
+            <span key={i} className="text-primary text-sm">★</span>
           ))}
           <span className="text-xs text-muted-foreground ml-1">{rating}/{def?.label?.includes('10') ? 10 : 5}</span>
         </div>
@@ -77,7 +77,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
 
     case 'boolean':
       return (
-        <span className={String(value) === 'true' ? 'text-green-500 font-medium' : 'text-red-500 font-medium'}>
+        <span className={String(value) === 'true' ? 'text-emerald-500 font-medium' : 'text-red-500 font-medium'}>
           {String(value) === 'true' ? 'Sim' : 'Não'}
         </span>
       );
@@ -212,7 +212,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
       if (value === null || value === undefined || value === '') return null;
       if (typeof value === 'boolean') {
         return (
-          <span className={value ? 'text-green-500 font-medium' : 'text-red-500 font-medium'}>
+          <span className={value ? 'text-emerald-500 font-medium' : 'text-red-500 font-medium'}>
             {value ? 'Sim' : 'Não'}
           </span>
         );

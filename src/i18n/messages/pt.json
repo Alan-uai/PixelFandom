@@ -703,9 +703,15 @@
     },
     "metrics": {
       "views": "Visualizações",
+      "unique_visitors": "Visitantes Únicos",
       "chats": "Chats",
       "daily_average": "Média Diária",
-      "period": "Período"
+      "period": "Período",
+      "trend_up": "Subiu {change}%",
+      "trend_down": "Caiu {change}%",
+      "trend_same": "Sem alteração",
+      "total": "Total",
+      "referrer": "Origem"
     },
     "charts": {
       "views_per_day": "Visualizações por Dia",
@@ -716,7 +722,30 @@
       "title": "Páginas Mais Visitadas",
       "unique_visitors": "{count} únicos",
       "no_data": "Nenhuma página visitada no período."
-    }
+    },
+    "chat_quality": {
+      "title": "Qualidade do Chat",
+      "positive_feedback": "Feedback Positivo",
+      "negative_feedback": "Feedback Negativo",
+      "with_context": "Com Contexto",
+      "avg_latency": "Latência Média",
+      "latency_ms": "{ms}ms",
+      "model_usage": "Modelos Utilizados",
+      "no_feedback": "Nenhum feedback ainda.",
+      "no_models": "Nenhum dado de modelo."
+    },
+    "referrer": {
+      "title": "Fontes de Tráfego",
+      "direct": "Direto",
+      "search": "Busca",
+      "social": "Redes Sociais",
+      "other": "Outros",
+      "no_data": "Nenhum dado de origem."
+    },
+    "export_csv": "Exportar CSV",
+    "error_title": "Erro ao carregar analytics",
+    "error_description": "Não foi possível carregar os dados. Tente novamente.",
+    "retry": "Tentar Novamente"
   },
   "ai": {
     "toast": {

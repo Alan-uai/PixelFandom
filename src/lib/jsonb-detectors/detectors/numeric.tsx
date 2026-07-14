@@ -21,7 +21,7 @@ export const numericDetector: ShapeDetector = {
     const hasLabel = 'label' in obj || 'name' in obj || 'text' in obj || 'title' in obj || 'of' in obj;
     return hasLabel ? 0.8 : 0.6;
   },
-  render({ value }: DetectionContext, variant = 1): ReactNode {
+  render({ value, useSuffix }: DetectionContext, variant = 1): ReactNode {
     const obj = value as Record<string, unknown>;
     const numVal = obj.count ?? obj.amount ?? obj.quantity ?? obj.total ?? obj.number ?? obj.num ?? obj.size ?? obj.length ?? obj.height ?? obj.weight ?? obj.level;
     const num = typeof numVal === 'number' ? numVal : Number(numVal);
@@ -33,7 +33,7 @@ export const numericDetector: ShapeDetector = {
       return (
         <div className="flex items-center gap-2 rounded-lg border bg-card p-2 text-xs">
           {label && <span className="text-muted-foreground">{label}</span>}
-          <span className="font-bold text-foreground text-sm">{formatNumber(num, true)}</span>
+          <span className="font-bold text-foreground text-sm">{formatNumber(num, !!useSuffix)}</span>
           {unit && <span className="text-[10px] text-muted-foreground">{unit}</span>}
         </div>
       );
@@ -41,7 +41,7 @@ export const numericDetector: ShapeDetector = {
     if (variant === 3) {
       return (
         <div className="flex flex-col items-center rounded-xl border bg-card p-3 min-w-[70px]">
-          <span className="text-lg font-bold text-primary">{formatNumber(num, true)}</span>
+          <span className="text-lg font-bold text-primary">{formatNumber(num, !!useSuffix)}</span>
           {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
           {unit && <span className="text-[10px] text-muted-foreground">{unit}</span>}
         </div>
@@ -51,7 +51,7 @@ export const numericDetector: ShapeDetector = {
       return (
         <div className="flex items-center gap-1.5 rounded-full border bg-primary/5 px-3 py-1.5 text-xs font-medium">
           {label && <span className="text-muted-foreground">{label}:</span>}
-          <span className="font-bold text-foreground">{formatNumber(num, true)}</span>
+          <span className="font-bold text-foreground">{formatNumber(num, !!useSuffix)}</span>
           {unit && <span className="text-[10px] text-muted-foreground">{unit}</span>}
         </div>
       );
@@ -64,7 +64,7 @@ export const numericDetector: ShapeDetector = {
           </div>
           <div className="flex flex-col">
             {label && <span className="font-medium text-foreground">{label}</span>}
-            <span className="text-sm font-bold text-primary">{formatNumber(num, true)}</span>
+            <span className="text-sm font-bold text-primary">{formatNumber(num, !!useSuffix)}</span>
             {of && <span className="text-[10px] text-muted-foreground">de {of}</span>}
           </div>
         </div>
@@ -73,7 +73,7 @@ export const numericDetector: ShapeDetector = {
     return (
       <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
         {label && <span className="text-muted-foreground">{label} </span>}
-        <span className="font-bold">{formatNumber(num, true)}</span>
+        <span className="font-bold">{formatNumber(num, !!useSuffix)}</span>
         {unit && <span className="text-muted-foreground">{unit}</span>}
       </span>
     );

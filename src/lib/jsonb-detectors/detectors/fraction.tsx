@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type { ShapeDetector, DetectionContext } from '../types';
-import { abbreviateNumber } from '@/lib/format-number';
+import { formatNumber } from '@/lib/format-number';
 
 function fmt(v: unknown, useSuffix?: boolean): string {
   const n = Number(v);
-  if (useSuffix && isFinite(n)) return abbreviateNumber(n);
+  if (isFinite(n)) return formatNumber(n, !!useSuffix);
   return String(v ?? '?');
 }
 

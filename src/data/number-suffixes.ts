@@ -135,4 +135,4 @@ export function findSuffix(n: number): NumberSuffix | null {
   return null;
 }
 
-export const SCIENTIFIC_THRESHOLD = 10000;
+export const SCIENTIFIC_THRESHOLD = 1000;

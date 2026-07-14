@@ -9,6 +9,60 @@
     "settings": "Settings",
     "notifications": "Notifications"
   },
+  "analytics": {
+    "title": "Analytics",
+    "description": "Page views and chat usage metrics.",
+    "periods": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days"
+    },
+    "metrics": {
+      "views": "Views",
+      "unique_visitors": "Unique Visitors",
+      "chats": "Chats",
+      "daily_average": "Daily Avg",
+      "period": "Period",
+      "trend_up": "Up {change}%",
+      "trend_down": "Down {change}%",
+      "trend_same": "No change",
+      "total": "Total",
+      "referrer": "Referrer"
+    },
+    "charts": {
+      "views_per_day": "Views per Day",
+      "chats_per_day": "Chats per Day",
+      "no_data": "No data for this period."
+    },
+    "top_pages": {
+      "title": "Top Pages",
+      "unique_visitors": "{count} unique",
+      "no_data": "No pages visited in this period."
+    },
+    "chat_quality": {
+      "title": "Chat Quality",
+      "positive_feedback": "Positive Feedback",
+      "negative_feedback": "Negative Feedback",
+      "with_context": "With Context",
+      "avg_latency": "Avg Latency",
+      "latency_ms": "{ms}ms",
+      "model_usage": "Model Usage",
+      "no_feedback": "No feedback yet.",
+      "no_models": "No model data."
+    },
+    "referrer": {
+      "title": "Traffic Sources",
+      "direct": "Direct",
+      "search": "Search",
+      "social": "Social",
+      "other": "Other",
+      "no_data": "No referrer data."
+    },
+    "export_csv": "Export CSV",
+    "error_title": "Failed to load analytics",
+    "error_description": "Could not fetch analytics data. Please try again.",
+    "retry": "Try Again"
+  },
   "dashboard": {
     "title": "My Wikis",
     "subtitle": "Manage your wikis or create a new one.",

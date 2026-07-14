@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { formatNumber } from '@/lib/format-number';
 import type { ShapeDetector, DetectionContext } from '../types';
 
 export const percentageDetector: ShapeDetector = {
@@ -24,7 +25,7 @@ export const percentageDetector: ShapeDetector = {
     }
     return 0.5;
   },
-  render({ value }: DetectionContext, variant = 1): ReactNode {
+  render({ value, useSuffix }: DetectionContext, variant = 1): ReactNode {
     const obj = value as Record<string, unknown>;
     const rawVal = obj.percent ?? obj.pct ?? obj.percentage ?? obj.value ?? obj.ratio;
     const num = typeof rawVal === 'string' ? parseFloat(rawVal.replace(/[%]/g, '')) : Number(rawVal);
@@ -36,16 +37,16 @@ export const percentageDetector: ShapeDetector = {
       return (
         <div className="flex items-center gap-2 text-xs">
           <div className="h-2 w-16 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: `${pct}%` }} />
           </div>
-          <span className="font-mono font-medium text-emerald-500">{pct}%</span>
+          <span className="font-mono font-medium text-primary">{formatNumber(pct, !!useSuffix)}%</span>
         </div>
       );
     }
     if (variant === 3) {
       return (
         <div className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium">
-          <span className="text-foreground">{pct}%</span>
+          <span className="text-foreground">{formatNumber(pct, !!useSuffix)}%</span>
           {label && <span className="text-muted-foreground font-normal">{label}</span>}
           {of && <span className="text-muted-foreground font-normal">de {of}</span>}
         </div>
@@ -58,10 +59,10 @@ export const percentageDetector: ShapeDetector = {
         <div className="flex items-center gap-2 text-xs">
           <div className="flex gap-0.5">
             {Array.from({ length: segments }).map((_, i) => (
-              <div key={i} className={`h-2 w-1.5 rounded-sm ${i < filled ? 'bg-emerald-500' : 'bg-muted'}`} />
+              <div key={i} className={`h-2 w-1.5 rounded-sm ${i < filled ? 'bg-primary' : 'bg-muted'}`} />
             ))}
           </div>
-          <span className="font-mono text-muted-foreground">{pct}%</span>
+          <span className="font-mono text-muted-foreground">{formatNumber(pct, !!useSuffix)}%</span>
         </div>
       );
     }
@@ -70,17 +71,17 @@ export const percentageDetector: ShapeDetector = {
         <div className="rounded-xl border bg-card p-3 text-xs">
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium text-foreground">{label || 'Porcentagem'}</span>
-            <span className="text-lg font-bold text-emerald-500">{pct}%</span>
+            <span className="text-lg font-bold text-primary">{formatNumber(pct, !!useSuffix)}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: `${pct}%` }} />
           </div>
         </div>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-500">
-        {pct}%
+      <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+        {formatNumber(pct, !!useSuffix)}%
       </span>
     );
   },

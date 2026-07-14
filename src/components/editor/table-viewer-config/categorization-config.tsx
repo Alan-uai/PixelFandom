@@ -15,7 +15,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
 import { Icon } from '@iconify/react';
-import { getCategorizableColumns, getColumnSortLabel, analyzeColumnValues, hexToColorName, getHexHue } from '@/lib/categorizable-columns';
+import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyzeColumnValues, getHexHue } from '@/lib/categorizable-columns';
+import { ColumnDisplay } from '@/lib/column-types/display-factory';
 
 export function CategorizationConfig({
   config,
@@ -49,6 +50,13 @@ export function CategorizationConfig({
       items: items as Record<string, unknown>[] | undefined,
     }),
     [columns, columnTypes, items],
+  );
+
+  const sortableColumns = useMemo(
+    () => getSortableColumns(columns as string[], {
+      columnTypes: columnTypes as Record<string, string> | undefined,
+    }),
+    [columns, columnTypes],
   );
 
   const detectedColumn = useMemo(() => {
@@ -715,12 +723,7 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    {catColumnAnalysis?.type === 'color' ? (
-                      <>
-                        <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat }} />
-                        {c.colorSortMode === 'name' ? hexToColorName(cat) : cat}
-                      </>
-                    ) : cat}
+                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} />
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -740,7 +743,7 @@ export function CategorizationConfig({
                 value={c.categoryItemSortColumn || 'none'}
                 options={[
                   { label: 'Ordem padrão', value: 'none' },
-                  ...categorizableColumns.map((col) => ({ label: col, value: col })),
+                  ...sortableColumns.map((col) => ({ label: col, value: col })),
                 ]}
                 onChange={(v) => onChange({ ...c, categoryItemSortColumn: v === 'none' ? null : v })}
               />
@@ -827,12 +830,7 @@ export function CategorizationConfig({
                         }`}
                       >
                         {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                        {catItemSortAnalysis?.type === 'color' ? (
-                          <>
-                            <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: val }} />
-                            {c.colorSortMode === 'name' ? hexToColorName(val) : val}
-                          </>
-                        ) : val}
+                        <ColumnDisplay value={val} column={c.categoryItemSortColumn} renderType={columnTypes?.[c.categoryItemSortColumn] || 'auto'} />
                         {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                       </motion.button>
                     );
@@ -927,12 +925,7 @@ export function CategorizationConfig({
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
                     <span className="text-[10px] opacity-60">{cat}:</span>
-                    {subColumnAnalysis?.type === 'color' ? (
-                      <>
-                        <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: sub }} />
-                        {c.colorSortMode === 'name' ? hexToColorName(sub) : sub}
-                      </>
-                    ) : sub}
+                    <ColumnDisplay value={sub} column={secondaryColumn} renderType={columnTypes?.[secondaryColumn] || 'auto'} />
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -949,7 +942,7 @@ export function CategorizationConfig({
                 value={c.subCategoryItemSortColumn || 'none'}
                 options={[
                   { label: 'Ordem padrão', value: 'none' },
-                  ...categorizableColumns.map((col) => ({ label: col, value: col })),
+                  ...sortableColumns.map((col) => ({ label: col, value: col })),
                 ]}
                 onChange={(v) => onChange({ ...c, subCategoryItemSortColumn: v === 'none' ? null : v })}
               />
@@ -1036,12 +1029,7 @@ export function CategorizationConfig({
                           }`}
                         >
                           {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                          {subCatItemSortAnalysis?.type === 'color' ? (
-                            <>
-                              <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: val }} />
-                              {c.colorSortMode === 'name' ? hexToColorName(val) : val}
-                            </>
-                          ) : val}
+                          <ColumnDisplay value={val} column={c.subCategoryItemSortColumn} renderType={columnTypes?.[c.subCategoryItemSortColumn] || 'auto'} />
                           {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                         </motion.button>
                       );

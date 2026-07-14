@@ -4,22 +4,16 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCachedData } from '@/hooks/use-cached-data';
-import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { WeldingCard } from '@/components/ui/welding-card';
-import { Loader2, Eye, MessageSquare, TrendingUp, BarChart3, Calendar } from 'lucide-react';
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
-
-type DailyView = { day: string; views: number; unique_visitors: number };
-type DailyChat = { day: string; total_questions: number; unique_users: number; avg_latency_ms: number };
-type TopPage = { page_title: string; page_path: string; views: number; unique_visitors: number };
-
-type AnalyticsData = {
-  period: string;
-  pageViews: { daily: DailyView[]; topPages: TopPage[]; total: number };
-  chatUsage: { daily: DailyChat[]; total: number };
-};
+import { Loader2, Eye, EyeOff, MessageSquare, TrendingUp, Calendar } from 'lucide-react';
+import { type AnalyticsData } from '@/components/analytics/types';
+import { MetricCard } from '@/components/analytics/metric-card';
+import { ViewsChart } from '@/components/analytics/views-chart';
+import { ChatsChart } from '@/components/analytics/chats-chart';
+import { TopPages } from '@/components/analytics/top-pages';
+import { ReferrerChart } from '@/components/analytics/referrer-chart';
+import { ChatQuality } from '@/components/analytics/chat-quality';
+import { CsvExport } from '@/components/analytics/csv-export';
+import { ErrorState } from '@/components/analytics/error-state';
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -27,7 +21,7 @@ export default function AnalyticsPage() {
   const t = useTranslations('analytics');
   const [period, setPeriod] = useState('7d');
   const cacheKey = `analytics:${slug}:${period}`;
-  const { data, loading } = useCachedData<AnalyticsData>(
+  const { data, loading, error, mutate } = useCachedData<AnalyticsData>(
     cacheKey,
     async () => {
       const r = await fetch(`/api/analytics?slug=${slug}&period=${period}`);
@@ -53,174 +47,131 @@ export default function AnalyticsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 max-w-5xl mx-auto">
+        <ErrorState
+          message={t('error_title')}
+          description={t('error_description')}
+          onRetry={mutate}
+          retryLabel={t('retry')}
+        />
+      </div>
+    );
+  }
+
+  const dailyAvg = data?.pageViews.daily.length
+    ? Math.round(data.pageViews.total / data.pageViews.daily.length)
+    : 0;
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
+            <TrendingUp className="h-6 w-6 text-primary" />
             {t('title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {t('description')}
           </p>
         </div>
-        <div className="flex gap-1 bg-muted rounded-lg p-1">
-          {periods.map(p => (
-            <button
-              key={p.value}
-              onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
-                period === p.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {data && <CsvExport data={data} label={t('export_csv')} />}
+          <div className="flex gap-1 bg-muted rounded-lg p-1">
+            {periods.map(p => (
+              <button
+                key={p.value}
+                onClick={() => setPeriod(p.value)}
+                className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                  period === p.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <WeldingCard>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">{t('metrics.views')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">{data?.pageViews.total ?? 0}</span>
-            </div>
-          </CardContent>
-        </WeldingCard>
-        <WeldingCard>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">{t('metrics.chats')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">{data?.chatUsage.total ?? 0}</span>
-            </div>
-          </CardContent>
-        </WeldingCard>
-        <WeldingCard>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">{t('metrics.daily_average')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">
-                {data?.pageViews.daily.length
-                  ? Math.round(data.pageViews.total / data.pageViews.daily.length)
-                  : 0}
-              </span>
-            </div>
-          </CardContent>
-        </WeldingCard>
-        <WeldingCard>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">{t('metrics.period')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">{period}</span>
-            </div>
-          </CardContent>
-        </WeldingCard>
+        <MetricCard
+          label={t('metrics.views')}
+          value={data?.pageViews.total ?? 0}
+          icon={<Eye className="h-4 w-4 text-primary" />}
+          trend={data?.trends.views ? { change: data.trends.views.change } : null}
+          trendLabelUp={t('metrics.trend_up')}
+          trendLabelDown={t('metrics.trend_down')}
+          trendLabelSame={t('metrics.trend_same')}
+        />
+        <MetricCard
+          label={t('metrics.unique_visitors')}
+          value={data?.pageViews.uniqueVisitors ?? 0}
+          icon={<EyeOff className="h-4 w-4 text-violet-400" />}
+        />
+        <MetricCard
+          label={t('metrics.chats')}
+          value={data?.chatUsage.total ?? 0}
+          icon={<MessageSquare className="h-4 w-4 text-primary" />}
+          trend={data?.trends.chats ? { change: data.trends.chats.change } : null}
+          trendLabelUp={t('metrics.trend_up')}
+          trendLabelDown={t('metrics.trend_down')}
+          trendLabelSame={t('metrics.trend_same')}
+        />
+        <MetricCard
+          label={t('metrics.daily_average')}
+          value={dailyAvg}
+          icon={<Calendar className="h-4 w-4 text-amber-400" />}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WeldingCard>
-          <CardHeader>
-            <CardTitle className="text-sm">{t('charts.views_per_day')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              {data?.pageViews.daily && data.pageViews.daily.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.pageViews.daily}>
-                    <defs>
-                      <linearGradient id="viewGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4BC5FF" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#4BC5FF" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="#64748b" tickFormatter={(v) => v?.slice(5, 10) || ''} />
-                    <YAxis tick={{ fontSize: 11 }} stroke="#64748b" />
-                    <Tooltip
-                      contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
-                    />
-                    <Area type="monotone" dataKey="views" stroke="#4BC5FF" fill="url(#viewGradient)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                  {t('charts.no_data')}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </WeldingCard>
-
-        <WeldingCard>
-          <CardHeader>
-            <CardTitle className="text-sm">{t('charts.chats_per_day')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              {data?.chatUsage.daily && data.chatUsage.daily.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.chatUsage.daily}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="#64748b" tickFormatter={(v) => v?.slice(5, 10) || ''} />
-                    <YAxis tick={{ fontSize: 11 }} stroke="#64748b" />
-                    <Tooltip
-                      contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
-                    />
-                    <Bar dataKey="total_questions" fill="#4BC5FF" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                  {t('charts.no_data')}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </WeldingCard>
+        <ViewsChart
+          data={data?.pageViews.daily || []}
+          title={t('charts.views_per_day')}
+          noDataLabel={t('charts.no_data')}
+        />
+        <ChatsChart
+          data={data?.chatUsage.daily || []}
+          title={t('charts.chats_per_day')}
+          noDataLabel={t('charts.no_data')}
+        />
       </div>
 
-      <WeldingCard>
-        <CardHeader>
-          <CardTitle className="text-sm">{t('top_pages.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data?.pageViews.topPages && data.pageViews.topPages.length > 0 ? (
-            <div className="space-y-2">
-              {data.pageViews.topPages.map((page, i) => (
-                <div key={page.page_path} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
-                  <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}.</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{page.page_title || page.page_path}</p>
-                    <p className="text-xs text-muted-foreground truncate">{page.page_path}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-medium">{page.views}</p>
-                    <p className="text-xs text-muted-foreground">{t('top_pages.unique_visitors', { count: page.unique_visitors })}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              {t('top_pages.no_data')}
-            </p>
-          )}
-        </CardContent>
-      </WeldingCard>
+      <ChatQuality
+        dailyData={data?.chatUsage.daily || []}
+        modelUsage={data?.chatUsage.modelUsage || []}
+        feedbackStats={data?.chatUsage.feedbackStats || { positive: 0, negative: 0, withContext: 0 }}
+        title={t('chat_quality.title')}
+        positiveLabel={t('chat_quality.positive_feedback')}
+        negativeLabel={t('chat_quality.negative_feedback')}
+        contextLabel={t('chat_quality.with_context')}
+        latencyLabel={t('chat_quality.avg_latency')}
+        latencyMsLabel={t('chat_quality.latency_ms')}
+        modelUsageLabel={t('chat_quality.model_usage')}
+        noFeedbackLabel={t('chat_quality.no_feedback')}
+        noModelsLabel={t('chat_quality.no_models')}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopPages
+          data={data?.pageViews.topPages || []}
+          title={t('top_pages.title')}
+          uniqueLabel={t('top_pages.unique_visitors')}
+          noDataLabel={t('top_pages.no_data')}
+        />
+        <ReferrerChart
+          data={data?.referrerBreakdown || []}
+          title={t('referrer.title')}
+          labels={{
+            direct: t('referrer.direct'),
+            search: t('referrer.search'),
+            social: t('referrer.social'),
+            other: t('referrer.other'),
+          }}
+          noDataLabel={t('referrer.no_data')}
+        />
+      </div>
     </div>
   );
 }

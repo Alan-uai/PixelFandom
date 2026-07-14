@@ -66,12 +66,12 @@ type FieldMeta = {
 const FIELD_LABELS: Record<string, FieldMeta> = {
   damage_min: { label: 'Dano Mín', icon: <Sword className="h-4 w-4" /> },
   damage_max: { label: 'Dano Máx', icon: <Sword className="h-4 w-4" /> },
-  crit_chance_min: { label: 'Chance Crítica', icon: <Crosshair className="h-4 w-4" />, color: 'text-yellow-400' },
-  crit_chance_max: { label: 'Crit Máx', icon: <Crosshair className="h-4 w-4" />, color: 'text-yellow-400' },
+  crit_chance_min: { label: 'Chance Crítica', icon: <Crosshair className="h-4 w-4" />, color: 'text-primary' },
+  crit_chance_max: { label: 'Crit Máx', icon: <Crosshair className="h-4 w-4" />, color: 'text-primary' },
   knockback: { label: 'Repulsão', icon: <Zap className="h-4 w-4" /> },
-  health_bonus: { label: 'Bônus HP', icon: <Shield className="h-4 w-4" />, color: 'text-emerald-400' },
-  speed_bonus: { label: 'Bônus Velocidade', icon: <Zap className="h-4 w-4" />, color: 'text-cyan-400' },
-  energy_bonus: { label: 'Bônus Energia', icon: <Zap className="h-4 w-4" />, color: 'text-purple-400' },
+  health_bonus: { label: 'Bônus HP', icon: <Shield className="h-4 w-4" />, color: 'text-primary' },
+  speed_bonus: { label: 'Bônus Velocidade', icon: <Zap className="h-4 w-4" />, color: 'text-primary' },
+  energy_bonus: { label: 'Bônus Energia', icon: <Zap className="h-4 w-4" />, color: 'text-primary' },
   shop_price: { label: 'Preço', icon: <Coins className="h-4 w-4" /> },
   craft_cost: { label: 'Custo Craft', icon: <Pickaxe className="h-4 w-4" /> },
   gold_cost: { label: 'Custo (Ouro)', icon: <Pickaxe className="h-4 w-4" /> },
@@ -79,13 +79,13 @@ const FIELD_LABELS: Record<string, FieldMeta> = {
   unlock_level: { label: 'Nível Mín', icon: <Star className="h-4 w-4" /> },
   max_ranks: { label: 'Ranks Máx', icon: <Gem className="h-4 w-4" /> },
   priority_order: { label: 'Prioridade', icon: <Crosshair className="h-4 w-4" /> },
-  drop_rate_percentage: { label: 'Drop Rate', icon: <Star className="h-4 w-4" />, color: 'text-yellow-400' },
-  drop_rate_multiplier: { label: 'Mult. Drop', icon: <Star className="h-4 w-4" />, color: 'text-yellow-400' },
+  drop_rate_percentage: { label: 'Drop Rate', icon: <Star className="h-4 w-4" />, color: 'text-primary' },
+  drop_rate_multiplier: { label: 'Mult. Drop', icon: <Star className="h-4 w-4" />, color: 'text-primary' },
   obtain_method: { label: 'Como Obter', icon: <Crosshair className="h-4 w-4" /> },
   world_name: { label: 'Mundo', icon: <Globe className="h-4 w-4" /> },
   chapter: { label: 'Capítulo', icon: <Gem className="h-4 w-4" /> },
   starting_banner: { label: 'Banner Inicial', icon: <Star className="h-4 w-4" /> },
-  drop_wave_requirement: { label: 'Wave Mín', icon: <Zap className="h-4 w-4" />, color: 'text-orange-400' },
+  drop_wave_requirement: { label: 'Wave Mín', icon: <Zap className="h-4 w-4" />, color: 'text-primary' },
   environment: { label: 'Ambiente', icon: <Globe className="h-4 w-4" /> },
   warning: { label: 'Atenção', icon: <Sparkles className="h-4 w-4" /> },
   weapon_type: { label: 'Tipo de Arma', icon: <Sword className="h-4 w-4" /> },
@@ -312,7 +312,7 @@ function RenderTypeFields({
           {boolCols.map((c) => (
             <Tag key={c.column_name}
               className={data[c.column_name]
-                ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                ? 'border-primary/30 text-primary bg-primary/10'
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >

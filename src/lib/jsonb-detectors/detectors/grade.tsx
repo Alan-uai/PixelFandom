@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Star } from 'lucide-react';
+import { formatNumber } from '@/lib/format-number';
 import type { ShapeDetector, DetectionContext } from '../types';
 
 const TIER_COLORS: Record<string, string> = {
@@ -31,7 +32,7 @@ export const gradeDetector: ShapeDetector = {
     const grade = String(obj.grade ?? obj.rank ?? obj.tier ?? obj.level ?? obj.class ?? obj.rating ?? '');
     return grade.length <= 5 ? 0.85 : 0.5;
   },
-  render({ value }: DetectionContext, variant = 1): ReactNode {
+  render({ value, useSuffix }: DetectionContext, variant = 1): ReactNode {
     const obj = value as Record<string, unknown>;
     const grade = String(obj.grade ?? obj.rank ?? obj.tier ?? obj.level ?? obj.class ?? obj.rating ?? '');
     const label = String(obj.label ?? obj.name ?? obj.title ?? '');
@@ -54,7 +55,7 @@ export const gradeDetector: ShapeDetector = {
           </div>
           <div className="flex flex-col">
             {label && <span className="font-medium text-foreground">{label}</span>}
-            {score != null && <span className="text-[10px] text-muted-foreground">Score: {score}</span>}
+            {score != null && <span className="text-[10px] text-muted-foreground">Score: {formatNumber(score, !!useSuffix)}</span>}
           </div>
         </div>
       );
@@ -65,7 +66,7 @@ export const gradeDetector: ShapeDetector = {
           {score != null && (
             <div className="flex gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`h-3 w-3 ${i < score ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+                <Star key={i} className={`h-3 w-3 ${i < score ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
               ))}
             </div>
           )}
@@ -84,7 +85,7 @@ export const gradeDetector: ShapeDetector = {
             {score != null && (
               <div className="flex gap-0.5 mt-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`h-3 w-3 ${i < score ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+                  <Star key={i} className={`h-3 w-3 ${i < score ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
                 ))}
               </div>
             )}

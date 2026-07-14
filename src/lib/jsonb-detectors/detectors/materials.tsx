@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
+import { formatNumber } from '@/lib/format-number';
 import type { ShapeDetector, DetectionContext } from '../types';
+
+function fmtAmount(v: unknown, useSuffix?: boolean): string {
+  const n = Number(v);
+  if (isFinite(n)) return formatNumber(n, !!useSuffix);
+  return String(v);
+}
 
 export const materialsDetector: ShapeDetector = {
   id: 'materials',
@@ -21,18 +28,17 @@ export const materialsDetector: ShapeDetector = {
     }
     return 0;
   },
-  render({ value }: DetectionContext, variant = 1): ReactNode {
+  render({ value, useSuffix }: DetectionContext, variant = 1): ReactNode {
     const items = Array.isArray(value) ? value : [value];
     const renderItem = (item: Record<string, unknown>, i: number) => {
       const name = String(item.name ?? item.item ?? item.material ?? '');
-      const amountStr = String(item.amount ?? item.count ?? item.quantity ?? item.price ?? '');
-      const amount = amountStr || undefined;
+      const amountStr = item.amount ?? item.count ?? item.quantity ?? item.price ?? '';
 
       if (variant === 2) {
         return (
           <div key={i} className="flex items-center gap-2 rounded-lg border bg-card p-2 text-xs">
             <span className="font-medium text-foreground">{name}</span>
-            {amount && <span className="font-mono text-primary font-bold">x{amount}</span>}
+            {amountStr && <span className="font-mono text-primary font-bold">x{fmtAmount(amountStr, useSuffix)}</span>}
           </div>
         );
       }
@@ -40,7 +46,7 @@ export const materialsDetector: ShapeDetector = {
         return (
           <div key={i} className="flex items-center gap-1.5 rounded-full border bg-muted/30 px-2.5 py-1 text-xs">
             <span className="text-foreground">{name}</span>
-            {amount && <span className="font-mono text-primary font-bold">×{amount}</span>}
+            {amountStr && <span className="font-mono text-primary font-bold">×{fmtAmount(amountStr, useSuffix)}</span>}
           </div>
         );
       }
@@ -51,7 +57,7 @@ export const materialsDetector: ShapeDetector = {
               {name[0]?.toUpperCase()}
             </div>
             <span className="font-medium text-foreground flex-1">{name}</span>
-            {amount && <span className="font-mono font-bold text-primary text-sm">x{amount}</span>}
+            {amountStr && <span className="font-mono font-bold text-primary text-sm">x{fmtAmount(amountStr, useSuffix)}</span>}
           </div>
         );
       }
@@ -59,14 +65,14 @@ export const materialsDetector: ShapeDetector = {
         return (
           <div key={i} className="flex items-center gap-2 rounded-lg border border-primary/20 bg-card p-2 text-xs">
             <span className="font-medium text-foreground">{name}</span>
-            {amount && <span className="font-mono font-bold text-primary">×{amount}</span>}
+            {amountStr && <span className="font-mono font-bold text-primary">×{fmtAmount(amountStr, useSuffix)}</span>}
           </div>
         );
       }
       return (
         <span key={i} className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs">
           <span className="font-medium text-foreground">{name}</span>
-          {amount && <span className="font-mono text-primary">x{amount}</span>}
+          {amountStr && <span className="font-mono text-primary">x{fmtAmount(amountStr, useSuffix)}</span>}
         </span>
       );
     };

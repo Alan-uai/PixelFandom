@@ -312,6 +312,23 @@ export function getColumnSortLabel(
   return { label: 'A→Z', isNumeric: false, mode: 'alpha' };
 }
 
+export function getSortableColumns(
+  columns: string[],
+  options?: {
+    columnTypes?: Record<string, string>;
+    excludeColumn?: string | null;
+  },
+): string[] {
+  const { columnTypes, excludeColumn } = options || {};
+  return columns.filter((col) => {
+    if (SYSTEM_COLS.has(col)) return false;
+    if (col === excludeColumn) return false;
+    const renderType = columnTypes?.[col];
+    if (renderType && NON_CAT_RENDER_TYPES.has(renderType)) return false;
+    return true;
+  });
+}
+
 export function getCategorizableColumns(
   columns: string[],
   options?: {
