@@ -119,6 +119,9 @@ export const ViewerConfigSchema = z.object({
   source: z.enum(['global', 'local']).default('local').optional(),
   uploadColumns: z.array(z.string()).default([]).optional(),
   columnTypes: z.record(z.string(), z.string()).default({}).optional(),
+  columnConfig: z.record(z.string(), z.object({
+    maxValue: z.number().optional(),
+  })).default({}).optional(),
   rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});
 

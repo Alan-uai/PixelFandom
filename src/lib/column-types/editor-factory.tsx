@@ -21,9 +21,10 @@ export interface EditorProps {
   slug?: string;
   table?: string;
   rowId?: string;
+  maxValue?: number;
 }
 
-export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId }: EditorProps) {
+export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId, maxValue }: EditorProps) {
   const def = COLUMN_TYPES[renderType as RenderType];
 
   if (!def) {
@@ -36,7 +37,7 @@ export function ColumnEditor({ value, onChange, renderType, tenantId, slug, tabl
     );
   }
 
-  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId });
+  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue);
   if (editor) return editor;
 
   return (
@@ -53,6 +54,7 @@ function renderEditor(
   value: string,
   onChange: (v: string) => void,
   ctx: { tenantId?: string; slug?: string; table?: string; rowId?: string },
+  maxValue?: number,
 ): ReactNode | null {
   switch (renderType) {
     case 'text':
@@ -114,10 +116,10 @@ function renderEditor(
       );
 
     case 'rating':
-      return <RatingEditor value={value} onChange={onChange} />;
+      return <RatingEditor value={value} onChange={onChange} max={maxValue ?? 5} />;
 
     case 'slider':
-      return <SliderEditor value={value} onChange={onChange} />;
+      return <SliderEditor value={value} onChange={onChange} max={maxValue ?? 100} />;
 
     case 'duration':
       return <DurationEditor value={value} onChange={onChange} />;

@@ -210,12 +210,11 @@ function RenderTypeFields({
   // 1. Custom format overrides from card detail config
   if (columnFormats) {
     const formatEntries = Object.entries(columnFormats).filter(
-      ([col, fmt]) => {
+      ([col, _fmt]) => {
         if (rendered.has(col)) return false;
         if (SYSTEM_FIELDS.has(col)) return false;
         if (visibleColumnsSet && !visibleColumnsSet.has(col)) return false;
         if (!hasValue(data[col])) return false;
-        if (fmt === 'text') return false;
         return true;
       },
     );

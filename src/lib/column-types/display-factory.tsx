@@ -13,7 +13,7 @@ export interface DisplayProps {
   renderType: string;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled }: DisplayProps & { useSuffix?: boolean; opEnabled?: boolean }): ReactNode {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue }: DisplayProps & { useSuffix?: boolean; opEnabled?: boolean; maxValue?: number }): ReactNode {
   value = normalizeValue(value, useSuffix, opEnabled);
   if (value === null || value === undefined || value === '') return null;
 
@@ -57,12 +57,13 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
 
     case 'rating': {
       const rating = parseInt(String(value)) || 0;
+      const ratingMax = maxValue ?? 5;
       return (
         <div className="flex items-center gap-0.5">
-          {Array.from({ length: Math.min(rating, 10) }, (_, i) => (
+          {Array.from({ length: Math.min(rating, ratingMax) }, (_, i) => (
             <span key={i} className="text-primary text-sm">★</span>
           ))}
-          <span className="text-xs text-muted-foreground ml-1">{rating}/{def?.label?.includes('10') ? 10 : 5}</span>
+          <span className="text-xs text-muted-foreground ml-1">{rating}/{ratingMax}</span>
         </div>
       );
     }
@@ -121,18 +122,21 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled 
     case 'audio':
       return <audio src={String(value)} controls className="w-full h-8" />;
 
-    case 'slider':
+    case 'slider': {
+      const sliderMax = maxValue ?? 100;
+      const pct = sliderMax > 0 ? (Number(value) / sliderMax) * 100 : 0;
       return (
         <div className="flex items-center gap-2">
           <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${Math.min(Number(value), 100)}%` }}
+              style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{String(value)}</span>
         </div>
       );
+    }
 
     case 'duration':
       return <span className="font-mono text-sm">{String(value)}</span>;

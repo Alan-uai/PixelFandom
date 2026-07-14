@@ -342,9 +342,10 @@ function renderImage(v: number, str: string, label: string) {
 }
 
 // ── rating ────────────────────────────────────────────────
-function renderRating(v: number, val: unknown, label: string) {
+function renderRating(v: number, val: unknown, label: string, opEnabled?: boolean) {
   const num = Number(val);
   const stars = isNaN(num) ? 0 : Math.round(Math.min(5, Math.max(0, num)));
+  const fraction = !isNaN(num) && opEnabled ? `${num}/5` : '';
 
   if (v === 2) {
     return (
@@ -353,6 +354,8 @@ function renderRating(v: number, val: unknown, label: string) {
           {Array.from({ length: 5 }).map((_, i) => (
             <Heart key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
           ))}
+          {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
+          {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
         </div>
       </Row>
     );
@@ -381,23 +384,22 @@ function renderRating(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
-        <div className="flex gap-0.5 items-center">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
-          ))}
-          <span className="text-[10px] text-muted-foreground ml-1">{isNaN(num) ? '' : `${num}/5`}</span>
+      <ColWrap label={label}>
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-3xl font-bold text-amber-400">{isNaN(num) ? '?' : num}</span>
+          <span className="text-sm text-muted-foreground">/5</span>
         </div>
-      </Row>
+      </ColWrap>
     );
   }
   return (
     <Row label={label}>
-      <div className="flex gap-0.5">
+      <div className="flex gap-0.5 items-center">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
         ))}
-        {isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
+        {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
+        {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
       </div>
     </Row>
   );
@@ -1007,7 +1009,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'icon':     return renderIcon(n, str, label);
     case 'link':     return renderLink(n, str, label);
     case 'image':    return renderImage(n, str, label);
-    case 'rating':   return renderRating(n, value, label);
+    case 'rating':   return renderRating(n, value, label, opEnabled);
     case 'progress': return renderProgress(n, value, label);
     case 'tags':     return renderTags(n, value, label);
     case 'boolean':  return renderBoolean(n, value, label);

@@ -48,40 +48,40 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
 
 const COMPAT: Record<string, DisplayFormat[]> = {
   text:          ['text', 'badge', 'link', 'image', 'color', 'icon', 'date', 'duration', 'emoji', 'tags', 'file'],
-  link:          ['text', 'badge', 'link'],
-  tags:          ['text', 'badge', 'tags'],
-  'entity-link': ['text', 'badge', 'link'],
-  jsonb:         ['text', 'tags', 'jsonb-structured'],
+  link:          ['link', 'text', 'badge'],
+  tags:          ['tags', 'text', 'badge'],
+  'entity-link': ['link', 'text', 'badge'],
+  jsonb:         ['jsonb-structured', 'tags', 'text'],
 
   integer:  ['text', 'badge', 'rating', 'progress', 'duration'],
   bigint:   ['text', 'badge', 'rating', 'progress', 'duration'],
   real:     ['text', 'badge', 'rating', 'progress'],
   double:   ['text', 'badge', 'rating', 'progress'],
   numeric:  ['text', 'badge', 'rating', 'progress'],
-  rating:   ['text', 'badge', 'rating', 'progress'],
-  slider:   ['text', 'badge', 'rating', 'progress'],
-  duration: ['text', 'badge', 'duration'],
-  boolean:  ['text', 'badge', 'boolean'],
+  rating:   ['rating', 'text', 'badge', 'progress'],
+  slider:   ['progress', 'rating', 'text', 'badge'],
+  duration: ['duration', 'text', 'badge'],
+  boolean:  ['boolean', 'text', 'badge'],
 
-  image: ['text', 'image', 'link', 'file'],
-  file:  ['text', 'image', 'link', 'file'],
-  icon:  ['text', 'badge', 'icon'],
-  video: ['text', 'video', 'link'],
-  audio: ['text', 'audio', 'link'],
+  image: ['image', 'link', 'file', 'text'],
+  file:  ['file', 'link', 'image', 'text'],
+  icon:  ['icon', 'text', 'badge'],
+  video: ['video', 'link', 'text'],
+  audio: ['audio', 'link', 'text'],
 
-  select:        ['text', 'badge'],
-  'multi-select': ['text', 'badge', 'tags'],
-  'toggle-group': ['text', 'badge'],
+  select:        ['badge', 'text'],
+  'multi-select': ['tags', 'badge', 'text'],
+  'toggle-group': ['badge', 'text'],
 
-  color:         ['text', 'badge', 'color'],
-  'color-palette': ['text', 'tags'],
-  emoji:         ['text', 'badge', 'icon', 'emoji'],
-  'icon-set':    ['text', 'tags'],
+  color:         ['color', 'text', 'badge'],
+  'color-palette': ['tags', 'text'],
+  emoji:         ['emoji', 'icon', 'text', 'badge'],
+  'icon-set':    ['tags', 'text'],
 
   popover: ['text'],
 
-  date: ['text', 'badge', 'date'],
-  time: ['text', 'badge'],
+  date: ['date', 'text', 'badge'],
+  time: ['badge', 'text'],
 };
 
 export function getCompatibleFormats(renderType?: string): FormatDef[] {

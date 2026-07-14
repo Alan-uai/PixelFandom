@@ -157,7 +157,9 @@ export default function DataTableContent({
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
+  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number }>>({});
   const [newFieldSubType, setNewFieldSubType] = useState('image');
+  const [newFieldMaxValue, setNewFieldMaxValue] = useState('100');
   const [showParentDialog, setShowParentDialog] = useState(false);
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
@@ -236,6 +238,9 @@ export default function DataTableContent({
         }
         if (parsed.columnTypes) {
           setColumnRenderTypes(parsed.columnTypes);
+        }
+        if (parsed.columnConfig) {
+          setColumnConfigMap(parsed.columnConfig);
         }
         if (parsed.rowHiddenFields) {
           setRowHiddenFields(parsed.rowHiddenFields);
@@ -500,15 +505,17 @@ export default function DataTableContent({
           .eq('slug', table)
           .maybeSingle();
         const parsed = parseViewerConfig(configData?.viewer_config);
+        const rawConfig = configData?.viewer_config as Record<string, unknown> | null;
         const rowHidden = { ...(parsed.rowHiddenFields || {}) };
         const localForRow = rowHiddenFields[rowId] || [];
         const finalForRow = [...new Set([...localForRow, ...removedFields])];
         if (finalForRow.length > 0) {
           rowHidden[rowId] = finalForRow;
         }
+        const savedColumnTypes = rawConfig?.columnTypes || parsed.columnTypes || {};
         await supabase
           .from('tenant_game_tables')
-          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden } })
+          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden, columnTypes: savedColumnTypes } })
           .eq('tenant_id', tenantId)
           .eq('slug', table);
         setRowHiddenFields(rowHidden);
@@ -694,37 +701,65 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        const { data: existingConfig } = await supabase
-          .from('tenant_game_tables')
-          .select('viewer_config')
-          .eq('tenant_id', tenantId)
-          .eq('slug', table)
-          .maybeSingle();
-        const current = parseViewerConfig(existingConfig?.viewer_config);
-        const updates: Record<string, unknown> = {};
-
-        if (isMedia) {
-          const newSet = new Set(uploadColumns);
-          newSet.add(colSlug);
-          setUploadColumns(newSet);
-          const uploadCols = current.uploadColumns || [];
-          if (!uploadCols.includes(colSlug)) {
-            updates.uploadColumns = [...uploadCols, colSlug];
-          }
-        }
-
-        const existingTypes = current.columnTypes || {};
-        existingTypes[colSlug] = renderType;
-        updates.columnTypes = existingTypes;
         setColumnRenderTypes((prev) => ({ ...prev, [colSlug]: renderType }));
 
-        await supabase
-          .from('tenant_game_tables')
-          .update({ viewer_config: { ...current, ...updates } })
-          .eq('tenant_id', tenantId)
-          .eq('slug', table);
+        if (applyToAll) {
+          const { data: existingConfig } = await supabase
+            .from('tenant_game_tables')
+            .select('viewer_config')
+            .eq('tenant_id', tenantId)
+            .eq('slug', table)
+            .maybeSingle();
+          const current = parseViewerConfig(existingConfig?.viewer_config);
+          const updates: Record<string, unknown> = {};
 
-        invalidateDataCache(slug);
+          if (isMedia) {
+            const newSet = new Set(uploadColumns);
+            newSet.add(colSlug);
+            setUploadColumns(newSet);
+            const uploadCols = current.uploadColumns || [];
+            if (!uploadCols.includes(colSlug)) {
+              updates.uploadColumns = [...uploadCols, colSlug];
+            }
+          }
+
+          const existingTypes = current.columnTypes || {};
+          existingTypes[colSlug] = renderType;
+          updates.columnTypes = existingTypes;
+
+          if (renderType === 'slider' || renderType === 'rating') {
+            const defaultMax = renderType === 'slider' ? 100 : 5;
+            const maxVal = parseInt(newFieldMaxValue) || defaultMax;
+            const existingConfig = current.columnConfig || {};
+            existingConfig[colSlug] = { maxValue: maxVal };
+            updates.columnConfig = existingConfig;
+            setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal } }));
+          }
+
+          const card = (current.card || {}) as { visibleColumns?: string[] };
+          const visibleCols = card.visibleColumns || [];
+          if (!visibleCols.includes(colSlug)) {
+            card.visibleColumns = [...visibleCols, colSlug];
+          }
+          updates.card = card;
+
+          await supabase
+            .from('tenant_game_tables')
+            .update({ viewer_config: { ...current, ...updates } })
+            .eq('tenant_id', tenantId)
+            .eq('slug', table);
+
+          invalidateDataCache(slug);
+          fetchColumns();
+          fetchRows();
+        } else {
+          setTableColumns((prev) => {
+            if (!prev) return prev;
+            if (prev.some((c) => c.column_name === colSlug)) return prev;
+            return [...prev, { column_name: colSlug, data_type: dbType, is_nullable: true }];
+          });
+        }
+
         toast({ title: `Campo "${colSlug}" criado!` });
         setShowAddField(false);
         setNewFieldName('');
@@ -733,10 +768,6 @@ export default function DataTableContent({
         }
         if (editingId) {
           setEditForm((prev) => ({ ...prev, [colSlug]: '' }));
-        }
-        fetchColumns();
-        if (applyToAll) {
-          fetchRows();
         }
       } else {
         toast({ variant: 'destructive', title: 'Erro', description: result.error || 'Falha ao adicionar campo.' });
@@ -756,6 +787,7 @@ export default function DataTableContent({
 
     const renderType = getColumnRenderType(col);
     const dataType = getColumnDataType(col, tableColumns);
+    const colConfig = columnConfigMap[col];
 
     if (renderType) {
       return (
@@ -768,6 +800,7 @@ export default function DataTableContent({
           slug={slug}
           table={table}
           rowId={rowId}
+          maxValue={colConfig?.maxValue}
         />
       );
     }
@@ -1152,6 +1185,7 @@ export default function DataTableContent({
                       value={newFieldType}
                       onChange={(t) => {
                         setNewFieldType(t);
+                        setNewFieldMaxValue(t === 'rating' ? '5' : '100');
                         const def = getTypeDef(t);
                         if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
                           setNewFieldName(def.nameOptions[0].defaultColumn);
@@ -1164,6 +1198,18 @@ export default function DataTableContent({
                       options={newFieldTypes}
                     />
                   </div>
+                  {(newFieldType === 'slider' || newFieldType === 'rating') && (
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs text-muted-foreground">Valor máx</Label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={newFieldMaxValue}
+                        onChange={(e) => setNewFieldMaxValue(e.target.value)}
+                        className="h-8 w-full rounded-lg border bg-background px-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-1">
                     <Button
                       size="sm"
@@ -1369,6 +1415,7 @@ export default function DataTableContent({
                                 value={newFieldType}
                                 onChange={(t) => {
                                   setNewFieldType(t);
+                                  setNewFieldMaxValue('100');
                                   const def = getTypeDef(t);
                                   if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
                                     setNewFieldName(def.nameOptions[0].defaultColumn);
@@ -1381,6 +1428,18 @@ export default function DataTableContent({
                                 options={newFieldTypes}
                               />
                             </div>
+                            {(newFieldType === 'slider' || newFieldType === 'rating') && (
+                              <div className="w-20 space-y-1">
+                                <Label className="text-xs text-muted-foreground">Máx</Label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={newFieldMaxValue}
+                                  onChange={(e) => setNewFieldMaxValue(e.target.value)}
+                                  className="h-8 w-full rounded-lg border bg-background px-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                />
+                              </div>
+                            )}
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
