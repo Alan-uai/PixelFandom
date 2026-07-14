@@ -196,7 +196,7 @@ export function inferPrimaryColumns(columns: { column_name: string; data_type: s
   const skipCols = new Set([label, ...systemCols]);
   const displayable = columns.filter((c) =>
     !skipCols.has(c.column_name) &&
-    !['json', 'jsonb'].includes(c.data_type) &&
+    !['json'].includes(c.data_type) &&
     !c.column_name.includes('description') &&
     !c.column_name.includes('image') &&
     !c.column_name.includes('icon'),

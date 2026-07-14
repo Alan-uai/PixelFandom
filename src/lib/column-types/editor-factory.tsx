@@ -9,7 +9,7 @@ import {
   RatingEditor, ColorEditor, SliderEditor, DurationEditor,
   TagsEditor, EntityLinkEditor, EmojiEditor, MediaEditor,
   SelectEditor, ColorPaletteEditor, IconSetEditor, ToggleGroupEditor,
-  PopoverEditor,
+  PopoverEditor, JsonbEditor,
 } from './editors';
 
 export interface EditorProps {
@@ -22,9 +22,11 @@ export interface EditorProps {
   table?: string;
   rowId?: string;
   maxValue?: number;
+  columnConfig?: Record<string, unknown>;
+  onColumnConfigChange?: (cfg: Record<string, unknown>) => void;
 }
 
-export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId, maxValue }: EditorProps) {
+export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId, maxValue, columnConfig, onColumnConfigChange }: EditorProps) {
   const def = COLUMN_TYPES[renderType as RenderType];
 
   if (!def) {
@@ -37,7 +39,7 @@ export function ColumnEditor({ value, onChange, renderType, tenantId, slug, tabl
     );
   }
 
-  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue);
+  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue, columnConfig, onColumnConfigChange);
   if (editor) return editor;
 
   return (
@@ -55,6 +57,8 @@ function renderEditor(
   onChange: (v: string) => void,
   ctx: { tenantId?: string; slug?: string; table?: string; rowId?: string },
   maxValue?: number,
+  columnConfig?: Record<string, unknown>,
+  onColumnConfigChange?: (cfg: Record<string, unknown>) => void,
 ): ReactNode | null {
   switch (renderType) {
     case 'text':
@@ -83,11 +87,11 @@ function renderEditor(
 
     case 'jsonb':
       return (
-        <textarea
+        <JsonbEditor
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+          onChange={onChange}
+          columnConfig={columnConfig as { maxValue?: number; jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> } | undefined}
+          onColumnConfigChange={onColumnConfigChange as ((cfg: { jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> }) => void) | undefined}
         />
       );
 

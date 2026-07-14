@@ -55,8 +55,9 @@ export function CategorizationConfig({
   const sortableColumns = useMemo(
     () => getSortableColumns(columns as string[], {
       columnTypes: columnTypes as Record<string, string> | undefined,
+      items: items as Record<string, unknown>[] | undefined,
     }),
-    [columns, columnTypes],
+    [columns, columnTypes, items],
   );
 
   const detectedColumn = useMemo(() => {

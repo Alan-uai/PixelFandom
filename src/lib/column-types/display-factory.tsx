@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { formatNumber } from '@/lib/format-number';
-import { COLUMN_TYPES } from './registry';
+
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
 import { normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
 
@@ -13,11 +13,9 @@ export interface DisplayProps {
   renderType: string;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue }: DisplayProps & { useSuffix?: boolean; opEnabled?: boolean; maxValue?: number }): ReactNode {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig }: DisplayProps & { useSuffix?: boolean; opEnabled?: boolean; maxValue?: number; columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> } }): ReactNode {
   value = normalizeValue(value, useSuffix, opEnabled);
   if (value === null || value === undefined || value === '') return null;
-
-  const def = COLUMN_TYPES[renderType as keyof typeof COLUMN_TYPES];
 
   switch (renderType) {
     case 'image':
@@ -153,7 +151,18 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
     case 'jsonb': {
       ensureDetectorsRegistered();
+      const keyTypes = columnConfig?.jsonbKeyTypes;
       const parsed = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+      const formatValue = (k: string, v: unknown): string => {
+        if (typeof v === 'number') {
+          const kt = keyTypes?.[k];
+          if (useSuffix && kt?.suffix) return String(v) + ' ' + kt.suffix;
+          return String(v);
+        }
+        if (typeof v === 'string') return humanizeLabel(v);
+        if (typeof v === 'object') return JSON.stringify(v);
+        return String(v ?? '—');
+      };
       if (Array.isArray(parsed)) {
         if (parsed.length === 0) return <span className="text-xs text-muted-foreground italic">vazio</span>;
         if (parsed.every((i: unknown) => typeof i === 'object' && i !== null && !Array.isArray(i))) {
@@ -170,7 +179,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
                     {Object.entries(obj).map(([k, val]) => (
                       <div key={k} className="flex items-center gap-1.5">
                         <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
-                        <span className="text-muted-foreground">{typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')}</span>
+                        <span className="text-muted-foreground">{formatValue(k, val)}</span>
                       </div>
                     ))}
                   </div>
@@ -196,7 +205,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
             {Object.entries(parsed as Record<string, unknown>).map(([k, val]) => (
               <div key={k} className="flex items-start gap-2">
                 <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
-                <span className="text-muted-foreground">{typeof val === 'object' ? JSON.stringify(val) : typeof val === 'string' ? humanizeLabel(val) : String(val ?? '—')}</span>
+                <span className="text-muted-foreground">{formatValue(k, val)}</span>
               </div>
             ))}
           </div>

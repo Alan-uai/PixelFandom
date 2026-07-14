@@ -157,7 +157,15 @@ export default function DataTableContent({
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
-  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number }>>({});
+  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>>({});
+
+  const handleColumnConfigChange = useCallback((col: string, cfg: Record<string, unknown>) => {
+    setColumnConfigMap((prev) => ({
+      ...prev,
+      [col]: { ...(prev[col] || {}), ...cfg },
+    }));
+  }, []);
+
   const [newFieldSubType, setNewFieldSubType] = useState('image');
   const [newFieldMaxValue, setNewFieldMaxValue] = useState('100');
   const [showParentDialog, setShowParentDialog] = useState(false);
@@ -513,9 +521,16 @@ export default function DataTableContent({
           rowHidden[rowId] = finalForRow;
         }
         const savedColumnTypes = rawConfig?.columnTypes || parsed.columnTypes || {};
+        const savedColumnConfig = (rawConfig?.columnConfig || parsed.columnConfig || {}) as Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>;
+        const mergedConfig = { ...savedColumnConfig };
+        for (const [c, cfg] of Object.entries(columnConfigMap)) {
+          if (cfg.jsonbKeyTypes) {
+            mergedConfig[c] = { ...(mergedConfig[c] || {}), jsonbKeyTypes: cfg.jsonbKeyTypes };
+          }
+        }
         await supabase
           .from('tenant_game_tables')
-          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden, columnTypes: savedColumnTypes } })
+          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden, columnTypes: savedColumnTypes, columnConfig: mergedConfig } })
           .eq('tenant_id', tenantId)
           .eq('slug', table);
         setRowHiddenFields(rowHidden);
@@ -801,6 +816,8 @@ export default function DataTableContent({
           table={table}
           rowId={rowId}
           maxValue={colConfig?.maxValue}
+          columnConfig={colConfig}
+          onColumnConfigChange={(cfg) => handleColumnConfigChange(col, cfg)}
         />
       );
     }

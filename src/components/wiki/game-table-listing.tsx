@@ -65,6 +65,15 @@ function formatCategoryValue(col: string, val: unknown): string {
   if (typeof val === 'number') {
     return `${deriveLabel(col)} ${val}`;
   }
+  if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+    const keys = Object.keys(val as Record<string, unknown>);
+    if (keys.length > 0) return String((val as Record<string, unknown>)[keys[0]] ?? '');
+    return 'Outros';
+  }
+  if (Array.isArray(val)) {
+    if (val.length > 0) return formatCategoryValue(col, val[0]);
+    return 'Outros';
+  }
   return String(val);
 }
 
@@ -99,6 +108,7 @@ function renderBadgeItem(
   onCompareStatClick?: (statKey: string) => void,
   columnTypes?: Record<string, string>,
   useSuffix?: boolean,
+  columnConfig?: Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>,
 ): React.ReactNode {
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
@@ -107,7 +117,7 @@ function renderBadgeItem(
   if (typeof val === 'number') {
     displayValue = formatNumber(val, useSuffix ?? true);
   } else {
-    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} />;
+    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} columnConfig={columnConfig?.[col]} />;
   }
 
   const bc = badgeConfig[col] || {};
@@ -187,7 +197,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const detailConfig: Record<string, any> = viewerConfig?.card || {};
   const columnTypes: Record<string, string> = (viewerConfig?.columnTypes || {}) as Record<string, string>;
-
   let cols: number;
   if (fmt === 'list') {
     cols = Math.max(1, Math.min(2, effectiveColumnsCount));
@@ -393,9 +402,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     const sortCol = viewerConfig?.display?.sortColumn;
     const sortDir = viewerConfig?.display?.sortDirection || 'asc';
+    const extractSortVal = (v: unknown): unknown => {
+      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+        const keys = Object.keys(v as Record<string, unknown>);
+        if (keys.length > 0) return (v as Record<string, unknown>)[keys[0]];
+        return v;
+      }
+      return v;
+    };
     if (sortCol && result.length > 0 && sortCol in result[0]) {
       result = [...result].sort((a, b) => {
-        const va = a[sortCol], vb = b[sortCol];
+        const va = extractSortVal(a[sortCol]), vb = extractSortVal(b[sortCol]);
         if (va == null && vb == null) return 0;
         if (va == null) return 1;
         if (vb == null) return -1;
@@ -454,11 +471,18 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const catItemOrder = viewerConfig?.categorization?.categoryItemOrder ?? [];
     const catItemOrderMap = new Map(catItemOrder.map((v, i) => [v, i]));
     if (catSortCol) {
+      const extractVal = (v: unknown) => {
+        if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+          const keys = Object.keys(v as Record<string, unknown>);
+          return keys.length > 0 ? String((v as Record<string, unknown>)[keys[0]] ?? '') : '';
+        }
+        return String(v ?? '');
+      };
       entries = entries.map(([cat, items]) => [
         cat,
         [...items].sort((a, b) => {
-          const va = String(a[catSortCol] ?? '');
-          const vb = String(b[catSortCol] ?? '');
+          const va = extractVal(a[catSortCol]);
+          const vb = extractVal(b[catSortCol]);
           const ia = catItemOrderMap.get(va);
           const ib = catItemOrderMap.get(vb);
           if (ia != null && ib != null) return ia - ib;
@@ -667,11 +691,18 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       const subSortDir = vc?.categorization?.subCategoryItemSortDirection || 'asc';
       const subItemOrder = vc?.categorization?.subCategoryItemOrder ?? [];
       const subItemOrderMap = new Map(subItemOrder.map((v, i) => [v, i]));
+      const extractSubVal = (v: unknown) => {
+        if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+          const keys = Object.keys(v as Record<string, unknown>);
+          return keys.length > 0 ? String((v as Record<string, unknown>)[keys[0]] ?? '') : '';
+        }
+        return String(v ?? '');
+      };
       if (subSortCol) {
         for (const key of Object.keys(sgMap)) {
           sgMap[key] = [...sgMap[key]].sort((a, b) => {
-            const va = String(a[subSortCol] ?? '');
-            const vb = String(b[subSortCol] ?? '');
+            const va = extractSubVal(a[subSortCol]);
+            const vb = extractSubVal(b[subSortCol]);
             const ia = subItemOrderMap.get(va);
             const ib = subItemOrderMap.get(vb);
             if (ia != null && ib != null) return ia - ib;

@@ -6,7 +6,7 @@ const SYSTEM_COLS = new Set([
 
 const NON_CAT_RENDER_TYPES = new Set([
   'image', 'file', 'video', 'audio',
-  'jsonb', 'popover', 'color-palette', 'icon-set',
+  'popover', 'color-palette', 'icon-set',
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -199,12 +199,25 @@ export function getHexHue(hex: string): number {
   return rgbToHue(rgb.r, rgb.g, rgb.b);
 }
 
+function extractJsonbValue(raw: unknown): string {
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+    const keys = Object.keys(raw as Record<string, unknown>);
+    if (keys.length > 0) return String((raw as Record<string, unknown>)[keys[0]] ?? '');
+    return '';
+  }
+  if (Array.isArray(raw)) {
+    if (raw.length > 0) return extractJsonbValue(raw[0]);
+    return '';
+  }
+  return String(raw ?? '');
+}
+
 export function analyzeColumnValues(
   items: Record<string, unknown>[],
   col: string,
 ): ColumnAnalysis {
   const allValues = items
-    .map((item) => String(item[col] ?? ''))
+    .map((item) => extractJsonbValue(item[col]))
     .filter((v) => v !== '' && v !== 'none' && v !== 'undefined' && v !== 'null');
 
   const emptyRatio = items.length > 0 ? 1 - allValues.length / items.length : 1;
@@ -316,15 +329,22 @@ export function getSortableColumns(
   columns: string[],
   options?: {
     columnTypes?: Record<string, string>;
+    items?: Record<string, unknown>[];
     excludeColumn?: string | null;
   },
 ): string[] {
-  const { columnTypes, excludeColumn } = options || {};
+  const { columnTypes, items, excludeColumn } = options || {};
   return columns.filter((col) => {
     if (SYSTEM_COLS.has(col)) return false;
     if (col === excludeColumn) return false;
     const renderType = columnTypes?.[col];
     if (renderType && NON_CAT_RENDER_TYPES.has(renderType)) return false;
+    if (!items || items.length === 0) return true;
+    const analysis = analyzeColumnValues(items, col);
+    if (analysis.type === 'url' || analysis.type === 'json' ||
+        analysis.type === 'uuid' || analysis.type === 'email' ||
+        analysis.type === 'empty') return false;
+    if (analysis.type === 'long-text') return false;
     return true;
   });
 }

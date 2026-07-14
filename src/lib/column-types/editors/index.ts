@@ -11,3 +11,4 @@ export { ColorPaletteEditor } from './color-palette-editor';
 export { IconSetEditor } from './icon-set-editor';
 export { ToggleGroupEditor } from './toggle-group-editor';
 export { PopoverEditor } from './popover-editor';
+export { JsonbEditor } from './jsonb-editor';
