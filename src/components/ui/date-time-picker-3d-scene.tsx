@@ -15,23 +15,76 @@ interface DateTimeScene3DProps {
   onMonthChange?: (date: Date) => void;
 }
 
-/* ─────────────── TIME: 3D Clock Face ─────────────── */
-
 function parseTime(v: string): { h: number; m: number } {
   if (!v) return { h: 0, m: 0 };
   const [hh, mm] = v.split(':').map(Number);
   return { h: isNaN(hh) ? 0 : hh, m: isNaN(mm) ? 0 : mm };
 }
 
+const MONTH_LABELS = [
+  'Jan','Fev','Mar','Abr','Mai','Jun',
+  'Jul','Ago','Set','Out','Nov','Dez',
+];
+
+/* ─── Canvas text-sprite helper ─── */
+
+function makeTextTexture(
+  text: string,
+  fontSize = 28,
+  color = '#ffffff',
+  bgColor = 'rgba(0,0,0,0.35)',
+): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+  const m = ctx.measureText(text);
+  const pw = 8;
+  const ph = 4;
+  const w = Math.ceil(m.width) + pw * 2;
+  const h = fontSize + ph * 2;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    const r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(w - r, 0);
+    ctx.quadraticCurveTo(w, 0, w, r);
+    ctx.lineTo(w, h - r);
+    ctx.quadraticCurveTo(w, h, w - r, h);
+    ctx.lineTo(r, h);
+    ctx.quadraticCurveTo(0, h, 0, h - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(text, w / 2, h / 2);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/* ─────────────── TIME: 3D Clock Face ─────────────── */
+
 function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: string) => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState<{ type: 'h' | 'm'; idx: number } | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const pulse = useRef(0);
 
   const { h, m } = parseTime(value);
   const selH12 = h % 12;
   const selM = m;
+  const isPM = h >= 12;
 
   const hourPos = useMemo(
     () =>
@@ -51,7 +104,16 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
     [],
   );
 
+  const lt = useMemo(
+    () =>
+      isPM
+        ? { ambient: '#1a1a3a', aI: 0.3, d1: '#445577', d1I: 0.6, d2: '#223344', d2I: 0.15, sky: '#223355', grd: '#111122', center: '#3344aa' }
+        : { ambient: '#4466aa', aI: 0.5, d1: '#ffffff', d1I: 1.2, d2: '#ffffff', d2I: 0.4, sky: '#6688ff', grd: '#442244', center: '#4BC5FF' },
+    [isPM],
+  );
+
   const handleDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    if (e.defaultPrevented) return;
     drag.current = { active: true, prevX: e.clientX, velocity: 0, moved: false };
   }, []);
 
@@ -71,8 +133,8 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
   const pickHour = useCallback(
     (hour12: number) => {
       if (drag.current.moved) return;
-      const isPM = h >= 12;
-      const newH = hour12 === 12 ? (isPM ? 12 : 0) : isPM ? hour12 + 12 : hour12;
+      const isPMNow = h >= 12;
+      const newH = hour12 === 12 ? (isPMNow ? 12 : 0) : isPMNow ? hour12 + 12 : hour12;
       onTimeChange?.(`${String(newH).padStart(2, '0')}:${String(selM).padStart(2, '0')}`);
     },
     [onTimeChange, h, selM],
@@ -86,8 +148,13 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
     [onTimeChange, h],
   );
 
+  const toggleAmPm = useCallback(() => {
+    if (drag.current.moved) return;
+    const newH = h >= 12 ? h - 12 : h + 12;
+    onTimeChange?.(`${String(newH).padStart(2, '0')}:${String(selM).padStart(2, '0')}`);
+  }, [h, selM, onTimeChange]);
+
   useFrame((_, delta) => {
-    pulse.current += delta;
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -97,6 +164,8 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
 
   const handAngle = (selH12 / 12) * Math.PI * 2 - Math.PI / 2;
 
+  const ampmTex = useMemo(() => makeTextTexture(isPM ? 'PM' : 'AM', 22, '#ffffff'), [isPM]);
+
   return (
     <group
       ref={groupRef}
@@ -105,10 +174,10 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
       onPointerUp={handleUp}
       onPointerLeave={handleUp}
     >
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[4, 6, 4]} intensity={1.2} />
-      <directionalLight position={[-3, -2, -4]} intensity={0.4} />
-      <hemisphereLight args={['#6688ff', '#442244', 0.3]} />
+      <ambientLight intensity={lt.aI} color={lt.ambient} />
+      <directionalLight position={[4, 6, 4]} intensity={lt.d1I} color={lt.d1} />
+      <directionalLight position={[-3, -2, -4]} intensity={lt.d2I} color={lt.d2} />
+      <hemisphereLight args={[lt.sky, lt.grd, 0.3]} />
 
       {minPos.map((pos, i) => {
         const mVal = i * 5;
@@ -177,7 +246,6 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
                 </mesh>
               )}
             </mesh>
-
           </group>
         );
       })}
@@ -203,16 +271,19 @@ function ClockFace({ value, onTimeChange }: { value: string; onTimeChange?: (t: 
         </group>
       )}
 
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.35, 32, 32]} />
+      <mesh position={[0, 0, 0]} onClick={toggleAmPm}>
+        <sphereGeometry args={[0.4, 32, 32]} />
         <meshPhysicalMaterial
-          color={new THREE.Color('#4BC5FF')}
+          color={new THREE.Color(lt.center)}
           metalness={0.3}
           roughness={0.15}
-          emissive={new THREE.Color('#4BC5FF')}
-          emissiveIntensity={0.12}
+          emissive={new THREE.Color(lt.center)}
+          emissiveIntensity={0.15}
         />
       </mesh>
+      <sprite position={[0, 0, 0.42]} scale={[0.5, 0.22, 1]}>
+        <spriteMaterial map={ampmTex} transparent depthWrite={false} />
+      </sprite>
     </group>
   );
 }
@@ -234,7 +305,9 @@ function CalendarRing({
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const drag = useRef({ active: false, prevX: 0, velocity: 0, moved: false });
-  const pulse = useRef(0);
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const sunAngle = useRef(0);
+  const yearDrag = useRef({ active: false, prevX: 0, moved: false, accum: 0 });
 
   let valMonth = new Date().getMonth();
   let valDay: number | null = null;
@@ -271,6 +344,21 @@ function CalendarRing({
     [daysInMonth],
   );
 
+  const monthTextures = useMemo(
+    () => MONTH_LABELS.map((n) => makeTextTexture(n, 22, 'rgba(255,255,255,0.9)')),
+    [],
+  );
+
+  const dayTextures = useMemo(
+    () =>
+      Array.from({ length: daysInMonth }, (_, i) =>
+        makeTextTexture(String(i + 1), 15, 'rgba(210,225,255,0.85)', 'rgba(0,0,0,0.25)'),
+      ),
+    [daysInMonth],
+  );
+
+  const yearTex = useMemo(() => makeTextTexture(String(currentYear), 26, '#ffffff'), [currentYear]);
+
   const handleDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     drag.current = { active: true, prevX: e.clientX, velocity: 0, moved: false };
   }, []);
@@ -286,6 +374,36 @@ function CalendarRing({
 
   const handleUp = useCallback(() => {
     drag.current.active = false;
+  }, []);
+
+  const handleYearDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    yearDrag.current = { active: true, prevX: e.clientX, moved: false, accum: 0 };
+  }, []);
+
+  const handleYearMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (!yearDrag.current.active) return;
+      e.stopPropagation();
+      const dx = e.clientX - yearDrag.current.prevX;
+      if (Math.abs(dx) > 2) yearDrag.current.moved = true;
+      yearDrag.current.accum += dx;
+      yearDrag.current.prevX = e.clientX;
+      if (Math.abs(yearDrag.current.accum) > 40) {
+        const dir = yearDrag.current.accum > 0 ? 1 : -1;
+        const ny = currentYear + dir;
+        if (ny >= new Date().getFullYear()) {
+          onMonthChange?.(new Date(ny, currentMonth));
+        }
+        yearDrag.current.accum = 0;
+      }
+    },
+    [currentYear, currentMonth, onMonthChange],
+  );
+
+  const handleYearUp = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    yearDrag.current.active = false;
   }, []);
 
   const pickMonth = useCallback(
@@ -305,7 +423,13 @@ function CalendarRing({
   );
 
   useFrame((_, delta) => {
-    pulse.current += delta;
+    if (sunRef.current && yearDrag.current.active) {
+      sunAngle.current += delta * 2;
+      const r = 6;
+      const angle = sunAngle.current;
+      sunRef.current.position.x = Math.cos(angle) * r;
+      sunRef.current.position.z = Math.sin(angle) * r;
+    }
     if (!drag.current.active && groupRef.current) {
       groupRef.current.rotation.y += drag.current.velocity * delta * 6;
       drag.current.velocity *= 0.92;
@@ -326,13 +450,13 @@ function CalendarRing({
       <directionalLight position={[-3, -2, -4]} intensity={0.4} />
       <hemisphereLight args={['#6688ff', '#442244', 0.3]} />
 
+      <directionalLight ref={sunRef} position={[6, 2, 0]} intensity={0.25} color="#ff9944" />
+
       {monthPositions.map((pos, i) => {
         const isSel = currentMonth === i;
         const isHov = hoveredMonth === i;
         const hue = (i * 30 + 180) % 360;
-        const c = new THREE.Color(
-          `hsl(${hue}, ${isSel ? 85 : 60}%, ${isSel ? 65 : isHov ? 55 : 42}%)`,
-        );
+        const c = new THREE.Color(`hsl(${hue}, ${isSel ? 85 : 60}%, ${isSel ? 65 : isHov ? 55 : 42}%)`);
         return (
           <group key={`mo${i}`}>
             <mesh
@@ -364,7 +488,9 @@ function CalendarRing({
                 </mesh>
               )}
             </mesh>
-
+            <sprite position={[pos.x, pos.y, pos.z + 0.35]} scale={[0.48, 0.2, 1]}>
+              <spriteMaterial map={monthTextures[i]} transparent depthWrite={false} />
+            </sprite>
           </group>
         );
       })}
@@ -379,40 +505,51 @@ function CalendarRing({
             : `hsl(${210 + (i / daysInMonth) * 60}, 55%, ${isHov ? 55 : 38}%)`,
         );
         return (
-          <mesh
-            key={`d${i}`}
-            position={pos}
-            scale={isSel ? 1.7 : isHov ? 1.3 : 0.65}
-            onClick={() => pickDay(d)}
-            onPointerEnter={() => setHoveredDay(i)}
-            onPointerLeave={() => setHoveredDay(null)}
-          >
-            <sphereGeometry args={[0.08, 12, 12]} />
-            <meshPhysicalMaterial
-              color={c}
-              metalness={0.1}
-              roughness={0.3}
-              emissive={c}
-              emissiveIntensity={isSel ? 0.4 : 0.04}
-              transparent
-              opacity={isSel ? 0.95 : 0.35}
-            />
-          </mesh>
+          <group key={`d${i}`}>
+            <mesh
+              position={pos}
+              scale={isSel ? 1.7 : isHov ? 1.3 : 0.65}
+              onClick={() => pickDay(d)}
+              onPointerEnter={() => setHoveredDay(i)}
+              onPointerLeave={() => setHoveredDay(null)}
+            >
+              <sphereGeometry args={[0.13, 16, 16]} />
+              <meshPhysicalMaterial
+                color={c}
+                metalness={0.1}
+                roughness={0.3}
+                emissive={c}
+                emissiveIntensity={isSel ? 0.4 : 0.04}
+                transparent
+                opacity={isSel ? 0.95 : 0.35}
+              />
+            </mesh>
+            <sprite position={[pos.x, pos.y, pos.z + 0.2]} scale={[0.28, 0.16, 1]}>
+              <spriteMaterial map={dayTextures[i]} transparent depthWrite={false} />
+            </sprite>
+          </group>
         );
       })}
 
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.25, 24, 24]} />
+      <mesh
+        position={[0, 0, 0]}
+        onPointerDown={handleYearDown}
+        onPointerMove={handleYearMove}
+        onPointerUp={handleYearUp}
+        onPointerLeave={handleYearUp}
+      >
+        <sphereGeometry args={[0.45, 32, 32]} />
         <meshPhysicalMaterial
           color={new THREE.Color('#4BC5FF')}
           metalness={0.3}
           roughness={0.15}
           emissive={new THREE.Color('#4BC5FF')}
-          emissiveIntensity={0.08}
-          transparent
-          opacity={0.4}
+          emissiveIntensity={0.25}
         />
       </mesh>
+      <sprite position={[0, 0, 0.47]} scale={[0.6, 0.25, 1]}>
+        <spriteMaterial map={yearTex} transparent depthWrite={false} />
+      </sprite>
     </group>
   );
 }
@@ -436,7 +573,7 @@ function SceneContent(props: DateTimeScene3DProps) {
 export function DateTimeScene3D(props: DateTimeScene3DProps) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 5.5], fov: 40 }}
+      camera={{ position: [0, 0, 6.0], fov: 50 }}
       dpr={[1, 1.5]}
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
