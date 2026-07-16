@@ -57,6 +57,7 @@ export async function GET(
     const { id } = await params;
     const pageType = getPageType(request);
 
+    // 1. Check if layout exists in DB
     const { data, error } = await supabase
       .from('tenant_pages')
       .select('layout, floating_islands')
@@ -64,47 +65,73 @@ export async function GET(
       .eq('page_type', pageType)
       .maybeSingle();
 
-    if (error || !data) {
-      if (pageType === 'landing') {
-        const { data: tenant } = await supabase
-          .from('tenants')
-          .select('theme')
-          .eq('id', id)
-          .single();
+    // 2. If record found, return it
+    if (data) {
+      const rawIslands = data.floating_islands as any;
 
-        if (tenant?.theme && (tenant.theme as any).landing_layout) {
-          const fallback = (tenant.theme as any).landing_layout;
-          return NextResponse.json({
-            blocks: fallback.blocks || [],
-            floatingIslands: fallback.floatingIslands || [],
-          });
-        }
+      if (Array.isArray(rawIslands)) {
+        return NextResponse.json({
+          blocks: (data.layout as any)?.blocks || [],
+          floatingIslands: rawIslands,
+          slotFlow: 'current',
+          clipStyle: 'trapezoid',
+        });
       }
-      return NextResponse.json({
-        blocks: getDefaultBlocks(pageType),
-        floatingIslands: [],
-      });
-    }
 
-    const rawIslands = data.floating_islands as any;
-
-    // Backward compat: if old array format, wrap in new object structure
-    if (Array.isArray(rawIslands)) {
+      const islandData = rawIslands || {};
       return NextResponse.json({
         blocks: (data.layout as any)?.blocks || [],
-        floatingIslands: rawIslands,
-        slotFlow: 'current',
-        clipStyle: 'trapezoid',
+        floatingIslands: (islandData.islands as any[]) || [],
+        slotFlow: islandData.slotFlow || 'current',
+        clipStyle: islandData.clipStyle || 'trapezoid',
+        singleIslandWidth: islandData.singleIslandWidth ?? undefined,
       });
     }
 
-    const islandData = rawIslands || {};
+    if (error && error.code !== 'PGRST116') {
+      console.error('DB error fetching layout:', error);
+      return NextResponse.json({ blocks: [], floatingIslands: [] });
+    }
+
+    // 3. No layout found — check legacy theme fallback (landing only)
+    if (pageType === 'landing') {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('theme')
+        .eq('id', id)
+        .single();
+
+      if (tenant?.theme && (tenant.theme as any).landing_layout) {
+        const fallback = (tenant.theme as any).landing_layout;
+        return NextResponse.json({
+          blocks: fallback.blocks || [],
+          floatingIslands: fallback.floatingIslands || [],
+        });
+      }
+    }
+
+    // 4. No layout at all — auto-seed DB with default blocks
+    const defaultBlocks = getDefaultBlocks(pageType);
+    const insertFields: Record<string, unknown> = {
+      tenant_id: id,
+      page_type: pageType,
+      layout: { blocks: defaultBlocks },
+      floating_islands: {},
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: insertError } = await supabase
+      .from('tenant_pages')
+      .insert(insertFields);
+
+    if (insertError) {
+      console.error('Failed to auto-seed layout:', insertError);
+      // Fall through to return defaults anyway
+    }
+
     return NextResponse.json({
-      blocks: (data.layout as any)?.blocks || [],
-      floatingIslands: (islandData.islands as any[]) || [],
-      slotFlow: islandData.slotFlow || 'current',
-      clipStyle: islandData.clipStyle || 'trapezoid',
-      singleIslandWidth: islandData.singleIslandWidth ?? undefined,
+      blocks: defaultBlocks,
+      floatingIslands: [],
     });
   } catch (error) {
     console.error('Get layout error:', error);

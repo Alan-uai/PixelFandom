@@ -172,5 +172,86 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Seed default data (non-blocking) ──
+
+  // 1. Default game tables
+  const DEFAULT_GAME_TABLES = [
+    { table_name: 'weapons', display_label: 'Armas', icon: 'Sword' },
+    { table_name: 'armors', display_label: 'Armaduras', icon: 'Shield' },
+    { table_name: 'rings', display_label: 'Anéis', icon: 'Ring' },
+    { table_name: 'potions', display_label: 'Poções', icon: 'FlaskConical' },
+    { table_name: 'upgrades', display_label: 'Upgrades', icon: 'ArrowUp' },
+    { table_name: 'enemies', display_label: 'Inimigos', icon: 'Skull' },
+    { table_name: 'bosses', display_label: 'Bosses', icon: 'Crown' },
+    { table_name: 'codes', display_label: 'Códigos', icon: 'Code' },
+    { table_name: 'crafting_recipes', display_label: 'Receitas', icon: 'Hammer' },
+    { table_name: 'resources', display_label: 'Recursos', icon: 'Pickaxe' },
+    { table_name: 'worlds', display_label: 'Mundos', icon: 'Globe' },
+    { table_name: 'build_presets', display_label: 'Presets', icon: 'Wrench' },
+    { table_name: 'game_config', display_label: 'Config', icon: 'Settings' },
+  ];
+
+  try {
+    const tgtRows = DEFAULT_GAME_TABLES.map(gt => ({
+      tenant_id: tenant.id,
+      table_name: gt.table_name,
+      display_label: gt.display_label,
+      icon: gt.icon,
+    }));
+    await adminClient.from('tenant_game_tables').insert(tgtRows);
+  } catch {
+    // non-blocking
+  }
+
+  // 2. Default pages (landing, footer, 404)
+  const PAGE_TEMPLATES: Record<string, { blocks: Record<string, unknown>[] }> = {
+    landing: {
+      blocks: [
+        { id: 'default-landing-welcome', type: 'heading', config: { content: 'Bem-vindo à Wiki!', level: 'h2', align: 'center' } },
+        { id: 'default-landing-desc', type: 'paragraph', config: { content: 'Explore nosso universo de conteúdo criado pela comunidade. Navegue pelos dados do jogo e artigos mais recentes.', size: 'md', align: 'center' } },
+        { id: 'default-landing-game-data', type: 'game-data-cards', config: { title: 'Dados do Jogo' } },
+        { id: 'default-landing-divider', type: 'divider', config: { style: 'dashed', thickness: 'sm' } },
+        { id: 'default-landing-articles-heading', type: 'heading', config: { content: 'Artigos Recentes', level: 'h2' } },
+        { id: 'default-landing-article-feed', type: 'article-feed', config: { sortBy: 'recent', layout: 'grid', columns: 3, count: 9, showImages: true, showSummaries: true } },
+      ],
+    },
+    footer: {
+      blocks: [
+        { id: 'default-footer-brand', type: 'footer-brand', config: { tagline: 'Wiki Comunitária', description: 'Conteúdo criado por fãs, para fãs. Este site não tem vínculo oficial com os desenvolvedores.', showSocialLinks: false, socialLinks: [], align: 'center' } },
+        { id: 'default-footer-credits', type: 'footer-credits', config: { brandName: '', year: 'auto', showHeart: true, showRights: true, align: 'center', size: 'sm' } },
+      ],
+    },
+    404: {
+      blocks: [
+        { id: 'default-404-display', type: 'error-display', config: { number: '404', size: 'xl', font: 'display', title: 'Página não encontrada', subtitle: 'Ops! O conteúdo que você procura não está aqui ou foi movido.', glitchEnabled: false, showDecoration: true } },
+        { id: 'default-404-search', type: 'error-search', config: { placeholder: 'Buscar na wiki...', showSuggestions: true } },
+        { id: 'default-404-actions', type: 'error-actions', config: { buttons: [{ label: 'Voltar ao Início', url: '/', variant: 'primary', icon: 'home' }, { label: 'Explorar Artigos', url: '/artigos', variant: 'outline', icon: 'back' }], layout: 'row', size: 'md' } },
+        { id: 'default-404-character', type: 'error-character', config: { character: 'sad-robot', mood: 'sad', speech: 'Hmm... não encontrei nada por aqui. Que tal tentar uma busca?', size: 'md', showBubble: true } },
+      ],
+    },
+  };
+
+  try {
+    const pageRows = Object.entries(PAGE_TEMPLATES).map(([pageType, template]) => ({
+      tenant_id: tenant.id,
+      page_type: pageType,
+      layout: template,
+      floating_islands: {},
+    }));
+    await adminClient.from('tenant_pages').insert(pageRows);
+  } catch {
+    // non-blocking
+  }
+
+  // 3. Default game_config
+  try {
+    await adminClient.from('game_config').insert([
+      { tenant_id: tenant.id, config_key: 'gameDataVersion', config_value: '"1.0.0"' },
+      { tenant_id: tenant.id, config_key: 'allGameData', config_value: '{}' },
+    ]);
+  } catch {
+    // non-blocking
+  }
+
   return NextResponse.json({ ...tenant, slug });
 }
