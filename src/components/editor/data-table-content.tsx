@@ -520,14 +520,9 @@ export default function DataTableContent({
         if (finalForRow.length > 0) {
           rowHidden[rowId] = finalForRow;
         }
-        const savedColumnTypes = rawConfig?.columnTypes || parsed.columnTypes || {};
+        const savedColumnTypes = { ...(rawConfig?.columnTypes || parsed.columnTypes || {}), ...columnRenderTypes };
         const savedColumnConfig = (rawConfig?.columnConfig || parsed.columnConfig || {}) as Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>;
-        const mergedConfig = { ...savedColumnConfig };
-        for (const [c, cfg] of Object.entries(columnConfigMap)) {
-          if (cfg.jsonbKeyTypes) {
-            mergedConfig[c] = { ...(mergedConfig[c] || {}), jsonbKeyTypes: cfg.jsonbKeyTypes };
-          }
-        }
+        const mergedConfig = { ...savedColumnConfig, ...columnConfigMap };
         await supabase
           .from('tenant_game_tables')
           .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden, columnTypes: savedColumnTypes, columnConfig: mergedConfig } })
@@ -718,62 +713,57 @@ export default function DataTableContent({
       if (result.ok) {
         setColumnRenderTypes((prev) => ({ ...prev, [colSlug]: renderType }));
 
+        /* Always persist columnTypes so the render type survives reload */
+        const { data: existingConfig } = await supabase
+          .from('tenant_game_tables')
+          .select('viewer_config')
+          .eq('tenant_id', tenantId)
+          .eq('slug', table)
+          .maybeSingle();
+        const current = parseViewerConfig(existingConfig?.viewer_config);
+        const updates: Record<string, unknown> = {};
+
+        if (isMedia) {
+          const newSet = new Set(uploadColumns);
+          newSet.add(colSlug);
+          setUploadColumns(newSet);
+          const uploadCols = current.uploadColumns || [];
+          if (!uploadCols.includes(colSlug)) {
+            updates.uploadColumns = [...uploadCols, colSlug];
+          }
+        }
+
+        const existingTypes = current.columnTypes || {};
+        existingTypes[colSlug] = renderType;
+        updates.columnTypes = existingTypes;
+
+        if (renderType === 'slider' || renderType === 'rating') {
+          const defaultMax = renderType === 'slider' ? 100 : 5;
+          const maxVal = parseInt(newFieldMaxValue) || defaultMax;
+          const existingColConfig = current.columnConfig || {};
+          existingColConfig[colSlug] = { maxValue: maxVal };
+          updates.columnConfig = existingColConfig;
+          setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal } }));
+        }
+
         if (applyToAll) {
-          const { data: existingConfig } = await supabase
-            .from('tenant_game_tables')
-            .select('viewer_config')
-            .eq('tenant_id', tenantId)
-            .eq('slug', table)
-            .maybeSingle();
-          const current = parseViewerConfig(existingConfig?.viewer_config);
-          const updates: Record<string, unknown> = {};
-
-          if (isMedia) {
-            const newSet = new Set(uploadColumns);
-            newSet.add(colSlug);
-            setUploadColumns(newSet);
-            const uploadCols = current.uploadColumns || [];
-            if (!uploadCols.includes(colSlug)) {
-              updates.uploadColumns = [...uploadCols, colSlug];
-            }
-          }
-
-          const existingTypes = current.columnTypes || {};
-          existingTypes[colSlug] = renderType;
-          updates.columnTypes = existingTypes;
-
-          if (renderType === 'slider' || renderType === 'rating') {
-            const defaultMax = renderType === 'slider' ? 100 : 5;
-            const maxVal = parseInt(newFieldMaxValue) || defaultMax;
-            const existingConfig = current.columnConfig || {};
-            existingConfig[colSlug] = { maxValue: maxVal };
-            updates.columnConfig = existingConfig;
-            setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal } }));
-          }
-
           const card = (current.card || {}) as { visibleColumns?: string[] };
           const visibleCols = card.visibleColumns || [];
           if (!visibleCols.includes(colSlug)) {
             card.visibleColumns = [...visibleCols, colSlug];
           }
           updates.card = card;
-
-          await supabase
-            .from('tenant_game_tables')
-            .update({ viewer_config: { ...current, ...updates } })
-            .eq('tenant_id', tenantId)
-            .eq('slug', table);
-
-          invalidateDataCache(slug);
-          fetchColumns();
-          fetchRows();
-        } else {
-          setTableColumns((prev) => {
-            if (!prev) return prev;
-            if (prev.some((c) => c.column_name === colSlug)) return prev;
-            return [...prev, { column_name: colSlug, data_type: dbType, is_nullable: true }];
-          });
         }
+
+        await supabase
+          .from('tenant_game_tables')
+          .update({ viewer_config: { ...current, ...updates } })
+          .eq('tenant_id', tenantId)
+          .eq('slug', table);
+
+        invalidateDataCache(slug);
+        fetchColumns();
+        fetchRows();
 
         toast({ title: `Campo "${colSlug}" criado!` });
         setShowAddField(false);

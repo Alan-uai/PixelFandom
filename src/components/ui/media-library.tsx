@@ -76,7 +76,7 @@ export function MediaLibrary({
     if (open) fetchMedia();
   }, [open, fetchMedia]);
 
-  const uploadFile = useCallback(async (file: File) => {
+  const uploadFile = useCallback(async (file: File): Promise<string | undefined> => {
     setUploading(true);
     setScanError(null);
 
@@ -117,6 +117,7 @@ export function MediaLibrary({
           };
           img.src = data.url;
         }
+        return data.url;
       } else {
         setUploading(false);
         fetchMedia();
@@ -172,17 +173,24 @@ export function MediaLibrary({
       cropSourceItem ? `cropped-${cropSourceItem.file_name}` : pendingFile?.name || 'cropped.png',
       { type: 'image/png' },
     );
+    const isExisting = !!cropSourceItem;
     cleanupCropper();
-    await uploadFile(croppedFile);
+    const url = await uploadFile(croppedFile);
+    if (!isExisting && url) {
+      handleSelect(url);
+    }
   };
 
-  const handleCropSkip = () => {
+  const handleCropSkip = async () => {
     if (cropSourceItem) {
       handleSelect(cropSourceItem.public_url);
     } else if (pendingFile) {
       const file = pendingFile;
       cleanupCropper();
-      uploadFile(file);
+      const url = await uploadFile(file);
+      if (url) {
+        handleSelect(url);
+      }
     }
   };
 

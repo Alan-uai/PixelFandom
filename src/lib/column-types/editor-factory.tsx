@@ -26,7 +26,7 @@ export interface EditorProps {
   onColumnConfigChange?: (cfg: Record<string, unknown>) => void;
 }
 
-export function ColumnEditor({ value, onChange, renderType, tenantId, slug, table, rowId, maxValue, columnConfig, onColumnConfigChange }: EditorProps) {
+export function ColumnEditor({ value, onChange, column, renderType, tenantId, slug, table, rowId, maxValue, columnConfig, onColumnConfigChange }: EditorProps) {
   const def = COLUMN_TYPES[renderType as RenderType];
 
   if (!def) {
@@ -39,7 +39,7 @@ export function ColumnEditor({ value, onChange, renderType, tenantId, slug, tabl
     );
   }
 
-  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue, columnConfig, onColumnConfigChange);
+  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue, columnConfig, onColumnConfigChange, column);
   if (editor) return editor;
 
   return (
@@ -59,6 +59,7 @@ function renderEditor(
   maxValue?: number,
   columnConfig?: Record<string, unknown>,
   onColumnConfigChange?: (cfg: Record<string, unknown>) => void,
+  column?: string,
 ): ReactNode | null {
   switch (renderType) {
     case 'text':
@@ -92,6 +93,10 @@ function renderEditor(
           onChange={onChange}
           columnConfig={columnConfig as { maxValue?: number; jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> } | undefined}
           onColumnConfigChange={onColumnConfigChange as ((cfg: { jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> }) => void) | undefined}
+          table={ctx.table}
+          slug={ctx.slug}
+          tenantId={ctx.tenantId}
+          columnName={column || ''}
         />
       );
 

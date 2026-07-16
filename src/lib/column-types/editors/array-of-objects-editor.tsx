@@ -19,19 +19,23 @@ export function ArrayOfObjectsEditor({
   keyTypes: Record<string, JsonbKeyEntry>;
   onKeyTypesChange: (types: Record<string, JsonbKeyEntry>) => void;
 }) {
-  const arr: Record<string, string>[] = (() => {
+  const arr: Record<string, unknown>[] = (() => {
     try { const p = JSON.parse(value); return Array.isArray(p) ? p : []; } catch { return []; }
   })();
 
-  const updateArray = useCallback((newArr: Record<string, string>[]) => {
+  const updateArray = useCallback((newArr: Record<string, unknown>[]) => {
     onChange(JSON.stringify(newArr));
   }, [onChange]);
 
   const updateItem = useCallback((index: number, entries: [string, string][]) => {
     const next = [...arr];
-    next[index] = Object.fromEntries(entries);
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of entries) {
+      obj[k] = keyTypes[k]?.type === 'number' ? Number(v) : v;
+    }
+    next[index] = obj;
     updateArray(next);
-  }, [arr, updateArray]);
+  }, [arr, keyTypes, updateArray]);
 
   const removeItem = useCallback((index: number) => {
     updateArray(arr.filter((_, i) => i !== index));
@@ -40,8 +44,8 @@ export function ArrayOfObjectsEditor({
   const addItem = useCallback(() => {
     const keys = Object.keys(keyTypes);
     if (keys.length > 0) {
-      const obj: Record<string, string> = {};
-      keys.forEach((k) => { obj[k] = ''; });
+      const obj: Record<string, unknown> = {};
+      keys.forEach((k) => { obj[k] = keyTypes[k]?.type === 'number' ? 0 : ''; });
       updateArray([...arr, obj]);
     } else {
       updateArray([...arr, { '': '' }]);
@@ -80,7 +84,7 @@ export function ArrayOfObjectsEditor({
               </button>
             </div>
             <SimpleObjectEditor
-              entries={entries}
+              entries={entries as [string, string][]}
               onEntriesChange={(e) => updateItem(i, e)}
               keyTypes={keyTypes}
               onKeyTypesChange={onKeyTypesChange}

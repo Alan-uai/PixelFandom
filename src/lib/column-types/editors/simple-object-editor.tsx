@@ -63,11 +63,6 @@ export function SimpleObjectEditor({
 
   return (
     <div className="space-y-1">
-      <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-1">
-        <span>Label</span>
-        <span>Valor</span>
-        <span />
-      </div>
       {entries.map(([key, val], i) => (
         <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
           <input

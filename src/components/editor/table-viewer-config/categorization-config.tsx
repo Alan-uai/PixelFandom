@@ -11,8 +11,7 @@ import { Select3D } from '@/components/ui/select3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { ImageUpload } from '@/components/ui/image-upload';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MediaLibrary } from '@/components/ui/media-library';
 import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyzeColumnValues, getHexHue } from '@/lib/categorizable-columns';
@@ -43,6 +42,7 @@ export function CategorizationConfig({
   const [subDirActive, setSubDirActive] = useState(false);
   const [catItemDirActive, setCatItemDirActive] = useState(false);
   const [subCatItemDirActive, setSubCatItemDirActive] = useState(false);
+  const [mediaLib, setMediaLib] = useState<{ open: boolean; pathPrefix: string; onChange: (url: string) => void }>({ open: false, pathPrefix: '', onChange: () => {} });
 
   const categorizableColumns = useMemo(
     () => getCategorizableColumns(columns as string[], {
@@ -348,24 +348,11 @@ export function CategorizationConfig({
                           size="sm"
                         />
 
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem">
-                              <ImageIcon className="h-3 w-3" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-56 p-2" side="bottom">
-                            <ImageUpload
-                              bucket="game-items"
-                              pathPrefix={`wiki-categories/${slug}/${cat}`}
-                              value={isImg ? currentIcon : ''}
-                              onChange={(url) => handleImageChange(cat, url)}
-                              label="Ícone da categoria"
-                              previewSize="w-full h-14"
-                              tenantId={tenantId}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
+                          onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-categories/${slug}/${cat}`, onChange: (url) => handleImageChange(cat, url) })}
+                        >
+                          <ImageIcon className="h-3 w-3" />
+                        </Button>
 
                         {currentIcon && (
                           <button
@@ -590,32 +577,19 @@ export function CategorizationConfig({
                         }}
                         size="sm"
                       />
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" title="Upload de imagem">
-                            <ImageIcon className="h-2.5 w-2.5" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" className="w-48 p-2" side="bottom">
-                          <ImageUpload
-                            bucket="game-items"
-                            pathPrefix={`wiki-subcategories/${slug}/${cat}/${sub}`}
-                            value={isImg ? currentIcon : ''}
-                            onChange={(url) => {
-                              onChange({
-                                ...c,
-                                secondaryIcons: {
-                                  ...secondaryIcons,
-                                  [cat]: { ...(secondaryIcons[cat] || {}), [sub]: url },
-                                },
-                              });
-                            }}
-                            label="Ícone"
-                            previewSize="w-full h-12"
-                            tenantId={tenantId}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" title="Upload de imagem"
+                        onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-subcategories/${slug}/${cat}/${sub}`, onChange: (url) => {
+                          onChange({
+                            ...c,
+                            secondaryIcons: {
+                              ...secondaryIcons,
+                              [cat]: { ...(secondaryIcons[cat] || {}), [sub]: url },
+                            },
+                          });
+                        }})}
+                      >
+                        <ImageIcon className="h-2.5 w-2.5" />
+                      </Button>
                       {currentIcon && (
                         <button
                           type="button"
@@ -1075,24 +1049,11 @@ export function CategorizationConfig({
                   onChange={(iconId) => updateManualGroup(i, { icon: iconId, imageUrl: undefined })}
                   size="sm"
                 />
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem">
-                      <ImageIcon className="h-3 w-3" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-48 p-2" side="bottom">
-                    <ImageUpload
-                      bucket="game-items"
-                      pathPrefix={`wiki-manual-groups/${slug}/${i}`}
-                      value={mg.imageUrl || ''}
-                      onChange={(url) => updateManualGroup(i, { imageUrl: url, icon: undefined })}
-                      label="Ícone do grupo"
-                      previewSize="w-full h-12"
-                      tenantId={tenantId}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
+                  onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-manual-groups/${slug}/${i}`, onChange: (url) => updateManualGroup(i, { imageUrl: url, icon: undefined }) })}
+                >
+                  <ImageIcon className="h-3 w-3" />
+                </Button>
                 {currentIcon && (
                   <button
                     type="button"
@@ -1203,24 +1164,11 @@ export function CategorizationConfig({
                     onChange={(iconId) => updateSubManualGroup(i, { icon: iconId, imageUrl: undefined })}
                     size="sm"
                   />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem">
-                        <ImageIcon className="h-3 w-3" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-48 p-2" side="bottom">
-                      <ImageUpload
-                        bucket="game-items"
-                        pathPrefix={`wiki-sub-manual-groups/${slug}/${i}`}
-                        value={mg.imageUrl || ''}
-                        onChange={(url) => updateSubManualGroup(i, { imageUrl: url, icon: undefined })}
-                        label="Ícone do sub-grupo"
-                        previewSize="w-full h-12"
-                        tenantId={tenantId}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
+                    onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-sub-manual-groups/${slug}/${i}`, onChange: (url) => updateSubManualGroup(i, { imageUrl: url, icon: undefined }) })}
+                  >
+                    <ImageIcon className="h-3 w-3" />
+                  </Button>
                   {currentIcon && (
                     <button
                       type="button"
@@ -1286,6 +1234,15 @@ export function CategorizationConfig({
           </Button>
         </div>
       )}
+
+      <MediaLibrary
+        open={mediaLib.open}
+        onOpenChange={(open) => setMediaLib(p => ({ ...p, open }))}
+        tenantId={tenantId!}
+        onSelect={(url) => { mediaLib.onChange(url); setMediaLib(p => ({ ...p, open: false })); }}
+        bucket="game-items"
+        pathPrefix={mediaLib.pathPrefix}
+      />
     </div>
   );
 }
