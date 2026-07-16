@@ -33,6 +33,10 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
   const [rotationTimer, setRotationTimer] = useState(0);
   const [triggered, setTriggered] = useState(false);
   const triggeredRef = useRef(false);
+  const eventIndexRef = useRef(eventIndex);
+  const onEventTriggerRef = useRef(onEventTrigger);
+  useEffect(() => { eventIndexRef.current = eventIndex; }, [eventIndex]);
+  useEffect(() => { onEventTriggerRef.current = onEventTrigger; }, [onEventTrigger]);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
   const current = events[eventIndex];
@@ -44,13 +48,14 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
   useEffect(() => {
     if (events.length === 0) return;
     const id = setInterval(() => {
-      const rem = getRemaining(events[eventIndex]?.targetDate || '');
+      const idx = eventIndexRef.current;
+      const rem = getRemaining(events[idx]?.targetDate || '');
       setRemaining(rem);
 
       if (rem.expired && !triggeredRef.current) {
         triggeredRef.current = true;
         setTriggered(true);
-        onEventTrigger?.();
+        onEventTriggerRef.current?.();
         setTimeout(() => {
           triggeredRef.current = false;
           setTriggered(false);
@@ -60,7 +65,7 @@ export function MultiTimerIsland({ config, onEventTrigger }: MultiTimerIslandPro
       setRotationTimer((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(id);
-  }, [events, eventIndex, onEventTrigger]);
+  }, [events]);
 
   // Rotation logic (parallel mode only)
   useEffect(() => {

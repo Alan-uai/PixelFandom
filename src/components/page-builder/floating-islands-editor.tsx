@@ -94,7 +94,9 @@ export function FloatingIslandsEditor({ islands, onChange, slotFlow, clipStyle, 
   const firstIslandTitle = islands[0]?.title;
   useEffect(() => {
     if (measureRef.current) {
-      setLabelWidthPx(measureRef.current.offsetWidth);
+      requestAnimationFrame(() => {
+        setLabelWidthPx(measureRef.current?.offsetWidth || 0);
+      });
     }
   }, [firstIslandTitle]);
 
@@ -480,6 +482,7 @@ function ConfigFields({
   onMediaChange: (id: string, media: IslandMedia | null) => void;
 }) {
   const id = island.id;
+  const [jsonError, setJsonError] = useState('');
 
   switch (island.type) {
     case 'multi-timer':
@@ -596,11 +599,17 @@ function ConfigFields({
             <textarea
               value={JSON.stringify((island.config.rows as string[][]) || [], null, 2)}
               onChange={(e) => {
-                try { onChange(id, 'rows', JSON.parse(e.target.value)); } catch {/* noop */}
+                try { onChange(id, 'rows', JSON.parse(e.target.value)); } catch { /* noop */ }
+                setJsonError('');
+              }}
+              onBlur={(e) => {
+                try { JSON.parse(e.target.value); setJsonError(''); }
+                catch { setJsonError('JSON inválido'); }
               }}
               rows={4}
               className="w-full rounded-md border bg-background px-2 py-1.5 font-mono text-[10px] resize-none"
             />
+            {jsonError && <p className="text-[10px] text-destructive">{jsonError}</p>}
           </div>
         </div>
       );

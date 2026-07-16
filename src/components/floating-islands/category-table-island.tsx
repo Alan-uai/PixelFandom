@@ -30,7 +30,7 @@ export function CategoryTableIsland({ config }: CategoryTableIslandProps) {
           {rows.map((row, ri) => (
             <tr key={ri} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
               {row.map((cell, ci) => {
-                const isFirstImage = ci === 0 && cell.startsWith('http');
+                const isFirstImage = ci === 0 && /\.(jpg|jpeg|png|gif|webp|avif|svg|bmp)(\?.*)?$/i.test(cell);
                 return (
                   <td key={ci} className="px-2 py-1.5">
                     {isFirstImage ? (

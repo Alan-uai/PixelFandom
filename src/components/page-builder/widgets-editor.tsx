@@ -72,6 +72,14 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
   const [loading, setLoading] = useState(true);
   const cacheRef = useRef<string | null>(null);
   const initialSnapshot = useRef<string>('');
+  const chatRef = useRef(chat);
+  const voiceRef = useRef(voice);
+  const articleCardRef = useRef(articleCard);
+  const marketingCardRef = useRef(marketingCard);
+  useEffect(() => { chatRef.current = chat; }, [chat]);
+  useEffect(() => { voiceRef.current = voice; }, [voice]);
+  useEffect(() => { articleCardRef.current = articleCard; }, [articleCard]);
+  useEffect(() => { marketingCardRef.current = marketingCard; }, [marketingCard]);
 
   const handleSave = useCallback(async () => {
     const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
@@ -106,10 +114,14 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
       .then((r) => r.json())
       .then((data: WidgetLayout) => {
         cacheRef.current = tenantId;
-        const nextChat = data.chat ? { ...chat, ...data.chat } : chat;
-        const nextVoice = data.voice ? { ...voice, ...data.voice } : voice;
-        const nextArticleCard = data.cardPositions?.article_card || articleCard;
-        const nextMarketingCard = data.cardPositions?.marketing_card || marketingCard;
+        const c = chatRef.current;
+        const v = voiceRef.current;
+        const ac = articleCardRef.current;
+        const mc = marketingCardRef.current;
+        const nextChat = data.chat ? { ...c, ...data.chat } : c;
+        const nextVoice = data.voice ? { ...v, ...data.voice } : v;
+        const nextArticleCard = data.cardPositions?.article_card || ac;
+        const nextMarketingCard = data.cardPositions?.marketing_card || mc;
 
         initialSnapshot.current = JSON.stringify({
           chat: nextChat,

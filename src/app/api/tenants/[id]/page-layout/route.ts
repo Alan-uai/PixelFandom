@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/supabase/server';
 import { safeParseBlockConfig, BlockSchemaKey } from '@/lib/block-schemas';
 import { sanitizeBlock } from '@/lib/sanitize.server';
+
+const FloatingIslandSchema = z.object({
+  id: z.string().optional(),
+  position: z.enum(['left', 'center', 'right']).optional(),
+  type: z.string().optional(),
+  title: z.string().optional(),
+  enabled: z.boolean().optional(),
+  endsAt: z.string().nullable().optional(),
+  config: z.record(z.unknown()).optional(),
+});
 
 function getPageType(request: NextRequest): string {
   const url = new URL(request.url);
@@ -146,6 +157,15 @@ export async function PUT(
     let floatingIslandsPayload: Record<string, unknown> | null = null;
     if (body.floatingIslands !== undefined) {
       const rawIslands = Array.isArray(body.floatingIslands) ? body.floatingIslands : [];
+      for (const fi of rawIslands) {
+        const result = FloatingIslandSchema.safeParse(fi);
+        if (!result.success) {
+          return NextResponse.json({
+            error: 'Floating island validation failed',
+            details: result.error.issues,
+          }, { status: 400 });
+        }
+      }
       const sanitizedIslands = await Promise.all(
         rawIslands.map(async (fi: any) => ({
           ...fi,

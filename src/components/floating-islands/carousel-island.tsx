@@ -70,6 +70,7 @@ export function CarouselIsland({ config }: CarouselIslandProps) {
                 <video
                   src={item.videoUrl}
                   controls
+                  autoPlay
                   muted
                   playsInline
                   className="w-full max-h-36"
@@ -101,16 +102,16 @@ export function CarouselIsland({ config }: CarouselIslandProps) {
           <>
             <button
               onClick={prev}
-              className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground hover:bg-background transition-colors shadow-sm ${
-                isHorizontal ? 'left-1' : 'left-1'
+              className={`absolute rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground hover:bg-background transition-colors shadow-sm ${
+                isHorizontal ? 'left-1 top-1/2 -translate-y-1/2' : 'top-1 left-1/2 -translate-x-1/2'
               }`}
             >
               {isHorizontal ? <ChevronLeft className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
             </button>
             <button
               onClick={next}
-              className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground hover:bg-background transition-colors shadow-sm ${
-                isHorizontal ? 'right-1' : 'right-1'
+              className={`absolute rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground hover:bg-background transition-colors shadow-sm ${
+                isHorizontal ? 'right-1 top-1/2 -translate-y-1/2' : 'bottom-1 left-1/2 -translate-x-1/2'
               }`}
             >
               {isHorizontal ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}

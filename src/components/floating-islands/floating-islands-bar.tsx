@@ -65,8 +65,9 @@ export function FloatingIslandsBar({ islands, slotFlow = 'current', clipStyle = 
 
   const flowDef = getSlotFlowDef(slotFlow);
 
-  const sorted = [...enabled];
-  const positions = flowDef.getSlots(sorted.length);
+  const positions = flowDef.getSlots(enabled.length);
+  const POS_ORDER: Record<string, number> = { left: 0, center: 1, right: 2 };
+  const sorted = [...enabled].sort((a, b) => POS_ORDER[a.position] - POS_ORDER[b.position]);
 
   return (
     <div className={`bg-muted/20 ${className}`}>

@@ -23,6 +23,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
   const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
   const [singleIslandWidth, setSingleIslandWidth] = useState<number | undefined>(undefined);
   const islandCache = useRef<Record<string, any>>({});
+  const loadAbortRef = useRef<AbortController | null>(null);
   const [widgetsSave, setWidgetsSave] = useState<(() => Promise<void>) | null>(null);
   const [widgetsDirty, setWidgetsDirty] = useState(false);
   const islandsSnapshot = useRef<string>('');
@@ -32,39 +33,50 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
     return Array.from(selectedTypes);
   }, [selectedTypes]);
 
-  const loadIslands = useCallback(async (type: string) => {
+  const applyState = useCallback((type: string) => {
+    const cached = islandCache.current[type];
+    if (!cached) {
+      setFloatingIslands([]);
+      return;
+    }
+    setFloatingIslands(cached.islands || []);
+    if (cached.slotFlow) setSlotFlow(cached.slotFlow);
+    if (cached.clipStyle) setClipStyle(cached.clipStyle);
+    setSingleIslandWidth(cached.singleIslandWidth ?? undefined);
+  }, []);
+
+  const loadIslands = useCallback(async (type: string, apply: boolean = true) => {
+    const controller = new AbortController();
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = controller;
+
     if (islandCache.current[type]) {
-      const cached = islandCache.current[type];
-      setFloatingIslands(cached.islands || []);
-      if (cached.slotFlow) setSlotFlow(cached.slotFlow);
-      if (cached.clipStyle) setClipStyle(cached.clipStyle);
-      setSingleIslandWidth(cached.singleIslandWidth ?? undefined);
-      islandsSnapshot.current = JSON.stringify(cached);
+      if (apply) applyState(type);
+      islandsSnapshot.current = JSON.stringify(islandCache.current[type]);
       return;
     }
     try {
-      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`);
+      const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${type}`, { signal: controller.signal });
       const data = await res.json();
-      const islands = data?.floatingIslands || [];
-      const snapshot = { islands, slotFlow: data.slotFlow, clipStyle: data.clipStyle, singleIslandWidth: data.singleIslandWidth ?? undefined };
+      const snapshot = { islands: data?.floatingIslands || [], slotFlow: data.slotFlow || 'current', clipStyle: data.clipStyle || 'trapezoid', singleIslandWidth: data.singleIslandWidth ?? undefined };
       islandCache.current[type] = snapshot;
+      if (apply) applyState(type);
       islandsSnapshot.current = JSON.stringify(snapshot);
-      setFloatingIslands(islands);
-      if (data.slotFlow) setSlotFlow(data.slotFlow);
-      if (data.clipStyle) setClipStyle(data.clipStyle);
-      setSingleIslandWidth(data.singleIslandWidth ?? undefined);
-    } catch {
-      setFloatingIslands([]);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
       const defaultSnapshot = { islands: [], slotFlow: 'current' as const, clipStyle: 'trapezoid' as const, singleIslandWidth: undefined };
-      islandsSnapshot.current = JSON.stringify(defaultSnapshot);
       islandCache.current[type] = defaultSnapshot;
+      if (apply) {
+        setFloatingIslands([]);
+        islandsSnapshot.current = JSON.stringify(defaultSnapshot);
+      }
     }
-  }, [tenantId]);
+  }, [tenantId, applyState]);
 
   useEffect(() => {
     islandCache.current = {};
     const targets = resolveTargetTypes();
-    loadIslands(targets[0]);
+    targets.forEach((type, i) => loadIslands(type, i === 0));
   }, [tenantId, selectedTypes, loadIslands, resolveTargetTypes]);
 
   const toggleType = (id: PageTypeId) => {

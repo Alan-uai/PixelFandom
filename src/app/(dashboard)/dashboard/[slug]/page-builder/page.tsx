@@ -39,7 +39,7 @@ function PageBuilderPageInner() {
   const slug = params.slug as string;
   const t = useTranslations('pageBuilder');
   const pageType = (searchParams.get('type') as PageType) || 'landing';
-  const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string } | null>(null);
+  const [layout, setLayout] = useState<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string; singleIslandWidth?: number } | null>(null);
   const [loadedPageType, setLoadedPageType] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const saveBlocksRef = useRef<(() => Promise<void>) | null>(null);
@@ -56,7 +56,7 @@ function PageBuilderPageInner() {
 
   const isWidgets = pageType === 'widgets';
   const cacheKey = !isWidgets && tenantId ? `page-layout:${tenantId}:${pageType}` : null;
-  const { data: layoutData, loading, error: layoutError, updateCache } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string }>(
+  const { data: layoutData, loading, error: layoutError, updateCache } = useCachedData<{ blocks: any[]; floatingIslands: any[]; slotFlow?: string; clipStyle?: string; singleIslandWidth?: number }>(
     cacheKey,
     async () => {
       const res = await fetch(`/api/tenants/${tenantId}/page-layout?type=${pageType}`);
@@ -170,6 +170,7 @@ function PageBuilderPageInner() {
                 floatingIslands: layout?.floatingIslands || [],
                 slotFlow: layout?.slotFlow,
                 clipStyle: layout?.clipStyle,
+                singleIslandWidth: layout?.singleIslandWidth,
               });
             }}
           />

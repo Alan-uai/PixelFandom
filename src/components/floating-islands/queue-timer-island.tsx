@@ -40,10 +40,18 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [nextTime, setNextTime] = useState<Date | null>(null);
-  const [, setRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
+  const [, setTick] = useState(0);
 
   const [triggered, setTriggered] = useState(false);
   const triggeredRef = useRef(false);
+  const currentIdxRef = useRef(currentIdx);
+  const nextTimeRef = useRef(nextTime);
+  const onEventTriggerRef = useRef(onEventTrigger);
+  const itemsRef = useRef(items);
+  useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
+  useEffect(() => { nextTimeRef.current = nextTime; }, [nextTime]);
+  useEffect(() => { onEventTriggerRef.current = onEventTrigger; }, [onEventTrigger]);
+  useEffect(() => { itemsRef.current = items; }, [items]);
   const [carouselIdx, setCarouselIdx] = useState(0);
 
   // Init: find next item
@@ -59,29 +67,29 @@ export function QueueTimerIsland({ config, onEventTrigger }: QueueTimerIslandPro
     setCurrentIdx(found);
     const t = getNextTargetTime(sorted[found].time);
     setNextTime(t);
-    setRemaining(getRemaining(t));
   }, [items]);
 
   // 1s tick
   useEffect(() => {
-    if (!nextTime || items.length === 0) return;
+    if (items.length === 0) return;
     const id = setInterval(() => {
-      const rem = getRemaining(nextTime);
-      setRemaining(rem);
+      const nt = nextTimeRef.current;
+      if (!nt) return;
+      const rem = getRemaining(nt);
+      setTick((t) => t + 1);
       if (rem.expired && !triggeredRef.current) {
         triggeredRef.current = true;
         setTriggered(true);
-        onEventTrigger?.();
+        onEventTriggerRef.current?.();
         setTimeout(() => { triggeredRef.current = false; setTriggered(false); }, 60000);
-        const nextIdx = (currentIdx + 1) % items.length;
+        const nextIdx = (currentIdxRef.current + 1) % itemsRef.current.length;
         setCurrentIdx(nextIdx);
-        const t = getNextTargetTime(items[nextIdx].time);
+        const t = getNextTargetTime(itemsRef.current[nextIdx].time);
         setNextTime(t);
-        setRemaining(getRemaining(t));
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [nextTime, items, currentIdx, onEventTrigger]);
+  }, [items]);
 
   const showMedia = media && (media.displayMode === 'always' || triggered);
 
