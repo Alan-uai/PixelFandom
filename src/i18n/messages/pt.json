@@ -279,6 +279,7 @@
     "irreversible": "Esta ação não pode ser desfeita.",
     "consequence_articles": "Todos os artigos serão removidos",
     "consequence_collections": "Todas as coleções e dados serão perdidos",
+    "consequence_game_data": "Todos os dados de jogo (tabelas, configurações) serão perdidos",
     "consequence_domain": "O domínio personalizado será desassociado",
     "consequence_members": "Os membros perderão acesso à wiki",
     "backup_hint": "Faça um backup dos dados da wiki antes de excluir.",

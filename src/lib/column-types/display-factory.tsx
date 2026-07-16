@@ -62,13 +62,14 @@ function applyKeyFormatting(
   return result;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue: _maxValue, columnConfig, variant, labelColor }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue: _maxValue, columnConfig, variant, labelColor, hideLabel }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
   columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> };
   variant?: number;
   labelColor?: string;
+  hideLabel?: boolean;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
@@ -81,13 +82,14 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   // jsonb: data extraction first (parse + key formatting), then delegate
   if (renderType === 'jsonb') {
     const parsed = parseIfJson(prepared);
+    const dl = hideLabel ? '' : column;
     if (Array.isArray(parsed)) {
       return (
         <FormatVariantRenderer
           format="jsonb-structured"
           variant={tv}
           value={parsed}
-          label={column}
+          label={dl}
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
@@ -101,7 +103,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           format="jsonb-structured"
           variant={tv}
           value={formatted}
-          label={column}
+          label={dl}
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
@@ -113,13 +115,14 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
   // auto: data extraction with type detection, then delegate
   if (renderType === 'auto') {
+    const displayLabel = hideLabel ? '' : column;
     if (typeof prepared === 'object' && prepared !== null) {
       return (
         <FormatVariantRenderer
           format="jsonb-structured"
           variant={tv}
           value={prepared}
-          label={column}
+          label={displayLabel}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           labelColor={labelColor}
@@ -136,7 +139,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         format={format}
         variant={tv}
         value={prepared}
-        label={column}
+        label={displayLabel}
         useSuffix={useSuffix}
         opEnabled={opEnabled}
         labelColor={labelColor}
@@ -148,12 +151,13 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   // icon-set / color-palette / multi-select / tags: parse JSON arrays
   if (['icon-set', 'color-palette', 'multi-select', 'tags'].includes(renderType)) {
     const arr = parseIfJson(prepared);
+    const dl = hideLabel ? '' : column;
     return (
       <FormatVariantRenderer
         format={renderTypeToFormat(renderType)}
         variant={tv}
         value={Array.isArray(arr) ? arr : prepared}
-        label={column}
+        label={dl}
         useSuffix={useSuffix}
         labelColor={labelColor}
         valueColors={valueColors}
@@ -162,12 +166,13 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   }
 
   // All other types: direct delegation
+  const dl = hideLabel ? '' : column;
   return (
     <FormatVariantRenderer
       format={renderTypeToFormat(renderType)}
       variant={tv}
       value={prepared}
-      label={column}
+      label={dl}
       useSuffix={useSuffix}
       opEnabled={opEnabled}
       labelColor={labelColor}

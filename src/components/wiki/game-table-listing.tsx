@@ -859,7 +859,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             <div className="flex items-center gap-3">
               {renderHeaderIcon()}
               <div>
-                <h1 className="text-[2rem] font-bold">{renderHeaderTitle()}</h1>
+                <h1 className="text-[2rem] font-bold" style={viewerConfig?.header?.labelColor ? { color: viewerConfig.header.labelColor } : {}}>{renderHeaderTitle()}</h1>
               {viewerConfig?.header?.subtitle && (
                 <p className="text-sm text-muted-foreground/70">{viewerConfig.header.subtitle}</p>
               )}

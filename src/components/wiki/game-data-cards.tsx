@@ -42,6 +42,7 @@ type Props = {
 };
 
 function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
+  const labelColor = (entry.viewer_config as Record<string, any>)?.header?.labelColor;
   return (
     <Link
       href={href}
@@ -49,7 +50,7 @@ function CatalogCard({ entry, href }: { entry: CatalogEntry; href: string }) {
     >
       <TableIconDisplay icon={entry.icon} className="h-10 w-10 text-primary transition-transform group-hover:scale-110" />
       <div className="min-w-0">
-        <p className="text-sm font-medium truncate">{entry.display_label}</p>
+        <p className="text-sm font-medium truncate" style={labelColor ? { color: labelColor } : {}}>{entry.display_label}</p>
         <p className="text-xs text-muted-foreground">{entry.count} ite{entry.count === 1 ? 'm' : 'ns'}</p>
       </div>
     </Link>

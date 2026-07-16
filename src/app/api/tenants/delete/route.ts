@@ -52,6 +52,36 @@ export async function POST(request: NextRequest) {
   const errors: string[] = [];
 
   try {
+    // 1. Clean up game tables — remove_tenant_table checks sharing
+    try {
+      const { data: gameTables } = await adminClient
+        .from('tenant_game_tables')
+        .select('table_name')
+        .eq('tenant_id', tenantId);
+
+      if (gameTables) {
+        for (const gt of gameTables) {
+          try {
+            await adminClient.rpc('remove_tenant_table', {
+              p_table: gt.table_name,
+              p_tenant_id: tenantId,
+            });
+          } catch (e) {
+            errors.push(`game_table(${gt.table_name}): ${e}`);
+          }
+        }
+      }
+    } catch (e) {
+      errors.push(`tenant_game_tables: ${e}`);
+    }
+
+    // 2. Clean up game_config (no FK to tenants)
+    try {
+      await adminClient.from('game_config').delete().eq('tenant_id', tenantId);
+    } catch (e) {
+      errors.push(`game_config: ${e}`);
+    }
+
     // polymorphic votes (no FK to tenants — must delete explicitly)
     try {
       await adminClient.from('votes').delete()

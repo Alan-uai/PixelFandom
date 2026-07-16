@@ -206,7 +206,49 @@ export default function WikiSettingsPage() {
     }
   }, [description]);
 
+  const existingWidgets = useMemo(() =>
+    (tenantState?.theme as Record<string, any>)?.widgets || {},
+  [tenantState]);
+
   const handleSave = async () => {
+    const newTheme = {
+      primary_color: primaryColor,
+      background_color: backgroundColor || null,
+      card_color: cardColor || null,
+      sidebar_color: sidebarColor || null,
+      accent_color: accentColor || null,
+      font_family: fontFamily || null,
+      heading_font: headingFont || null,
+      border_radius: borderRadius || null,
+      sidebar_width: sidebarWidth,
+      header_style: headerStyle,
+      game_tables_display: {
+        default_format: gameTableDisplayFormat,
+        default_columns: gameTableColumnsCount,
+        tabs_enabled: gameTableTabsEnabled,
+      },
+      game_table_listing_display: {
+        default_format: listingDisplayFormat,
+        default_columns: listingColumnsCount,
+        items_per_page: listingItemsPerPage,
+        pagination: listingPagination,
+        pagination_style: listingPaginationStyle,
+        tabs_enabled: listingTabsEnabled,
+        show_search: listingShowSearch,
+        show_filters: listingShowFilters,
+        show_header: listingShowHeader,
+        card_style: listingCardStyle,
+        card_layout: listingCardLayout,
+        hover_effect: listingHoverEffect,
+      },
+      articles_display: {
+        default_format: articleDisplayFormat,
+        default_columns: articleColumnsCount,
+        show_images: articleShowImages,
+        show_summaries: articleShowSummaries,
+      },
+      widgets: existingWidgets,
+    };
     try {
       const { error } = await supabase
         .from('tenants')
@@ -215,44 +257,7 @@ export default function WikiSettingsPage() {
           logo_url: logoUrl || null, cover_image: coverImageUrl || null,
           discord_url: discordUrl || null, game_url: gameUrl || null,
           favicon_url: faviconUrl || null, og_image: ogImage || null,
-          theme: {
-            primary_color: primaryColor,
-            background_color: backgroundColor || null,
-            card_color: cardColor || null,
-            sidebar_color: sidebarColor || null,
-            accent_color: accentColor || null,
-            font_family: fontFamily || null,
-            heading_font: headingFont || null,
-            border_radius: borderRadius || null,
-            sidebar_width: sidebarWidth,
-            header_style: headerStyle,
-            game_tables_display: {
-              default_format: gameTableDisplayFormat,
-              default_columns: gameTableColumnsCount,
-              tabs_enabled: gameTableTabsEnabled,
-            },
-            game_table_listing_display: {
-              default_format: listingDisplayFormat,
-              default_columns: listingColumnsCount,
-              items_per_page: listingItemsPerPage,
-              pagination: listingPagination,
-              pagination_style: listingPaginationStyle,
-              tabs_enabled: listingTabsEnabled,
-              show_search: listingShowSearch,
-              show_filters: listingShowFilters,
-              show_header: listingShowHeader,
-              card_style: listingCardStyle,
-              card_layout: listingCardLayout,
-              hover_effect: listingHoverEffect,
-            },
-            articles_display: {
-              default_format: articleDisplayFormat,
-              default_columns: articleColumnsCount,
-              show_images: articleShowImages,
-              show_summaries: articleShowSummaries,
-            },
-            widgets: {},
-          },
+          theme: newTheme,
         })
         .eq('slug', slug);
 
@@ -286,43 +291,7 @@ export default function WikiSettingsPage() {
         game_url: gameUrl || null,
         favicon_url: faviconUrl || null,
         og_image: ogImage || null,
-        theme: {
-          primary_color: primaryColor,
-          background_color: backgroundColor || null,
-          card_color: cardColor || null,
-          sidebar_color: sidebarColor || null,
-          accent_color: accentColor || null,
-          font_family: fontFamily || null,
-          heading_font: headingFont || null,
-          border_radius: borderRadius || null,
-          sidebar_width: sidebarWidth,
-          header_style: headerStyle,
-          game_tables_display: {
-            default_format: gameTableDisplayFormat,
-            default_columns: gameTableColumnsCount,
-            tabs_enabled: gameTableTabsEnabled,
-          },
-          game_table_listing_display: {
-            default_format: listingDisplayFormat,
-            default_columns: listingColumnsCount,
-            items_per_page: listingItemsPerPage,
-            pagination: listingPagination,
-            pagination_style: listingPaginationStyle,
-            tabs_enabled: listingTabsEnabled,
-            show_search: listingShowSearch,
-            show_filters: listingShowFilters,
-            show_header: listingShowHeader,
-            card_style: listingCardStyle,
-            hover_effect: listingHoverEffect,
-          },
-          articles_display: {
-            default_format: articleDisplayFormat,
-            default_columns: articleColumnsCount,
-            show_images: articleShowImages,
-            show_summaries: articleShowSummaries,
-          },
-          widgets: {},
-        },
+        theme: newTheme,
       });
     } catch (err) {
       if (!(err as any)?.message?.includes?.('supabase')) toast({ variant: 'destructive', title: tc('unexpected_error'), description: t('save_failed') });
@@ -1003,7 +972,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
     try {
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('*, custom_collections(*, collection_items(*)), wiki_articles(*), page_layouts(*)')
+        .select('*, custom_collections(*, collection_items(*)), wiki_articles(*), page_layouts(*), game_config(*), tenant_game_tables(*)')
         .eq('slug', slug)
         .single();
 
@@ -1074,6 +1043,7 @@ function DeleteWikiSection({ slug, tenantName }: { slug: string; tenantName: str
           <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
             <li>{t('danger_zone.consequence_articles')}</li>
             <li>{t('danger_zone.consequence_collections')}</li>
+            <li>{t('danger_zone.consequence_game_data')}</li>
             <li>{t('danger_zone.consequence_domain')}</li>
             <li>{t('danger_zone.consequence_members')}</li>
           </ul>

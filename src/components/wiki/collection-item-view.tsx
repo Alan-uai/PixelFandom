@@ -185,7 +185,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 
 function RenderTypeFields({
   data, columnTypes, columnFormats, formatVariants, columnOpEnabled, rendered, visibleColumnsSet,
-  schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix,
+  schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix, columnConfig,
 }: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
@@ -203,6 +203,7 @@ function RenderTypeFields({
   chipWrap?: boolean;
   columnOrder?: string[];
   useSuffix?: boolean;
+  columnConfig?: Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
 }) {
   const sections: React.ReactNode[] = [];
   const activeMode = comparisonMode || 'modal';
@@ -221,8 +222,9 @@ function RenderTypeFields({
     if (formatEntries.length > 0) {
       sections.push(
         <div key="custom-formats" className="space-y-3 mb-6">
-          {formatEntries.map(([col, fmt]) => {
+            {formatEntries.map(([col, fmt]) => {
             rendered.add(col);
+            const cc = columnConfig?.[col];
             return (
               <FormatVariantRenderer
                 key={col}
@@ -232,6 +234,8 @@ function RenderTypeFields({
                 label={fieldLabel(col)}
                 useSuffix={useSuffix}
                 opEnabled={columnOpEnabled?.[col] !== false}
+                valueColors={cc?.valueColors}
+                jsonbKeyColors={cc?.jsonbKeyColors}
               />
             );
           })}
@@ -254,7 +258,7 @@ function RenderTypeFields({
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} hideLabel columnConfig={columnConfig?.[col]} />
         </div>
       );
     }).filter(Boolean);
@@ -283,7 +287,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={meta?.label || fieldLabel(c.column_name)}
-               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />}
+               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />}
               icon={meta?.icon || fieldIcon(c.column_name)}
               color={meta?.color || fieldColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -315,7 +319,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
+              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -334,11 +338,16 @@ function RenderTypeFields({
     sections.push(
       <div key="dyn-tags" className="mb-6">
         <ChipCarousel wrap={chipWrap}>
-          {textCols.map((c) => (
-            <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
-            </Tag>
-          ))}
+          {textCols.map((c) => {
+            const val = data[c.column_name];
+            const cc = columnConfig?.[c.column_name];
+            const color = cc?.valueColors?.[String(val)];
+            return (
+              <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
+                {fieldLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} /></span>
+              </Tag>
+            );
+          })}
         </ChipCarousel>
       </div>,
     );
@@ -355,7 +364,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
       </div>,
     );
   }
@@ -372,7 +381,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
       </div>,
     );
   }
@@ -390,7 +399,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
       </div>,
     );
   }
@@ -409,7 +418,7 @@ function RenderTypeFields({
                   {fieldLabel(c.column_name)}
                 </span>
                 <div className="text-sm flex-1">
-                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} />
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
                 </div>
               </div>
             ))}
@@ -468,10 +477,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
-  const columnConfig = detailConfig?.columnConfig || {};
+  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
   const labelColor = detailConfig?.labelColor;
   const showComparisonEnabled = detailConfig?.showComparison !== false;
-
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
@@ -573,6 +581,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         chipWrap={chipWrap}
         columnOrder={detailConfig?.columnOrder}
         useSuffix={useSuffix}
+        columnConfig={columnConfig}
       />
 
       {/* Footer */}

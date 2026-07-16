@@ -17,6 +17,8 @@ type WikiDataContextType = {
   refetch: () => void;
 };
 
+const CACHE_TTL = 30_000;
+
 const WikiDataContext = createContext<WikiDataContextType>({
   data: null,
   loading: true,
@@ -34,53 +36,80 @@ export function WikiDataProvider({
   const [data, setData] = useState<WikiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const cacheRef = useRef<{ slug: string; data: WikiData } | null>(null);
+  const cacheRef = useRef<{ slug: string; data: WikiData; timestamp: number } | null>(null);
+  const fetchGenerationRef = useRef(0);
+  const slugRef = useRef(slug);
 
-  const fetchData = useCallback(async () => {
-    if (!slug) {
-      setLoading(false);
-      setData(null);
-      return;
+  useEffect(() => {
+    slugRef.current = slug;
+  }, [slug]);
+
+  const doFetch = useCallback(async (isBackground = false) => {
+    const currentSlug = slugRef.current;
+    if (!currentSlug) {
+      if (!isBackground) {
+        setLoading(false);
+        setData(null);
+      }
+      return undefined;
     }
 
-    if (cacheRef.current && cacheRef.current.slug === slug) {
-      setData(cacheRef.current.data);
-      setLoading(false);
-      return;
-    }
+    fetchGenerationRef.current += 1;
+    const gen = fetchGenerationRef.current;
 
-    setLoading(true);
-    setError(null);
+    if (!isBackground) setLoading(true);
+    if (!isBackground) setError(null);
 
     let lastError: string | null = null;
     for (let attempt = 0; attempt <= 2; attempt++) {
       const { data: result, error: err } = await supabase.rpc('get_wiki', {
-        p_slug: slug,
+        p_slug: currentSlug,
         p_article_slug: null,
         p_search: null,
       });
 
-      if (!err) {
-        const wikiData = result as unknown as WikiData;
-        cacheRef.current = { slug, data: wikiData };
-        setData(wikiData);
-        setLoading(false);
-        return;
+      if (err) {
+        lastError = err.message;
+        if (err.message?.includes('Failed to fetch') && attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+        break;
       }
 
-      lastError = err.message;
-      if (err.message?.includes('Failed to fetch') && attempt < 2) {
-        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-        continue;
+      if (gen === fetchGenerationRef.current) {
+        const wikiData = result as unknown as WikiData;
+        cacheRef.current = { slug: currentSlug, data: wikiData, timestamp: Date.now() };
+        setData(wikiData);
+        if (!isBackground) setLoading(false);
+        return wikiData;
       }
-      break;
+      return undefined;
     }
 
-    console.error('[WikiDataProvider] get_wiki RPC error:', lastError);
-    setError(lastError || 'Falha ao carregar dados');
-    setData(null);
-    setLoading(false);
-  }, [slug]);
+    if (gen === fetchGenerationRef.current) {
+      console.error('[WikiDataProvider] get_wiki RPC error:', lastError);
+      if (!isBackground) {
+        setError(lastError || 'Falha ao carregar dados');
+        setData(null);
+        setLoading(false);
+      }
+    }
+    return undefined;
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    const cached = cacheRef.current;
+    if (cached && cached.slug === slugRef.current) {
+      setData(cached.data);
+      setLoading(false);
+      if (Date.now() - cached.timestamp > CACHE_TTL) {
+        doFetch(true);
+      }
+      return;
+    }
+    doFetch();
+  }, [doFetch]);
 
   useEffect(() => {
     fetchData();
@@ -88,8 +117,42 @@ export function WikiDataProvider({
 
   const refetch = useCallback(() => {
     cacheRef.current = null;
-    fetchData();
-  }, [fetchData]);
+    doFetch();
+  }, [doFetch]);
+
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        cacheRef.current = null;
+        doFetch();
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        const cached = cacheRef.current;
+        if (cached && Date.now() - cached.timestamp > CACHE_TTL) {
+          doFetch(true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key?.includes('pixelfandom:site-cache')) {
+        cacheRef.current = null;
+        doFetch();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [doFetch]);
 
   return (
     <WikiDataContext.Provider value={{ data, loading, error, refetch }}>

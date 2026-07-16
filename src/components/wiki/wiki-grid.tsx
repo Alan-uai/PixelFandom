@@ -24,9 +24,11 @@ type Props = {
   tenantSlug?: string;
   columns?: number;
   votePosition?: CardPosition;
+  showImages?: boolean;
+  showSummaries?: boolean;
 };
 
-export default function WikiGrid({ articles, basePath, columns, votePosition }: Props) {
+export default function WikiGrid({ articles, basePath, columns, votePosition, showImages = true, showSummaries = true }: Props) {
   return (
     <div
       className="grid gap-4"
@@ -45,38 +47,40 @@ export default function WikiGrid({ articles, basePath, columns, votePosition }: 
               href={href}
               className="group rounded-xl border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 flex flex-col relative"
             >
-              <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
-                {article.image_url ? (
-                  <Image
-                    src={article.image_url}
-                    alt={article.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : article.icon && article.icon.startsWith('http') ? (
-                  <Image
-                    src={article.icon}
-                    alt=""
-                    fill
-                    className="object-contain p-4"
-                  />
-                ) : article.icon ? (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">
-                    {article.icon}
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <ImageIcon className="h-8 w-8" />
-                  </div>
-                )}
-              </div>
+              {showImages && (
+                <div className="relative aspect-video overflow-hidden rounded-t-xl bg-muted">
+                  {article.image_url ? (
+                    <Image
+                      src={article.image_url}
+                      alt={article.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : article.icon && article.icon.startsWith('http') ? (
+                    <Image
+                      src={article.icon}
+                      alt=""
+                      fill
+                      className="object-contain p-4"
+                    />
+                  ) : article.icon ? (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                      {article.icon}
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <ImageIcon className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+              )}
 
-              <div className="flex flex-col flex-1 p-4">
+              <div className={`flex flex-col flex-1 ${showImages ? 'p-4' : 'p-3'}`}>
                 <h3 className="font-semibold text-base group-hover:text-primary transition-colors line-clamp-2">
                   {article.title}
                 </h3>
 
-                {article.summary && (
+                {showSummaries && article.summary && (
                   <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2 flex-1">
                     {article.summary}
                   </p>

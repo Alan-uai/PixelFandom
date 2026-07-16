@@ -563,7 +563,7 @@ export default function WikiPage() {
                       showSummaries={articlesDisplay.show_summaries !== false}
                     />
                   ) : (
-                    <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articleColumns} votePosition={articleCardVotePos} />
+                    <WikiGrid articles={displayArticles} basePath={basePath} tenantSlug={slug} columns={articleColumns} votePosition={articleCardVotePos} showImages={articlesDisplay.show_images !== false} showSummaries={articlesDisplay.show_summaries !== false} />
                   )
                 ) : (
                   <div className="text-center py-16 rounded-xl border bg-card">

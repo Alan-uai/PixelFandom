@@ -27,6 +27,7 @@ type Props = {
 function v(n: number) { return Math.max(1, Math.min(5, n)); }
 
 function Row({ label, children, className = '', labelColor }: { label: string; children: React.ReactNode; className?: string; labelColor?: string }) {
+  if (!label) return <>{children}</>;
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <span className="text-xs font-medium min-w-[100px] shrink-0" style={labelColor ? { color: labelColor } : {}}>{label}</span>
@@ -36,6 +37,7 @@ function Row({ label, children, className = '', labelColor }: { label: string; c
 }
 
 function ColWrap({ label, children, labelColor }: { label: string; children: React.ReactNode; labelColor?: string }) {
+  if (!label) return <>{children}</>;
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-medium text-muted-foreground min-w-[100px]" style={labelColor ? { color: labelColor } : {}}>{label}</span>
