@@ -19,6 +19,7 @@ export const ALL_FORMATS = [
   'icon-set',
   'color-palette',
   'multi-select',
+  'popover',
 ] as const;
 
 export type DisplayFormat = typeof ALL_FORMATS[number];
@@ -46,10 +47,11 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   video:    { value: 'video',    label: 'Vídeo',     description: 'Player de vídeo' },
   audio:    { value: 'audio',    label: 'Áudio',     description: 'Player de áudio' },
   emoji:    { value: 'emoji',    label: 'Emoji',     description: 'Emoji ampliado' },
-  'jsonb-structured': { value: 'jsonb-structured', label: 'JSONB Estruturado', description: 'Detecção automática de formato JSONB' },
+  'jsonb-structured': { value: 'jsonb-structured', label: 'Json', description: 'JSON com detecção automática de estrutura' },
   'icon-set':        { value: 'icon-set',        label: 'Conjunto de Ícones', description: 'Múltiplos ícones' },
   'color-palette':   { value: 'color-palette',   label: 'Paleta de Cores',   description: 'Múltiplas cores' },
   'multi-select':    { value: 'multi-select',    label: 'Multi-seleção',     description: 'Múltiplos valores selecionados' },
+  popover:           { value: 'popover',          label: 'Popover',           description: 'Popover com conteúdo interativo' },
 };
 
 const COMPAT: Record<string, DisplayFormat[]> = {
@@ -84,7 +86,7 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   emoji:         ['emoji', 'icon', 'text', 'badge'],
   'icon-set':    ['tags', 'text'],
 
-  popover: ['text'],
+  popover: ['popover', 'text'],
 
   date: ['date', 'text', 'badge'],
   time: ['badge', 'text'],

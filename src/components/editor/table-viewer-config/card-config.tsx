@@ -110,10 +110,15 @@ export function CardConfig({
   }, [c.visibleColumns, columns]);
 
   const toggleColumn = (col: string) => {
-    const next = effectiveVisible.includes(col)
-      ? effectiveVisible.filter(c => c !== col)
-      : [...effectiveVisible, col];
-    onChange({ ...c, visibleColumns: next });
+    const wasVisible = effectiveVisible.includes(col);
+    if (wasVisible) {
+      onChange({ ...c, visibleColumns: effectiveVisible.filter(c => c !== col) });
+    } else {
+      const next = [...effectiveVisible, col];
+      const fmt = getDefaultFormat(columnTypes[col]);
+      const formats = { ...columnFormats, [col]: fmt };
+      onChange({ ...c, visibleColumns: next, columnFormats: formats });
+    }
   };
 
   const setFormat = (col: string, fmt: string) => {

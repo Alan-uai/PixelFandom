@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import {
-  Star, Heart, ExternalLink, Clock, Download, Play,
+  Star, Heart, ExternalLink, Clock, Download, Play, Info, ChevronDown,
   FileIcon, Video, Music, CalendarIcon, List,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
 import { normalizeOperatorText, normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
@@ -492,7 +493,16 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
 
 // ── tags ──────────────────────────────────────────────────
 function renderTags(v: number, val: unknown, label: string, labelColor?: string) {
-  const arr = Array.isArray(val) ? val : typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const arr: string[] = [];
+  if (Array.isArray(val)) {
+    arr.push(...val.map(String));
+  } else if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try { const parsed = JSON.parse(trimmed); if (Array.isArray(parsed)) arr.push(...parsed.map(String)); } catch { /* invalid JSON */ }
+    }
+    if (arr.length === 0) arr.push(...trimmed.split(',').map(s => s.trim().replace(/^\[|\]$|^"|"$|^'|'$/g, '')).filter(Boolean));
+  }
   if (arr.length === 0) return null;
 
   if (v === 2) {
@@ -1178,6 +1188,43 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
   );
 }
 
+// ── popover ────────────────────────────────────────────────
+function renderPopover(v: number, str: string, label: string, labelColor?: string): React.ReactNode {
+  const triggerSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl font-semibold'];
+  const triggerStyles = [
+    'underline decoration-dotted underline-offset-4',
+    'rounded-md bg-secondary/50 px-2 py-0.5 border border-border/30',
+    'rounded-full bg-primary/10 px-3 py-1 border border-primary/20 text-primary',
+    'rounded-lg bg-card border shadow-sm px-3 py-1.5 hover:shadow-md transition-shadow',
+    'rounded-xl bg-gradient-to-br from-primary/10 to-secondary/20 px-4 py-2 border shadow-sm hover:shadow-lg transition-all',
+  ];
+  const icons = [Info, Info, Info, Info, Info];
+  const Icon = icons[Math.min(v - 1, 4)];
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1.5 cursor-pointer transition-all ${triggerSizes[Math.min(v - 1, 4)]} ${triggerStyles[Math.min(v - 1, 4)]}`}
+          style={labelColor ? { color: labelColor } : {}}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate max-w-[200px]">{str}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" side="top" align="start">
+        <div className="text-sm space-y-2">
+          {label && <p className="font-medium text-muted-foreground capitalize text-xs">{label.replace(/_/g, ' ')}</p>}
+          <div className="text-foreground/90 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+            {str || '—'}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function isComplexValue(value: unknown): boolean {
   if (value === null || value === undefined) return false;
   if (typeof value === 'object' && !Array.isArray(value)) return true;
@@ -1195,7 +1242,7 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   return String(v);
 }
 
-function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
   ensureDetectorsRegistered();
   if (Array.isArray(value)) {
     return (
@@ -1203,18 +1250,8 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
         {value.map((obj: unknown, i: number) => {
           if (typeof obj === 'object' && obj !== null) {
             const d = findBestDetector(obj);
-            return d ? (
-              <div key={i} className="min-w-[130px]">{d.render({ value: obj, useSuffix })}</div>
-            ) : (
-              <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
-                {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
-                  <div key={k} className="flex items-center gap-1.5">
-                    <span className="font-medium text-foreground capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}:</span>
-                    <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
-                  </div>
-                ))}
-              </div>
-            );
+            if (d) return <div key={i} className="min-w-[130px]">{d.render({ value: obj, useSuffix })}</div>;
+            return renderPerKeyCards(obj as Record<string, unknown>, jsonbKeyColors, useSuffix);
           }
           return (
             <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{String(obj)}</span>
@@ -1226,12 +1263,22 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
   const obj = value as Record<string, unknown>;
   const d = findBestDetector(obj);
   if (d) return d.render({ value: obj, useSuffix });
+  return renderPerKeyCards(obj, jsonbKeyColors, useSuffix);
+}
+
+function renderPerKeyCards(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean): React.ReactNode {
   return (
-    <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
+    <div className="flex flex-wrap gap-2">
       {Object.entries(obj).map(([k, val]) => (
-        <div key={k} className="flex items-start gap-2">
-          <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}:</span>
-          <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
+        <div
+          key={k}
+          className="rounded-lg border bg-card p-2.5 text-xs min-w-[100px] hover:shadow-md hover:border-primary/20 transition-all cursor-default"
+          style={jsonbKeyColors?.[k] ? { borderColor: jsonbKeyColors[k] + '40' } : {}}
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium text-foreground/70 text-[10px] uppercase tracking-wider" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
+            <span className="text-foreground">{fmtComplexVal(val, useSuffix)}</span>
+          </div>
         </div>
       ))}
     </div>
@@ -1313,37 +1360,96 @@ function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean
   return <span className="text-xs text-muted-foreground leading-relaxed">{result}</span>;
 }
 
-function renderComplexRaw(value: unknown): React.ReactNode {
+function render3DCarousel(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const items = Array.isArray(value) ? value : [value as Record<string, unknown>];
   return (
-    <pre className="text-[10px] font-mono bg-muted/30 rounded-lg p-3 overflow-x-auto max-h-48 text-foreground/80 border">
-      <code>{JSON.stringify(value, null, 2)}</code>
-    </pre>
+    <div className="flex flex-nowrap gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin"
+      style={{ perspective: '600px', transformStyle: 'preserve-3d' }}
+    >
+      {items.map((item: unknown, i: number) => {
+        if (typeof item !== 'object' || item === null) {
+          return (
+            <span key={i} className="snap-start shrink-0 rounded-xl bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-sm border border-border/40 p-3 text-xs shadow-lg"
+              style={{ transform: `rotateY(${(i - (items.length - 1) / 2) * 2}deg) translateZ(${30 - Math.abs(i - (items.length - 1) / 2) * 10}px)` }}
+            >
+              {String(item)}
+            </span>
+          );
+        }
+        const obj = item as Record<string, unknown>;
+        return (
+          <div
+            key={i}
+            className="snap-start shrink-0 min-w-[140px] rounded-xl bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-sm border border-border/30 p-2.5 text-xs space-y-1.5 shadow-lg hover:shadow-xl transition-all duration-300"
+            style={{
+              transform: `rotateY(${(i - (items.length - 1) / 2) * 3}deg) translateZ(${Math.max(0, 40 - Math.abs(i - (items.length - 1) / 2) * 15)}px)`,
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {Object.entries(obj).map(([k, val]) => (
+              <div key={k} className="flex items-center gap-1.5" style={{ transform: 'translateZ(10px)' }}>
+                <span className="font-medium text-foreground/80 capitalize shrink-0" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
+                <span className="text-muted-foreground truncate">{fmtComplexVal(val, useSuffix)}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function renderComplexMinimal(value: unknown, useSuffix?: boolean): React.ReactNode {
-  if (Array.isArray(value)) {
-    const first = value[0];
-    let preview = '';
-    if (typeof first === 'object' && first !== null) {
-      const vals = Object.values(first as Record<string, unknown>).slice(0, 2).map(v => fmtComplexVal(v, useSuffix));
-      preview = vals.length > 0 ? `ex: ${vals.join(', ')}` : '';
-    } else {
-      preview = value.slice(0, 2).map(v => fmtComplexVal(v, useSuffix)).join(', ');
-    }
-    return (
-      <span className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{value.length}</span> {value.length === 1 ? 'item' : 'itens'}
-        {preview && <span className="ml-1">({preview})</span>}
-      </span>
-    );
-  }
-  const obj = value as Record<string, unknown>;
-  const keyCount = Object.keys(obj).length;
+function render3DDepth(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const items = Array.isArray(value) ? value : [value as Record<string, unknown>];
   return (
-    <span className="text-xs text-muted-foreground">
-      <span className="font-medium text-foreground">{keyCount}</span> {keyCount === 1 ? 'chave' : 'chaves'}
-    </span>
+    <div className="space-y-1" style={{ perspective: '800px', transformStyle: 'preserve-3d' }}>
+      {items.map((item: unknown, i: number) => {
+        if (typeof item !== 'object' || item === null) {
+          return (
+            <div key={i} className="rounded-lg border border-border/20 bg-card p-2 text-xs"
+              style={{ transform: `translateZ(${-i * 2}px)`, opacity: 1 - i * 0.08 }}
+            >
+              {String(item)}
+            </div>
+          );
+        }
+        const obj = item as Record<string, unknown>;
+        const depth = i * 4;
+        return (
+          <details key={i} className="group rounded-lg overflow-hidden"
+            style={{
+              transform: `translateZ(${-depth}px)`,
+              transformStyle: 'preserve-3d',
+              marginTop: i > 0 ? `-${Math.min(8 + i * 2, 20)}px` : undefined,
+            }}
+          >
+            <summary className="cursor-pointer rounded-lg bg-gradient-to-r from-card via-card/95 to-card/80 border border-border/30 px-3 py-2 text-xs font-medium text-foreground/80 shadow-sm transition-all group-open:rounded-b-none group-open:shadow-md list-none flex items-center gap-2"
+              style={{
+                transform: 'translateZ(20px)',
+                backgroundImage: `linear-gradient(135deg, hsl(var(--card) / ${1 - i * 0.06}), hsl(var(--card) / ${0.95 - i * 0.06}))`,
+              }}
+            >
+              <span className="text-muted-foreground/50 text-[10px] font-mono w-4">{i + 1}</span>
+              <span className="flex-1">{Object.values(obj).slice(0, 2).map(v => fmtComplexVal(v, useSuffix)).join(' · ') || `Item ${i + 1}`}</span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="rounded-b-lg border-x border-b border-border/30 bg-gradient-to-b from-card/60 to-background/40 px-3 py-2 text-xs space-y-1.5 backdrop-blur-sm"
+              style={{
+                transform: 'translateZ(10px)',
+                boxShadow: `inset 0 4px 12px hsl(from hsl(var(--foreground)) h s l / 0.03)`,
+              }}
+            >
+              {Object.entries(obj).map(([k, val]) => (
+                <div key={k} className="flex items-center gap-2">
+                  <span className="font-medium text-foreground/60 capitalize shrink-0 min-w-[70px]" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
+                  <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1351,8 +1457,8 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
   if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors);
   if (v === 2) return renderComplexTable(value, label, useSuffix, jsonbKeyColors);
   if (v === 3) return renderComplexInline(value, label, useSuffix, jsonbKeyColors);
-  if (v === 4) return renderComplexRaw(value);
-  return renderComplexMinimal(value, useSuffix);
+  if (v === 4) return render3DCarousel(value, label, useSuffix, jsonbKeyColors);
+  return render3DDepth(value, label, useSuffix, jsonbKeyColors);
 }
 
 // ── Main component ────────────────────────────────────────
@@ -1387,6 +1493,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'icon-set': return renderIconSet(n, value, label, labelColor);
     case 'color-palette': return renderColorPalette(n, value, label, labelColor);
     case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors);
+    case 'popover':     return renderPopover(n, str, label, labelColor);
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {

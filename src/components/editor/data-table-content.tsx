@@ -41,6 +41,8 @@ import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType } from '@/lib/column-t
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
+import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
+import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -1458,12 +1460,17 @@ export default function DataTableContent({
                     {detailColumns.map((col) => {
                       const val = row[col];
                       if (val === null || val === undefined) return null;
+                      const renderType = getColumnRenderType(col);
+                      const fmt = getDefaultFormat(renderType);
                       return (
-                        <div key={col} className="text-xs">
-                          <span className="font-medium text-muted-foreground capitalize">{col.replace(/_/g, ' ')}:</span>
-                          <span className="text-foreground ml-1">
-                            {typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val)}
-                          </span>
+                        <div key={col} className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px]">{col.replace(/_/g, ' ')}</span>
+                          <FormatVariantRenderer
+                            format={fmt}
+                            variant={1}
+                            value={val}
+                            label={col}
+                          />
                         </div>
                       );
                     })}

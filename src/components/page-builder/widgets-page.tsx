@@ -23,7 +23,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
   const [clipStyle, setClipStyle] = useState<ClipStyleId>('trapezoid');
   const [singleIslandWidth, setSingleIslandWidth] = useState<number | undefined>(undefined);
   const islandCache = useRef<Record<string, any>>({});
-  const loadAbortRef = useRef<AbortController | null>(null);
+  const loadControllers = useRef<Record<string, AbortController>>({});
   const [widgetsSave, setWidgetsSave] = useState<(() => Promise<void>) | null>(null);
   const [widgetsDirty, setWidgetsDirty] = useState(false);
   const islandsSnapshot = useRef<string>('');
@@ -46,9 +46,9 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
   }, []);
 
   const loadIslands = useCallback(async (type: string, apply: boolean = true) => {
+    loadControllers.current[type]?.abort();
     const controller = new AbortController();
-    loadAbortRef.current?.abort();
-    loadAbortRef.current = controller;
+    loadControllers.current[type] = controller;
 
     if (islandCache.current[type]) {
       if (apply) applyState(type);
