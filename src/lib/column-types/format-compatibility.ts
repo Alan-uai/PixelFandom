@@ -16,6 +16,9 @@ export const ALL_FORMATS = [
   'audio',
   'emoji',
   'jsonb-structured',
+  'icon-set',
+  'color-palette',
+  'multi-select',
 ] as const;
 
 export type DisplayFormat = typeof ALL_FORMATS[number];
@@ -44,6 +47,9 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   audio:    { value: 'audio',    label: 'Áudio',     description: 'Player de áudio' },
   emoji:    { value: 'emoji',    label: 'Emoji',     description: 'Emoji ampliado' },
   'jsonb-structured': { value: 'jsonb-structured', label: 'JSONB Estruturado', description: 'Detecção automática de formato JSONB' },
+  'icon-set':        { value: 'icon-set',        label: 'Conjunto de Ícones', description: 'Múltiplos ícones' },
+  'color-palette':   { value: 'color-palette',   label: 'Paleta de Cores',   description: 'Múltiplas cores' },
+  'multi-select':    { value: 'multi-select',    label: 'Multi-seleção',     description: 'Múltiplos valores selecionados' },
 };
 
 const COMPAT: Record<string, DisplayFormat[]> = {

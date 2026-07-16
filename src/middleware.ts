@@ -3,10 +3,10 @@ import { MAIN_DOMAIN } from '@/lib/constants';
 import { checkRateLimit, getRateLimiterForPath } from '@/lib/rate-limiter';
 import { isIpBlocked, isFingerprintBlocked, getClientIp, getFingerprint, handleThreatDetection } from '@/lib/threat-detection';
 import { detectSqlInjection } from '@/lib/sql-injection-detect';
+import { hmacSign, parseTenantCache, buildTenantCachePayload } from '@/lib/hmac';
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const HMAC_SECRET = process.env.COOKIE_SECRET || 'pixelfandom-cookie-secret-change-in-production';
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|audio-processors).*)'],
@@ -14,39 +14,17 @@ export const config = {
 
 const CACHE_TTL_MS = 3_600_000;
 
-async function hmacSign(payload: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(HMAC_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function getCachedTenant(request: NextRequest): Promise<{ slug: string; id: string } | null> {
-  try {
-    const raw = request.cookies.get('x-tenant-cache')?.value;
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.payload || !parsed?.sig) return null;
-
-    const expectedSig = await hmacSign(parsed.payload);
-    if (parsed.sig !== expectedSig) return null;
-
-    const data = JSON.parse(parsed.payload);
-    if (data?.slug && data?.id && data?.exp && Date.now() < data.exp) {
-      return { slug: data.slug, id: data.id };
-    }
-  } catch { /* noop */ }
-  return null;
+function setTenantSlugCookie(response: NextResponse, slug: string) {
+  response.cookies.set('x-tenant-slug', slug, {
+    path: '/',
+    maxAge: 60 * 60,
+    sameSite: 'lax',
+    secure: true,
+  });
 }
 
 async function setCachedTenant(response: NextResponse, slug: string, id: string) {
-  const payload = JSON.stringify({ slug, id, exp: Date.now() + CACHE_TTL_MS });
+  const payload = buildTenantCachePayload(slug, id);
   const sig = await hmacSign(payload);
   response.cookies.set('x-tenant-cache', JSON.stringify({ payload, sig }), {
     path: '/',
@@ -202,7 +180,7 @@ export async function middleware(request: NextRequest) {
 
   // Custom domain: lookup tenant and rewrite
   if (!pathname.startsWith('/dashboard') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/')) {
-    const cached = await getCachedTenant(request);
+    const cached = await parseTenantCache(request.cookies.get('x-tenant-cache')?.value);
 
     if (cached) {
       const url = request.nextUrl.clone();
@@ -243,17 +221,6 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      if (!tenantData?.length && host.endsWith('.vercel.app')) {
-        const subdomain = host.replace('.vercel.app', '');
-        const fallbackResp = await fetch(
-          `${SUPA_URL}/rest/v1/tenants?slug=eq.${encodeURIComponent(subdomain)}&select=slug,id`,
-          { headers },
-        );
-        if (fallbackResp.ok) {
-          tenantData = (await fallbackResp.json()) as { slug: string; id: string }[];
-        }
-      }
-
       if (tenantData && tenantData.length > 0) {
         const url = request.nextUrl.clone();
         const slug = tenantData[0].slug;
@@ -269,6 +236,7 @@ export async function middleware(request: NextRequest) {
 
         const rewriteResponse = NextResponse.rewrite(url);
         addSecurityHeaders(rewriteResponse);
+        setTenantSlugCookie(rewriteResponse, slug);
         await setCachedTenant(rewriteResponse, slug, tenantData[0].id);
         return rewriteResponse;
       }

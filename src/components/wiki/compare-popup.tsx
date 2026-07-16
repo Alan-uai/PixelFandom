@@ -2,17 +2,35 @@
 
 import Image from 'next/image';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { X, Loader2, ArrowUpDown } from 'lucide-react';
+import { X, Loader2, ArrowUpDown, Type } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { getTableSchema, type ColumnInfo } from '@/lib/game-schema';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { ColumnDisplay } from '@/lib/column-types/display-factory';
 
-type CompareInfo = { key: string; label: string; format: 'number' | 'range' | 'percent' };
+type CompareInfo = {
+  key: string;
+  label: string;
+  format: 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration';
+};
 
 const NUMERIC_TYPES = new Set([
   'integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision',
   'double', 'float', 'decimal',
+]);
+
+const JSONB_TYPES = new Set([
+  'jsonb', 'json',
+]);
+
+const BOOL_TYPES = new Set([
+  'boolean', 'bool',
+]);
+
+const DATE_TYPES = new Set([
+  'date', 'timestamp', 'timestamptz', 'timestamp with time zone', 'timestamp without time zone',
+  'time', 'timetz',
 ]);
 
 const STAT_LABELS: Record<string, string> = {
@@ -39,6 +57,55 @@ const STAT_LABELS: Record<string, string> = {
   xp_drop: 'XP',
 };
 
+function renderCompareValue(item: Record<string, any>, stat: CompareInfo): React.ReactNode {
+  const val = item[stat.key];
+
+  if (stat.format === 'range') {
+    const min = item[`${stat.key}_min`] ?? val;
+    const max = item[`${stat.key}_max`];
+    return <span className="font-semibold tabular-nums">{max !== undefined ? `${min}–${max}` : String(min ?? '—')}</span>;
+  }
+
+  if (stat.format === 'percent') {
+    return <span className="font-semibold tabular-nums">{val !== undefined ? `${val}%` : '—'}</span>;
+  }
+
+  if (stat.format === 'number') {
+    return <span className="font-semibold tabular-nums">{val !== undefined ? String(val) : '—'}</span>;
+  }
+
+  if (stat.format === 'boolean') {
+    return (
+      <span className={val ? 'text-emerald-500 font-semibold' : 'text-red-400 font-semibold'}>
+        {val ? 'Sim' : 'Não'}
+      </span>
+    );
+  }
+
+  if (stat.format === 'date') {
+    const d = new Date(val);
+    const valid = !isNaN(d.getTime());
+    return <span className="text-xs tabular-nums">{valid ? d.toLocaleDateString('pt-BR') : String(val ?? '—')}</span>;
+  }
+
+  if (stat.format === 'duration') {
+    return <span className="font-mono text-xs tabular-nums">{String(val ?? '—')}</span>;
+  }
+
+  if (stat.format === 'jsonb') {
+    return <ColumnDisplay value={val} column={stat.key} renderType="jsonb" useSuffix />;
+  }
+
+  // text fallback
+  return <span className="text-xs text-foreground">{String(val ?? '—')}</span>;
+}
+
+function safeStringCompare(a: unknown, b: unknown): number {
+  const sa = String(a ?? '');
+  const sb = String(b ?? '');
+  return sa.localeCompare(sb);
+}
+
 export default function ComparePopup({
   table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, onClose,
 }: {
@@ -62,7 +129,7 @@ export default function ComparePopup({
     getTableSchema(table).then(setSchema);
   }, [table]);
 
-  const allStats = useMemo(() => buildCompareInfo(schema), [schema]);
+  const allStats = useMemo(() => buildAllCompareInfo(schema), [schema]);
 
   useEffect(() => {
     if (allStats.length === 0) return;
@@ -115,30 +182,34 @@ export default function ComparePopup({
 
   const sorted = useMemo(() => {
     if (!compareStat) return [];
+    const numericFormats = new Set(['number', 'range', 'percent']);
     return [...filteredItems]
       .filter(item => item[compareStat.key] != null)
       .sort((a, b) => {
-        const va = parseFloat(a[compareStat.key]);
-        const vb = parseFloat(b[compareStat.key]);
-        if (isNaN(va) && isNaN(vb)) return 0;
-        if (isNaN(va)) return 1;
-        if (isNaN(vb)) return -1;
-        return sortAsc ? va - vb : vb - va;
+        if (numericFormats.has(compareStat.format)) {
+          const va = parseFloat(a[compareStat.key]);
+          const vb = parseFloat(b[compareStat.key]);
+          if (isNaN(va) && isNaN(vb)) return 0;
+          if (isNaN(va)) return 1;
+          if (isNaN(vb)) return -1;
+          return sortAsc ? va - vb : vb - va;
+        }
+        if (compareStat.format === 'boolean') {
+          const ba = Boolean(a[compareStat.key]);
+          const bb = Boolean(b[compareStat.key]);
+          return sortAsc ? (ba === bb ? 0 : ba ? 1 : -1) : (ba === bb ? 0 : ba ? -1 : 1);
+        }
+        if (compareStat.format === 'date') {
+          const da = new Date(a[compareStat.key]).getTime();
+          const db = new Date(b[compareStat.key]).getTime();
+          if (isNaN(da) && isNaN(db)) return 0;
+          if (isNaN(da)) return 1;
+          if (isNaN(db)) return -1;
+          return sortAsc ? da - db : db - da;
+        }
+        return sortAsc ? safeStringCompare(a[compareStat.key], b[compareStat.key]) : safeStringCompare(b[compareStat.key], a[compareStat.key]);
       });
   }, [filteredItems, compareStat, sortAsc]);
-
-  function getVal(item: Record<string, any>, stat: CompareInfo): string {
-    if (stat.format === 'range') {
-      const min = item[`${stat.key}_min`] ?? item[stat.key];
-      const max = item[`${stat.key}_max`];
-      return max !== undefined ? `${min}–${max}` : String(min ?? '—');
-    }
-    if (stat.format === 'percent') {
-      const val = item[stat.key];
-      return val !== undefined ? `${val}%` : '—';
-    }
-    return String(item[stat.key] ?? '—');
-  }
 
   function isCurrentItem(item: Record<string, any>): boolean {
     return currentItemId ? item.id === currentItemId : false;
@@ -163,12 +234,15 @@ export default function ComparePopup({
                 <button
                   key={s.key}
                   onClick={() => { setCompareStat(s); setCompareFilter(null); }}
-                  className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
+                  className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors shrink-0 flex items-center gap-1 ${
                     s.key === compareStat.key
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
+                  {s.format !== 'number' && s.format !== 'range' && s.format !== 'percent' && (
+                    <Type className="h-3 w-3" />
+                  )}
                   {s.label}
                 </button>
               ))}
@@ -227,13 +301,12 @@ export default function ComparePopup({
                   <tr className="border-b text-xs text-muted-foreground">
                     <th className="text-left px-5 py-2.5 font-medium w-8">#</th>
                     <th className="text-left px-5 py-2.5 font-medium">Item</th>
-                    <th className="text-right px-5 py-2.5 font-medium w-28">{compareStat.label}</th>
+                    <th className="text-right px-5 py-2.5 font-medium w-40">{compareStat.label}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sorted.map((item, idx) => {
                     const isCurrent = isCurrentItem(item);
-                    const val = getVal(item, compareStat);
                     return (
                       <tr
                         key={item.id}
@@ -259,8 +332,8 @@ export default function ComparePopup({
                             )}
                           </div>
                         </td>
-                        <td className={`px-5 py-2.5 text-right font-semibold tabular-nums ${isCurrent ? 'text-primary' : ''}`}>
-                          {val}
+                        <td className={`px-5 py-2.5 text-right ${isCurrent ? 'text-primary' : ''}`}>
+                          {renderCompareValue(item, compareStat)}
                         </td>
                       </tr>
                     );
@@ -268,7 +341,7 @@ export default function ComparePopup({
                   {sorted.length === 0 && (
                     <tr>
                       <td colSpan={3} className="px-5 py-8 text-center text-sm text-muted-foreground">
-                        Nenhum item encontrado com este stat.
+                        Nenhum item encontrado com este valor.
                       </td>
                     </tr>
                   )}
@@ -277,7 +350,7 @@ export default function ComparePopup({
             </>
           ) : (
             <div className="flex justify-center py-12 text-sm text-muted-foreground">
-              Nenhum stat disponível para esta tabela.
+              Nenhum campo disponível para esta tabela.
             </div>
           )}
         </div>
@@ -286,11 +359,12 @@ export default function ComparePopup({
   );
 }
 
-function buildCompareInfo(schema: ColumnInfo[]): CompareInfo[] {
+function buildAllCompareInfo(schema: ColumnInfo[]): CompareInfo[] {
+  const result: CompareInfo[] = [];
+
+  // Numeric columns (with range detection)
   const numeric = schema.filter(c => NUMERIC_TYPES.has(c.data_type) && !isSystem(c.column_name));
   const pairs = findRangePairs(numeric);
-
-  const result: CompareInfo[] = [];
 
   for (const base of pairs) {
     result.push({ key: base, label: STAT_LABELS[base] ?? labelFromKey(base), format: 'range' });
@@ -304,6 +378,24 @@ function buildCompareInfo(schema: ColumnInfo[]): CompareInfo[] {
       ? 'percent' as const
       : 'number' as const;
     result.push({ key: name, label: STAT_LABELS[name] ?? labelFromKey(name), format });
+  }
+
+  // JSONB columns
+  const jsonbCols = schema.filter(c => JSONB_TYPES.has(c.data_type) && !isSystem(c.column_name));
+  for (const col of jsonbCols) {
+    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'jsonb' });
+  }
+
+  // Boolean columns
+  const boolCols = schema.filter(c => BOOL_TYPES.has(c.data_type) && !isSystem(c.column_name));
+  for (const col of boolCols) {
+    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'boolean' });
+  }
+
+  // Date columns
+  const dateCols = schema.filter(c => DATE_TYPES.has(c.data_type) && !isSystem(c.column_name));
+  for (const col of dateCols) {
+    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'date' });
   }
 
   return result;

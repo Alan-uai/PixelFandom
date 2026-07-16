@@ -3,13 +3,13 @@
 import Image from 'next/image';
 import {
   Star, Heart, ExternalLink, Clock, Download, Play,
-  FileIcon, Video, Music, CalendarIcon,
+  FileIcon, Video, Music, CalendarIcon, List,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
-import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText, normalizeValue } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
+import { formatNumber } from '@/lib/format-number';
 
 type Props = {
   format: DisplayFormat;
@@ -984,20 +984,369 @@ function renderEmoji(v: number, str: string, label: string) {
   );
 }
 
+// ── icon-set ──────────────────────────────────────────────
+function renderIconSet(v: number, val: unknown, label: string) {
+  const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
+  if (!Array.isArray(arr)) return null;
+  if (v === 2) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-1">
+          {arr.map((item: string, i: number) => (
+            <div key={i} className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50"><IconRenderer icon={item} size={12} /></div>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 3) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-2">
+          {arr.map((item: string, i: number) => (
+            <div key={i} className="flex items-center gap-1.5 rounded-md border bg-muted/20 px-2 py-1 text-xs">
+              <IconRenderer icon={item} size={12} />
+              <span className="text-muted-foreground">{item}</span>
+            </div>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 4) {
+    return (
+      <Row label={label}>
+        <div className="flex -space-x-1.5">
+          {arr.slice(0, 5).map((item: string, i: number) => (
+            <div key={i} className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-muted/50"><IconRenderer icon={item} size={12} /></div>
+          ))}
+          {arr.length > 5 && <span className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">+{arr.length-5}</span>}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 5) {
+    return (
+      <Row label={label}>
+        <div className="flex flex-wrap gap-1">
+          {arr.map((item: string, i: number) => (
+            <div key={i} className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card"><IconRenderer icon={item} size="sm" /></div>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  return (
+    <Row label={label} className="items-start">
+      <div className="flex flex-wrap gap-1">
+        {arr.map((item: string, i: number) => (
+          <div key={i} className="flex items-center justify-center h-5 w-5 rounded bg-muted/30"><IconRenderer icon={item} size={12} /></div>
+        ))}
+      </div>
+    </Row>
+  );
+}
+
+// ── color-palette ─────────────────────────────────────────
+function renderColorPalette(v: number, val: unknown, label: string) {
+  const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
+  if (!Array.isArray(arr)) return null;
+  if (v === 2) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-1">
+          {arr.map((color: string, i: number) => (
+            <div key={i} className="h-4 w-8 rounded border" style={{ backgroundColor: color }} />
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 3) {
+    return (
+      <Row label={label}>
+        <div className="flex rounded-lg overflow-hidden border h-5">
+          {arr.map((color: string, i: number) => (
+            <div key={i} className="flex-1" style={{ backgroundColor: color }} />
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 4) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-1.5">
+          {arr.map((color: string, i: number) => (
+            <div key={i} className="flex items-center gap-1.5 rounded-md border bg-muted/20 px-2 py-0.5 text-xs">
+              <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: color }} />
+              <span className="font-mono text-[10px] text-muted-foreground">{color}</span>
+            </div>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 5) {
+    return (
+      <Row label={label}>
+        <div className="flex -space-x-1">
+          {arr.slice(0, 6).map((color: string, i: number) => (
+            <div key={i} className="h-5 w-5 rounded-full border-2 border-background" style={{ backgroundColor: color }} />
+          ))}
+          {arr.length > 6 && <span className="flex items-center justify-center h-5 w-5 rounded-full border-2 border-background bg-muted text-[9px] font-medium text-muted-foreground">+{arr.length-6}</span>}
+        </div>
+      </Row>
+    );
+  }
+  return (
+    <Row label={label} className="items-start">
+      <div className="flex flex-wrap gap-1">
+        {arr.map((color: string, i: number) => (
+          <div key={i} className="h-4 w-4 rounded border" style={{ backgroundColor: color }} />
+        ))}
+      </div>
+    </Row>
+  );
+}
+
+// ── multi-select ──────────────────────────────────────────
+function renderMultiSelect(v: number, val: unknown, label: string) {
+  const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
+  if (!Array.isArray(arr)) return null;
+  if (v === 2) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-1">
+          {arr.map((t: string, i: number) => (
+            <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/15 text-primary">{t}</span>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 3) {
+    return (
+      <Row label={label} className="items-start">
+        <div className="flex flex-wrap gap-1">
+          {arr.map((t: string, i: number) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs bg-muted/30 text-foreground">
+              <List className="h-3 w-3 text-muted-foreground" />
+              {t}
+            </span>
+          ))}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 4) {
+    return (
+      <Row label={label}>
+        <div className="flex -space-x-1.5">
+          {arr.slice(0, 4).map((t: string, i: number) => (
+            <span key={i} className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{t}</span>
+          ))}
+          {arr.length > 4 && <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">+{arr.length-4}</span>}
+        </div>
+      </Row>
+    );
+  }
+  if (v === 5) {
+    return (
+      <Row label={label}>
+        <span className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{arr.length}</span> selecionado{arr.length !== 1 ? 's' : ''}
+        </span>
+      </Row>
+    );
+  }
+  return (
+    <Row label={label} className="items-start">
+      <div className="flex flex-wrap gap-1">
+        {arr.map((t: string, i: number) => (
+          <span key={i} className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{t}</span>
+        ))}
+      </div>
+    </Row>
+  );
+}
+
 function isComplexValue(value: unknown): boolean {
-  return value !== null && value !== undefined && (typeof value === 'object' || Array.isArray(value));
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'object' && !Array.isArray(value)) return true;
+  if (Array.isArray(value) && value.some(i => typeof i === 'object' && i !== null)) return true;
+  return false;
+}
+
+// ── Complex value variants ────────────────────────────────
+
+function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
+  if (typeof v === 'number') return formatNumber(v, !!useSuffix);
+  if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  if (typeof v === 'string') return humanizeLabel(v);
+  if (v === null || v === undefined) return '—';
+  return String(v);
+}
+
+function renderMiniCards(value: unknown, label: string, useSuffix?: boolean): React.ReactNode {
+  ensureDetectorsRegistered();
+  if (Array.isArray(value)) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {value.map((obj: unknown, i: number) => {
+          if (typeof obj === 'object' && obj !== null) {
+            const d = findBestDetector(obj);
+            return d ? (
+              <div key={i} className="min-w-[130px]">{d.render({ value: obj, useSuffix })}</div>
+            ) : (
+              <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
+                {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
+                  <div key={k} className="flex items-center gap-1.5">
+                    <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                    <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+          return (
+            <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{String(obj)}</span>
+          );
+        })}
+      </div>
+    );
+  }
+  const obj = value as Record<string, unknown>;
+  const d = findBestDetector(obj);
+  if (d) return d.render({ value: obj, useSuffix });
+  return (
+    <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
+      {Object.entries(obj).map(([k, val]) => (
+        <div key={k} className="flex items-start gap-2">
+          <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
+          <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean): React.ReactNode {
+  const rows: React.ReactNode[] = [];
+  if (Array.isArray(value)) {
+    const allKeys = [...new Set(value.flatMap((item: unknown) =>
+      typeof item === 'object' && item !== null ? Object.keys(item as Record<string, unknown>) : []
+    ))];
+    if (allKeys.length > 0) {
+      rows.push(
+        <thead key="thead" className="sticky top-0 bg-card">
+          <tr className="border-b text-xs text-muted-foreground">
+            <th className="text-left px-2 py-1.5 font-medium">#</th>
+            {allKeys.map(k => <th key={k} className="text-left px-2 py-1.5 font-medium capitalize">{k.replace(/_/g, ' ')}</th>)}
+          </tr>
+        </thead>,
+      );
+    }
+    rows.push(
+      <tbody key="tbody">
+        {value.map((item: unknown, i: number) => (
+          <tr key={i} className="border-b last:border-0 text-xs hover:bg-muted/50">
+            <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
+            {allKeys.map(k => (
+              <td key={k} className="px-2 py-1.5 text-foreground">
+                {fmtComplexVal((item as Record<string, unknown>)?.[k], useSuffix)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>,
+    );
+    return <table className="w-full text-sm">{rows}</table>;
+  }
+  const obj = value as Record<string, unknown>;
+  rows.push(
+    <tbody key="tbody">
+      {Object.entries(obj).map(([k, val]) => (
+        <tr key={k} className="border-b last:border-0 text-xs">
+          <td className="px-3 py-1.5 font-medium text-foreground capitalize whitespace-nowrap">{k.replace(/_/g, ' ')}</td>
+          <td className="px-3 py-1.5 text-muted-foreground">{fmtComplexVal(val, useSuffix)}</td>
+        </tr>
+      ))}
+    </tbody>,
+  );
+  return <table className="w-full text-sm">{rows}</table>;
+}
+
+function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean): React.ReactNode {
+  const parts: string[] = [];
+  if (Array.isArray(value)) {
+    value.forEach((item: unknown) => {
+      if (typeof item === 'object' && item !== null) {
+        Object.entries(item as Record<string, unknown>).forEach(([k, val]) => {
+          parts.push(`${k.replace(/_/g, ' ')}: ${fmtComplexVal(val, useSuffix)}`);
+        });
+      } else {
+        parts.push(fmtComplexVal(item, useSuffix));
+      }
+    });
+  } else {
+    Object.entries(value as Record<string, unknown>).forEach(([k, val]) => {
+      parts.push(`${k.replace(/_/g, ' ')}: ${fmtComplexVal(val, useSuffix)}`);
+    });
+  }
+  return <span className="text-xs text-muted-foreground leading-relaxed">{parts.join(' · ')}</span>;
+}
+
+function renderComplexRaw(value: unknown): React.ReactNode {
+  return (
+    <pre className="text-[10px] font-mono bg-muted/30 rounded-lg p-3 overflow-x-auto max-h-48 text-foreground/80 border">
+      <code>{JSON.stringify(value, null, 2)}</code>
+    </pre>
+  );
+}
+
+function renderComplexMinimal(value: unknown, useSuffix?: boolean): React.ReactNode {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    let preview = '';
+    if (typeof first === 'object' && first !== null) {
+      const vals = Object.values(first as Record<string, unknown>).slice(0, 2).map(v => fmtComplexVal(v, useSuffix));
+      preview = vals.length > 0 ? `ex: ${vals.join(', ')}` : '';
+    } else {
+      preview = value.slice(0, 2).map(v => fmtComplexVal(v, useSuffix)).join(', ');
+    }
+    return (
+      <span className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{value.length}</span> {value.length === 1 ? 'item' : 'itens'}
+        {preview && <span className="ml-1">({preview})</span>}
+      </span>
+    );
+  }
+  const obj = value as Record<string, unknown>;
+  const keyCount = Object.keys(obj).length;
+  return (
+    <span className="text-xs text-muted-foreground">
+      <span className="font-medium text-foreground">{keyCount}</span> {keyCount === 1 ? 'chave' : 'chaves'}
+    </span>
+  );
+}
+
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean): React.ReactNode {
+  if (v === 1) return renderMiniCards(value, label, useSuffix);
+  if (v === 2) return renderComplexTable(value, label, useSuffix);
+  if (v === 3) return renderComplexInline(value, label, useSuffix);
+  if (v === 4) return renderComplexRaw(value);
+  return renderComplexMinimal(value, useSuffix);
 }
 
 // ── Main component ────────────────────────────────────────
 export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled }: Props) {
   const n = v(variant);
 
-  // For complex values (objects/arrays), use dynamic detection instead of string coercion
+  // For complex values (objects/arrays of objects), use variant-aware rendering
   if (isComplexValue(value)) {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return (
-      <ColumnDisplay value={normalized} column={label} renderType="auto" useSuffix={useSuffix} />
-    );
+    return renderComplexValue(n, normalized, label, useSuffix);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
@@ -1019,14 +1368,20 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'video':    return renderVideo(n, str, label);
     case 'audio':    return renderAudio(n, str, label);
     case 'emoji':    return renderEmoji(n, str, label);
+    case 'icon-set': return renderIconSet(n, value, label);
+    case 'color-palette': return renderColorPalette(n, value, label);
+    case 'multi-select': return renderMultiSelect(n, value, label);
     case 'jsonb-structured': {
-      ensureDetectorsRegistered();
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
-      if (typeof detectValue === 'object' && detectValue !== null) {
+      if (typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
+        ensureDetectorsRegistered();
         const detector = findBestDetector(detectValue);
         if (detector) return detector.render({ value: detectValue, useSuffix }, n);
       }
-      return <ColumnDisplay value={detectValue} column={label} renderType="auto" useSuffix={useSuffix} />;
+      if (isComplexValue(detectValue)) {
+        return renderComplexValue(n, detectValue, label, useSuffix);
+      }
+      return renderText(n, String(detectValue ?? ''), label);
     }
     default:         return renderText(n, str, label);
   }

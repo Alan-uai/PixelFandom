@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/supabase/server';
 import { MAIN_DOMAIN } from '@/lib/constants';
+import { parseTenantCache } from '@/lib/hmac';
 
 const NO_CACHE = 'no-cache, private';
 
@@ -30,7 +31,23 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   let slug = searchParams.get('slug');
 
-  // 1. Referer header — extract slug from /w/{slug} paths
+  // 1. __tenant_slug search param — set by middleware on rewrites
+  if (!slug) {
+    slug = searchParams.get('__tenant_slug') || null;
+  }
+
+  // 2. x-tenant-cache cookie (HMAC-signed) — set by middleware on custom domains
+  if (!slug) {
+    const cached = await parseTenantCache(request.cookies.get('x-tenant-cache')?.value);
+    if (cached) slug = cached.slug;
+  }
+
+  // 3. Cookie x-tenant-slug — set by middleware on /w/{slug} visits + custom domains
+  if (!slug) {
+    slug = request.cookies.get('x-tenant-slug')?.value || null;
+  }
+
+  // 4. Referer header — extract slug from /w/{slug} paths
   if (!slug) {
     const referer = request.headers.get('referer');
     if (referer) {
@@ -44,18 +61,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 2. Cookie x-tenant-slug — set by middleware on /w/{slug} visits
-  if (!slug) {
-    slug = request.cookies.get('x-tenant-slug')?.value || null;
-  }
-
-  // 3. If we have a slug, look up the tenant's favicon
+  // 5. If we have a slug, look up the tenant's favicon
   if (slug) {
     const faviconUrl = await lookupFavicon(slug).catch(() => null);
     if (faviconUrl) return respondExternal(faviconUrl);
   }
 
-  // 4. Host header — custom domain or vercel subdomain
+  // 6. Host header — custom domain or vercel subdomain
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase() || '';
   if (host && host !== MAIN_DOMAIN && host !== 'localhost' && host !== '127.0.0.1') {
     try {
@@ -76,17 +88,11 @@ export async function GET(request: NextRequest) {
         data = result.data;
       }
 
-      if (!data && host.endsWith('.vercel.app')) {
-        const subdomain = host.replace('.vercel.app', '');
-        const result = await supabase
-          .from('tenants')
-          .select('slug, favicon_url')
-          .eq('slug', subdomain)
-          .maybeSingle();
-        data = result.data;
-      }
-
       if (data?.favicon_url) return respondExternal(data.favicon_url);
+      if (data?.slug) {
+        const faviconUrl = await lookupFavicon(data.slug).catch(() => null);
+        if (faviconUrl) return respondExternal(faviconUrl);
+      }
     } catch {
       // lookup failed
     }
