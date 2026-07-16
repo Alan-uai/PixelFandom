@@ -30,7 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { generateGuide } from '@/ai/flows/generate-guide-flow';
 import { improveArticle } from '@/ai/flows/improve-article-flow';
 import { searchAll } from '@/lib/search';
-import { invalidateDataCache } from '@/lib/data-access';
+
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 
 import { MediaLibrary } from '@/components/ui/media-library';
@@ -433,8 +433,6 @@ function EditPageContent() {
         .eq('target_type', 'article')
         .eq('target_id', articleId);
     }
-
-    invalidateDataCache(slug);
 
     if (changeSummary.trim() && !isNewArticle) {
       try {

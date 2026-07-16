@@ -30,8 +30,7 @@ import {
 import DataTableContent from '@/components/editor/data-table-content';
 import TableViewerConfig from '@/components/editor/table-viewer-config';
 import { translateGameTerm } from '@/lib/translate';
-import { parseViewerConfig } from '@/lib/viewer-config';
-import { invalidateDataCache } from '@/lib/data-access';
+import { cacheAddCatalogEntry, cacheRemoveCatalogEntry, updateCachedCatalogEntry } from '@/lib/data-access';
 import { TableIconDisplay } from '@/lib/table-icons';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { renderMarkdown } from '@/lib/content-utils';
@@ -180,7 +179,6 @@ export default function EditorArticlesPage() {
     if (error) {
       toast({ variant: 'destructive', title: tc('error'), description: error.message });
     } else {
-      invalidateDataCache(slug);
       setArticles((prev) => prev.filter((a) => a.id !== id));
       toast({ title: t('toast.article_deleted') });
     }
@@ -226,18 +224,18 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string; table: string };
       if (result.ok) {
-        await supabase
-          .from('tenant_game_tables')
-          .update({
-            viewer_config: parseViewerConfig({}),
-          })
-          .eq('tenant_id', tenantId)
-          .eq('table_name', slug);
         setCatalog((prev) => [
           ...prev,
           { table_name: slug, display_label: label, parent_table: null, icon: createIcon, is_hidden: false },
         ]);
-        invalidateDataCache(slug);
+        cacheAddCatalogEntry(slug, {
+          table_name: slug,
+          display_label: label,
+          parent_table: null,
+          count: 0,
+          icon: createIcon,
+          is_hidden: false,
+        });
         setShowCreateDialog(false);
         setActiveTab(slug);
         toast({ title: t('toast.table_added', { label }) });
@@ -277,7 +275,10 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        invalidateDataCache(slug);
+        updateCachedCatalogEntry(slug, renameTable, {
+          display_label: renameLabel.trim(),
+          icon: renameIcon,
+        });
         setRenameTable(null);
         toast({ title: t('toast.table_updated') });
       } else {
@@ -304,7 +305,8 @@ export default function EditorArticlesPage() {
     } else {
       const result = data as { ok: boolean; error?: string; dropped_table?: boolean; dropped_columns?: string[] };
       if (result.ok) {
-        invalidateDataCache(slug);
+        cacheRemoveCatalogEntry(slug, deleteTable);
+        setCatalog((prev) => prev.filter((t) => t.table_name !== deleteTable));
         if (activeTab === deleteTable) setActiveTab('articles');
 
         const msgs: string[] = [];
@@ -380,7 +382,6 @@ export default function EditorArticlesPage() {
       });
     }
 
-    invalidateDataCache(slug);
     setShowCreateArticleDialog(false);
     setCreateArticleTitle('');
     setScheduleEnabled(false);

@@ -1,6 +1,6 @@
 import type { ColumnInfo } from './game-schema';
-import { findLabelColumn, invalidateSchemaCache, addColumnToCachedSchema, dropColumnFromCachedSchema, addTableToCachedSchema, removeTableFromCachedSchema } from './game-schema';
-import { cacheNotify, cacheNotifyAll, cacheSubscribe } from './cache-registry';
+import { findLabelColumn, addColumnToCachedSchema, dropColumnFromCachedSchema, addTableToCachedSchema, removeTableFromCachedSchema } from './game-schema';
+import { cacheNotify, cacheSubscribe } from './cache-registry';
 export { cacheSubscribe };
 
 export interface CatalogEntry {
@@ -64,17 +64,40 @@ export function updateCachedCatalogEntry(
   }
 }
 
-export function invalidateDataCache(pattern?: string): void {
-  if (pattern) {
-    for (const key of cache.keys()) {
-      if (key.includes(pattern)) cache.delete(key);
-    }
-  } else {
-    cache.clear();
+export function cacheAddCatalogEntry(
+  tenantSlug: string,
+  entry: CatalogEntry,
+): void {
+  const cacheKey = `catalog:${tenantSlug}:counts`;
+  const cached = getCached<CatalogEntry[]>(cacheKey);
+  if (cached) {
+    const exists = cached.find(e => e.table_name === entry.table_name);
+    if (!exists) cached.push(entry);
+    cacheNotify(cacheKey);
   }
-  invalidateSchemaCache();
-  bumpVersion();
-  cacheNotifyAll();
+}
+
+export function cacheRemoveCatalogEntry(
+  tenantSlug: string,
+  tableName: string,
+): void {
+  const cacheKey = `catalog:${tenantSlug}:counts`;
+  const cached = getCached<CatalogEntry[]>(cacheKey);
+  if (cached) {
+    const idx = cached.findIndex(e => e.table_name === tableName);
+    if (idx >= 0) {
+      cached.splice(idx, 1);
+      cacheNotify(cacheKey);
+    }
+  }
+}
+
+export function notifyCatalogChange(tenantSlug: string): void {
+  cacheNotify(`catalog:${tenantSlug}:counts`);
+}
+
+export function notifyItemsChange(tenantSlug: string, tableName: string): void {
+  cacheNotify(`items:${tenantSlug}:${tableName}`);
 }
 
 // ── Schema mutation helpers (update cache in-place, no invalidation) ──

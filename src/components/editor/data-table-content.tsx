@@ -14,7 +14,7 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { invalidateDataCache, cacheSubscribe } from '@/lib/data-access';
+import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 
@@ -40,6 +40,7 @@ import { sanitizeUrl } from '@/lib/content-utils';
 import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType } from '@/lib/column-types/registry';
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
+import { updateViewerConfigField } from '@/lib/viewer-config-utils';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -68,38 +69,20 @@ async function persistColumnForAll(
   const isImage = imageLike.some((kw) => columnName.includes(kw));
   const renderType = isImage ? 'image' : dataType === 'boolean' ? 'text' : 'text';
 
-  const { data: existingConfig } = await supabase
-    .from('tenant_game_tables')
-    .select('viewer_config')
-    .eq('tenant_id', tenantId)
-    .eq('slug', table)
-    .maybeSingle();
-
-  const current = parseViewerConfig(existingConfig?.viewer_config);
-  const updates: Record<string, unknown> = {};
-
-  if (isImage) {
-    const uploadCols = current.uploadColumns || [];
-    if (!uploadCols.includes(columnName)) {
-      updates.uploadColumns = [...uploadCols, columnName];
+  const result = await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+    const next = { ...config };
+    const uploadCols = next.uploadColumns || [];
+    if (isImage && !uploadCols.includes(columnName)) {
+      next.uploadColumns = [...uploadCols, columnName];
     }
-  }
-
-  const existingTypes = current.columnTypes || {};
-  if (!existingTypes[columnName]) {
-    existingTypes[columnName] = renderType;
-    updates.columnTypes = existingTypes;
-  }
-
-  if (Object.keys(updates).length > 0) {
-    const { error } = await supabase
-      .from('tenant_game_tables')
-      .update({ viewer_config: { ...current, ...updates } })
-      .eq('tenant_id', tenantId)
-      .eq('slug', table);
-    if (error) return false;
-  }
-  return true;
+    const existingTypes = next.columnTypes || {};
+    if (!existingTypes[columnName]) {
+      existingTypes[columnName] = renderType;
+      next.columnTypes = existingTypes;
+    }
+    return next;
+  });
+  return result !== null;
 }
 
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
@@ -238,7 +221,7 @@ export default function DataTableContent({
     for (let attempt = 0; attempt < retries; attempt++) {
       const [colResult, configResult] = await Promise.all([
         supabase.rpc('get_table_columns', { p_table: table }),
-        supabase.from('tenant_game_tables').select('viewer_config').eq('tenant_id', tenantId).eq('slug', table).maybeSingle(),
+        supabase.from('tenant_game_tables').select('viewer_config').eq('tenant_id', tenantId).eq('table_name', table).maybeSingle(),
       ]);
 
       if (configResult.data?.viewer_config) {
@@ -508,31 +491,21 @@ export default function DataTableContent({
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
       if (tenantId) {
-        const { data: configData } = await supabase
-          .from('tenant_game_tables')
-          .select('viewer_config')
-          .eq('tenant_id', tenantId)
-          .eq('slug', table)
-          .maybeSingle();
-        const parsed = parseViewerConfig(configData?.viewer_config);
-        const rawConfig = configData?.viewer_config as Record<string, unknown> | null;
-        const rowHidden = { ...(parsed.rowHiddenFields || {}) };
         const localForRow = rowHiddenFields[rowId] || [];
         const finalForRow = [...new Set([...localForRow, ...removedFields])];
-        if (finalForRow.length > 0) {
-          rowHidden[rowId] = finalForRow;
+        const result = await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+          const next: Record<string, unknown> = { ...config };
+          if (finalForRow.length > 0) {
+            next.rowHiddenFields = { ...((next.rowHiddenFields as Record<string, string[]>) || {}), [rowId]: finalForRow };
+          }
+          next.columnTypes = { ...((next.columnTypes as Record<string, string>) || {}), ...columnRenderTypes };
+          next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), ...columnConfigMap };
+          return next;
+        });
+        if (result?.rowHiddenFields) {
+          setRowHiddenFields(result.rowHiddenFields as Record<string, string[]>);
         }
-        const savedColumnTypes = { ...(rawConfig?.columnTypes || parsed.columnTypes || {}), ...columnRenderTypes };
-        const savedColumnConfig = (rawConfig?.columnConfig || parsed.columnConfig || {}) as Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>;
-        const mergedConfig = { ...savedColumnConfig, ...columnConfigMap };
-        await supabase
-          .from('tenant_game_tables')
-          .update({ viewer_config: { ...parsed, rowHiddenFields: rowHidden, columnTypes: savedColumnTypes, columnConfig: mergedConfig } })
-          .eq('tenant_id', tenantId)
-          .eq('slug', table);
-        setRowHiddenFields(rowHidden);
       }
-      invalidateDataCache(slug);
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
       setEditingId(null);
@@ -548,8 +521,8 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
-      invalidateDataCache(slug);
       setRows((prev) => prev.filter((r) => r.id !== rowId));
+      notifyItemsChange(slug, table);
       toast({ title: 'Registro excluído.' });
     }
   };
@@ -582,7 +555,6 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
-      invalidateDataCache(slug);
       setShowNewForm(false);
       setNewForm({});
       setSavedFeedback(true);
@@ -610,7 +582,6 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
-        invalidateDataCache(slug);
         toast({ title: `Coluna "${col}" removida.` });
         if (editingId) {
           setEditForm((prev) => {
@@ -715,55 +686,39 @@ export default function DataTableContent({
       if (result.ok) {
         setColumnRenderTypes((prev) => ({ ...prev, [colSlug]: renderType }));
 
-        /* Always persist columnTypes so the render type survives reload */
-        const { data: existingConfig } = await supabase
-          .from('tenant_game_tables')
-          .select('viewer_config')
-          .eq('tenant_id', tenantId)
-          .eq('slug', table)
-          .maybeSingle();
-        const current = parseViewerConfig(existingConfig?.viewer_config);
-        const updates: Record<string, unknown> = {};
-
         if (isMedia) {
-          const newSet = new Set(uploadColumns);
-          newSet.add(colSlug);
-          setUploadColumns(newSet);
-          const uploadCols = current.uploadColumns || [];
-          if (!uploadCols.includes(colSlug)) {
-            updates.uploadColumns = [...uploadCols, colSlug];
-          }
+          setUploadColumns((prev) => new Set(prev).add(colSlug));
         }
-
-        const existingTypes = current.columnTypes || {};
-        existingTypes[colSlug] = renderType;
-        updates.columnTypes = existingTypes;
-
         if (renderType === 'slider' || renderType === 'rating') {
           const defaultMax = renderType === 'slider' ? 100 : 5;
           const maxVal = parseInt(newFieldMaxValue) || defaultMax;
-          const existingColConfig = current.columnConfig || {};
-          existingColConfig[colSlug] = { maxValue: maxVal };
-          updates.columnConfig = existingColConfig;
           setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal } }));
         }
 
-        if (applyToAll) {
-          const card = (current.card || {}) as { visibleColumns?: string[] };
-          const visibleCols = card.visibleColumns || [];
-          if (!visibleCols.includes(colSlug)) {
-            card.visibleColumns = [...visibleCols, colSlug];
+        await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+          const next: Record<string, unknown> = { ...config };
+          next.columnTypes = { ...(next.columnTypes as Record<string, string> || {}), [colSlug]: renderType };
+          if (isMedia) {
+            const uploadCols = (next.uploadColumns as string[]) || [];
+            if (!uploadCols.includes(colSlug)) {
+              next.uploadColumns = [...uploadCols, colSlug];
+            }
           }
-          updates.card = card;
-        }
-
-        await supabase
-          .from('tenant_game_tables')
-          .update({ viewer_config: { ...current, ...updates } })
-          .eq('tenant_id', tenantId)
-          .eq('slug', table);
-
-        invalidateDataCache(slug);
+          if (renderType === 'slider' || renderType === 'rating') {
+            const defaultMax = renderType === 'slider' ? 100 : 5;
+            const maxVal = parseInt(newFieldMaxValue) || defaultMax;
+            next.columnConfig = { ...(next.columnConfig as Record<string, unknown> || {}), [colSlug]: { maxValue: maxVal } };
+          }
+          if (applyToAll) {
+            const card = (next.card as Record<string, unknown>) || {};
+            const visibleCols = (card.visibleColumns as string[]) || [];
+            if (!visibleCols.includes(colSlug)) {
+              card.visibleColumns = [...visibleCols, colSlug];
+            }
+            next.card = card;
+          }
+          return next;
+        });
         fetchColumns();
         fetchRows();
 

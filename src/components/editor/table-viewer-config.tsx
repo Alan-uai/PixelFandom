@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Globe, Laptop } from 'lucide-react';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { parseViewerConfig } from '@/lib/viewer-config';
-import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
+import { updateCachedCatalogEntry } from '@/lib/data-access';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 import { HeaderConfig } from './table-viewer-config/header-config';
@@ -209,7 +209,6 @@ export default function TableViewerConfig({
 
     configCache.current = parsed;
     setSavedConfig(parsed);
-    invalidateDataCache(slug);
     updateCachedCatalogEntry(slug, table, updatePayload);
   };
 
