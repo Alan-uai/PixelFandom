@@ -82,21 +82,25 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
   useEffect(() => { marketingCardRef.current = marketingCard; }, [marketingCard]);
 
   const handleSave = useCallback(async () => {
+    const c = chatRef.current;
+    const v = voiceRef.current;
+    const ac = articleCardRef.current;
+    const mc = marketingCardRef.current;
     const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat,
-        voice,
+        chat: c,
+        voice: v,
         cardPositions: {
-          article_card: articleCard,
-          marketing_card: marketingCard,
+          article_card: ac,
+          marketing_card: mc,
         },
       }),
     });
     if (!res.ok) throw new Error('Erro ao salvar configuração de widgets');
-    initialSnapshot.current = JSON.stringify({ chat, voice, articleCard, marketingCard });
-  }, [tenantId, chat, voice, articleCard, marketingCard]);
+    initialSnapshot.current = JSON.stringify({ chat: c, voice: v, articleCard: ac, marketingCard: mc });
+  }, [tenantId]);
 
   useEffect(() => {
     onSaveReady?.(handleSave);

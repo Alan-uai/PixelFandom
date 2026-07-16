@@ -65,7 +65,7 @@ function PageBuilderPageInner() {
         throw new Error(`API error ${res.status}: ${text}`);
       }
       const json = await res.json();
-      return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [], slotFlow: json?.slotFlow, clipStyle: json?.clipStyle };
+      return { blocks: json?.blocks || [], floatingIslands: json?.floatingIslands || [], slotFlow: json?.slotFlow, clipStyle: json?.clipStyle, singleIslandWidth: json?.singleIslandWidth };
     }
   );
 

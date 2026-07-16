@@ -431,6 +431,8 @@ type DetailConfig = {
   columnOpEnabled?: Record<string, boolean>;
   showComparison?: boolean;
   showHeader?: boolean;
+  labelColor?: string;
+  columnConfig?: Record<string, { jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown> }>;
 };
 
 type Props = {
@@ -466,6 +468,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
+  const columnConfig = detailConfig?.columnConfig || {};
+  const labelColor = detailConfig?.labelColor;
   const showComparisonEnabled = detailConfig?.showComparison !== false;
 
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);

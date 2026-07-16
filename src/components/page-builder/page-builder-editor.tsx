@@ -428,9 +428,10 @@ function replaceBlock(blocks: BlockConfig[], updated: BlockConfig): BlockConfig[
 }
 
 function removeBlock(blocks: BlockConfig[], id: string): BlockConfig[] {
-  return blocks.filter((b) => {
-    if (b.id === id) return false;
-    if (b.children) b.children = removeBlock(b.children, id);
-    return true;
-  });
+  return blocks
+    .filter((b) => b.id !== id)
+    .map((b) => {
+      if (!b.children) return b;
+      return { ...b, children: removeBlock(b.children, id) };
+    });
 }
