@@ -1,5 +1,6 @@
 import { supabase } from '@/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 import { searchAll, type SearchAllResult } from '@/lib/search';
 import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
@@ -890,7 +891,7 @@ async function handleGetTableSchema(args: { table: string }, _ctx: ToolContext):
   const columns = await getTableSchema(args.table);
   if (columns.length === 0) return { error: `Table "${args.table}" not found in schema`, columns: [] };
 
-  const systemCols = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug', 'rank'];
+  const systemCols = new Set([...SYSTEM_COLS, 'rank']);
   const numericTypes = new Set(['integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision', 'double', 'float', 'decimal']);
 
   return {
@@ -899,7 +900,7 @@ async function handleGetTableSchema(args: { table: string }, _ctx: ToolContext):
       name: c.column_name,
       type: c.data_type,
       is_numeric: numericTypes.has(c.data_type),
-      is_system: systemCols.includes(c.column_name) || c.is_system,
+      is_system: systemCols.has(c.column_name) || c.is_system,
     })),
   };
 }

@@ -1,7 +1,13 @@
 import { parseSmartNumber } from './sort-utils';
 
-const SYSTEM_COLS = new Set([
+export const SYSTEM_COLS = new Set([
   'id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug',
+]);
+
+export const WIKI_MGMT_COLS = new Set([
+  'description', 'notes', 'summary',
+  'image_url', 'icon', 'sprite',
+  'thumbnail', 'avatar', 'banner', 'cover',
 ]);
 
 const NON_CAT_RENDER_TYPES = new Set([
@@ -336,6 +342,7 @@ export function getSortableColumns(
   const { columnTypes, items, excludeColumn } = options || {};
   return columns.filter((col) => {
     if (SYSTEM_COLS.has(col)) return false;
+    if (WIKI_MGMT_COLS.has(col)) return false;
     if (col === excludeColumn) return false;
     const renderType = columnTypes?.[col];
     if (renderType && NON_CAT_RENDER_TYPES.has(renderType)) return false;
@@ -361,6 +368,7 @@ export function getCategorizableColumns(
 
   return columns.filter((col) => {
     if (SYSTEM_COLS.has(col)) return false;
+    if (WIKI_MGMT_COLS.has(col)) return false;
     if (col === excludeColumn) return false;
 
     const renderType = columnTypes?.[col];
@@ -376,8 +384,10 @@ export function getCategorizableColumns(
 
     if (analysis.type === 'long-text') return false;
 
-    if (analysis.uniqueRatio > 0.4 && items.length > 10) return false;
-    if (analysis.avgLength > 80) return false;
+    if (analysis.type !== 'numeric') {
+      if (analysis.uniqueRatio > 0.4 && items.length > 10) return false;
+      if (analysis.avgLength > 80) return false;
+    }
 
     return true;
   });

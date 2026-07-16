@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
+import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
 
 const LABEL_COLS = new Set(['name', 'title', 'description', 'summary', 'slug']);
 const BADGE_COLS = new Set(['rarity', 'tier', 'element']);
-const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'icon', 'icon_url', 'image', 'image_url']);
+const SYSTEM_COLS_EXT = new Set([...SYSTEM_COLS, ...WIKI_MGMT_COLS]);
 
 function inferFormat(col: string): string {
   const lower = col.toLowerCase();
@@ -49,7 +50,7 @@ export function DetailConfig({
   const effectiveVisible = useMemo(() => {
     const visibleColumns: string[] = c.visibleColumns || [];
     if (visibleColumns.length > 0) return visibleColumns;
-    return columns.filter(col => !SYSTEM_COLS.has(col) && !LABEL_COLS.has(col) && !BADGE_COLS.has(col));
+    return columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col) && !BADGE_COLS.has(col));
   }, [c.visibleColumns, columns]);
 
   const toggleColumn = (col: string) => {
@@ -99,7 +100,7 @@ export function DetailConfig({
         <p className="text-[10px] text-muted-foreground">Marque as colunas que aparecem no detalhe.</p>
         <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
           {(columns as string[]).map((col) => {
-            if (SYSTEM_COLS.has(col)) return null;
+            if (SYSTEM_COLS_EXT.has(col)) return null;
             const isVisible = effectiveVisible.includes(col);
             return (
               <div key={col} className="flex items-center gap-2">

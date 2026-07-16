@@ -28,6 +28,7 @@ export const ViewerConfigSchema = z.object({
     backgroundImage: z.string().optional(),
     showBreadcrumb: z.boolean().default(true),
     icon: z.string().optional(),
+    labelColor: z.string().optional(),
   }).optional(),
   display: z.object({
     format: z.enum(['grid', 'list', 'carousel', 'carousel_infinite']).optional(),
@@ -125,6 +126,8 @@ export const ViewerConfigSchema = z.object({
       type: z.enum(['number', 'text', 'boolean']),
       suffix: z.string().optional(),
     })).optional(),
+    jsonbKeyColors: z.record(z.string(), z.string()).optional(),
+    valueColors: z.record(z.string(), z.string()).optional(),
   })).default({}).optional(),
   rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});

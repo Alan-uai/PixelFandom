@@ -91,8 +91,8 @@ function renderEditor(
         <JsonbEditor
           value={value}
           onChange={onChange}
-          columnConfig={columnConfig as { maxValue?: number; jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> } | undefined}
-          onColumnConfigChange={onColumnConfigChange as ((cfg: { jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }> }) => void) | undefined}
+          columnConfig={columnConfig as { maxValue?: number; jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }>; jsonbKeyColors?: Record<string, string> } | undefined}
+          onColumnConfigChange={onColumnConfigChange as ((cfg: { jsonbKeyTypes?: Record<string, { type: 'number' | 'text' | 'boolean'; suffix?: string }>; jsonbKeyColors?: Record<string, string> }) => void) | undefined}
           table={ctx.table}
           slug={ctx.slug}
           tenantId={ctx.tenantId}

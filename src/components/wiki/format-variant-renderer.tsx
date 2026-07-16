@@ -18,92 +18,99 @@ type Props = {
   label: string;
   useSuffix?: boolean;
   opEnabled?: boolean;
+  labelColor?: string;
+  valueColors?: Record<string, string>;
+  jsonbKeyColors?: Record<string, string>;
 };
 
 function v(n: number) { return Math.max(1, Math.min(5, n)); }
 
-function Row({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+function Row({ label, children, className = '', labelColor }: { label: string; children: React.ReactNode; className?: string; labelColor?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span className="text-xs font-medium text-muted-foreground min-w-[100px] shrink-0">{label}</span>
+      <span className="text-xs font-medium min-w-[100px] shrink-0" style={labelColor ? { color: labelColor } : {}}>{label}</span>
       {children}
     </div>
   );
 }
 
-function ColWrap({ label, children }: { label: string; children: React.ReactNode }) {
+function ColWrap({ label, children, labelColor }: { label: string; children: React.ReactNode; labelColor?: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-muted-foreground min-w-[100px]">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground min-w-[100px]" style={labelColor ? { color: labelColor } : {}}>{label}</span>
       {children}
     </div>
   );
 }
 
 // ── text ──────────────────────────────────────────────────
-function renderText(v: number, str: string, label: string) {
+function renderText(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
+  const color = valueColors?.[str];
+  const valStyle: React.CSSProperties = color ? { color } : {};
   if (v === 2) {
     return (
-      <Row label={label}>
-        <code className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono text-foreground">{str}</code>
+      <Row label={label} labelColor={labelColor}>
+        <code className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono text-foreground" style={valStyle}>{str}</code>
       </Row>
     );
   }
   if (v === 3) {
     return (
-      <Row label={label}>
-        <span className="text-xs bg-muted/70 rounded px-1.5 py-0.5 text-foreground">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="text-xs bg-muted/70 rounded px-1.5 py-0.5 text-foreground" style={valStyle}>{str}</span>
       </Row>
     );
   }
   if (v === 4) {
     return (
-      <Row label={label}>
-        <span className="text-xs border-l-2 border-primary pl-2 text-foreground">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="text-xs border-l-2 border-primary pl-2 text-foreground" style={valStyle}>{str}</span>
       </Row>
     );
   }
   if (v === 5) {
     return (
-      <Row label={label}>
-        <span className="text-xs font-semibold text-foreground">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="text-xs font-semibold text-foreground" style={valStyle}>{str}</span>
       </Row>
     );
   }
   return (
-    <Row label={label}>
-      <span className="text-xs text-foreground">{str}</span>
+    <Row label={label} labelColor={labelColor}>
+      <span className="text-xs text-foreground" style={valStyle}>{str}</span>
     </Row>
   );
 }
 
 // ── badge ─────────────────────────────────────────────────
-function renderBadge(v: number, str: string, label: string) {
+function renderBadge(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
+  const color = valueColors?.[str];
+  const valStyle: React.CSSProperties = color ? { color, borderColor: color, backgroundColor: `${color}1a` } : {};
   if (v === 2) {
     return (
-      <Row label={label}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/20 text-primary">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/20 text-primary" style={valStyle}>{str}</span>
       </Row>
     );
   }
   if (v === 3) {
     return (
-      <Row label={label}>
-        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium bg-muted/30 border-border text-foreground">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium bg-muted/30 border-border text-foreground" style={valStyle}>{str}</span>
       </Row>
     );
   }
   if (v === 4) {
     return (
-      <Row label={label}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-primary/40 text-primary shadow-[0_0_8px] shadow-primary/30">{str}</span>
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-primary/40 text-primary shadow-[0_0_8px] shadow-primary/30" style={valStyle}>{str}</span>
       </Row>
     );
   }
   if (v === 5) {
     return (
-      <Row label={label}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 border border-primary/30 text-primary">
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 border border-primary/30 text-primary" style={valStyle}>
           <span className="text-[10px]">✦</span>
           {str}
         </span>
@@ -111,18 +118,18 @@ function renderBadge(v: number, str: string, label: string) {
     );
   }
   return (
-    <Row label={label}>
-      <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary">{str}</span>
+    <Row label={label} labelColor={labelColor}>
+      <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary" style={valStyle}>{str}</span>
     </Row>
   );
 }
 
 // ── color ─────────────────────────────────────────────────
-function renderColor(v: number, str: string, label: string) {
+function renderColor(v: number, str: string, label: string, labelColor?: string) {
   const isColor = str.startsWith('#') || str.startsWith('hsl') || str.startsWith('rgb');
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="h-5 w-5 rounded-md border" style={{ backgroundColor: str }} />
         {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
       </Row>
@@ -130,7 +137,7 @@ function renderColor(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex-1 h-5 rounded border max-w-[120px]" style={{ backgroundColor: str }} />
         {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
       </Row>
@@ -138,7 +145,7 @@ function renderColor(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="h-2.5 w-2.5 rounded-full border" style={{ backgroundColor: str }} />
         <span className="text-xs font-mono text-muted-foreground">{str}</span>
       </Row>
@@ -149,7 +156,7 @@ function renderColor(v: number, str: string, label: string) {
     if (colors.length > 1) {
       const gradient = `linear-gradient(90deg, ${colors.join(', ')})`;
       return (
-        <Row label={label}>
+        <Row label={label} labelColor={labelColor}>
           <div className="h-5 w-24 rounded border" style={{ background: gradient }} />
           <span className="text-[10px] font-mono text-muted-foreground">{colors.length} cores</span>
         </Row>
@@ -157,7 +164,7 @@ function renderColor(v: number, str: string, label: string) {
     }
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: str }} />
       {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
     </Row>
@@ -165,10 +172,10 @@ function renderColor(v: number, str: string, label: string) {
 }
 
 // ── icon ──────────────────────────────────────────────────
-function renderIcon(v: number, str: string, label: string) {
+function renderIcon(v: number, str: string, label: string, labelColor?: string) {
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted/50">
           <IconRenderer icon={str} size="sm" />
         </div>
@@ -177,14 +184,14 @@ function renderIcon(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <IconRenderer icon={str} size="lg" />
       </Row>
     );
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <IconRenderer icon={str} size="sm" />
         <span className="text-xs text-muted-foreground">{str}</span>
       </Row>
@@ -192,7 +199,7 @@ function renderIcon(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex items-center justify-center h-8 w-8 rounded-lg border bg-muted/20">
           <IconRenderer icon={str} size="md" />
         </div>
@@ -200,14 +207,14 @@ function renderIcon(v: number, str: string, label: string) {
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <IconRenderer icon={str} size="md" />
     </Row>
   );
 }
 
 // ── link ──────────────────────────────────────────────────
-function renderLink(v: number, str: string, label: string) {
+function renderLink(v: number, str: string, label: string, labelColor?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
   const content = isValid ? (
     <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs truncate max-w-[300px]">{str}</a>
@@ -217,7 +224,7 @@ function renderLink(v: number, str: string, label: string) {
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium text-primary border-primary/30 hover:bg-primary/5 transition-colors">
             {str.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 40)}
@@ -228,7 +235,7 @@ function renderLink(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 truncate max-w-[300px]">
             {str}
@@ -240,7 +247,7 @@ function renderLink(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="rounded-md border bg-muted/20 px-3 py-1.5 max-w-[300px]">
             <p className="text-[10px] text-muted-foreground truncate">{str.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
@@ -252,7 +259,7 @@ function renderLink(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary no-underline hover:text-primary/80 transition-colors truncate max-w-[300px]">{str}</a>
         ) : content}
@@ -260,7 +267,7 @@ function renderLink(v: number, str: string, label: string) {
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       {isValid ? (
         <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px]">{str}</a>
       ) : (
@@ -271,12 +278,12 @@ function renderLink(v: number, str: string, label: string) {
 }
 
 // ── image ─────────────────────────────────────────────────
-function renderImage(v: number, str: string, label: string) {
+function renderImage(v: number, str: string, label: string, labelColor?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:');
 
   if (v === 2) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
           <div className="relative w-14 h-14 rounded-full overflow-hidden border shrink-0">
             <Image src={str} alt={label} fill className="object-cover" />
@@ -289,7 +296,7 @@ function renderImage(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
           <div className="relative w-20 h-20 rounded-lg overflow-hidden border shadow-lg">
             <Image src={str} alt={label} fill className="object-cover" />
@@ -302,7 +309,7 @@ function renderImage(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
           <div className="relative w-20 h-20 rounded overflow-hidden border bg-white p-1 shadow-md">
             <div className="relative w-full h-full">
@@ -317,7 +324,7 @@ function renderImage(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <ColWrap label={label}>
+      <ColWrap label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="relative w-full h-32 rounded-lg overflow-hidden border">
             <Image src={str} alt={label} fill className="object-cover" />
@@ -329,7 +336,7 @@ function renderImage(v: number, str: string, label: string) {
     );
   }
   return (
-    <Row label={label} className="items-start">
+    <Row label={label} labelColor={labelColor} className="items-start">
       {isValid ? (
         <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
           <Image src={str} alt={label} fill className="object-cover" />
@@ -342,14 +349,14 @@ function renderImage(v: number, str: string, label: string) {
 }
 
 // ── rating ────────────────────────────────────────────────
-function renderRating(v: number, val: unknown, label: string, opEnabled?: boolean) {
+function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean) {
   const num = Number(val);
   const stars = isNaN(num) ? 0 : Math.round(Math.min(5, Math.max(0, num)));
   const fraction = !isNaN(num) && opEnabled ? `${num}/5` : '';
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex gap-0.5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Heart key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
@@ -362,7 +369,7 @@ function renderRating(v: number, val: unknown, label: string, opEnabled?: boolea
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-amber-500/10 border-amber-500/30 text-amber-400">
           {isNaN(num) ? String(val) : `${num}/5`}
         </span>
@@ -372,7 +379,7 @@ function renderRating(v: number, val: unknown, label: string, opEnabled?: boolea
   if (v === 4) {
     const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / 5) * 100));
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex items-center gap-2">
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
@@ -384,7 +391,7 @@ function renderRating(v: number, val: unknown, label: string, opEnabled?: boolea
   }
   if (v === 5) {
     return (
-      <ColWrap label={label}>
+      <ColWrap label={label} labelColor={labelColor}>
         <div className="flex items-baseline gap-0.5">
           <span className="text-3xl font-bold text-amber-400">{isNaN(num) ? '?' : num}</span>
           <span className="text-sm text-muted-foreground">/5</span>
@@ -393,7 +400,7 @@ function renderRating(v: number, val: unknown, label: string, opEnabled?: boolea
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <div className="flex gap-0.5 items-center">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
@@ -406,13 +413,13 @@ function renderRating(v: number, val: unknown, label: string, opEnabled?: boolea
 }
 
 // ── progress ──────────────────────────────────────────────
-function renderProgress(v: number, val: unknown, label: string) {
+function renderProgress(v: number, val: unknown, label: string, labelColor?: string) {
   const num = Number(val);
   const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, num));
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-primary transition-all"
@@ -426,7 +433,7 @@ function renderProgress(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full transition-all bg-gradient-to-r from-primary to-primary/60"
@@ -442,7 +449,7 @@ function renderProgress(v: number, val: unknown, label: string) {
     const segments = 5;
     const filled = Math.round((pct / 100) * segments);
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex gap-0.5 items-center">
           {Array.from({ length: segments }).map((_, i) => (
             <div key={i} className={`h-4 w-3 rounded-sm transition-colors ${i < filled ? 'bg-primary' : 'bg-muted'}`} />
@@ -457,7 +464,7 @@ function renderProgress(v: number, val: unknown, label: string) {
     const circumference = 2 * Math.PI * r;
     const offset = circumference - (pct / 100) * circumference;
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="relative h-10 w-10">
           <svg className="h-10 w-10 -rotate-90" viewBox="0 0 32 32">
             <circle cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
@@ -472,7 +479,7 @@ function renderProgress(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <div className="flex-1 flex items-center gap-2">
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-[200px]">
           <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
@@ -484,13 +491,13 @@ function renderProgress(v: number, val: unknown, label: string) {
 }
 
 // ── tags ──────────────────────────────────────────────────
-function renderTags(v: number, val: unknown, label: string) {
+function renderTags(v: number, val: unknown, label: string, labelColor?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
   if (arr.length === 0) return null;
 
   if (v === 2) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
             <span key={i} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary">{t}</span>
@@ -501,7 +508,7 @@ function renderTags(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
             <span key={i} className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium bg-muted/30 text-muted-foreground">{t}</span>
@@ -512,7 +519,7 @@ function renderTags(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
             <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-muted/30 text-muted-foreground">
@@ -527,7 +534,7 @@ function renderTags(v: number, val: unknown, label: string) {
   if (v === 5) {
     const colors = ['border-blue-500/30 text-blue-400 bg-blue-500/10', 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10', 'border-amber-500/30 text-amber-400 bg-amber-500/10', 'border-purple-500/30 text-purple-400 bg-purple-500/10', 'border-rose-500/30 text-rose-400 bg-rose-500/10'];
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
             <span key={i} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colors[i % colors.length]}`}>{t}</span>
@@ -537,7 +544,7 @@ function renderTags(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label} className="items-start">
+    <Row label={label} labelColor={labelColor} className="items-start">
       <div className="flex flex-wrap gap-1">
         {arr.map((t: string, i: number) => (
           <span key={i} className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-muted/50 text-muted-foreground">{t}</span>
@@ -548,13 +555,13 @@ function renderTags(v: number, val: unknown, label: string) {
 }
 
 // ── boolean ───────────────────────────────────────────────
-function renderBoolean(v: number, val: unknown, label: string) {
+function renderBoolean(v: number, val: unknown, label: string, labelColor?: string) {
   const truthy = val === true || val === 'true' || val === 1 || val === '1' || val === 'yes' || val === 'sim';
   const falsy = val === false || val === 'false' || val === 0 || val === '0' || val === 'no' || val === 'não' || val === 'nao';
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${truthy
           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
           : falsy
@@ -568,7 +575,7 @@ function renderBoolean(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className={`h-3 w-3 rounded-full ${truthy ? 'bg-emerald-500' : falsy ? 'bg-red-400' : 'bg-muted'}`} />
         <span className={`text-xs ${truthy ? 'text-emerald-500' : falsy ? 'text-red-400' : 'text-muted-foreground'}`}>
           {truthy ? 'Sim' : falsy ? 'Não' : String(val)}
@@ -578,7 +585,7 @@ function renderBoolean(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className={`relative h-4 w-8 rounded-full transition-colors ${truthy ? 'bg-emerald-500' : 'bg-muted'}`}>
           <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${truthy ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
         </div>
@@ -588,7 +595,7 @@ function renderBoolean(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-sm leading-none">
           {truthy ? '✅' : falsy ? '❌' : String(val)}
         </span>
@@ -596,7 +603,7 @@ function renderBoolean(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <span className={`text-sm ${truthy ? 'text-emerald-500' : falsy ? 'text-red-400' : 'text-muted-foreground'}`}>
         {truthy ? '✓' : falsy ? '✗' : String(val)}
       </span>
@@ -605,13 +612,13 @@ function renderBoolean(v: number, val: unknown, label: string) {
 }
 
 // ── date ──────────────────────────────────────────────────
-function renderDate(v: number, val: unknown, label: string) {
+function renderDate(v: number, val: unknown, label: string, labelColor?: string) {
   const d = new Date(val as string);
   const valid = !isNaN(d.getTime());
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs text-foreground">
           {valid ? d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }) : String(val)}
         </span>
@@ -620,14 +627,14 @@ function renderDate(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     if (!valid) {
-      return <Row label={label}><span className="text-xs text-muted-foreground">{String(val)}</span></Row>;
+      return <Row label={label} labelColor={labelColor}><span className="text-xs text-muted-foreground">{String(val)}</span></Row>;
     }
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffMs / 86400000);
     const relative = diffDays < 1 ? 'hoje' : diffDays === 1 ? 'ontem' : diffDays < 7 ? `há ${diffDays} dias` : diffDays < 30 ? `há ${Math.floor(diffDays / 7)} semanas` : diffDays < 365 ? `há ${Math.floor(diffDays / 30)} meses` : `há ${Math.floor(diffDays / 365)} anos`;
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs text-foreground">{relative}</span>
         <span className="text-[10px] text-muted-foreground">({d.toLocaleDateString('pt-BR')})</span>
       </Row>
@@ -635,7 +642,7 @@ function renderDate(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs text-foreground">
           {valid ? d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : String(val)}
@@ -645,7 +652,7 @@ function renderDate(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs font-mono text-foreground">
           {valid ? d.toLocaleDateString('pt-BR') : String(val)}
         </span>
@@ -653,7 +660,7 @@ function renderDate(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <span className="text-xs text-foreground">
         {valid ? d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : String(val)}
       </span>
@@ -662,7 +669,7 @@ function renderDate(v: number, val: unknown, label: string) {
 }
 
 // ── duration ──────────────────────────────────────────────
-function renderDuration(v: number, val: unknown, label: string) {
+function renderDuration(v: number, val: unknown, label: string, labelColor?: string) {
   const str = String(val ?? '');
   let display = str;
   if (/^\d+:\d{2}(:\d{2})?$/.test(str)) {
@@ -673,7 +680,7 @@ function renderDuration(v: number, val: unknown, label: string) {
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs text-foreground">{display}</span>
       </Row>
@@ -683,40 +690,40 @@ function renderDuration(v: number, val: unknown, label: string) {
     const num = parseInt(str, 10);
     const color = isNaN(num) ? 'text-muted-foreground' : num > 3600 ? 'text-red-400' : num > 600 ? 'text-amber-400' : 'text-emerald-400';
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className={`text-xs font-medium ${color}`}>{display}</span>
       </Row>
     );
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs font-mono text-foreground">{str}</span>
       </Row>
     );
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-muted/30 text-muted-foreground">{display}</span>
       </Row>
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <span className="text-xs text-foreground">{display}</span>
     </Row>
   );
 }
 
 // ── file ──────────────────────────────────────────────────
-function renderFile(v: number, str: string, label: string) {
+function renderFile(v: number, str: string, label: string, labelColor?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
   const filename = str.split('/').pop() || str;
 
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" download
             className="inline-flex items-center gap-1 rounded-md border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
@@ -732,7 +739,7 @@ function renderFile(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="rounded-md border bg-muted/20 px-3 py-1.5 max-w-[250px]">
             <div className="flex items-center gap-2">
@@ -751,7 +758,7 @@ function renderFile(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" download className="text-primary hover:text-primary/80 transition-colors">
             <FileIcon className="h-5 w-5" />
@@ -764,13 +771,13 @@ function renderFile(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs font-mono text-muted-foreground truncate max-w-[300px]">{str}</span>
       </Row>
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       {isValid ? (
         <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px] flex items-center gap-1" download>
           <FileIcon className="h-3 w-3" />
@@ -784,12 +791,12 @@ function renderFile(v: number, str: string, label: string) {
 }
 
 // ── video ─────────────────────────────────────────────────
-function renderVideo(v: number, str: string, label: string) {
+function renderVideo(v: number, str: string, label: string, labelColor?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
     return (
-      <ColWrap label={label}>
+      <ColWrap label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="relative aspect-video rounded-lg overflow-hidden border bg-black/50 max-w-md group cursor-pointer">
             <video src={str} className="w-full h-full" preload="metadata" />
@@ -805,7 +812,7 @@ function renderVideo(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
             <Video className="h-3.5 w-3.5" />
@@ -819,7 +826,7 @@ function renderVideo(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px]">
             {str.split('/').pop() || str}
@@ -832,7 +839,7 @@ function renderVideo(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <ColWrap label={label}>
+      <ColWrap label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="rounded-lg border bg-muted/20 p-3 max-w-md">
             <div className="flex items-center gap-2 mb-1">
@@ -848,7 +855,7 @@ function renderVideo(v: number, str: string, label: string) {
     );
   }
   return (
-    <ColWrap label={label}>
+    <ColWrap label={label} labelColor={labelColor}>
       {isValid ? (
         <div className="relative aspect-video rounded-lg overflow-hidden border bg-black/50 max-w-md">
           <video src={str} controls className="w-full h-full" preload="metadata">
@@ -863,12 +870,12 @@ function renderVideo(v: number, str: string, label: string) {
 }
 
 // ── audio ─────────────────────────────────────────────────
-function renderAudio(v: number, str: string, label: string) {
+function renderAudio(v: number, str: string, label: string, labelColor?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
     return (
-      <ColWrap label={label}>
+      <ColWrap label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="rounded-lg border bg-muted/20 p-3 max-w-xs">
             <div className="flex items-center gap-2 mb-2">
@@ -887,7 +894,7 @@ function renderAudio(v: number, str: string, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <div className="flex items-center gap-2">
             <Music className="h-4 w-4 text-muted-foreground" />
@@ -906,7 +913,7 @@ function renderAudio(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
             <Music className="h-3.5 w-3.5" />
@@ -920,7 +927,7 @@ function renderAudio(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         {isValid ? (
           <audio src={str} controls className="h-6 max-w-[140px]" preload="none" />
         ) : (
@@ -930,7 +937,7 @@ function renderAudio(v: number, str: string, label: string) {
     );
   }
   return (
-    <ColWrap label={label}>
+    <ColWrap label={label} labelColor={labelColor}>
       {isValid ? (
         <audio src={str} controls className="h-8 max-w-xs" preload="none">
           <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">Ouvir áudio</a>
@@ -943,17 +950,17 @@ function renderAudio(v: number, str: string, label: string) {
 }
 
 // ── emoji ─────────────────────────────────────────────────
-function renderEmoji(v: number, str: string, label: string) {
+function renderEmoji(v: number, str: string, label: string, labelColor?: string) {
   if (v === 2) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-4xl leading-none">{str}</span>
       </Row>
     );
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted/30">
           <span className="text-xl leading-none">{str}</span>
         </div>
@@ -962,7 +969,7 @@ function renderEmoji(v: number, str: string, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex flex-col items-center gap-0.5">
           <span className="text-3xl leading-none">{str}</span>
           <span className="text-[10px] text-muted-foreground">{str}</span>
@@ -972,25 +979,25 @@ function renderEmoji(v: number, str: string, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-2xl leading-none animate-bounce inline-block">{str}</span>
       </Row>
     );
   }
   return (
-    <Row label={label}>
+    <Row label={label} labelColor={labelColor}>
       <span className="text-2xl leading-none">{str}</span>
     </Row>
   );
 }
 
 // ── icon-set ──────────────────────────────────────────────
-function renderIconSet(v: number, val: unknown, label: string) {
+function renderIconSet(v: number, val: unknown, label: string, labelColor?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((item: string, i: number) => (
             <div key={i} className="flex items-center justify-center h-6 w-6 rounded-md bg-muted/50"><IconRenderer icon={item} size={12} /></div>
@@ -1001,7 +1008,7 @@ function renderIconSet(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-2">
           {arr.map((item: string, i: number) => (
             <div key={i} className="flex items-center gap-1.5 rounded-md border bg-muted/20 px-2 py-1 text-xs">
@@ -1015,7 +1022,7 @@ function renderIconSet(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex -space-x-1.5">
           {arr.slice(0, 5).map((item: string, i: number) => (
             <div key={i} className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-muted/50"><IconRenderer icon={item} size={12} /></div>
@@ -1027,7 +1034,7 @@ function renderIconSet(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex flex-wrap gap-1">
           {arr.map((item: string, i: number) => (
             <div key={i} className="flex items-center justify-center h-8 w-8 rounded-lg border bg-card"><IconRenderer icon={item} size="sm" /></div>
@@ -1037,7 +1044,7 @@ function renderIconSet(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label} className="items-start">
+    <Row label={label} labelColor={labelColor} className="items-start">
       <div className="flex flex-wrap gap-1">
         {arr.map((item: string, i: number) => (
           <div key={i} className="flex items-center justify-center h-5 w-5 rounded bg-muted/30"><IconRenderer icon={item} size={12} /></div>
@@ -1048,12 +1055,12 @@ function renderIconSet(v: number, val: unknown, label: string) {
 }
 
 // ── color-palette ─────────────────────────────────────────
-function renderColorPalette(v: number, val: unknown, label: string) {
+function renderColorPalette(v: number, val: unknown, label: string, labelColor?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((color: string, i: number) => (
             <div key={i} className="h-4 w-8 rounded border" style={{ backgroundColor: color }} />
@@ -1064,7 +1071,7 @@ function renderColorPalette(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex rounded-lg overflow-hidden border h-5">
           {arr.map((color: string, i: number) => (
             <div key={i} className="flex-1" style={{ backgroundColor: color }} />
@@ -1075,7 +1082,7 @@ function renderColorPalette(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1.5">
           {arr.map((color: string, i: number) => (
             <div key={i} className="flex items-center gap-1.5 rounded-md border bg-muted/20 px-2 py-0.5 text-xs">
@@ -1089,7 +1096,7 @@ function renderColorPalette(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex -space-x-1">
           {arr.slice(0, 6).map((color: string, i: number) => (
             <div key={i} className="h-5 w-5 rounded-full border-2 border-background" style={{ backgroundColor: color }} />
@@ -1100,7 +1107,7 @@ function renderColorPalette(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label} className="items-start">
+    <Row label={label} labelColor={labelColor} className="items-start">
       <div className="flex flex-wrap gap-1">
         {arr.map((color: string, i: number) => (
           <div key={i} className="h-4 w-4 rounded border" style={{ backgroundColor: color }} />
@@ -1111,15 +1118,15 @@ function renderColorPalette(v: number, val: unknown, label: string) {
 }
 
 // ── multi-select ──────────────────────────────────────────
-function renderMultiSelect(v: number, val: unknown, label: string) {
+function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/15 text-primary">{t}</span>
+            <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/15 text-primary" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
           ))}
         </div>
       </Row>
@@ -1127,10 +1134,10 @@ function renderMultiSelect(v: number, val: unknown, label: string) {
   }
   if (v === 3) {
     return (
-      <Row label={label} className="items-start">
+      <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
           {arr.map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs bg-muted/30 text-foreground">
+            <span key={i} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs bg-muted/30 text-foreground" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>
               <List className="h-3 w-3 text-muted-foreground" />
               {t}
             </span>
@@ -1141,10 +1148,10 @@ function renderMultiSelect(v: number, val: unknown, label: string) {
   }
   if (v === 4) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <div className="flex -space-x-1.5">
           {arr.slice(0, 4).map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{t}</span>
+            <span key={i} className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
           ))}
           {arr.length > 4 && <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">+{arr.length-4}</span>}
         </div>
@@ -1153,7 +1160,7 @@ function renderMultiSelect(v: number, val: unknown, label: string) {
   }
   if (v === 5) {
     return (
-      <Row label={label}>
+      <Row label={label} labelColor={labelColor}>
         <span className="text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{arr.length}</span> selecionado{arr.length !== 1 ? 's' : ''}
         </span>
@@ -1161,10 +1168,10 @@ function renderMultiSelect(v: number, val: unknown, label: string) {
     );
   }
   return (
-    <Row label={label} className="items-start">
+    <Row label={label} labelColor={labelColor} className="items-start">
       <div className="flex flex-wrap gap-1">
         {arr.map((t: string, i: number) => (
-          <span key={i} className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{t}</span>
+          <span key={i} className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
         ))}
       </div>
     </Row>
@@ -1188,7 +1195,7 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   return String(v);
 }
 
-function renderMiniCards(value: unknown, label: string, useSuffix?: boolean): React.ReactNode {
+function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
   ensureDetectorsRegistered();
   if (Array.isArray(value)) {
     return (
@@ -1202,7 +1209,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean): Re
               <div key={i} className="rounded-lg border bg-card p-2.5 text-xs space-y-1 min-w-[130px]">
                 {Object.entries(obj as Record<string, unknown>).map(([k, val]) => (
                   <div key={k} className="flex items-center gap-1.5">
-                    <span className="font-medium text-foreground capitalize">{k.replace(/_/g, ' ')}:</span>
+                    <span className="font-medium text-foreground capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}:</span>
                     <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
                   </div>
                 ))}
@@ -1223,7 +1230,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean): Re
     <div className="rounded-xl border bg-card p-3 text-xs space-y-1.5">
       {Object.entries(obj).map(([k, val]) => (
         <div key={k} className="flex items-start gap-2">
-          <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize">{k.replace(/_/g, ' ')}:</span>
+          <span className="font-medium text-foreground shrink-0 min-w-[80px] capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}:</span>
           <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
         </div>
       ))}
@@ -1231,7 +1238,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean): Re
   );
 }
 
-function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean): React.ReactNode {
+function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
   const rows: React.ReactNode[] = [];
   if (Array.isArray(value)) {
     const allKeys = [...new Set(value.flatMap((item: unknown) =>
@@ -1242,7 +1249,7 @@ function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean)
         <thead key="thead" className="sticky top-0 bg-card">
           <tr className="border-b text-xs text-muted-foreground">
             <th className="text-left px-2 py-1.5 font-medium">#</th>
-            {allKeys.map(k => <th key={k} className="text-left px-2 py-1.5 font-medium capitalize">{k.replace(/_/g, ' ')}</th>)}
+            {allKeys.map(k => <th key={k} className="text-left px-2 py-1.5 font-medium capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</th>)}
           </tr>
         </thead>,
       );
@@ -1268,7 +1275,7 @@ function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean)
     <tbody key="tbody">
       {Object.entries(obj).map(([k, val]) => (
         <tr key={k} className="border-b last:border-0 text-xs">
-          <td className="px-3 py-1.5 font-medium text-foreground capitalize whitespace-nowrap">{k.replace(/_/g, ' ')}</td>
+          <td className="px-3 py-1.5 font-medium text-foreground capitalize whitespace-nowrap" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</td>
           <td className="px-3 py-1.5 text-muted-foreground">{fmtComplexVal(val, useSuffix)}</td>
         </tr>
       ))}
@@ -1277,24 +1284,33 @@ function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean)
   return <table className="w-full text-sm">{rows}</table>;
 }
 
-function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean): React.ReactNode {
-  const parts: string[] = [];
+function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const addKeyValue = (k: string, val: unknown) => {
+    const keyColor = jsonbKeyColors?.[k];
+    parts.push(
+      <span key={parts.length} style={keyColor ? { color: keyColor } : {}}>
+        {k.replace(/_/g, ' ')}: {fmtComplexVal(val, useSuffix)}
+      </span>
+    );
+  };
   if (Array.isArray(value)) {
     value.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
-        Object.entries(item as Record<string, unknown>).forEach(([k, val]) => {
-          parts.push(`${k.replace(/_/g, ' ')}: ${fmtComplexVal(val, useSuffix)}`);
-        });
+        Object.entries(item as Record<string, unknown>).forEach(([k, val]) => addKeyValue(k, val));
       } else {
         parts.push(fmtComplexVal(item, useSuffix));
       }
     });
   } else {
-    Object.entries(value as Record<string, unknown>).forEach(([k, val]) => {
-      parts.push(`${k.replace(/_/g, ' ')}: ${fmtComplexVal(val, useSuffix)}`);
-    });
+    Object.entries(value as Record<string, unknown>).forEach(([k, val]) => addKeyValue(k, val));
   }
-  return <span className="text-xs text-muted-foreground leading-relaxed">{parts.join(' · ')}</span>;
+  const result: React.ReactNode[] = [];
+  parts.forEach((p, i) => {
+    if (i > 0) result.push(' · ');
+    result.push(p);
+  });
+  return <span className="text-xs text-muted-foreground leading-relaxed">{result}</span>;
 }
 
 function renderComplexRaw(value: unknown): React.ReactNode {
@@ -1331,46 +1347,46 @@ function renderComplexMinimal(value: unknown, useSuffix?: boolean): React.ReactN
   );
 }
 
-function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean): React.ReactNode {
-  if (v === 1) return renderMiniCards(value, label, useSuffix);
-  if (v === 2) return renderComplexTable(value, label, useSuffix);
-  if (v === 3) return renderComplexInline(value, label, useSuffix);
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors);
+  if (v === 2) return renderComplexTable(value, label, useSuffix, jsonbKeyColors);
+  if (v === 3) return renderComplexInline(value, label, useSuffix, jsonbKeyColors);
   if (v === 4) return renderComplexRaw(value);
   return renderComplexMinimal(value, useSuffix);
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering
   if (isComplexValue(value)) {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix);
+    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
   switch (format) {
-    case 'text':     return renderText(n, str, label);
-    case 'badge':    return renderBadge(n, str, label);
-    case 'color':    return renderColor(n, str, label);
-    case 'icon':     return renderIcon(n, str, label);
-    case 'link':     return renderLink(n, str, label);
-    case 'image':    return renderImage(n, str, label);
-    case 'rating':   return renderRating(n, value, label, opEnabled);
-    case 'progress': return renderProgress(n, value, label);
-    case 'tags':     return renderTags(n, value, label);
-    case 'boolean':  return renderBoolean(n, value, label);
-    case 'date':     return renderDate(n, value, label);
-    case 'duration': return renderDuration(n, value, label);
-    case 'file':     return renderFile(n, str, label);
-    case 'video':    return renderVideo(n, str, label);
-    case 'audio':    return renderAudio(n, str, label);
-    case 'emoji':    return renderEmoji(n, str, label);
-    case 'icon-set': return renderIconSet(n, value, label);
-    case 'color-palette': return renderColorPalette(n, value, label);
-    case 'multi-select': return renderMultiSelect(n, value, label);
+    case 'text':     return renderText(n, str, label, labelColor, valueColors);
+    case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
+    case 'color':    return renderColor(n, str, label, labelColor);
+    case 'icon':     return renderIcon(n, str, label, labelColor);
+    case 'link':     return renderLink(n, str, label, labelColor);
+    case 'image':    return renderImage(n, str, label, labelColor);
+    case 'rating':   return renderRating(n, value, label, labelColor, opEnabled);
+    case 'progress': return renderProgress(n, value, label, labelColor);
+    case 'tags':     return renderTags(n, value, label, labelColor);
+    case 'boolean':  return renderBoolean(n, value, label, labelColor);
+    case 'date':     return renderDate(n, value, label, labelColor);
+    case 'duration': return renderDuration(n, value, label, labelColor);
+    case 'file':     return renderFile(n, str, label, labelColor);
+    case 'video':    return renderVideo(n, str, label, labelColor);
+    case 'audio':    return renderAudio(n, str, label, labelColor);
+    case 'emoji':    return renderEmoji(n, str, label, labelColor);
+    case 'icon-set': return renderIconSet(n, value, label, labelColor);
+    case 'color-palette': return renderColorPalette(n, value, label, labelColor);
+    case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors);
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
@@ -1379,10 +1395,10 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         if (detector) return detector.render({ value: detectValue, useSuffix }, n);
       }
       if (isComplexValue(detectValue)) {
-        return renderComplexValue(n, detectValue, label, useSuffix);
+        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors);
       }
-      return renderText(n, String(detectValue ?? ''), label);
+      return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }
-    default:         return renderText(n, str, label);
+    default:         return renderText(n, str, label, labelColor, valueColors);
   }
 }

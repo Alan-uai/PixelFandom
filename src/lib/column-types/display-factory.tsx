@@ -62,17 +62,21 @@ function applyKeyFormatting(
   return result;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue: _maxValue, columnConfig, variant }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue: _maxValue, columnConfig, variant, labelColor }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
-  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> };
+  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> };
   variant?: number;
+  labelColor?: string;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
 
   const tv = variant ?? 1;
+
+  const jsonbKeyColors = columnConfig?.jsonbKeyColors;
+  const valueColors = columnConfig?.valueColors;
 
   // jsonb: data extraction first (parse + key formatting), then delegate
   if (renderType === 'jsonb') {
@@ -85,6 +89,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           value={parsed}
           label={column}
           useSuffix={useSuffix}
+          labelColor={labelColor}
+          jsonbKeyColors={jsonbKeyColors}
         />
       );
     }
@@ -97,6 +103,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           value={formatted}
           label={column}
           useSuffix={useSuffix}
+          labelColor={labelColor}
+          jsonbKeyColors={jsonbKeyColors}
         />
       );
     }
@@ -114,6 +122,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           label={column}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
+          labelColor={labelColor}
+          jsonbKeyColors={jsonbKeyColors}
         />
       );
     }
@@ -129,6 +139,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         label={column}
         useSuffix={useSuffix}
         opEnabled={opEnabled}
+        labelColor={labelColor}
+        valueColors={valueColors}
       />
     );
   }
@@ -143,6 +155,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         value={Array.isArray(arr) ? arr : prepared}
         label={column}
         useSuffix={useSuffix}
+        labelColor={labelColor}
+        valueColors={valueColors}
       />
     );
   }
@@ -156,6 +170,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       label={column}
       useSuffix={useSuffix}
       opEnabled={opEnabled}
+      labelColor={labelColor}
+      valueColors={valueColors}
     />
   );
 }

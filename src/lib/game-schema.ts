@@ -1,4 +1,5 @@
 import { GAME_TABLE_META } from '@/lib/game-table-labels';
+import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
 
 export interface ColumnInfo {
   column_name: string;
@@ -181,7 +182,7 @@ export function findLabelColumn(columns: { column_name: string; data_type: strin
 }
 
 export function inferPrimaryColumns(columns: { column_name: string; data_type: string }[]): string[] {
-  const systemCols = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug']);
+  const systemCols = new Set([...SYSTEM_COLS, ...WIKI_MGMT_COLS]);
   const label = findLabelColumn(columns);
   if (!label) return [];
   const result = [label];

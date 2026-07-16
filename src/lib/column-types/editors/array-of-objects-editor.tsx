@@ -13,11 +13,15 @@ export function ArrayOfObjectsEditor({
   onChange,
   keyTypes,
   onKeyTypesChange,
+  jsonbKeyColors,
+  onKeyColorsChange,
 }: {
   value: string;
   onChange: (v: string) => void;
   keyTypes: Record<string, JsonbKeyEntry>;
   onKeyTypesChange: (types: Record<string, JsonbKeyEntry>) => void;
+  jsonbKeyColors?: Record<string, string>;
+  onKeyColorsChange?: (colors: Record<string, string>) => void;
 }) {
   const arr: Record<string, unknown>[] = (() => {
     try { const p = JSON.parse(value); return Array.isArray(p) ? p : []; } catch { return []; }
@@ -88,6 +92,8 @@ export function ArrayOfObjectsEditor({
               onEntriesChange={(e) => updateItem(i, e)}
               keyTypes={keyTypes}
               onKeyTypesChange={onKeyTypesChange}
+              jsonbKeyColors={jsonbKeyColors}
+              onKeyColorsChange={onKeyColorsChange}
             />
           </div>
         );

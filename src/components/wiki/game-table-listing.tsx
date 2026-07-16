@@ -27,8 +27,7 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { formatNumber } from '@/lib/format-number';
-
-const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
   'content', 'details', 'items_dropped', 'notable_loot',

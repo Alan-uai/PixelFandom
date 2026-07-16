@@ -8,6 +8,7 @@ import { getTableSchema, type ColumnInfo } from '@/lib/game-schema';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 
 type CompareInfo = {
   key: string;
@@ -414,7 +415,7 @@ function findRangePairs(columns: ColumnInfo[]): string[] {
 }
 
 function isSystem(name: string): boolean {
-  return ['id', 'tenant_id', 'created_at', 'updated_at', 'rank', 'embedding'].includes(name);
+  return SYSTEM_COLS.has(name) || name === 'rank';
 }
 
 function labelFromKey(key: string): string {

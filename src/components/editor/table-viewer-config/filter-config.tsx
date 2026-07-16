@@ -5,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { Loader2, Filter } from 'lucide-react';
-
-const SYSTEM_COLS = new Set(['id', 'tenant_id', 'created_at', 'updated_at', 'slug', 'embedding']);
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
   'content', 'details', 'items_dropped', 'notable_loot',

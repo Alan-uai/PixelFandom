@@ -9,6 +9,7 @@ import type { ViewerConfig } from '@/lib/viewer-config';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { invalidateDataCache, updateCachedCatalogEntry } from '@/lib/data-access';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 import { HeaderConfig } from './table-viewer-config/header-config';
 import { DisplayConfig } from './table-viewer-config/display-config';
 import { FilterConfig } from './table-viewer-config/filter-config';
@@ -17,6 +18,7 @@ import { CardConfig } from './table-viewer-config/card-config';
 import { SearchConfig } from './table-viewer-config/search-config';
 import { EmptyConfig } from './table-viewer-config/empty-config';
 import { LoadingConfig } from './table-viewer-config/loading-config';
+import { ColorsConfig } from './table-viewer-config/colors-config';
 
 export default function TableViewerConfig({
   slug,
@@ -139,7 +141,7 @@ export default function TableViewerConfig({
     if (data && (data as any).ok) {
       const cols = (data as any).columns
         .map((c: any) => c.column_name)
-        .filter((c: string) => !['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'].includes(c));
+        .filter((c: string) => !SYSTEM_COLS.has(c));
       setColumns(cols);
     }
   }, [table]);
@@ -226,6 +228,7 @@ export default function TableViewerConfig({
     { id: 'search', label: 'Busca', component: SearchConfig },
     { id: 'emptyState', label: 'Estado Vazio', component: EmptyConfig },
     { id: 'loading', label: 'Carregamento', component: LoadingConfig },
+    { id: 'colors', label: 'Cores', component: ColorsConfig },
   ] as const;
 
   if (loading) {
@@ -324,18 +327,23 @@ export default function TableViewerConfig({
         {sections.map((s) => {
           if (s.id !== activeSection) return null;
           const Comp = s.component;
+          const isColors = s.id === 'colors';
           return (
             <Comp
               key={s.id}
-              config={(config as any)[s.id]}
+              config={isColors ? config : (config as any)[s.id]}
               columns={columns}
               columnTypes={(config as any)?.columnTypes || {}}
               slug={slug}
               tableIcon={s.id === 'header' ? tableIcon : undefined}
               tenantId={tenantId ?? undefined}
-              onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
+              onChange={isColors
+                ? (v: any) => setConfig(v)
+                : (v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))
+              }
               items={items}
               itemsLoading={itemsLoading}
+              table={table}
               categorizationColumn={s.id === 'filters' ? categorizationColumn : undefined}
               categorizationSecondaryColumn={s.id === 'filters' ? categorizationSecondaryColumn : undefined}
             />

@@ -102,7 +102,9 @@ async function persistColumnForAll(
   return true;
 }
 
-const systemColumns = ['id', 'tenant_id', 'created_at', 'updated_at', 'embedding', 'slug'];
+import { SYSTEM_COLS } from '@/lib/categorizable-columns';
+
+const systemColumns = [...SYSTEM_COLS];
 const newFormDefaultFields = ['name'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
 const iconColumnNames = ['icon_url', 'icon_id', 'icon'];

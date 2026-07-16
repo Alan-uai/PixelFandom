@@ -53,27 +53,25 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
     startY: number;
     startSize: { width: number; height: number };
   } | null>(null);
-
-  const containerRect = containerRef.current?.getBoundingClientRect();
-  const centerX = (containerRect?.width ?? 400) / 2;
-  const centerY = (containerRect?.height ?? 400) / 2;
+  const [containerCenter, setContainerCenter] = useState({ x: 200, y: 200 });
 
   const handlePositions = useMemo(() => ({
-    tl: { x: centerX - cropSize.width / 2, y: centerY - cropSize.height / 2 },
-    tr: { x: centerX + cropSize.width / 2, y: centerY - cropSize.height / 2 },
-    bl: { x: centerX - cropSize.width / 2, y: centerY + cropSize.height / 2 },
-    br: { x: centerX + cropSize.width / 2, y: centerY + cropSize.height / 2 },
-    t:  { x: centerX, y: centerY - cropSize.height / 2 },
-    r:  { x: centerX + cropSize.width / 2, y: centerY },
-    b:  { x: centerX, y: centerY + cropSize.height / 2 },
-    l:  { x: centerX - cropSize.width / 2, y: centerY },
-  }), [centerX, centerY, cropSize]);
+    tl: { x: containerCenter.x - cropSize.width / 2, y: containerCenter.y - cropSize.height / 2 },
+    tr: { x: containerCenter.x + cropSize.width / 2, y: containerCenter.y - cropSize.height / 2 },
+    bl: { x: containerCenter.x - cropSize.width / 2, y: containerCenter.y + cropSize.height / 2 },
+    br: { x: containerCenter.x + cropSize.width / 2, y: containerCenter.y + cropSize.height / 2 },
+    t:  { x: containerCenter.x, y: containerCenter.y - cropSize.height / 2 },
+    r:  { x: containerCenter.x + cropSize.width / 2, y: containerCenter.y },
+    b:  { x: containerCenter.x, y: containerCenter.y + cropSize.height / 2 },
+    l:  { x: containerCenter.x - cropSize.width / 2, y: containerCenter.y },
+  }), [containerCenter, cropSize]);
 
   useEffect(() => {
     if (open && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const size = Math.min(rect.width - 20, rect.height - 20, 400);
       setCropSize({ width: size, height: size });
+      setContainerCenter({ x: rect.width / 2, y: rect.height / 2 });
       setCrop({ x: 50, y: 50 });
       setZoom(1);
       setAspect(null);
@@ -111,11 +109,11 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-  const handlePointerDown = useCallback((handle: Handle, e: React.PointerEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const handle = e.currentTarget.dataset.handle as Handle;
     e.preventDefault();
     e.stopPropagation();
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -188,7 +186,8 @@ export function ImageCropper({ open, onOpenChange, imageUrl, onCropConfirm, onCr
             return (
               <div
                 key={handle}
-                onPointerDown={(e) => handlePointerDown(handle, e)}
+                data-handle={handle}
+                onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 style={{

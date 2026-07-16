@@ -21,8 +21,8 @@ export function JsonbEditor({
 }: {
   value: string;
   onChange: (v: string) => void;
-  columnConfig?: { maxValue?: number; jsonbKeyTypes?: Record<string, JsonbKeyEntry> };
-  onColumnConfigChange?: (cfg: { jsonbKeyTypes?: Record<string, JsonbKeyEntry> }) => void;
+  columnConfig?: { maxValue?: number; jsonbKeyTypes?: Record<string, JsonbKeyEntry>; jsonbKeyColors?: Record<string, string> };
+  onColumnConfigChange?: (cfg: { jsonbKeyTypes?: Record<string, JsonbKeyEntry>; jsonbKeyColors?: Record<string, string> }) => void;
   table?: string;
   slug?: string;
   tenantId?: string;
@@ -43,13 +43,18 @@ export function JsonbEditor({
     }
   }, [value]);
 
-  const keyTypes: Record<string, JsonbKeyEntry> = columnConfig?.jsonbKeyTypes || {};
+  const keyTypes = useMemo(() => columnConfig?.jsonbKeyTypes || {} as Record<string, JsonbKeyEntry>, [columnConfig?.jsonbKeyTypes]);
+  const keyColors = useMemo(() => columnConfig?.jsonbKeyColors || {} as Record<string, string>, [columnConfig?.jsonbKeyColors]);
 
   const hasKeyTypes = Object.keys(keyTypes).length > 0;
 
   const handleKeyTypesChange = useCallback((types: Record<string, JsonbKeyEntry>) => {
-    if (onColumnConfigChange) onColumnConfigChange({ jsonbKeyTypes: types });
-  }, [onColumnConfigChange]);
+    if (onColumnConfigChange) onColumnConfigChange({ jsonbKeyTypes: types, jsonbKeyColors: keyColors });
+  }, [onColumnConfigChange, keyColors]);
+
+  const handleKeyColorsChange = useCallback((colors: Record<string, string>) => {
+    if (onColumnConfigChange) onColumnConfigChange({ jsonbKeyTypes: keyTypes, jsonbKeyColors: colors });
+  }, [onColumnConfigChange, keyTypes]);
 
   /* Auto-detect keyTypes for old columns without persisted keyTypes */
   useEffect(() => {
@@ -84,11 +89,11 @@ export function JsonbEditor({
         detected[k] = { type: type as 'number' | 'text' | 'boolean' };
       }
       if (Object.keys(detected).length > 0 && onColumnConfigChange) {
-        onColumnConfigChange({ jsonbKeyTypes: detected });
+        onColumnConfigChange({ jsonbKeyTypes: detected, jsonbKeyColors: keyColors });
       }
     })();
     return () => { cancelled = true; };
-  }, [hasKeyTypes, table, columnName, slug, tenantId, onColumnConfigChange]);
+  }, [hasKeyTypes, table, columnName, slug, tenantId, onColumnConfigChange, keyColors]);
 
   const convertObjectToArray = useCallback(() => {
     try {
@@ -165,6 +170,8 @@ export function JsonbEditor({
             onChange={onChange}
             keyTypes={keyTypes}
             onKeyTypesChange={handleKeyTypesChange}
+            jsonbKeyColors={keyColors}
+            onKeyColorsChange={handleKeyColorsChange}
           />
         ) : (
           <SimpleObjectEditor
@@ -178,6 +185,8 @@ export function JsonbEditor({
             }}
             keyTypes={keyTypes}
             onKeyTypesChange={handleKeyTypesChange}
+            jsonbKeyColors={keyColors}
+            onKeyColorsChange={handleKeyColorsChange}
           />
         )}
         <button
@@ -199,6 +208,8 @@ export function JsonbEditor({
           onChange={onChange}
           keyTypes={keyTypes}
           onKeyTypesChange={handleKeyTypesChange}
+          jsonbKeyColors={keyColors}
+          onKeyColorsChange={handleKeyColorsChange}
         />
         <button
           type="button"
@@ -252,6 +263,8 @@ export function JsonbEditor({
         }}
         keyTypes={keyTypes}
         onKeyTypesChange={handleKeyTypesChange}
+        jsonbKeyColors={keyColors}
+        onKeyColorsChange={handleKeyColorsChange}
       />
       <button
         type="button"
