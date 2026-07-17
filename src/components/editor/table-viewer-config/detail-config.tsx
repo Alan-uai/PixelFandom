@@ -11,15 +11,6 @@ const LABEL_COLS = new Set(['name', 'title', 'description', 'summary', 'slug']);
 const BADGE_COLS = new Set(['rarity', 'tier', 'element']);
 const SYSTEM_COLS_EXT = new Set([...SYSTEM_COLS, ...WIKI_MGMT_COLS]);
 
-function inferFormat(col: string): string {
-  const lower = col.toLowerCase();
-  if (lower.endsWith('_url') || lower.endsWith('_link') || lower === 'url' || lower === 'link') return 'link';
-  if (lower === 'rarity' || lower === 'tier') return 'badge';
-  if (lower === 'element') return 'badge';
-  if (lower.startsWith('is_') || lower.startsWith('has_')) return 'badge';
-  return 'text';
-}
-
 export function DetailConfig({
   config,
   columns = [],
@@ -54,10 +45,15 @@ export function DetailConfig({
   }, [c.visibleColumns, columns]);
 
   const toggleColumn = (col: string) => {
-    const next = effectiveVisible.includes(col)
-      ? effectiveVisible.filter(c => c !== col)
-      : [...effectiveVisible, col];
-    onChange({ ...c, visibleColumns: next });
+    const wasVisible = effectiveVisible.includes(col);
+    if (wasVisible) {
+      onChange({ ...c, visibleColumns: effectiveVisible.filter(c => c !== col) });
+    } else {
+      const next = [...effectiveVisible, col];
+      const fmt = getDefaultFormat(columnTypes[col]);
+      const formats = { ...columnFormats, [col]: fmt };
+      onChange({ ...c, visibleColumns: next, columnFormats: formats });
+    }
   };
 
   const setFormat = (col: string, fmt: string) => {
@@ -70,9 +66,6 @@ export function DetailConfig({
       const compatible = getCompatibleFormats(columnTypes[col]);
       if (compatible.some((f) => f.value === saved)) return saved;
     }
-    const inferred = inferFormat(col);
-    const defCompatible = getCompatibleFormats(columnTypes[col]);
-    if (defCompatible.some((f) => f.value === inferred)) return inferred;
     return getDefaultFormat(columnTypes[col]);
   };
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
   Star, Heart, ExternalLink, Clock, Download, Play, Info, ChevronDown,
@@ -1191,7 +1193,15 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
 }
 
 // ── popover ────────────────────────────────────────────────
-function renderPopover(v: number, str: string, label: string, labelColor?: string): React.ReactNode {
+function RenderPopover({ v, title, content, labelColor, triggerMode, position, triggerText }: {
+  v: number;
+  title: string;
+  content: string;
+  labelColor?: string;
+  triggerMode?: 'hover' | 'click';
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  triggerText?: string;
+}) {
   const triggerSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl font-semibold'];
   const triggerStyles = [
     'underline decoration-dotted underline-offset-4',
@@ -1202,27 +1212,53 @@ function renderPopover(v: number, str: string, label: string, labelColor?: strin
   ];
   const icons = [Info, Info, Info, Info, Info];
   const Icon = icons[Math.min(v - 1, 4)];
+  const [open, setOpen] = useState(false);
+  const showEvent = triggerMode === 'click'
+    ? { onClick: () => setOpen(!open) }
+    : { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false) };
+  const side = position === 'bottom' ? 'bottom' : position === 'left' ? 'left' : position === 'right' ? 'right' : 'top';
+  const sideOffset = position === 'top' ? 6 : position === 'bottom' ? -6 : position === 'left' ? 6 : position === 'right' ? -6 : 6;
 
   return (
-    <Popover>
+    <Popover open={triggerMode === 'click' ? open : undefined} onOpenChange={triggerMode === 'click' ? setOpen : undefined}>
       <PopoverTrigger asChild>
         <button
           type="button"
           className={`inline-flex items-center gap-1.5 cursor-pointer transition-all ${triggerSizes[Math.min(v - 1, 4)]} ${triggerStyles[Math.min(v - 1, 4)]}`}
           style={labelColor ? { color: labelColor } : {}}
+          {...showEvent}
         >
           <Icon className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate max-w-[200px]">{str}</span>
+          <span className="truncate max-w-[200px]">{triggerText || title || content}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80" side="top" align="start">
-        <div className="text-sm space-y-2">
-          {label && <p className="font-medium text-muted-foreground capitalize text-xs">{label.replace(/_/g, ' ')}</p>}
-          <div className="text-foreground/90 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
-            {str || '—'}
-          </div>
-        </div>
-      </PopoverContent>
+      <AnimatePresence>
+        {(triggerMode !== 'click' || open) && (
+          <PopoverContent
+            className="w-80 p-0 overflow-hidden rounded-xl border bg-popover shadow-xl backdrop-blur-sm"
+            side={side as 'top' | 'bottom' | 'left' | 'right'}
+            sideOffset={sideOffset}
+            align="start"
+            forceMount
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
+              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {title && (
+                <div className="px-3 pt-3 pb-1.5 border-b border-border/40">
+                  <p className="text-sm font-semibold text-foreground">{title}</p>
+                </div>
+              )}
+              <div className="px-3 py-2.5 text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+                {content || '—'}
+              </div>
+            </motion.div>
+          </PopoverContent>
+        )}
+      </AnimatePresence>
     </Popover>
   );
 }
@@ -1495,7 +1531,26 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'icon-set': return renderIconSet(n, value, label, labelColor);
     case 'color-palette': return renderColorPalette(n, value, label, labelColor);
     case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors);
-    case 'popover':     return renderPopover(n, str, label, labelColor);
+    case 'popover': {
+      let popoverTitle = '';
+      let popoverContent = str;
+      let popoverTrigger: 'hover' | 'click' = 'hover';
+      let popoverPosition: 'top' | 'bottom' | 'left' | 'right' = 'top';
+      let popoverTriggerText = '';
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && typeof parsed === 'object') {
+            popoverTitle = parsed.title || '';
+            popoverContent = parsed.content || str;
+            popoverTrigger = parsed.trigger === 'click' ? 'click' : 'hover';
+            popoverPosition = parsed.position || 'top';
+            popoverTriggerText = parsed.triggerText || '';
+          }
+        } catch { /* not JSON, use raw string */ }
+      }
+      return <RenderPopover v={n} title={popoverTitle} content={popoverContent} labelColor={labelColor} triggerMode={popoverTrigger} position={popoverPosition} triggerText={popoverTriggerText} />;
+    }
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
