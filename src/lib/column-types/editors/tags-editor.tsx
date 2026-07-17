@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from 'react';
-import { X, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 
@@ -101,7 +101,7 @@ export function TagsEditor({
   const getIcon = (val: string) => allowedValues?.find((a) => a.value === val)?.icon;
 
   return (
-    <div>
+    <div className="relative">
       <div
         className={cn(
           'flex flex-wrap items-center gap-1.5 min-h-8 rounded-lg border bg-background px-2 py-1.5 cursor-text focus-within:ring-2 focus-within:ring-primary/50',
@@ -145,8 +145,7 @@ export function TagsEditor({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestRef}
-          className="absolute z-50 mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden max-h-48 overflow-y-auto"
-          style={{ width: inputRef.current?.offsetWidth }}
+          className="absolute z-50 mt-1 rounded-lg border bg-popover shadow-lg overflow-hidden max-h-48 overflow-y-auto min-w-[200px]"
         >
           {suggestions.map((s) => (
             <button

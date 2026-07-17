@@ -74,6 +74,7 @@ function PageBuilderPageInner() {
       setLayout(layoutData);
       setLoadedPageType(pageType);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutData]);
 
   const handleTypeChange = (type: string) => {

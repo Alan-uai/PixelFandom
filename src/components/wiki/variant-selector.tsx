@@ -24,7 +24,6 @@ interface Props {
 export default function VariantSelector({ tenantSlug, tableName, currentItemId, currentItemSlug, tenantId }: Props) {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!tenantId || !tableName || !currentItemId) {

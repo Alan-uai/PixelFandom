@@ -27,9 +27,6 @@ export function OptionsConfig({
   onChange,
   columns,
   columnTypes = {},
-  slug,
-  tenantId,
-  table,
   items,
 }: {
   config: Record<string, unknown>;
@@ -43,7 +40,6 @@ export function OptionsConfig({
 }) {
   const [selectedCol, setSelectedCol] = useState<string>('');
   const [expandedValue, setExpandedValue] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const selectColumns = useMemo(() => {
     return (columns || []).filter(
@@ -58,7 +54,6 @@ export function OptionsConfig({
   const restrictToValues = cc.restrictToValues ?? false;
   const maxSelect = cc.maxSelect ?? 0;
   const dependentField = cc.dependentField || '';
-  const parentValueMap: Record<string, string[]> = cc.parentValueMap || {};
 
   const handleUpdate = (patch: Record<string, unknown>) => {
     const next = { ...config };
@@ -136,7 +131,7 @@ export function OptionsConfig({
       {selectedCol ? (
         <div className="space-y-4 rounded-lg border bg-card p-3">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Opções de &ldquo;{selectedCol}&rdquo;</Label>
+            <Label className="text-sm font-medium">{'Opções de "' + selectedCol + '"'}</Label>
             <button
               type="button"
               onClick={addValue}
@@ -182,7 +177,7 @@ export function OptionsConfig({
             </select>
             {dependentField && (
               <p className="text-[10px] text-muted-foreground mt-1">
-                Ao selecionar uma opção, o campo &ldquo;{dependentField}&rdquo; será preenchido automaticamente conforme o autoFill configurado.
+                {'Ao selecionar uma opção, o campo "' + dependentField + '" será preenchido automaticamente conforme o autoFill configurado.'}
               </p>
             )}
           </div>
@@ -190,7 +185,7 @@ export function OptionsConfig({
           <div className="space-y-1 max-h-[300px] overflow-y-auto">
             {allowedValues.length === 0 && (
               <p className="text-xs text-muted-foreground italic py-2">
-                Nenhuma opção configurada. Clique em "Adicionar" para começar.
+                {'Nenhuma opção configurada. Clique em "Adicionar" para começar.'}
               </p>
             )}
             {allowedValues.map((av, idx) => (
@@ -265,7 +260,7 @@ export function OptionsConfig({
                     {dependentField && (
                       <div>
                         <Label className="text-[10px] text-muted-foreground">
-                          AutoFill para &ldquo;{dependentField}&rdquo;
+                          {'AutoFill para "' + dependentField + '"'}
                         </Label>
                         <input
                           type="text"
