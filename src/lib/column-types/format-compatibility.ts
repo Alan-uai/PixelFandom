@@ -18,7 +18,9 @@ export const ALL_FORMATS = [
   'jsonb-structured',
   'icon-set',
   'color-palette',
+  'select',
   'multi-select',
+  'toggle-group',
   'popover',
 ] as const;
 
@@ -50,7 +52,9 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   'jsonb-structured': { value: 'jsonb-structured', label: 'Json', description: 'JSON com detecção automática de estrutura' },
   'icon-set':        { value: 'icon-set',        label: 'Conjunto de Ícones', description: 'Múltiplos ícones' },
   'color-palette':   { value: 'color-palette',   label: 'Paleta de Cores',   description: 'Múltiplas cores' },
+  'select':          { value: 'select',          label: 'Seleção',           description: 'Valor único selecionado com cor/ícone' },
   'multi-select':    { value: 'multi-select',    label: 'Multi-seleção',     description: 'Múltiplos valores selecionados' },
+  'toggle-group':    { value: 'toggle-group',    label: 'Toggle Group',      description: 'Grupo de toggle com cor/ícone' },
   popover:           { value: 'popover',          label: 'Popover',           description: 'Popover com conteúdo interativo' },
 };
 
@@ -77,9 +81,9 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   video: ['video', 'link', 'text'],
   audio: ['audio', 'link', 'text'],
 
-  select:        ['badge', 'text'],
-  'multi-select': ['tags', 'badge', 'text'],
-  'toggle-group': ['badge', 'text'],
+  select:        ['select', 'badge', 'text'],
+  'multi-select': ['multi-select', 'tags', 'badge', 'text'],
+  'toggle-group': ['toggle-group', 'badge', 'text'],
 
   color:         ['color', 'text', 'badge'],
   'color-palette': ['tags', 'text'],

@@ -13,6 +13,8 @@ export interface DisplayProps {
 
 function renderTypeToFormat(rt: string): DisplayFormat {
   switch (rt) {
+    case 'select':      return 'select';
+    case 'toggle-group': return 'toggle-group';
     case 'image':       return 'image';
     case 'icon':        return 'icon';
     case 'icon-set':    return 'icon-set';
@@ -32,7 +34,6 @@ function renderTypeToFormat(rt: string): DisplayFormat {
     case 'time':        return 'date';
     case 'entity-link': return 'text';
     case 'jsonb':       return 'jsonb-structured';
-    case 'toggle-group': return 'badge';
     default:            return 'text';
   }
 }
@@ -62,11 +63,21 @@ function applyKeyFormatting(
   return result;
 }
 
+export interface AllowedValue {
+  value: string;
+  label?: string;
+  color?: string;
+  icon?: string;
+  imageUrl?: string;
+  linkedEntity?: string;
+  autoFill?: Record<string, string>;
+}
+
 export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
-  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> };
+  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] };
   variant?: number;
   labelColor?: string;
   hideLabel?: boolean;
@@ -78,6 +89,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
   const jsonbKeyColors = columnConfig?.jsonbKeyColors;
   const valueColors = columnConfig?.valueColors;
+  const allowedValues = columnConfig?.allowedValues;
 
   // jsonb: data extraction first (parse + key formatting), then delegate
   if (renderType === 'jsonb') {
@@ -153,7 +165,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   }
 
   // icon-set / color-palette / multi-select / tags: parse JSON arrays
-  if (['icon-set', 'color-palette', 'multi-select', 'tags'].includes(renderType)) {
+  if (['icon-set', 'color-palette', 'multi-select', 'tags', 'select', 'toggle-group'].includes(renderType)) {
     const arr = parseIfJson(prepared);
     const dl = hideLabel ? '' : column;
     return (
@@ -166,6 +178,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         labelColor={labelColor}
         valueColors={valueColors}
         maxValue={maxValue}
+        allowedValues={allowedValues}
       />
     );
   }
@@ -183,6 +196,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       labelColor={labelColor}
       valueColors={valueColors}
       maxValue={maxValue}
+      allowedValues={allowedValues}
     />
   );
 }

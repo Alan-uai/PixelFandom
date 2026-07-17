@@ -237,6 +237,7 @@ function RenderTypeFields({
                 opEnabled={columnOpEnabled?.[col] !== false}
                 valueColors={cc?.valueColors}
                 jsonbKeyColors={cc?.jsonbKeyColors}
+                maxValue={cc?.maxValue}
               />
             );
           })}

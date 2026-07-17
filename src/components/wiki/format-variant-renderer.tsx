@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
   Star, Heart, ExternalLink, Clock, Download, Play, Info, ChevronDown,
-  FileIcon, Video, Music, CalendarIcon, List,
+  FileIcon, Video, Music, CalendarIcon,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -13,6 +13,16 @@ import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
 import { normalizeOperatorText, normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
+
+export interface AllowedValue {
+  value: string;
+  label?: string;
+  color?: string;
+  icon?: string;
+  imageUrl?: string;
+  linkedEntity?: string;
+  autoFill?: Record<string, string>;
+}
 
 type Props = {
   format: DisplayFormat;
@@ -25,7 +35,12 @@ type Props = {
   valueColors?: Record<string, string>;
   jsonbKeyColors?: Record<string, string>;
   maxValue?: number;
+  allowedValues?: AllowedValue[];
 };
+
+function findAllowed(allowedValues: AllowedValue[] | undefined, val: string): AllowedValue | undefined {
+  return allowedValues?.find((a) => a.value === val);
+}
 
 function v(n: number) { return Math.max(1, Math.min(5, n)); }
 
@@ -1135,15 +1150,31 @@ function renderColorPalette(v: number, val: unknown, label: string, labelColor?:
 }
 
 // ── multi-select ──────────────────────────────────────────
-function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>) {
+function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>, allowedValues?: AllowedValue[]) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
+
+  const renderTag = (t: string, i: number, baseClass: string, extraStyle?: React.CSSProperties) => {
+    const av = findAllowed(allowedValues, t);
+    const displayLabel = av?.label || t;
+    const color = av?.color || valueColors?.[t];
+    const icon = av?.icon;
+    const style: React.CSSProperties = color ? { color, ...extraStyle } : (extraStyle || {});
+    return (
+      <span key={i} className={baseClass} style={style}>
+        {icon && <IconRenderer icon={icon} size={'sm'} />}
+        {displayLabel}
+      </span>
+    );
+  };
+
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
-          {arr.map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/15 text-primary" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
+          {arr.map((t: string, i: number) => renderTag(t, i,
+            'inline-flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/15 text-primary',
+            valueColors?.[t] ? {} : undefined,
           ))}
         </div>
       </Row>
@@ -1153,11 +1184,9 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
     return (
       <Row label={label} labelColor={labelColor} className="items-start">
         <div className="flex flex-wrap gap-1">
-          {arr.map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs bg-muted/30 text-foreground" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>
-              <List className="h-3 w-3 text-muted-foreground" />
-              {t}
-            </span>
+          {arr.map((t: string, i: number) => renderTag(t, i,
+            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs bg-muted/30 text-foreground',
+            valueColors?.[t] ? {} : undefined,
           ))}
         </div>
       </Row>
@@ -1167,8 +1196,9 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
     return (
       <Row label={label} labelColor={labelColor}>
         <div className="flex -space-x-1.5">
-          {arr.slice(0, 4).map((t: string, i: number) => (
-            <span key={i} className="inline-flex items-center rounded-full border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
+          {arr.slice(0, 4).map((t: string, i: number) => renderTag(t, i,
+            'inline-flex items-center gap-0.5 rounded-full border bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground',
+            valueColors?.[t] ? {} : undefined,
           ))}
           {arr.length > 4 && <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">+{arr.length-4}</span>}
         </div>
@@ -1187,10 +1217,145 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
   return (
     <Row label={label} labelColor={labelColor} className="items-start">
       <div className="flex flex-wrap gap-1">
-        {arr.map((t: string, i: number) => (
-          <span key={i} className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium" style={valueColors?.[t] ? { color: valueColors[t] } : {}}>{t}</span>
+        {arr.map((t: string, i: number) => renderTag(t, i,
+          'inline-flex items-center gap-0.5 rounded-md bg-secondary px-2 py-0.5 text-xs font-medium',
+          valueColors?.[t] ? {} : undefined,
         ))}
       </div>
+    </Row>
+  );
+}
+
+// ── select (single value with allowedValues) ──────────────
+function renderSelect(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>) {
+  const av = findAllowed(allowedValues, str);
+  const displayLabel = av?.label || str;
+  const color = av?.color || valueColors?.[str];
+  const icon = av?.icon;
+
+  if (v === 2) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border bg-muted/30 text-foreground"
+          style={color ? { borderColor: color + '60', color } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 3) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium bg-card text-foreground"
+          style={color ? { borderLeft: `3px solid ${color}` } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 4) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold"
+          style={color ? { color } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 5) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <div className="flex items-center gap-1 rounded-lg border-2 px-3 py-1 text-xs font-semibold"
+          style={color ? { borderColor: color, color, backgroundColor: color + '15' } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </div>
+      </Row>
+    );
+  }
+  return (
+    <Row label={label} labelColor={labelColor}>
+      <span className="inline-flex items-center gap-1 rounded-md bg-secondary/60 px-2 py-0.5 text-xs font-medium"
+        style={color ? { backgroundColor: color + '20' } : {}}
+      >
+        {icon && <IconRenderer icon={icon} size={'sm'} />}
+        {displayLabel}
+      </span>
+    </Row>
+  );
+}
+
+// ── toggle-group ──────────────────────────────────────────
+function renderToggleGroup(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>) {
+  const av = findAllowed(allowedValues, str);
+  const displayLabel = av?.label || str;
+  const color = av?.color || valueColors?.[str];
+  const icon = av?.icon;
+
+  if (v === 2) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium text-primary bg-primary/10 border-primary/30"
+          style={color ? { color, borderColor: color + '50', backgroundColor: color + '15' } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 3) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-foreground/10 text-foreground"
+          style={color ? { backgroundColor: color + '20', color } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 4) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider"
+          style={color ? { color } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  if (v === 5) {
+    return (
+      <Row label={label} labelColor={labelColor}>
+        <span className="inline-flex items-center gap-1 rounded-lg border-2 px-3 py-1 text-xs font-bold shadow-[0_0_10px]"
+          style={color ? { borderColor: color, color, boxShadow: `0 0 10px ${color}40` } : {}}
+        >
+          {icon && <IconRenderer icon={icon} size={'sm'} />}
+          {displayLabel}
+        </span>
+      </Row>
+    );
+  }
+  return (
+    <Row label={label} labelColor={labelColor}>
+      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary/40 text-secondary-foreground"
+        style={color ? { backgroundColor: color + '20' } : {}}
+      >
+        {icon && <IconRenderer icon={icon} size={'sm'} />}
+        {displayLabel}
+      </span>
     </Row>
   );
 }
@@ -1503,7 +1668,7 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering
@@ -1533,7 +1698,9 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'emoji':    return renderEmoji(n, str, label, labelColor);
     case 'icon-set': return renderIconSet(n, value, label, labelColor);
     case 'color-palette': return renderColorPalette(n, value, label, labelColor);
-    case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors);
+    case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors);
+    case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues);
+    case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors);
     case 'popover': {
       let popoverTitle = '';
       let popoverContent = str;
