@@ -162,11 +162,11 @@ export async function POST(request: NextRequest) {
 
   const effectiveDomainPrefix = domainPrefix?.trim() ? domainPrefix.trim().toLowerCase().replace(/[^a-z0-9-]/g, '') : slug;
   if (effectiveDomainPrefix) {
+    const vercelDomain = `${effectiveDomainPrefix}.vercel.app`;
+    await adminClient.from('tenants').update({ vercel_domain: vercelDomain }).eq('id', tenant.id);
     try {
       const { addDomain } = await import('@/lib/vercel-domains');
-      const vercelDomain = `${effectiveDomainPrefix}.vercel.app`;
       await addDomain(vercelDomain);
-      await adminClient.from('tenants').update({ vercel_domain: vercelDomain }).eq('id', tenant.id);
     } catch {
       // non-blocking
     }

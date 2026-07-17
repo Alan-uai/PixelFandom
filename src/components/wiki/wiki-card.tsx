@@ -151,7 +151,7 @@ export function WikiCard({
 }: WikiCardProps) {
   return (
     <div className={`snap-start shrink-0 ${cardWidth} ${cardHeight} relative pb-2`}>
-      <Link href={`/w/${wiki.slug}`} className="block group h-full">
+      <Link href={wiki.custom_domain ? `https://${wiki.custom_domain}` : wiki.vercel_domain ? `https://${wiki.vercel_domain}` : `/w/${wiki.slug}`} className="block group h-full" target={wiki.custom_domain || wiki.vercel_domain ? '_blank' : undefined}>
         <Card className="h-full relative">
           {/* Background — clipped to rounded corners */}
           <div className="absolute inset-0 overflow-hidden rounded-lg">

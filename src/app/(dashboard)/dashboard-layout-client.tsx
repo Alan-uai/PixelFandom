@@ -44,8 +44,8 @@ export default function DashboardLayoutClient({
 
   useEffect(() => {
     if (!wikiSlug) { setWikiCustomDomain(null); return; }
-    supabase.from('tenants').select('custom_domain').eq('slug', wikiSlug).single()
-      .then(({ data }) => setWikiCustomDomain(data?.custom_domain ?? null));
+    supabase.from('tenants').select('custom_domain, vercel_domain').eq('slug', wikiSlug).single()
+      .then(({ data }) => setWikiCustomDomain(data?.custom_domain || data?.vercel_domain || null));
   }, [wikiSlug]);
 
   usePageScrollRestoration();
