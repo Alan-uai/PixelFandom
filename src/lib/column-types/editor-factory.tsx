@@ -12,7 +12,7 @@ import {
   PopoverEditor, JsonbEditor,
 } from './editors';
 
-export interface EditorProps {
+interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   column: string;
@@ -24,9 +24,16 @@ export interface EditorProps {
   maxValue?: number;
   columnConfig?: Record<string, unknown>;
   onColumnConfigChange?: (cfg: Record<string, unknown>) => void;
+  allColumnConfigs?: Record<string, Record<string, unknown>>;
+  allValues?: Record<string, string>;
+  onFieldChange?: (key: string, val: string) => void;
 }
 
-export function ColumnEditor({ value, onChange, column, renderType, tenantId, slug, table, rowId, maxValue, columnConfig, onColumnConfigChange }: EditorProps) {
+export function ColumnEditor({
+  value, onChange, column, renderType, tenantId, slug, table, rowId,
+  maxValue, columnConfig, onColumnConfigChange,
+  allColumnConfigs, allValues, onFieldChange,
+}: EditorProps) {
   const def = COLUMN_TYPES[renderType as RenderType];
 
   if (!def) {
@@ -39,7 +46,9 @@ export function ColumnEditor({ value, onChange, column, renderType, tenantId, sl
     );
   }
 
-  const editor = renderEditor(renderType, value, onChange, { tenantId, slug, table, rowId }, maxValue, columnConfig, onColumnConfigChange, column);
+  const editor = renderEditor(renderType, value, onChange, {
+    tenantId, slug, table, rowId,
+  }, maxValue, columnConfig, onColumnConfigChange, column, allColumnConfigs, allValues, onFieldChange);
   if (editor) return editor;
 
   return (
@@ -60,7 +69,15 @@ function renderEditor(
   columnConfig?: Record<string, unknown>,
   onColumnConfigChange?: (cfg: Record<string, unknown>) => void,
   column?: string,
+  allColumnConfigs?: Record<string, Record<string, unknown>>,
+  allValues?: Record<string, string>,
+  onFieldChange?: (key: string, val: string) => void,
 ): ReactNode | null {
+  const allowedValues = (columnConfig?.allowedValues || []) as Array<{
+    value: string; label?: string; color?: string; icon?: string;
+    imageUrl?: string; linkedEntity?: string; autoFill?: Record<string, string>;
+  }>;
+
   switch (renderType) {
     case 'text':
     case 'link':
@@ -159,14 +176,51 @@ function renderEditor(
     case 'icon':
       return <IconInlineEditor value={value} onChange={onChange} />;
 
-    case 'select':
-      return <SelectEditor value={value} onChange={onChange} />;
+    case 'select': {
+      const options = allowedValues.length > 0
+        ? allowedValues.map((av) => av.value)
+        : undefined;
+      return (
+        <SelectEditor
+          value={value}
+          onChange={(v) => {
+            onChange(v);
+            if (v && onFieldChange && column) {
+              const av = allowedValues.find((a) => a.value === v);
+              if (av?.autoFill) {
+                Object.entries(av.autoFill).forEach(([key, val]) => {
+                  onFieldChange(key, val);
+                });
+              }
+            }
+          }}
+          options={options}
+          allowedValues={allowedValues.length > 0 ? allowedValues : undefined}
+        />
+      );
+    }
 
     case 'multi-select':
-      return <TagsEditor value={value} onChange={onChange} placeholder="Digite e pressione Enter" />;
+      return (
+        <TagsEditor
+          value={value}
+          onChange={onChange}
+          placeholder="Digite e pressione Enter"
+          allowedValues={allowedValues.length > 0 ? allowedValues : undefined}
+          maxSelect={(columnConfig?.maxSelect as number) || undefined}
+          restrictToValues={(columnConfig?.restrictToValues as boolean) || undefined}
+        />
+      );
 
     case 'toggle-group':
-      return <ToggleGroupEditor value={value} onChange={onChange} />;
+      return (
+        <ToggleGroupEditor
+          value={value}
+          onChange={onChange}
+          options={allowedValues.length > 0 ? allowedValues.map((av) => av.value) : undefined}
+          allowedValues={allowedValues.length > 0 ? allowedValues : undefined}
+        />
+      );
 
     case 'color':
       return <ColorEditor value={value} onChange={onChange} />;

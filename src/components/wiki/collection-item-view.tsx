@@ -11,6 +11,7 @@ import {
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
+import VariantSelector from '@/components/wiki/variant-selector';
 import type { ColumnInfo } from '@/lib/game-schema';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { getTypeDef } from '@/lib/column-types/registry';
@@ -510,8 +511,18 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const rendered = new Set<string>();
 
   return (
-    <div className="max-w-3xl mx-auto">
-      {showCompare && tenantId && showComparisonEnabled && (
+      <div className="max-w-3xl mx-auto">
+        {tenantId && (
+          <VariantSelector
+            tenantSlug={tenantSlug || ''}
+            tableName={table}
+            currentItemId={data.id as string}
+            currentItemSlug={data.slug as string}
+            tenantId={tenantId}
+          />
+        )}
+
+        {showCompare && tenantId && showComparisonEnabled && (
         <ComparePopup
           table={table}
           tenantId={tenantId}

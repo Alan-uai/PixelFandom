@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { inferPrimaryColumns } from '@/lib/game-schema';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,8 @@ import {
   PlusCircle,
   ImageIcon,
   Link2,
+  Layers,
+  Unlink,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
@@ -43,6 +45,7 @@ import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/sch
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
+import { useItemVariants } from '@/hooks/use-item-variants';
 
 const tableLabels: Record<string, string> = {
   weapons: 'Armas',
@@ -152,6 +155,69 @@ export default function DataTableContent({
       [col]: { ...(prev[col] || {}), ...cfg },
     }));
   }, []);
+
+  const [editFieldCol, setEditFieldCol] = useState<string | null>(null);
+  const [editFieldName, setEditFieldName] = useState('');
+  const [editFieldSlug, setEditFieldSlug] = useState<string | null>(null);
+  const [editFieldConflict, setEditFieldConflict] = useState<string | null>(null);
+  const [editFieldChecking, setEditFieldChecking] = useState(false);
+  const editFieldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!editFieldCol) return;
+    if (editFieldTimerRef.current) clearTimeout(editFieldTimerRef.current);
+    const raw = editFieldName.trim();
+    if (!raw) { setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); return; }
+    setEditFieldChecking(true);
+    editFieldTimerRef.current = setTimeout(async () => {
+      const { slug } = await translateGameTerm(raw);
+      setEditFieldSlug(slug);
+      if (slug === editFieldCol) {
+        setEditFieldConflict(null);
+      } else {
+        const exists = availableColumns.find((c) => c.column_name === slug);
+        if (exists) {
+          setEditFieldConflict(`Já existe um campo com o identificador "${slug}".`);
+        } else {
+          setEditFieldConflict(null);
+        }
+      }
+      setEditFieldChecking(false);
+    }, 300);
+    return () => { if (editFieldTimerRef.current) clearTimeout(editFieldTimerRef.current); };
+  }, [editFieldName, editFieldCol, availableColumns]);
+
+  const handleEditFieldDisplayName = async () => {
+    const rawName = editFieldName.trim();
+    const col = editFieldCol;
+    if (!rawName || !col || !tenantId || editFieldConflict) return;
+    setSchemaBusy(true);
+
+    setColumnConfigMap((prev) => ({
+      ...prev,
+      [col]: { ...(prev[col] || {}), displayName: rawName },
+    }));
+
+    await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+      const next: Record<string, unknown> = { ...config };
+      const prevColCfg = ((next.columnConfig as Record<string, unknown>) || {})[col];
+      next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), [col]: { ...(prevColCfg as Record<string, unknown> || {}), displayName: rawName } };
+      return next;
+    });
+
+    toast({ title: `Display name atualizado para "${rawName}".` });
+    setEditFieldCol(null);
+    setEditFieldName('');
+    setSchemaBusy(false);
+  };
+
+  const handleOpenEditFieldDialog = (col: string) => {
+    setEditFieldCol(col);
+    setEditFieldName(columnConfigMap[col]?.displayName || col.replace(/_/g, ' '));
+    setEditFieldSlug(null);
+    setEditFieldConflict(null);
+    setEditFieldChecking(false);
+  };
 
   const [newFieldSubType, setNewFieldSubType] = useState('image');
   const [newFieldMaxValue, setNewFieldMaxValue] = useState('100');
@@ -771,6 +837,9 @@ export default function DataTableContent({
           maxValue={colConfig?.maxValue}
           columnConfig={colConfig}
           onColumnConfigChange={(cfg) => handleColumnConfigChange(col, cfg)}
+          allColumnConfigs={columnConfigMap}
+          allValues={{}}
+          onFieldChange={onChange}
         />
       );
     }
@@ -908,7 +977,7 @@ export default function DataTableContent({
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground capitalize flex items-center gap-1">
           {isImageColumn(col) && <ImageIcon className="h-3 w-3" />}
-          {col.replace(/_/g, ' ')}
+          {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
         </Label>
       </div>
       <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
@@ -924,6 +993,14 @@ export default function DataTableContent({
                 <ImageIcon className="h-3 w-3" />
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => handleOpenEditFieldDialog(col)}
+              className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+              title="Editar nome do campo"
+            >
+              <Edit className="h-3 w-3" />
+            </button>
             <button
               type="button"
               onClick={() => value ? handleClearField(col, formSetter) : handleRemoveField(col, formSetter)}
@@ -1458,6 +1535,14 @@ export default function DataTableContent({
                         Cancelar
                       </Button>
                     </div>
+
+                    {tenantId && editingId && (
+                      <EditorVariantSection
+                        tenantId={tenantId}
+                        tableName={table}
+                        currentItemId={editingId}
+                      />
+                    )}
                   </div>
                 ) : detailColumns.length > 0 ? (
                   <div className="space-y-2">
@@ -1547,6 +1632,48 @@ export default function DataTableContent({
         </DialogContent>
       </Dialog>
 
+      <Dialog open={editFieldCol !== null} onOpenChange={(open) => { if (!open) { setEditFieldCol(null); setEditFieldName(''); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar campo</DialogTitle>
+            <DialogDescription>
+              Altere o nome de exibição do campo. O identificador interno (slug) será verificado automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 space-y-1">
+            <FloatingLabelInput
+              label="Nome do campo"
+              value={editFieldName}
+              onChange={(e) => setEditFieldName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !editFieldConflict && !editFieldChecking) handleEditFieldDisplayName(); }}
+              error={editFieldConflict || undefined}
+              autoFocus
+            />
+            {editFieldChecking && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Verificando slug...
+              </div>
+            )}
+            {editFieldSlug && !editFieldChecking && !editFieldConflict && editFieldName.trim() && (
+              <p className="text-xs text-muted-foreground">
+                Slug: <code className="text-primary font-mono">{editFieldSlug}</code>
+                {editFieldSlug === editFieldCol ? ' (inalterado)' : ' (será diferente do identificador interno atual)'}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setEditFieldCol(null); setEditFieldName(''); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); }} disabled={schemaBusy}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleEditFieldDisplayName} disabled={schemaBusy || !!editFieldConflict || !editFieldName.trim()}>
+              {schemaBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {iconPickerState && (
         <IconPicker
           value={iconPickerState.value?.includes(':') ? iconPickerState.value.split(':')[0] : iconPickerState.value}
@@ -1556,6 +1683,117 @@ export default function DataTableContent({
           }}
           onClose={() => setIconPickerState(null)}
         />
+      )}
+    </div>
+  );
+}
+
+function EditorVariantSection({
+  tenantId,
+  tableName,
+  currentItemId,
+}: {
+  tenantId: string;
+  tableName: string;
+  currentItemId: string;
+}) {
+  const { variants, loading, linkVariant, unlinkVariant, detectVariants } = useItemVariants(
+    tenantId, tableName, currentItemId,
+  );
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<{ id: string; name: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+
+
+  useEffect(() => {
+    if (!search.trim()) { setSearchResults([]); return; }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from(tableName)
+        .select('id, name')
+        .eq('tenant_id', tenantId)
+        .ilike('name', `%${search}%`)
+        .limit(10);
+      setSearchResults((data || []).filter((r: any) => r.id !== currentItemId));
+      setSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, tableName, tenantId, currentItemId]);
+
+  return (
+    <div className="border-t pt-3 mt-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Layers className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-medium">Variantes</span>
+        <button
+          type="button"
+          onClick={detectVariants}
+          className="text-[10px] text-primary hover:text-primary/80 underline underline-offset-2 transition-colors ml-auto"
+        >
+          Detectar automaticamente
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-2">
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Carregando variantes...</span>
+        </div>
+      ) : variants.length > 0 ? (
+        <div className="space-y-1 mb-3">
+          {variants.map((v) => (
+            <div key={v.id} className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1.5 text-xs">
+              <span className="flex-1">{v.variant_label}</span>
+              {v.auto_detected && (
+                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">auto</span>
+              )}
+              <button
+                type="button"
+                onClick={() => unlinkVariant(v.item_id)}
+                className="text-destructive/60 hover:text-destructive transition-colors"
+                title="Desvincular"
+              >
+                <Unlink className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mb-2">
+          Nenhuma variante vinculada.
+        </p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar item para vincular..."
+          className="flex-1 h-7 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/50"
+        />
+        {searching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+      </div>
+
+      {searchResults.length > 0 && (
+        <div className="mt-1 rounded-md border bg-popover shadow-lg max-h-32 overflow-y-auto">
+          {searchResults.map((r: any) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => {
+                linkVariant(r.id);
+                setSearch('');
+                setSearchResults([]);
+              }}
+              className="w-full text-left px-2.5 py-1.5 text-xs hover:bg-muted transition-colors flex items-center gap-2"
+            >
+              <Plus className="h-3 w-3 text-primary shrink-0" />
+              <span>{r.name}</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

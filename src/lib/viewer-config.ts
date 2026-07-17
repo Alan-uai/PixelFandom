@@ -21,6 +21,16 @@ export const BadgeEntrySchema = z.object({
   clickUrl: z.string().optional(),
 });
 
+export const AllowedValueSchema = z.object({
+  value: z.string(),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+  imageUrl: z.string().optional(),
+  linkedEntity: z.string().optional(),
+  autoFill: z.record(z.string(), z.string()).optional(),
+});
+
 export const ViewerConfigSchema = z.object({
   header: z.object({
     title: z.string().optional(),
@@ -129,6 +139,11 @@ export const ViewerConfigSchema = z.object({
     })).optional(),
     jsonbKeyColors: z.record(z.string(), z.string()).optional(),
     valueColors: z.record(z.string(), z.string()).optional(),
+    allowedValues: z.array(AllowedValueSchema).optional(),
+    maxSelect: z.number().optional(),
+    restrictToValues: z.boolean().optional(),
+    dependentField: z.string().optional(),
+    parentValueMap: z.record(z.string(), z.array(z.string())).optional(),
   })).default({}).optional(),
   rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});

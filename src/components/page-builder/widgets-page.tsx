@@ -51,8 +51,10 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
     loadControllers.current[type] = controller;
 
     if (islandCache.current[type]) {
-      if (apply) applyState(type);
-      islandsSnapshot.current = JSON.stringify(islandCache.current[type]);
+      if (apply) {
+        applyState(type);
+        islandsSnapshot.current = JSON.stringify(islandCache.current[type]);
+      }
       return;
     }
     try {
@@ -60,8 +62,10 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
       const data = await res.json();
       const snapshot = { islands: data?.floatingIslands || [], slotFlow: data.slotFlow || 'current', clipStyle: data.clipStyle || 'trapezoid', singleIslandWidth: data.singleIslandWidth ?? undefined };
       islandCache.current[type] = snapshot;
-      if (apply) applyState(type);
-      islandsSnapshot.current = JSON.stringify(snapshot);
+      if (apply) {
+        applyState(type);
+        islandsSnapshot.current = JSON.stringify(snapshot);
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return;
       const defaultSnapshot = { islands: [], slotFlow: 'current' as const, clipStyle: 'trapezoid' as const, singleIslandWidth: undefined };
