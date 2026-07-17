@@ -1,22 +1,7 @@
--- Migration 086: Add FK constraints on game tables and game_config
--- This ensures ON DELETE CASCADE cleans up data when a tenant is deleted.
--- The delete route already calls remove_tenant_table per-table, but the FK
--- serves as a safety net.
-
--- =====================================================
--- 1. FK on game_config.tenant_id → tenants(id)
--- =====================================================
-
-ALTER TABLE game_config
-  DROP CONSTRAINT IF EXISTS game_config_tenant_id_fkey;
-
-ALTER TABLE game_config
-  ADD CONSTRAINT game_config_tenant_id_fkey
-  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
-
--- =====================================================
--- 2. Update ensure_game_table to include FK on new tables
--- =====================================================
+-- Migration 087: Fix unqualified 'tenants' reference in ensure_game_table FK constraint
+-- Migration 086 added `REFERENCES tenants(id)` inside EXECUTE format('CREATE TABLE ...')
+-- but the function runs with SET search_path = '', so the unqualified reference
+-- causes "relation 'tenants' does not exist" when creating a new game table.
 
 CREATE OR REPLACE FUNCTION ensure_game_table(
   p_table TEXT,
@@ -98,51 +83,5 @@ BEGIN
   ON CONFLICT (tenant_id, table_name) DO UPDATE SET display_label = v_label, icon = COALESCE(p_icon, public.tenant_game_tables.icon);
 
   RETURN jsonb_build_object('ok', true, 'table', p_table, 'created', NOT v_exists);
-END;
-$$;
-
--- =====================================================
--- 3. Attempt to add FK to existing dynamic game tables
---    (tables that have tenant_id but no FK constraint)
--- =====================================================
-
-DO $$
-DECLARE
-  rec RECORD;
-  fk_name TEXT;
-BEGIN
-  FOR rec IN
-    SELECT c.table_name
-    FROM information_schema.columns c
-    WHERE c.table_schema = 'public'
-      AND c.column_name = 'tenant_id'
-      AND c.table_name NOT IN (
-        'tenants', 'tenant_members', 'tenant_game_tables',
-        'tenant_templates', 'tenant_pages',
-        'wiki_articles', 'user_preferences',
-        'chat_sessions', 'chat_messages',
-        'activity_log', 'notifications',
-        'game_config'
-      )
-      AND c.table_name NOT LIKE '\_%'
-      AND c.table_name NOT LIKE 'pg\_%'
-  LOOP
-    fk_name := rec.table_name || '_tenant_id_fkey';
-
-    BEGIN
-      EXECUTE format(
-        'ALTER TABLE public.%I ADD CONSTRAINT %I
-         FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE',
-        rec.table_name, fk_name
-      );
-    EXCEPTION
-      WHEN duplicate_object THEN
-        NULL;
-      WHEN foreign_key_violation THEN
-        RAISE WARNING 'Tabela % contém tenant_id órfãos — FK não adicionada', rec.table_name;
-      WHEN OTHERS THEN
-        NULL;
-    END;
-  END LOOP;
 END;
 $$;

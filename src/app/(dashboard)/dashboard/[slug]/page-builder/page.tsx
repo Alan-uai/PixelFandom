@@ -74,7 +74,7 @@ function PageBuilderPageInner() {
       setLayout(layoutData);
       setLoadedPageType(pageType);
     }
-  }, [layoutData, pageType]);
+  }, [layoutData]);
 
   const handleTypeChange = (type: string) => {
     router.push(`/dashboard/${slug}/page-builder?type=${type}`);

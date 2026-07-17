@@ -174,36 +174,7 @@ export async function POST(request: NextRequest) {
 
   // ── Seed default data (non-blocking) ──
 
-  // 1. Default game tables
-  const DEFAULT_GAME_TABLES = [
-    { table_name: 'weapons', display_label: 'Armas', icon: 'Sword' },
-    { table_name: 'armors', display_label: 'Armaduras', icon: 'Shield' },
-    { table_name: 'rings', display_label: 'Anéis', icon: 'Ring' },
-    { table_name: 'potions', display_label: 'Poções', icon: 'FlaskConical' },
-    { table_name: 'upgrades', display_label: 'Upgrades', icon: 'ArrowUp' },
-    { table_name: 'enemies', display_label: 'Inimigos', icon: 'Skull' },
-    { table_name: 'bosses', display_label: 'Bosses', icon: 'Crown' },
-    { table_name: 'codes', display_label: 'Códigos', icon: 'Code' },
-    { table_name: 'crafting_recipes', display_label: 'Receitas', icon: 'Hammer' },
-    { table_name: 'resources', display_label: 'Recursos', icon: 'Pickaxe' },
-    { table_name: 'worlds', display_label: 'Mundos', icon: 'Globe' },
-    { table_name: 'build_presets', display_label: 'Presets', icon: 'Wrench' },
-    { table_name: 'game_config', display_label: 'Config', icon: 'Settings' },
-  ];
-
-  try {
-    const tgtRows = DEFAULT_GAME_TABLES.map(gt => ({
-      tenant_id: tenant.id,
-      table_name: gt.table_name,
-      display_label: gt.display_label,
-      icon: gt.icon,
-    }));
-    await adminClient.from('tenant_game_tables').insert(tgtRows);
-  } catch {
-    // non-blocking
-  }
-
-  // 2. Default pages (landing, footer, 404)
+  // Default pages (landing, footer, 404)
   const PAGE_TEMPLATES: Record<string, { blocks: Record<string, unknown>[] }> = {
     landing: {
       blocks: [
