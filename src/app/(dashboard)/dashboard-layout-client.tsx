@@ -74,15 +74,15 @@ export default function DashboardLayoutClient({
 
   const navItems = canManage
     ? [
+        { href: 'editor', label: 'Conteúdo', icon: BookOpen },
+        { href: 'page-builder', label: 'Página Inicial', icon: FileText },
         { href: 'settings', label: t('nav.settings'), icon: Settings },
         { href: 'domains', label: t('nav.domains'), icon: Globe },
         { href: 'members', label: t('nav.members'), icon: Users },
         { href: 'ai', label: t('nav.ai'), icon: Cpu },
         { href: 'ai/feedback', label: t('nav.feedback'), icon: MessageSquare },
         { href: 'discord', label: t('nav.discord'), icon: Headphones },
-        { href: 'editor', label: 'Conteúdo', icon: BookOpen },
         { href: 'importer', label: 'Importar', icon: Download },
-        { href: 'page-builder', label: 'Página Inicial', icon: FileText },
       ]
     : canEdit
     ? [

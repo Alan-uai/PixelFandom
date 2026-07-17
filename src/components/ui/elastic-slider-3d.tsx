@@ -118,6 +118,16 @@ function Slider({
     setValue(defaultValue);
   }, [defaultValue]);
 
+  useEffect(() => {
+    setValue(prev => {
+      const clamped = Math.min(Math.max(prev, startingValue), maxValue);
+      if (clamped !== prev) {
+        onValueChange?.(clamped);
+      }
+      return clamped;
+    });
+  }, [startingValue, maxValue, onValueChange]);
+
   useMotionValueEvent(clientX, 'change', (latest) => {
     if (!sliderRef.current) return;
     const { left, right } = sliderRef.current.getBoundingClientRect();

@@ -53,10 +53,10 @@ export default function WikiSettingsPage() {
     primaryColor: '198 100% 65%', backgroundColor: '', cardColor: '', sidebarColor: '', accentColor: '',
     fontFamily: '', headingFont: '', borderRadius: '',
     sidebarWidth: 'normal', headerStyle: 'compact',
-    gameTableDisplayFormat: 'grid', gameTableColumnsCount: 4,
+    gameTableDisplayFormat: 'grid', gameTableColumnsCount: 2,
     gameTableTabsEnabled: false,
-    listingTabsEnabled: false,
-    listingDisplayFormat: 'grid', listingColumnsCount: 4,
+    listingTabsEnabled: true,
+    listingDisplayFormat: 'list', listingColumnsCount: 1,
     listingItemsPerPage: 50, listingPagination: 'paginated', listingPaginationStyle: 'arrows',
     listingShowSearch: true, listingShowFilters: true, listingShowHeader: true,
     listingCardStyle: 'default', listingCardLayout: 'card', listingHoverEffect: 'scale',
@@ -82,10 +82,10 @@ export default function WikiSettingsPage() {
   const [sidebarWidth, setSidebarWidth] = useState<'narrow' | 'normal' | 'wide'>('normal');
   const [headerStyle, setHeaderStyle] = useState<'compact' | 'expanded' | 'minimal'>('compact');
   const [gameTableDisplayFormat, setGameTableDisplayFormat] = useState('grid');
-  const [gameTableColumnsCount, setGameTableColumnsCount] = useState(4);
+  const [gameTableColumnsCount, setGameTableColumnsCount] = useState(2);
   const [gameTableTabsEnabled, setGameTableTabsEnabled] = useState(false);
-  const [listingDisplayFormat, setListingDisplayFormat] = useState('grid');
-  const [listingColumnsCount, setListingColumnsCount] = useState(4);
+  const [listingDisplayFormat, setListingDisplayFormat] = useState('list');
+  const [listingColumnsCount, setListingColumnsCount] = useState(1);
   const [listingItemsPerPage, setListingItemsPerPage] = useState(50);
   const [listingPagination, setListingPagination] = useState('paginated');
   const [listingPaginationStyle, setListingPaginationStyle] = useState('arrows');
@@ -137,15 +137,15 @@ export default function WikiSettingsPage() {
     setHeaderStyle(theme.header_style || 'compact');
     const gtDisplay = (theme.game_tables_display as Record<string, any>) || {};
     setGameTableDisplayFormat(gtDisplay.default_format || 'grid');
-    setGameTableColumnsCount(gtDisplay.default_columns || 4);
+    setGameTableColumnsCount(gtDisplay.default_columns || 2);
     setGameTableTabsEnabled(gtDisplay.tabs_enabled || false);
     const listingDisplay = (theme.game_table_listing_display as Record<string, any>) || {};
-    setListingDisplayFormat(listingDisplay.default_format || 'grid');
-    setListingColumnsCount(listingDisplay.default_columns || 4);
+    setListingDisplayFormat(listingDisplay.default_format || 'list');
+    setListingColumnsCount(listingDisplay.default_columns || 1);
     setListingItemsPerPage(listingDisplay.items_per_page || 50);
     setListingPagination(listingDisplay.pagination || 'paginated');
     setListingPaginationStyle(listingDisplay.pagination_style || 'arrows');
-    setListingTabsEnabled(listingDisplay.tabs_enabled || false);
+    setListingTabsEnabled(listingDisplay.tabs_enabled ?? true);
     setListingShowSearch(listingDisplay.show_search ?? true);
     setListingShowFilters(listingDisplay.show_filters ?? true);
     setListingShowHeader(listingDisplay.show_header ?? true);
@@ -177,14 +177,14 @@ export default function WikiSettingsPage() {
       sidebarWidth: theme.sidebar_width || 'normal',
       headerStyle: theme.header_style || 'compact',
       gameTableDisplayFormat: gtDisplay.default_format || 'grid',
-      gameTableColumnsCount: gtDisplay.default_columns || 4,
+      gameTableColumnsCount: gtDisplay.default_columns || 2,
       gameTableTabsEnabled: gtDisplay.tabs_enabled || false,
-      listingDisplayFormat: listingDisplay.default_format || 'grid',
-      listingColumnsCount: listingDisplay.default_columns || 4,
+      listingTabsEnabled: listingDisplay.tabs_enabled ?? true,
+      listingDisplayFormat: listingDisplay.default_format || 'list',
+      listingColumnsCount: listingDisplay.default_columns || 1,
       listingItemsPerPage: listingDisplay.items_per_page || 50,
       listingPagination: listingDisplay.pagination || 'paginated',
       listingPaginationStyle: listingDisplay.pagination_style || 'arrows',
-      listingTabsEnabled: listingDisplay.tabs_enabled || false,
       listingShowSearch: listingDisplay.show_search ?? true,
       listingShowFilters: listingDisplay.show_filters ?? true,
       listingShowHeader: listingDisplay.show_header ?? true,
@@ -543,7 +543,13 @@ export default function WikiSettingsPage() {
                     { value: 'carousel_infinite', label: t('layout.format_carousel_infinite'), icon: <Layers /> },
                   ]}
                   value={gameTableDisplayFormat}
-                  onChange={(v) => setGameTableDisplayFormat(v as string)}
+                  onChange={(v) => {
+                    setGameTableDisplayFormat(v as string);
+                    const isList = v === 'list';
+                    const minCols = isList ? 1 : 2;
+                    const maxCols = isList ? 2 : 5;
+                    setGameTableColumnsCount(prev => Math.min(Math.max(prev, minCols), maxCols));
+                  }}
                   layout="grid"
                   columns={4}
                   size="sm"
@@ -595,10 +601,9 @@ export default function WikiSettingsPage() {
                   onChange={(v) => {
                     setListingDisplayFormat(v as string);
                     const isList = v === 'list';
-                    const defaultCols = isList ? 1 : 2;
-                    if (listingColumnsCount < defaultCols) {
-                      setListingColumnsCount(defaultCols);
-                    }
+                    const minCols = isList ? 1 : 2;
+                    const maxCols = isList ? 2 : 5;
+                    setListingColumnsCount(prev => Math.min(Math.max(prev, minCols), maxCols));
                   }}
                   layout="grid"
                   columns={4}
