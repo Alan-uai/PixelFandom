@@ -24,6 +24,7 @@ type Props = {
   labelColor?: string;
   valueColors?: Record<string, string>;
   jsonbKeyColors?: Record<string, string>;
+  maxValue?: number;
 };
 
 function v(n: number) { return Math.max(1, Math.min(5, n)); }
@@ -354,16 +355,16 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── rating ────────────────────────────────────────────────
-function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean) {
+function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, maxValue = 5) {
   const num = Number(val);
-  const stars = isNaN(num) ? 0 : Math.round(Math.min(5, Math.max(0, num)));
-  const fraction = !isNaN(num) && opEnabled ? `${num}/5` : '';
+  const stars = isNaN(num) ? 0 : Math.round(Math.min(maxValue, Math.max(0, num)));
+  const fraction = !isNaN(num) && opEnabled ? `${num}/${maxValue}` : '';
 
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
         <div className="flex gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: maxValue }).map((_, i) => (
             <Heart key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
           ))}
           {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
@@ -376,20 +377,20 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
     return (
       <Row label={label} labelColor={labelColor}>
         <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-amber-500/10 border-amber-500/30 text-amber-400">
-          {isNaN(num) ? String(val) : `${num}/5`}
+          {isNaN(num) ? String(val) : `${num}/${maxValue}`}
         </span>
       </Row>
     );
   }
   if (v === 4) {
-    const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / 5) * 100));
+    const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / maxValue) * 100));
     return (
       <Row label={label} labelColor={labelColor}>
         <div className="flex items-center gap-2">
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${num}/5`}</span>
+          <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${num}/${maxValue}`}</span>
         </div>
       </Row>
     );
@@ -399,7 +400,7 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
       <ColWrap label={label} labelColor={labelColor}>
         <div className="flex items-baseline gap-0.5">
           <span className="text-3xl font-bold text-amber-400">{isNaN(num) ? '?' : num}</span>
-          <span className="text-sm text-muted-foreground">/5</span>
+          <span className="text-sm text-muted-foreground">/{maxValue}</span>
         </div>
       </ColWrap>
     );
@@ -407,7 +408,7 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   return (
     <Row label={label} labelColor={labelColor}>
       <div className="flex gap-0.5 items-center">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: maxValue }).map((_, i) => (
           <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
         ))}
         {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
@@ -418,9 +419,11 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
 }
 
 // ── progress ──────────────────────────────────────────────
-function renderProgress(v: number, val: unknown, label: string, labelColor?: string) {
+function renderProgress(v: number, val: unknown, label: string, labelColor?: string, _opEnabled?: boolean, maxValue = 100) {
   const num = Number(val);
-  const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, num));
+  const clamped = isNaN(num) ? 0 : Math.min(maxValue, Math.max(0, num));
+  const normalizedPct = maxValue > 0 ? (clamped / maxValue) * 100 : 0;
+  const displayText = isNaN(num) ? String(val) : maxValue === 100 ? `${Math.round(clamped)}%` : `${num}/${maxValue}`;
 
   if (v === 2) {
     return (
@@ -428,10 +431,10 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
         <div className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${pct}%`, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
+              style={{ width: `${normalizedPct}%`, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
             />
           </div>
-          <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${pct}%`}</span>
+          <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
         </div>
       </Row>
     );
@@ -442,24 +445,24 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
         <div className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full transition-all bg-gradient-to-r from-primary to-primary/60"
-              style={{ width: `${pct}%` }}
+              style={{ width: `${normalizedPct}%` }}
             />
           </div>
-          <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${pct}%`}</span>
+          <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
         </div>
       </Row>
     );
   }
   if (v === 4) {
     const segments = 5;
-    const filled = Math.round((pct / 100) * segments);
+    const filled = Math.round((normalizedPct / 100) * segments);
     return (
       <Row label={label} labelColor={labelColor}>
         <div className="flex gap-0.5 items-center">
           {Array.from({ length: segments }).map((_, i) => (
             <div key={i} className={`h-4 w-3 rounded-sm transition-colors ${i < filled ? 'bg-primary' : 'bg-muted'}`} />
           ))}
-          <span className="text-xs font-mono text-muted-foreground ml-1">{isNaN(num) ? String(val) : `${pct}%`}</span>
+          <span className="text-xs font-mono text-muted-foreground ml-1">{displayText}</span>
         </div>
       </Row>
     );
@@ -467,7 +470,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
   if (v === 5) {
     const r = 14;
     const circumference = 2 * Math.PI * r;
-    const offset = circumference - (pct / 100) * circumference;
+    const offset = circumference - (normalizedPct / 100) * circumference;
     return (
       <Row label={label} labelColor={labelColor}>
         <div className="relative h-10 w-10">
@@ -477,7 +480,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
               strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground">
-            {isNaN(num) ? '?' : `${Math.round(pct)}%`}
+            {isNaN(num) ? '?' : displayText}
           </span>
         </div>
       </Row>
@@ -487,9 +490,9 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
     <Row label={label} labelColor={labelColor}>
       <div className="flex-1 flex items-center gap-2">
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-[200px]">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${normalizedPct}%` }} />
         </div>
-        <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${pct}%`}</span>
+        <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
       </div>
     </Row>
   );
@@ -1500,7 +1503,7 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering
@@ -1518,8 +1521,8 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'icon':     return renderIcon(n, str, label, labelColor);
     case 'link':     return renderLink(n, str, label, labelColor);
     case 'image':    return renderImage(n, str, label, labelColor);
-    case 'rating':   return renderRating(n, value, label, labelColor, opEnabled);
-    case 'progress': return renderProgress(n, value, label, labelColor);
+    case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, maxValue);
+    case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, maxValue);
     case 'tags':     return renderTags(n, value, label, labelColor);
     case 'boolean':  return renderBoolean(n, value, label, labelColor);
     case 'date':     return renderDate(n, value, label, labelColor);

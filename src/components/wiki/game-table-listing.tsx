@@ -107,7 +107,7 @@ function renderBadgeItem(
   onCompareStatClick?: (statKey: string) => void,
   columnTypes?: Record<string, string>,
   useSuffix?: boolean,
-  columnConfig?: Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>,
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>,
 ): React.ReactNode {
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
@@ -194,7 +194,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const paginationStyle = displayConfig.paginationStyle || 'arrows';
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
-  const detailConfig: Record<string, any> = viewerConfig?.card || {};
+  const detailConfig: Record<string, any> = {
+    ...(viewerConfig?.card || {}),
+    columnConfig: viewerConfig?.columnConfig || (viewerConfig?.card as any)?.columnConfig,
+  };
   const columnTypes: Record<string, string> = (viewerConfig?.columnTypes || {}) as Record<string, string>;
   let cols: number;
   if (fmt === 'list') {

@@ -203,7 +203,7 @@ function RenderTypeFields({
   chipWrap?: boolean;
   columnOrder?: string[];
   useSuffix?: boolean;
-  columnConfig?: Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
 }) {
   const sections: React.ReactNode[] = [];
   const activeMode = comparisonMode || 'modal';
@@ -441,7 +441,7 @@ type DetailConfig = {
   showComparison?: boolean;
   showHeader?: boolean;
   labelColor?: string;
-  columnConfig?: Record<string, { jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown> }>;
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown> }>;
 };
 
 type Props = {
@@ -477,7 +477,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
-  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
+  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
   const labelColor = detailConfig?.labelColor;
   const showComparisonEnabled = detailConfig?.showComparison !== false;
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);

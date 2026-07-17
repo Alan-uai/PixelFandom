@@ -144,7 +144,7 @@ export default function DataTableContent({
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
-  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>>({});
+  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number; displayName?: string; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>>({});
 
   const handleColumnConfigChange = useCallback((col: string, cfg: Record<string, unknown>) => {
     setColumnConfigMap((prev) => ({
@@ -691,10 +691,13 @@ export default function DataTableContent({
         if (isMedia) {
           setUploadColumns((prev) => new Set(prev).add(colSlug));
         }
+        const displayName = rawName;
         if (renderType === 'slider' || renderType === 'rating') {
           const defaultMax = renderType === 'slider' ? 100 : 5;
           const maxVal = parseInt(newFieldMaxValue) || defaultMax;
-          setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal } }));
+          setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { maxValue: maxVal, displayName } }));
+        } else {
+          setColumnConfigMap((prev) => ({ ...prev, [colSlug]: { displayName } }));
         }
 
         await updateViewerConfigField({ tenantId, table, slug }, (config) => {
@@ -706,11 +709,12 @@ export default function DataTableContent({
               next.uploadColumns = [...uploadCols, colSlug];
             }
           }
+          const colCfgBase: Record<string, unknown> = { displayName: rawName };
           if (renderType === 'slider' || renderType === 'rating') {
             const defaultMax = renderType === 'slider' ? 100 : 5;
-            const maxVal = parseInt(newFieldMaxValue) || defaultMax;
-            next.columnConfig = { ...(next.columnConfig as Record<string, unknown> || {}), [colSlug]: { maxValue: maxVal } };
+            colCfgBase.maxValue = parseInt(newFieldMaxValue) || defaultMax;
           }
+          next.columnConfig = { ...(next.columnConfig as Record<string, unknown> || {}), [colSlug]: colCfgBase };
           if (applyToAll) {
             const card = (next.card as Record<string, unknown>) || {};
             const visibleCols = (card.visibleColumns as string[]) || [];
@@ -1462,14 +1466,16 @@ export default function DataTableContent({
                       if (val === null || val === undefined) return null;
                       const renderType = getColumnRenderType(col);
                       const fmt = getDefaultFormat(renderType);
+                      const colDispName = columnConfigMap[col]?.displayName;
                       return (
                         <div key={col} className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px]">{col.replace(/_/g, ' ')}</span>
+                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px]">{colDispName || col.replace(/_/g, ' ')}</span>
                           <FormatVariantRenderer
                             format={fmt}
                             variant={1}
                             value={val}
-                            label={col}
+                            label={colDispName || col}
+                            maxValue={columnConfigMap[col]?.maxValue}
                           />
                         </div>
                       );

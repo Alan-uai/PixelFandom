@@ -122,6 +122,7 @@ export const ViewerConfigSchema = z.object({
   columnTypes: z.record(z.string(), z.string()).default({}).optional(),
   columnConfig: z.record(z.string(), z.object({
     maxValue: z.number().optional(),
+    displayName: z.string().optional(),
     jsonbKeyTypes: z.record(z.string(), z.object({
       type: z.enum(['number', 'text', 'boolean']),
       suffix: z.string().optional(),

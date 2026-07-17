@@ -62,7 +62,7 @@ function applyKeyFormatting(
   return result;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue: _maxValue, columnConfig, variant, labelColor, hideLabel }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
@@ -93,6 +93,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
+          maxValue={maxValue}
         />
       );
     }
@@ -107,6 +108,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
+          maxValue={maxValue}
         />
       );
     }
@@ -127,6 +129,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           opEnabled={opEnabled}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
+          maxValue={maxValue}
         />
       );
     }
@@ -144,6 +147,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         opEnabled={opEnabled}
         labelColor={labelColor}
         valueColors={valueColors}
+        maxValue={maxValue}
       />
     );
   }
@@ -161,6 +165,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         useSuffix={useSuffix}
         labelColor={labelColor}
         valueColors={valueColors}
+        maxValue={maxValue}
       />
     );
   }
@@ -177,6 +182,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       opEnabled={opEnabled}
       labelColor={labelColor}
       valueColors={valueColors}
+      maxValue={maxValue}
     />
   );
 }
