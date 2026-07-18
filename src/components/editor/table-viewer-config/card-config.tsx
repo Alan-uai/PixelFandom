@@ -72,17 +72,23 @@ export function CardConfig({
   const badgeColors: Record<string, string> = c.badgeColors || {};
 
   const effectiveBadges = useMemo(() => {
-    const badges: string[] = c.badges || [];
-    if (badges.length > 0) return badges;
+    if (c.badges !== undefined) return c.badges as string[];
     const candidates = columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col));
     return candidates.slice(0, 1);
   }, [c.badges, columns]);
 
   const toggleBadge = (col: string) => {
-    const next = effectiveBadges.includes(col)
+    const wasSelected = effectiveBadges.includes(col);
+    const next = wasSelected
       ? effectiveBadges.filter(b => b !== col)
       : [...effectiveBadges, col];
-    onChange({ ...c, badges: next });
+    const nextConfig = { ...badgeConfig };
+    const nextColors = { ...badgeColors };
+    if (wasSelected) {
+      delete nextConfig[col];
+      delete nextColors[col];
+    }
+    onChange({ ...c, badges: next, badgeConfig: nextConfig, badgeColors: nextColors });
   };
 
   const updateBadgeConfig = (col: string, key: string, val: any) => {

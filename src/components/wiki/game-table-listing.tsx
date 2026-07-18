@@ -16,6 +16,7 @@ import { useTableItems } from '@/hooks/use-data-access';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import VariantSelector from '@/components/wiki/variant-selector';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import ComparePopup from '@/components/wiki/compare-popup';
 import {
@@ -28,6 +29,7 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { formatNumber } from '@/lib/format-number';
+import { humanizeLabel } from '@/lib/operator-symbols';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
@@ -1581,6 +1583,53 @@ function ItemCard({
   const rarity = item.rarity != null ? String(item.rarity) : undefined;
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
+  // ── Variantes: troca in-place do conteúdo do card ──
+  const baseItemId = item.id as string;
+  const baseItemSlug = item.slug as string;
+  const [activeItem, setActiveItem] = useState<any>(item);
+  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
+  const [loadingVariant, setLoadingVariant] = useState(false);
+
+  const handleSelectVariant = useCallback(async (variant: { item_id: string; item_slug?: string | null } | null) => {
+    if (variant === null) {
+      setActiveVariantSlug(null);
+      setActiveItem(item);
+      return;
+    }
+    if (!tenantId || !tenantSlug) return;
+    setLoadingVariant(true);
+    try {
+      let fetched: Record<string, any> | null = null;
+      const { getTableItem } = await import('@/lib/data-access');
+      if (variant.item_slug) {
+        fetched = await getTableItem(tenantSlug, tableName, variant.item_slug);
+      }
+      if (!fetched) {
+        const { supabase } = await import('@/supabase');
+        const { data: row } = await supabase
+          .from(tableName as any)
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('id', variant.item_id)
+          .maybeSingle();
+        fetched = (row as Record<string, any>) ?? null;
+      }
+      if (fetched) {
+        setActiveVariantSlug(variant.item_slug ?? null);
+        setActiveItem({ ...fetched, _source_table: tableName });
+      }
+    } catch {
+      // keep current data on failure
+    } finally {
+      setLoadingVariant(false);
+    }
+  }, [item, tableName, tenantId, tenantSlug]);
+
+  useEffect(() => {
+    setActiveItem(item);
+    setActiveVariantSlug(null);
+  }, [item]);
+
   const handleBadgeClick = (col: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const bc = badgeConfig[col] || {};
@@ -1603,12 +1652,22 @@ function ItemCard({
     const iconSize = bc.iconSize ?? 10;
     const labelSize = bc.labelSize ?? 10;
 
+    // Badges always render as compact text, regardless of the column data type
+    // (jsonb objects/arrays must NOT expand into minicards in the heading).
     const renderType: string = 'badge';
     let displayValue: React.ReactNode;
     if (typeof val === 'number') {
       displayValue = formatNumber(val, useSuffix ?? true);
+    } else if (typeof val === 'boolean') {
+      displayValue = val ? 'Sim' : 'Não';
+    } else if (Array.isArray(val)) {
+      displayValue = val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
+    } else if (typeof val === 'object') {
+      displayValue = Object.entries(val as Record<string, unknown>)
+        .map(([k, v]) => `${humanizeLabel(k)}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+        .join(' · ');
     } else {
-      displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} />;
+      displayValue = <ColumnDisplay value={String(val)} column={col} renderType={renderType} useSuffix={useSuffix} />;
     }
 
     const rawColor = badgeColors[col] || '';
@@ -1684,30 +1743,29 @@ function ItemCard({
         )}
       </div>
 
+      {tenantId && (
+        <VariantSelector
+          tenantSlug={tenantSlug}
+          tableName={tableName}
+          currentItemId={baseItemId}
+          currentItemSlug={baseItemSlug}
+          tenantId={tenantId}
+          activeVariantSlug={activeVariantSlug}
+          onSelectVariant={handleSelectVariant}
+          loadingVariant={loadingVariant}
+        />
+      )}
+
       <div className="px-4 pb-4 pt-3 border-t border-border/50">
         <MiniCardsSection
-          item={item}
+          item={activeItem}
           columnTypes={columnTypes}
           cardConfig={cardConfig}
           useSuffix={useSuffix}
           onCompareStatClick={onCompareStatClick}
         />
-        {tenantId ? (
-          <CollectionItemView
-            data={item}
-            tenantId={tenantId}
-            tenantSlug={tenantSlug}
-            sourceTable={tableName}
-            comparisonMode="modal"
-            hideHeader
-            chipWrap
-            useSuffix={useSuffix}
-            onCompareStatClick={onCompareStatClick}
-            detailConfig={detailConfig}
-            columnTypes={columnTypes}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">{item.description || ''}</p>
+        {!tenantId && (
+          <p className="text-sm text-muted-foreground">{activeItem.description || ''}</p>
         )}
       </div>
     </div>
