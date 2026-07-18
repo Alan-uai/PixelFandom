@@ -135,7 +135,7 @@ function safeStringCompare(a: unknown, b: unknown): number {
 }
 
 export default function ComparePopup({
-  table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, onClose,
+  table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, onClose, useSuffix = true,
 }: {
   table: string;
   tenantId: string;
@@ -143,13 +143,19 @@ export default function ComparePopup({
   currentItemId?: string;
   initialStat?: string;
   onClose: () => void;
+  useSuffix?: boolean;
 }) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [schema, setSchema] = useState<ColumnInfo[]>([]);
-  const [colConfig, setColConfig] = useState<CompareColumnConfig>({ columnOpEnabled: {}, columnConfig: {}, useSuffix: true });
+  const [viewerCfg, setViewerCfg] = useState<{ columnOpEnabled: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> }>({ columnOpEnabled: {}, columnConfig: {} });
   const itemsCache = useRef<Record<string, any>[] | null>(null);
-  const configCache = useRef<CompareColumnConfig | null>(null);
+  const configCache = useRef<{ columnOpEnabled: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> } | null>(null);
+
+  const colConfig = useMemo<CompareColumnConfig>(
+    () => ({ ...viewerCfg, useSuffix }),
+    [viewerCfg, useSuffix],
+  );
 
   const [compareStat, setCompareStat] = useState<CompareInfo | null>(null);
   const [compareFilter, setCompareFilter] = useState<string | null>(null);
@@ -162,7 +168,7 @@ export default function ComparePopup({
   useEffect(() => {
     if (!tenantId || !table) return;
     if (configCache.current) {
-      setColConfig(configCache.current);
+      setViewerCfg(configCache.current);
       return;
     }
     supabase
@@ -173,13 +179,12 @@ export default function ComparePopup({
       .maybeSingle()
       .then(({ data }) => {
         const vc = parseViewerConfig(data?.viewer_config);
-        const cfg: CompareColumnConfig = {
+        const cfg = {
           columnOpEnabled: (vc.card?.columnOpEnabled || {}) as Record<string, boolean>,
           columnConfig: ((vc.columnConfig || (vc.card as any)?.columnConfig || {}) as Record<string, ColumnConfigEntry>),
-          useSuffix: true,
         };
         configCache.current = cfg;
-        setColConfig(cfg);
+        setViewerCfg(cfg);
       });
   }, [tenantId, table]);
 

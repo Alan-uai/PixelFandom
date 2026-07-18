@@ -447,9 +447,16 @@ function parseInitialContent(content: string): any {
     // Not JSON
   }
 
-  // If it looks like HTML, use it directly
+  // Escape smart mention angle brackets so the HTML parser does NOT treat
+  // `<slug>` as a real element and strip it (which would leave only the type
+  // prefix, e.g. "$i", destroying the badge). After escaping the text node
+  // becomes "$i<slug>" again once TipTap parses the entities.
+  const escapeSmartMentions = (html: string) =>
+    html.replace(/\$([tia@l])<([^>]+)>/g, (_, t, s) => `$${t}&lt;${s}&gt;`);
+
+  // If it looks like HTML, use it directly (after escaping mentions)
   if (content.trim().startsWith('<')) {
-    return content;
+    return escapeSmartMentions(content);
   }
 
   // Convert markdown to HTML for proper rendering in TipTap
@@ -472,7 +479,9 @@ function parseInitialContent(content: string): any {
 
     const PUA = '\uE000';
     const mentionPhPattern = new RegExp(`${PUA}SMART_MENTION_\\d+${PUA}`, 'g');
-    return html.replace(mentionPhPattern, (ph) => placeholders.get(ph) || ph);
+    return escapeSmartMentions(
+      html.replace(mentionPhPattern, (ph) => placeholders.get(ph) || ph),
+    );
   } catch {
     return content;
   }

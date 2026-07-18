@@ -1912,6 +1912,7 @@ function EditorVariantSection({
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<{ id: string; name: string }[]>([]);
   const [searching, setSearching] = useState(false);
+  const [detecting, setDetecting] = useState(false);
 
 
   useEffect(() => {
@@ -1943,9 +1944,22 @@ function EditorVariantSection({
         <span className="text-xs font-medium">Variantes</span>
         <button
           type="button"
-          onClick={detectVariants}
-          className="text-[10px] text-primary hover:text-primary/80 underline underline-offset-2 transition-colors ml-auto"
+          onClick={async () => {
+            setDetecting(true);
+            const result = await detectVariants();
+            setDetecting(false);
+            if (!result || result.ok === false) {
+              toast({ variant: 'destructive', title: 'Erro', description: result?.error || 'Não foi possível detectar variantes.' });
+            } else if (result.variants_created && result.variants_created > 0) {
+              toast({ title: `${result.variants_created} variante(s) detectada(s)!` });
+            } else {
+              toast({ title: 'Nenhuma variante nova encontrada.' });
+            }
+          }}
+          className="text-[10px] text-primary hover:text-primary/80 underline underline-offset-2 transition-colors ml-auto flex items-center gap-1"
+          disabled={detecting}
         >
+          {detecting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
           Detectar automaticamente
         </button>
       </div>

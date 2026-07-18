@@ -863,6 +863,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           tenantSlug={tenantSlug}
           currentItemId={compareItemId}
           initialStat={compareStat}
+          useSuffix={useSuffix}
           onClose={() => { setCompareStat(null); setCompareItemId(null); }}
         />
       )}

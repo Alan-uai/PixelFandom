@@ -529,6 +529,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           tenantSlug={tenantSlug}
           currentItemId={data.id as string}
           initialStat={showCompare.stat}
+          useSuffix={useSuffix}
           onClose={() => setShowCompare(null)}
         />
       )}

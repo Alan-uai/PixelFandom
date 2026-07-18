@@ -1,9 +1,20 @@
--- Migration 090: Fix search_path on all item_variants RPCs
--- Functions with SET search_path = '' need fully qualified table references
--- because with empty search_path, only pg_catalog is searched — not public.
+-- Migration 091: Fix item_variants linking & detection (idempotent)
+-- Replaces the functions from 088/090 with corrected logic.
+-- Safe to re-apply even if 090 already ran (uses CREATE OR REPLACE FUNCTION).
+--
+-- Fixes:
+--  1. link_item_variant now ALSO registers the SOURCE item as the first
+--     member of the group (order 0). Previously only the target was inserted,
+--     so the base item was never visible in get_item_variants and siblings
+--     appeared to be "variants of each other" instead of siblings of a base.
+--  2. link_item_variant rejects self-linking (item_id == target_item_id).
+--  3. detect_item_variants preserves an existing group_key for an item that
+--     was already linked manually, so manual links are not overwritten.
+--  4. detect_item_variants returns variants_created (already present) and the
+--     client now surfaces feedback accordingly.
 
 -- =====================================================
--- 1. fix detect_item_variants
+-- 1. detect_item_variants (preserve existing group_key)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION detect_item_variants(
@@ -61,7 +72,7 @@ BEGIN
 
     v_group_key := public.slugify(v_base_name || '-' || p_table);
 
-    -- Preserve an existing group_key for the base item (if it was already linked manually)
+    -- Preserve an existing group_key for the item (if already linked manually)
     SELECT group_key INTO v_existing_group
     FROM public.item_variants
     WHERE tenant_id = p_tenant_id AND table_name = p_table AND item_id = v_item.id;
@@ -93,48 +104,7 @@ END;
 $$;
 
 -- =====================================================
--- 2. fix get_item_variants
--- =====================================================
-
-CREATE OR REPLACE FUNCTION get_item_variants(
-  p_table TEXT,
-  p_item_id UUID,
-  p_tenant_id UUID
-) RETURNS jsonb
-LANGUAGE plpgsql STABLE SET search_path = ''
-AS $$
-DECLARE
-  v_group_key TEXT;
-  v_result jsonb;
-BEGIN
-  SELECT group_key INTO v_group_key
-  FROM public.item_variants
-  WHERE tenant_id = p_tenant_id AND table_name = p_table AND item_id = p_item_id;
-
-  IF v_group_key IS NULL THEN
-    RETURN jsonb_build_array();
-  END IF;
-
-  SELECT jsonb_agg(
-    jsonb_build_object(
-      'id', iv.id,
-      'item_id', iv.item_id,
-      'variant_label', iv.variant_label,
-      'variant_order', iv.variant_order,
-      'auto_detected', iv.auto_detected
-    ) ORDER BY iv.variant_order
-  ) INTO v_result
-  FROM public.item_variants iv
-  WHERE iv.tenant_id = p_tenant_id
-    AND iv.table_name = p_table
-    AND iv.group_key = v_group_key;
-
-  RETURN COALESCE(v_result, jsonb_build_array());
-END;
-$$;
-
--- =====================================================
--- 3. fix link_item_variant
+-- 2. link_item_variant (register source as base member)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION link_item_variant(
@@ -152,7 +122,7 @@ DECLARE
   v_target_name TEXT;
   v_label TEXT;
   v_source_name TEXT;
-  v_source_order INT := 0;
+  v_source_order INT;
   v_target_order INT;
 BEGIN
   IF p_tenant_id IS NULL OR NOT public.is_tenant_member_with_role(p_tenant_id, 'editor'::text) THEN
@@ -173,8 +143,8 @@ BEGIN
     v_group_key := COALESCE(v_group_key, 'variant') || '-' || p_table;
   END IF;
 
-  -- Register the SOURCE item as the first member of the group (order 0)
-  -- so the base item is visible in get_item_variants and links are consistent.
+  -- Register the SOURCE item as the first member of the group (order 0) so the
+  -- base item is visible in get_item_variants and links are consistent.
   SELECT variant_order INTO v_source_order
   FROM public.item_variants
   WHERE tenant_id = p_tenant_id AND table_name = p_table AND item_id = p_item_id;
@@ -186,7 +156,8 @@ BEGIN
     ON CONFLICT (tenant_id, table_name, item_id) DO NOTHING;
   END IF;
 
-  SELECT COALESCE(MAX(variant_order), 0) + 1 INTO v_max_order
+  -- Recompute order for target after the source may have been inserted
+  SELECT COALESCE(MAX(variant_order), 0) + 1 INTO v_target_order
   FROM public.item_variants
   WHERE tenant_id = p_tenant_id AND table_name = p_table AND group_key = v_group_key;
 
@@ -197,75 +168,11 @@ BEGIN
     v_label := p_variant_label;
   END IF;
 
-  -- Recompute order for target after the source may have been inserted
-  SELECT COALESCE(MAX(variant_order), 0) + 1 INTO v_target_order
-  FROM public.item_variants
-  WHERE tenant_id = p_tenant_id AND table_name = p_table AND group_key = v_group_key;
-
   INSERT INTO public.item_variants (tenant_id, table_name, group_key, item_id, variant_label, variant_order, auto_detected)
   VALUES (p_tenant_id, p_table, v_group_key, p_target_item_id, v_label, v_target_order, false)
   ON CONFLICT (tenant_id, table_name, item_id) DO UPDATE
   SET group_key = v_group_key, variant_label = v_label, variant_order = v_target_order;
 
   RETURN jsonb_build_object('ok', true, 'group_key', v_group_key);
-END;
-$$;
-
--- =====================================================
--- 4. fix unlink_item_variant
--- =====================================================
-
-CREATE OR REPLACE FUNCTION unlink_item_variant(
-  p_table TEXT,
-  p_item_id UUID,
-  p_tenant_id UUID
-) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
-AS $$
-BEGIN
-  IF p_tenant_id IS NULL OR NOT public.is_tenant_member_with_role(p_tenant_id, 'editor'::text) THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Permissão negada.');
-  END IF;
-
-  DELETE FROM public.item_variants
-  WHERE tenant_id = p_tenant_id AND table_name = p_table AND item_id = p_item_id;
-
-  RETURN jsonb_build_object('ok', true);
-END;
-$$;
-
--- =====================================================
--- 5. fix list_variant_groups
--- =====================================================
-
-CREATE OR REPLACE FUNCTION list_variant_groups(
-  p_table TEXT,
-  p_tenant_id UUID
-) RETURNS jsonb
-LANGUAGE plpgsql STABLE SET search_path = ''
-AS $$
-DECLARE
-  v_result jsonb;
-BEGIN
-  SELECT jsonb_agg(
-    jsonb_build_object(
-      'group_key', iv.group_key,
-      'variant_count', COUNT(*),
-      'variants', jsonb_agg(
-        jsonb_build_object(
-          'id', iv.id,
-          'item_id', iv.item_id,
-          'variant_label', iv.variant_label,
-          'variant_order', iv.variant_order,
-          'auto_detected', iv.auto_detected
-        ) ORDER BY iv.variant_order
-      )
-    ) ORDER BY COUNT(*) DESC
-  ) INTO v_result
-  FROM public.item_variants iv
-  WHERE iv.tenant_id = p_tenant_id AND iv.table_name = p_table
-  GROUP BY iv.group_key;
-
-  RETURN COALESCE(v_result, jsonb_build_array());
 END;
 $$;

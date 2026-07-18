@@ -51,17 +51,28 @@ export function useItemVariants(tenantId: string | null, tableName: string | nul
 
   const unlinkVariant = useCallback(async (targetItemId: string) => {
     if (!tenantId || !tableName) return false;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .rpc('unlink_item_variant', { p_table: tableName, p_item_id: targetItemId, p_tenant_id: tenantId });
-    const result = data as { ok?: boolean } | null;
+    if (error) {
+      console.error('unlink_item_variant RPC error:', error);
+      return false;
+    }
+    const result = data as { ok?: boolean; error?: string } | null;
     if (result?.ok) { await fetchVariants(); return true; }
+    if (result?.error) console.error('unlink_item_variant failed:', result.error);
     return false;
   }, [tenantId, tableName, fetchVariants]);
 
   const detectVariants = useCallback(async () => {
-    if (!tenantId || !tableName) return;
-    await supabase.rpc('detect_item_variants', { p_table: tableName, p_tenant_id: tenantId });
+    if (!tenantId || !tableName) return null;
+    const { data, error } = await supabase.rpc('detect_item_variants', { p_table: tableName, p_tenant_id: tenantId });
+    if (error) {
+      console.error('detect_item_variants RPC error:', error);
+      return { ok: false, error: error.message };
+    }
+    const result = (data as { ok?: boolean; variants_created?: number; error?: string }) || {};
     await fetchVariants();
+    return result;
   }, [tenantId, tableName, fetchVariants]);
 
   return { variants, loading, fetchVariants, linkVariant, unlinkVariant, detectVariants };
