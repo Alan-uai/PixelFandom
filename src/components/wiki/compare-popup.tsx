@@ -24,10 +24,16 @@ type CompareColumnConfig = {
   useSuffix: boolean;
 };
 
+type CompareFormat = 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration';
+
 type CompareInfo = {
   key: string;
   label: string;
-  format: 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration';
+  format: CompareFormat;
+  // For jsonb sub-fields: the parent jsonb column and the path to reach the value.
+  parentKey?: string;
+  // Path segments inside the parent jsonb value (object keys / array indices).
+  jsonbPath?: (string | number)[];
 };
 
 const NUMERIC_TYPES = new Set([
@@ -72,8 +78,34 @@ const STAT_LABELS: Record<string, string> = {
   xp_drop: 'XP',
 };
 
+function parseMaybeJson(v: unknown): unknown {
+  if (typeof v === 'string') {
+    try { return JSON.parse(v); } catch { return v; }
+  }
+  return v;
+}
+
+function resolvePath(root: unknown, path: (string | number)[]): unknown {
+  let cur: unknown = root;
+  for (const seg of path) {
+    if (cur === null || cur === undefined) return undefined;
+    if (typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string | number, unknown>)[seg];
+  }
+  return cur;
+}
+
+// Resolves the raw value for a compare field, following jsonb paths when present.
+function getCompareValue(item: Record<string, any>, stat: CompareInfo): unknown {
+  if (stat.parentKey && stat.jsonbPath) {
+    const root = parseMaybeJson(item[stat.parentKey]);
+    return resolvePath(root, stat.jsonbPath);
+  }
+  return item[stat.key];
+}
+
 function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: CompareColumnConfig): React.ReactNode {
-  const val = item[stat.key];
+  const val = stat.parentKey && stat.jsonbPath ? getCompareValue(item, stat) : item[stat.key];
 
   if (stat.format === 'range') {
     const min = item[`${stat.key}_min`] ?? val;
@@ -108,18 +140,20 @@ function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: C
   }
 
   if (stat.format === 'jsonb') {
-    const parsed = typeof val === 'string'
-      ? (() => { try { return JSON.parse(val); } catch { return val; } })()
-      : val;
+    const parsed = parseMaybeJson(val);
     if (parsed === null || parsed === undefined) return <span className="text-xs text-muted-foreground">—</span>;
+    if (typeof parsed !== 'object') {
+      return <span className="font-semibold tabular-nums">{String(parsed)}</span>;
+    }
+    const cfgKey = stat.parentKey ?? stat.key;
     return (
       <ColumnDisplay
         value={parsed}
-        column={stat.key}
+        column={cfgKey}
         renderType="jsonb"
         useSuffix={cfg.useSuffix}
-        opEnabled={cfg.columnOpEnabled[stat.key] !== false}
-        columnConfig={cfg.columnConfig[stat.key]}
+        opEnabled={cfg.columnOpEnabled[cfgKey] !== false}
+        columnConfig={cfg.columnConfig[cfgKey]}
       />
     );
   }
@@ -188,12 +222,16 @@ export default function ComparePopup({
       });
   }, [tenantId, table]);
 
-  const allStats = useMemo(() => buildAllCompareInfo(schema), [schema]);
+  const allStats = useMemo(() => buildAllCompareInfo(schema, items), [schema, items]);
 
   useEffect(() => {
     if (allStats.length === 0) return;
     if (initialStat) {
-      setCompareStat(allStats.find(s => s.key === initialStat) ?? allStats[0]);
+      setCompareStat(
+        allStats.find(s => s.key === initialStat)
+          ?? allStats.find(s => s.parentKey === initialStat)
+          ?? allStats[0],
+      );
     } else {
       setCompareStat(allStats[0]);
     }
@@ -241,32 +279,42 @@ export default function ComparePopup({
 
   const sorted = useMemo(() => {
     if (!compareStat) return [];
+    const stat = compareStat;
     const numericFormats = new Set(['number', 'range', 'percent']);
     return [...filteredItems]
-      .filter(item => item[compareStat.key] != null)
+      .filter(item => getCompareValue(item, stat) != null)
       .sort((a, b) => {
-        if (numericFormats.has(compareStat.format)) {
-          const va = parseFloat(a[compareStat.key]);
-          const vb = parseFloat(b[compareStat.key]);
+        const rawA = getCompareValue(a, stat);
+        const rawB = getCompareValue(b, stat);
+        if (numericFormats.has(stat.format)) {
+          const va = parseFloat(rawA as string);
+          const vb = parseFloat(rawB as string);
           if (isNaN(va) && isNaN(vb)) return 0;
           if (isNaN(va)) return 1;
           if (isNaN(vb)) return -1;
           return sortAsc ? va - vb : vb - va;
         }
-        if (compareStat.format === 'boolean') {
-          const ba = Boolean(a[compareStat.key]);
-          const bb = Boolean(b[compareStat.key]);
+        if (stat.format === 'boolean') {
+          const ba = Boolean(rawA);
+          const bb = Boolean(rawB);
           return sortAsc ? (ba === bb ? 0 : ba ? 1 : -1) : (ba === bb ? 0 : ba ? -1 : 1);
         }
-        if (compareStat.format === 'date') {
-          const da = new Date(a[compareStat.key]).getTime();
-          const db = new Date(b[compareStat.key]).getTime();
+        if (stat.format === 'date') {
+          const da = new Date(rawA as string).getTime();
+          const db = new Date(rawB as string).getTime();
           if (isNaN(da) && isNaN(db)) return 0;
           if (isNaN(da)) return 1;
           if (isNaN(db)) return -1;
           return sortAsc ? da - db : db - da;
         }
-        return sortAsc ? safeStringCompare(a[compareStat.key], b[compareStat.key]) : safeStringCompare(b[compareStat.key], a[compareStat.key]);
+        if (stat.format === 'jsonb') {
+          // Numeric-aware sort for scalar jsonb sub-values, string fallback otherwise.
+          const na = parseFloat(rawA as string);
+          const nb = parseFloat(rawB as string);
+          if (!isNaN(na) && !isNaN(nb)) return sortAsc ? na - nb : nb - na;
+          return sortAsc ? safeStringCompare(rawA, rawB) : safeStringCompare(rawB, rawA);
+        }
+        return sortAsc ? safeStringCompare(rawA, rawB) : safeStringCompare(rawB, rawA);
       });
   }, [filteredItems, compareStat, sortAsc]);
 
@@ -418,55 +466,125 @@ export default function ComparePopup({
   );
 }
 
-function buildAllCompareInfo(schema: ColumnInfo[]): CompareInfo[] {
+function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[]): CompareInfo[] {
   const result: CompareInfo[] = [];
+  const seen = new Set<string>();
+  const push = (info: CompareInfo) => {
+    if (seen.has(info.key)) return;
+    seen.add(info.key);
+    result.push(info);
+  };
 
-  // Numeric columns (with range detection)
-  const numeric = schema.filter(c => NUMERIC_TYPES.has(c.data_type) && !isSystem(c.column_name));
-  const pairs = findRangePairs(numeric);
-
-  for (const base of pairs) {
-    result.push({ key: base, label: STAT_LABELS[base] ?? labelFromKey(base), format: 'range' });
+  // Column universe: prefer schema; fall back to keys discovered across items.
+  const columnTypes = new Map<string, string | undefined>();
+  for (const c of schema) if (!isSystem(c.column_name)) columnTypes.set(c.column_name, c.data_type);
+  for (const item of items) {
+    for (const name of Object.keys(item)) {
+      if (isSystem(name) || columnTypes.has(name)) continue;
+      columnTypes.set(name, undefined);
+    }
   }
 
+  // Runtime type inference from data (used when schema type is missing/unknown).
+  const inferFormat = (name: string): CompareFormat => {
+    for (const item of items) {
+      const v = item[name];
+      if (v === null || v === undefined || v === '') continue;
+      const parsed = parseMaybeJson(v);
+      if (typeof parsed === 'object' && parsed !== null) return 'jsonb';
+      if (typeof parsed === 'boolean') return 'boolean';
+      if (typeof parsed === 'number' || (typeof parsed === 'string' && parsed.trim() !== '' && !isNaN(Number(parsed)))) {
+        return name.includes('percent') || name.includes('rate') || name.includes('chance') ? 'percent' : 'number';
+      }
+      return 'text';
+    }
+    return 'text';
+  };
+
+  const classify = (name: string): CompareFormat => {
+    const dt = columnTypes.get(name);
+    if (dt === undefined) return inferFormat(name);
+    if (JSONB_TYPES.has(dt)) return 'jsonb';
+    if (BOOL_TYPES.has(dt)) return 'boolean';
+    if (DATE_TYPES.has(dt)) return 'date';
+    if (NUMERIC_TYPES.has(dt)) {
+      return name.includes('percent') || name.includes('rate') || name.includes('chance') ? 'percent' : 'number';
+    }
+    return 'text';
+  };
+
+  // Range pairs (only meaningful for schema-known numeric columns).
+  const numericSchema = schema.filter(c => NUMERIC_TYPES.has(c.data_type) && !isSystem(c.column_name));
+  const pairs = findRangePairs(numericSchema);
   const paired = new Set(pairs.flatMap(k => [`${k}_min`, `${k}_max`, k]));
-  for (const col of numeric) {
-    if (paired.has(col.column_name)) continue;
-    const name = col.column_name;
-    const format = name.includes('percent') || name.includes('rate') || name.includes('chance')
-      ? 'percent' as const
-      : 'number' as const;
-    result.push({ key: name, label: STAT_LABELS[name] ?? labelFromKey(name), format });
+  for (const base of pairs) {
+    push({ key: base, label: STAT_LABELS[base] ?? labelFromKey(base), format: 'range' });
   }
 
-  // JSONB columns
-  const jsonbCols = schema.filter(c => JSONB_TYPES.has(c.data_type) && !isSystem(c.column_name));
-  for (const col of jsonbCols) {
-    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'jsonb' });
-  }
-
-  // Boolean columns
-  const boolCols = schema.filter(c => BOOL_TYPES.has(c.data_type) && !isSystem(c.column_name));
-  for (const col of boolCols) {
-    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'boolean' });
-  }
-
-  // Date columns
-  const dateCols = schema.filter(c => DATE_TYPES.has(c.data_type) && !isSystem(c.column_name));
-  for (const col of dateCols) {
-    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'date' });
-  }
-
-  // Text columns (incl. badge columns)
-  const textCols = schema.filter(
-    c => (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar')
-      && !isSystem(c.column_name),
-  );
-  for (const col of textCols) {
-    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'text' });
+  for (const name of columnTypes.keys()) {
+    if (paired.has(name)) continue;
+    const format = classify(name);
+    if (format === 'jsonb') {
+      const subFields = discoverJsonbSubFields(name, items);
+      if (subFields.length > 0) {
+        for (const sub of subFields) push(sub);
+      } else {
+        // Fall back to whole-column jsonb comparison if no sub-keys found.
+        push({ key: name, label: labelFromKey(name), format: 'jsonb' });
+      }
+      continue;
+    }
+    push({ key: name, label: STAT_LABELS[name] ?? labelFromKey(name), format });
   }
 
   return result;
+}
+
+// Expands a jsonb column into one comparable entry per discovered sub-key,
+// mirroring how mini cards break objects/arrays into independent cards.
+function discoverJsonbSubFields(column: string, items: Record<string, any>[]): CompareInfo[] {
+  const objectKeys = new Set<string>();
+  let sawArrayOfObjects = false;
+  const arrayObjectKeys = new Set<string>();
+
+  for (const item of items) {
+    const parsed = parseMaybeJson(item[column]);
+    if (parsed === null || parsed === undefined) continue;
+    if (Array.isArray(parsed)) {
+      for (const el of parsed) {
+        if (el && typeof el === 'object' && !Array.isArray(el)) {
+          sawArrayOfObjects = true;
+          for (const k of Object.keys(el as Record<string, unknown>)) arrayObjectKeys.add(k);
+        }
+      }
+    } else if (typeof parsed === 'object') {
+      for (const k of Object.keys(parsed as Record<string, unknown>)) objectKeys.add(k);
+    }
+  }
+
+  // Object shape → compare each object key across items.
+  if (objectKeys.size > 0) {
+    return [...objectKeys].map(k => ({
+      key: `${column}.${k}`,
+      label: `${labelFromKey(column)} · ${labelFromKey(k)}`,
+      format: 'jsonb' as CompareFormat,
+      parentKey: column,
+      jsonbPath: [k],
+    }));
+  }
+
+  // Array-of-objects → compare each key of the first array element across items.
+  if (sawArrayOfObjects && arrayObjectKeys.size > 0) {
+    return [...arrayObjectKeys].map(k => ({
+      key: `${column}[].${k}`,
+      label: `${labelFromKey(column)} · ${labelFromKey(k)}`,
+      format: 'jsonb' as CompareFormat,
+      parentKey: column,
+      jsonbPath: [0, k],
+    }));
+  }
+
+  return [];
 }
 
 function findRangePairs(columns: ColumnInfo[]): string[] {

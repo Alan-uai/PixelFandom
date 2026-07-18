@@ -424,39 +424,20 @@
 }
 
 /* Input glow border (table editor)
-   Real SVG stroke on a <rect> matching the input outline. A short bright
-   "comet" arc travels along the border by animating a registered custom
-   property (--ig-dashoffset), which is interpolatable, unlike animating
-   stroke-dashoffset through a var() calc directly. */
-@property --ig-dashoffset {
-  syntax: '<number>';
-  initial-value: 0;
-  inherits: false;
-}
-
-@keyframes ig-comet {
-  from { --ig-dashoffset: 0; }
-  to   { --ig-dashoffset: var(--ig-perim, 1000); }
-}
+   The comet arc is driven by JS (requestAnimationFrame) so its rotation speed
+   can ease-in / ease-out smoothly and transition continuously when the user
+   resumes typing mid-slowdown. Only the idle-focus pulse stays in CSS. */
 @keyframes ig-pulse {
-  0%, 100% { opacity: 0.4; }
+  0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
 
-/* Typing: a short arc runs around the border. */
-.ig-svg-comet {
-  stroke-dashoffset: calc(-1 * var(--ig-dashoffset));
-  animation: ig-comet 1.4s linear infinite;
-}
-
-/* Focused but idle: the comet freezes where it stopped. */
-.ig-svg-paused {
-  animation-play-state: paused;
-}
-
-/* Idle-focus: full solid stroke breathing in place. */
+/* Idle-focus: full solid stroke breathing in place. Starts near full opacity
+   so the hand-off from the (solid) comet arc has no visible jump. */
 .ig-svg-pulse {
+  opacity: 1;
   animation: ig-pulse 1.5s ease-in-out infinite;
+  animation-direction: alternate;
 }
 
 /* The SVG stroke is the only border: strip the field's own border/ring. */

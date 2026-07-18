@@ -91,10 +91,18 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
   );
 }
 
-/** Two-column grid wrapper used to lay mini cards inside an item card. */
+/**
+ * Bento-box layout wrapper used to lay mini cards inside an item card.
+ * Uses CSS multi-column so each card keeps its natural height and the
+ * shorter cards do not stretch to match taller neighbours — unlike a
+ * fixed 2-column grid. Cards break inside of themselves are avoided.
+ */
 export function MiniCardGrid({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`grid grid-cols-2 gap-2 ${className}`} style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+    <div
+      className={`columns-2 gap-2 [column-fill:_balance] [&>*]:mb-2 [&>*]:break-inside-avoid ${className}`}
+      style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+    >
       {children}
     </div>
   );

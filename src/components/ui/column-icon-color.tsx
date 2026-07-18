@@ -180,7 +180,7 @@ export function ValueColorLine({ color, onChange }: ValueColorLineProps) {
   );
 }
 
-type GlowPhase = 'idle' | 'typing' | 'focus';
+type GlowPhase = 'idle' | 'focus';
 
 interface InputGlowProps {
   color: string;
@@ -190,11 +190,24 @@ interface InputGlowProps {
 const GLOW_RADIUS = 0;
 const GLOW_INSET = 0;
 
+const COMET_MAX_SPEED = 900;
+const COMET_ACCEL = 6;
+
 export function InputGlow({ color, children }: InputGlowProps) {
   const [phase, setPhase] = useState<GlowPhase>('idle');
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cometElRef = useRef<SVGRectElement>(null);
+  const pulseGroupRef = useRef<SVGGElement>(null);
+  const typingRef = useRef(false);
+  const focusedRef = useRef(false);
+  const offsetRef = useRef(0);
+  const velRef = useRef(0);
+  const mixRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const lastTsRef = useRef(0);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -207,16 +220,69 @@ export function InputGlow({ color, children }: InputGlowProps) {
     return () => ro.disconnect();
   }, []);
 
+  const stopLoop = () => {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    lastTsRef.current = 0;
+  };
+
+  const ensureLoop = () => {
+    if (rafRef.current != null) return;
+    const tick = (ts: number) => {
+      const last = lastTsRef.current || ts;
+      const dt = Math.min(0.05, (ts - last) / 1000);
+      lastTsRef.current = ts;
+
+      // Rotation speed eases toward its target; the comet keeps advancing.
+      const speedTarget = typingRef.current ? COMET_MAX_SPEED : 0;
+      velRef.current += (speedTarget - velRef.current) * Math.min(1, COMET_ACCEL * dt);
+      offsetRef.current -= velRef.current * dt;
+
+      // Cross-fade weight (1 = comet, 0 = pulse) eases toward its target too,
+      // so switching direction mid-fade continues smoothly from the current
+      // blend instead of snapping.
+      const mixTarget = typingRef.current ? 1 : 0;
+      mixRef.current += (mixTarget - mixRef.current) * Math.min(1, COMET_ACCEL * dt);
+      const mix = mixRef.current;
+
+      if (cometElRef.current) {
+        cometElRef.current.style.strokeDashoffset = String(offsetRef.current);
+        cometElRef.current.style.opacity = String(mix);
+      }
+      if (pulseGroupRef.current) {
+        pulseGroupRef.current.style.opacity = String(1 - mix);
+      }
+
+      // Settled into pure pulse state: stop the loop until typing resumes.
+      if (!typingRef.current && velRef.current < 1 && mix < 0.01) {
+        velRef.current = 0;
+        mixRef.current = 0;
+        if (cometElRef.current) cometElRef.current.style.opacity = '0';
+        if (pulseGroupRef.current) pulseGroupRef.current.style.opacity = '1';
+        stopLoop();
+        return;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
   useEffect(() => {
     return () => {
       if (typingTimer.current) clearTimeout(typingTimer.current);
+      stopLoop();
     };
   }, []);
 
   const handleKeyDown = () => {
-    setPhase('typing');
+    typingRef.current = true;
+    if (phase !== 'focus') setPhase('focus');
+    ensureLoop();
     if (typingTimer.current) clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => setPhase('focus'), 600);
+    typingTimer.current = setTimeout(() => {
+      typingRef.current = false;
+      ensureLoop();
+    }, 500);
   };
 
   const active = phase !== 'idle' && size.w > 0 && size.h > 0;
@@ -233,10 +299,16 @@ export function InputGlow({ color, children }: InputGlowProps) {
       className="ig-glow-wrap relative flex-1 min-w-0"
       style={{ ['--glow-c' as string]: color }}
       onFocus={() => {
-        if (phase !== 'typing') setPhase('focus');
+        focusedRef.current = true;
+        if (phase === 'idle') setPhase('focus');
       }}
       onBlur={() => {
+        focusedRef.current = false;
+        typingRef.current = false;
         if (typingTimer.current) clearTimeout(typingTimer.current);
+        stopLoop();
+        velRef.current = 0;
+        mixRef.current = 0;
         setPhase('idle');
       }}
       onKeyDown={handleKeyDown}
@@ -256,41 +328,36 @@ export function InputGlow({ color, children }: InputGlowProps) {
           viewBox={`0 0 ${w} ${h}`}
           fill="none"
         >
-          <rect
-            className={
-              phase === 'typing'
-                ? 'ig-svg-comet'
-                : phase === 'focus'
-                  ? 'ig-svg-comet ig-svg-paused'
-                  : ''
-            }
-            x={1}
-            y={1}
-            width={rectW}
-            height={rectH}
-            rx={GLOW_RADIUS}
-            ry={GLOW_RADIUS}
-            stroke="var(--glow-c)"
-            strokeWidth={2}
-            strokeLinecap="round"
-            style={{
-              strokeDasharray: `${dash} ${perimeter}`,
-              ['--ig-perim' as string]: `${dash + perimeter}`,
-            }}
-          />
           {phase === 'focus' && (
-            <rect
-              className="ig-svg-pulse"
-              x={1}
-              y={1}
-              width={rectW}
-              height={rectH}
-              rx={GLOW_RADIUS}
-              ry={GLOW_RADIUS}
-              stroke="var(--glow-c)"
-              strokeWidth={2}
-              fill="none"
-            />
+            <>
+              <g ref={pulseGroupRef} style={{ opacity: 1 }}>
+                <rect
+                  className="ig-svg-pulse"
+                  x={1}
+                  y={1}
+                  width={rectW}
+                  height={rectH}
+                  rx={GLOW_RADIUS}
+                  ry={GLOW_RADIUS}
+                  stroke="var(--glow-c)"
+                  strokeWidth={2}
+                  fill="none"
+                />
+              </g>
+              <rect
+                ref={cometElRef}
+                x={1}
+                y={1}
+                width={rectW}
+                height={rectH}
+                rx={GLOW_RADIUS}
+                ry={GLOW_RADIUS}
+                stroke="var(--glow-c)"
+                strokeWidth={2}
+                strokeLinecap="round"
+                style={{ strokeDasharray: `${dash} ${perimeter}`, opacity: 0 }}
+              />
+            </>
           )}
         </svg>
       )}

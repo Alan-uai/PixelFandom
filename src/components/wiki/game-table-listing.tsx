@@ -1652,22 +1652,21 @@ function ItemCard({
     const iconSize = bc.iconSize ?? 10;
     const labelSize = bc.labelSize ?? 10;
 
-    // Badges always render as compact text, regardless of the column data type
-    // (jsonb objects/arrays must NOT expand into minicards in the heading).
-    const renderType: string = 'badge';
-    let displayValue: React.ReactNode;
+    // Badges ALWAYS render as plain text in a Badge pill — never minicards,
+    // regardless of the column data type (numeric, text, jsonb, etc).
+    let displayValue: string;
     if (typeof val === 'number') {
       displayValue = formatNumber(val, useSuffix ?? true);
     } else if (typeof val === 'boolean') {
       displayValue = val ? 'Sim' : 'Não';
     } else if (Array.isArray(val)) {
       displayValue = val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
-    } else if (typeof val === 'object') {
+    } else if (typeof val === 'object' && val !== null) {
       displayValue = Object.entries(val as Record<string, unknown>)
         .map(([k, v]) => `${humanizeLabel(k)}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
         .join(' · ');
     } else {
-      displayValue = <ColumnDisplay value={String(val)} column={col} renderType={renderType} useSuffix={useSuffix} />;
+      displayValue = String(val);
     }
 
     const rawColor = badgeColors[col] || '';
