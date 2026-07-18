@@ -18,8 +18,6 @@ import { CardConfig } from './table-viewer-config/card-config';
 import { SearchConfig } from './table-viewer-config/search-config';
 import { EmptyConfig } from './table-viewer-config/empty-config';
 import { LoadingConfig } from './table-viewer-config/loading-config';
-import { ColorsConfig } from './table-viewer-config/colors-config';
-import { OptionsConfig } from './table-viewer-config/options-config';
 
 export default function TableViewerConfig({
   slug,
@@ -228,8 +226,6 @@ export default function TableViewerConfig({
     { id: 'search', label: 'Busca', component: SearchConfig },
     { id: 'emptyState', label: 'Estado Vazio', component: EmptyConfig },
     { id: 'loading', label: 'Carregamento', component: LoadingConfig },
-    { id: 'colors', label: 'Cores', component: ColorsConfig },
-    { id: 'options', label: 'Opções Select', component: OptionsConfig },
   ] as const;
 
   if (loading) {
@@ -328,24 +324,18 @@ export default function TableViewerConfig({
         {sections.map((s) => {
           if (s.id !== activeSection) return null;
           const Comp = s.component;
-          const isColors = s.id === 'colors';
-          const isOptions = s.id === 'options';
           return (
             <Comp
               key={s.id}
-              config={isColors ? config : (config as any)[s.id]}
+              config={(config as any)[s.id]}
               columns={columns}
               columnTypes={(config as any)?.columnTypes || {}}
               slug={slug}
               tableIcon={s.id === 'header' ? tableIcon : undefined}
               tenantId={tenantId ?? undefined}
-              onChange={isColors || isOptions
-                ? (v: any) => setConfig(v)
-                : (v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))
-              }
+              onChange={(v: any) => setConfig((prev) => ({ ...prev, [s.id]: v }))}
               items={items}
               itemsLoading={itemsLoading}
-              table={table}
               categorizationColumn={s.id === 'filters' ? categorizationColumn : undefined}
               categorizationSecondaryColumn={s.id === 'filters' ? categorizationSecondaryColumn : undefined}
             />

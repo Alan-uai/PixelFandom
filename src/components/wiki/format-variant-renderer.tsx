@@ -36,6 +36,7 @@ type Props = {
   jsonbKeyColors?: Record<string, string>;
   maxValue?: number;
   allowedValues?: AllowedValue[];
+  onCompareClick?: () => void;
 };
 
 function findAllowed(allowedValues: AllowedValue[] | undefined, val: string): AllowedValue | undefined {
@@ -1487,11 +1488,11 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   return String(v);
 }
 
-function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void): React.ReactNode {
   ensureDetectorsRegistered();
   if (Array.isArray(value)) {
-    if (detectOpArray(value)) {
-      return renderOpMiniCards(value, jsonbKeyColors, useSuffix);
+    if (opEnabled && detectOpArray(value)) {
+      return renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick);
     }
     return (
       <div className="flex flex-wrap gap-2">
@@ -1499,7 +1500,7 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
           if (typeof obj === 'object' && obj !== null) {
             const d = findBestDetector(obj);
             if (d) return <div key={i} className="min-w-[130px]">{d.render({ value: obj, useSuffix })}</div>;
-            return renderPerKeyCards(obj as Record<string, unknown>, jsonbKeyColors, useSuffix);
+            return renderPerKeyCards(obj as Record<string, unknown>, jsonbKeyColors, useSuffix, onCompareClick);
           }
           return (
             <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{String(obj)}</span>
@@ -1511,16 +1512,19 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
   const obj = value as Record<string, unknown>;
   const d = findBestDetector(obj);
   if (d) return d.render({ value: obj, useSuffix });
-  return renderPerKeyCards(obj, jsonbKeyColors, useSuffix);
+  return renderPerKeyCards(obj, jsonbKeyColors, useSuffix, onCompareClick);
 }
 
-function renderPerKeyCards(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean): React.ReactNode {
+function renderPerKeyCards(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): React.ReactNode {
   return (
     <div className="flex flex-wrap gap-2">
       {Object.entries(obj).map(([k, val]) => (
         <div
           key={k}
-          className="rounded-lg border bg-card p-2.5 text-xs min-w-[100px] hover:shadow-md hover:border-primary/20 transition-all cursor-default"
+          onClick={onCompareClick}
+          role={onCompareClick ? 'button' : undefined}
+          tabIndex={onCompareClick ? 0 : undefined}
+          className={`rounded-lg border bg-card p-2.5 text-xs min-w-[100px] transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
           style={jsonbKeyColors?.[k] ? { borderColor: jsonbKeyColors[k] + '40' } : {}}
         >
           <div className="flex flex-col gap-0.5">
@@ -1579,8 +1583,8 @@ function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean,
   return <table className="w-full text-sm">{rows}</table>;
 }
 
-function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
-  if (detectOpArray(value)) {
+function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
+  if (opEnabled && detectOpArray(value)) {
     return renderOpInlineWidget(value, jsonbKeyColors, useSuffix);
   }
   const parts: React.ReactNode[] = [];
@@ -1704,22 +1708,22 @@ function render3DDepth(value: unknown, _label: string, useSuffix?: boolean, json
   );
 }
 
-function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
-  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors);
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void): React.ReactNode {
+  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
   if (v === 2) return renderComplexTable(value, label, useSuffix, jsonbKeyColors);
-  if (v === 3) return renderComplexInline(value, label, useSuffix, jsonbKeyColors);
+  if (v === 3) return renderComplexInline(value, label, useSuffix, jsonbKeyColors, opEnabled);
   if (v === 4) return render3DCarousel(value, label, useSuffix, jsonbKeyColors);
   return render3DDepth(value, label, useSuffix, jsonbKeyColors);
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering
   if (isComplexValue(value)) {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors);
+    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
@@ -1777,7 +1781,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         if (detector) return detector.render({ value: detectValue, useSuffix }, n);
       }
       if (isComplexValue(detectValue)) {
-        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors);
+        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
       }
       return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }

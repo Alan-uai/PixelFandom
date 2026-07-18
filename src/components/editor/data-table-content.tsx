@@ -14,6 +14,8 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { LabelIconBox, LabelColorCircle, ValueColorSquare } from '@/components/ui/column-icon-color';
+import { getDefaultColumnColor } from '@/lib/column-types/registry';
 import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
@@ -29,6 +31,7 @@ import {
   Minus,
   Check,
   PlusCircle,
+  ListChecks,
   ImageIcon,
   Link2,
   Layers,
@@ -45,6 +48,7 @@ import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/sch
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
+import { OptionsConfig } from '@/components/editor/table-viewer-config/options-config';
 import { useItemVariants } from '@/hooks/use-item-variants';
 
 const tableLabels: Record<string, string> = {
@@ -105,6 +109,19 @@ interface Row {
   id: string;
 }
 
+interface ColumnConfigEntry {
+  maxValue?: number;
+  displayName?: string;
+  labelIcon?: string;
+  labelColor?: string;
+  jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>;
+  valueColors?: Record<string, string>;
+  allowedValues?: Array<Record<string, unknown>>;
+  maxSelect?: number;
+  restrictToValues?: boolean;
+  dependentField?: string;
+}
+
 export default function DataTableContent({
   slug,
   table,
@@ -147,7 +164,7 @@ export default function DataTableContent({
   const [availableColumns, setAvailableColumns] = useState<{ column_name: string; data_type: string }[]>([]);
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
-  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, { maxValue?: number; displayName?: string; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>>({});
+  const [columnConfigMap, setColumnConfigMap] = useState<Record<string, ColumnConfigEntry>>({});
 
   const handleColumnConfigChange = useCallback((col: string, cfg: Record<string, unknown>) => {
     setColumnConfigMap((prev) => ({
@@ -260,6 +277,9 @@ export default function DataTableContent({
     value: string;
     onChange: (key: string, val: string) => void;
   } | null>(null);
+
+  const [optionsCol, setOptionsCol] = useState<string | null>(null);
+  const [optionsConfig, setOptionsConfig] = useState<Record<string, unknown>>({});
 
   const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
     formSetter((prev) => {
@@ -695,6 +715,13 @@ export default function DataTableContent({
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     } else {
+      if (tenantId && Object.keys(columnConfigMap).length > 0) {
+        await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+          const next: Record<string, unknown> = { ...config };
+          next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), ...columnConfigMap };
+          return next;
+        });
+      }
       setShowNewForm(false);
       setNewForm({});
       setSavedFeedback(true);
@@ -907,9 +934,9 @@ export default function DataTableContent({
           table={table}
           rowId={rowId}
           maxValue={colConfig?.maxValue}
-          columnConfig={colConfig}
+          columnConfig={colConfig as Record<string, unknown>}
           onColumnConfigChange={(cfg) => handleColumnConfigChange(col, cfg)}
-          allColumnConfigs={columnConfigMap}
+          allColumnConfigs={columnConfigMap as Record<string, Record<string, unknown>>}
           allValues={{}}
           onFieldChange={onChange}
         />
@@ -1049,7 +1076,22 @@ export default function DataTableContent({
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground capitalize flex items-center gap-1">
           {isImageColumn(col) && <ImageIcon className="h-3 w-3" />}
-          {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
+          <LabelIconBox
+            icon={columnConfigMap[col]?.labelIcon}
+            onChange={(iconId) =>
+              handleColumnConfigChange(col, { labelIcon: iconId })
+            }
+            className="h-4 w-4 rounded"
+          />
+          <span style={columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
+            {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
+          </span>
+          {!isSystemColumn(col) && (
+            <LabelColorCircle
+              color={columnConfigMap[col]?.labelColor}
+              onChange={(c) => handleColumnConfigChange(col, { labelColor: c })}
+            />
+          )}
         </Label>
       </div>
       <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
@@ -1073,6 +1115,19 @@ export default function DataTableContent({
             >
               <Edit className="h-3 w-3" />
             </button>
+            {['select', 'multi-select', 'toggle-group'].includes(getColumnRenderType(col) || '') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOptionsCol(col);
+                  setOptionsConfig({ columnConfig: { [col]: columnConfigMap[col] || {} } });
+                }}
+                className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
+                title="Configurar opções (select)"
+              >
+                <ListChecks className="h-3 w-3" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => value ? handleClearField(col, formSetter) : handleRemoveField(col, formSetter)}
@@ -1092,7 +1147,26 @@ export default function DataTableContent({
           </>
         )}
       </div>
-      {renderField(col, value, onChange, isBool, rowId)}
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          {renderField(col, value, onChange, isBool, rowId)}
+        </div>
+        {!isSystemColumn(col) && (
+          <ValueColorSquare
+            color={
+              (columnConfigMap[col]?.valueColors as Record<string, string> | undefined)?.[value] ||
+              columnConfigMap[col]?.labelColor ||
+              getDefaultColumnColor(getColumnRenderType(col) || editFieldType)
+            }
+            onChange={(c) => {
+              const vc = { ...(columnConfigMap[col]?.valueColors as Record<string, string> | undefined) };
+              if (c === undefined) delete vc[value];
+              else vc[value] = c;
+              handleColumnConfigChange(col, { valueColors: vc });
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 
@@ -1642,7 +1716,14 @@ export default function DataTableContent({
                       const colDispName = columnConfigMap[col]?.displayName;
                       return (
                         <div key={col} className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px]">{colDispName || col.replace(/_/g, ' ')}</span>
+                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px] flex items-center gap-1">
+                            {columnConfigMap[col]?.labelIcon && (
+                              <IconRenderer icon={columnConfigMap[col]!.labelIcon!} size="sm" />
+                            )}
+                            <span style={columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
+                              {colDispName || col.replace(/_/g, ' ')}
+                            </span>
+                          </span>
                           <FormatVariantRenderer
                             format={fmt}
                             variant={1}
@@ -1779,6 +1860,37 @@ export default function DataTableContent({
           }}
           onClose={() => setIconPickerState(null)}
         />
+      )}
+
+      {optionsCol !== null && (
+        <Dialog open onOpenChange={(open) => { if (!open) setOptionsCol(null); }}>
+          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Opções de &ldquo;{optionsCol}&rdquo;</DialogTitle>
+              <DialogDescription>
+                Configure as opções para esta coluna select. As cores e ícones definidos aqui são usados na Wiki.
+              </DialogDescription>
+            </DialogHeader>
+            <OptionsConfig
+              config={optionsConfig}
+              columns={[optionsCol]}
+              columnTypes={{ [optionsCol]: getColumnRenderType(optionsCol) || 'select' }}
+              onChange={(v) => {
+                setOptionsConfig(v);
+                const colCfg = (v.columnConfig as Record<string, unknown> | undefined)?.[optionsCol];
+                if (colCfg) handleColumnConfigChange(optionsCol, colCfg as Record<string, unknown>);
+              }}
+              table={table}
+              slug={slug}
+              tenantId={tenantId ?? undefined}
+            />
+            <DialogFooter>
+              <Button size="sm" onClick={() => setOptionsCol(null)}>
+                Concluído
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

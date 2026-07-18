@@ -466,6 +466,21 @@ export function getCategoryForType(type: string): CategoryId | undefined {
   return COLUMN_TYPES[type as RenderType]?.category;
 }
 
+const DEFAULT_COLOR_BY_CATEGORY: Record<CategoryId, string> = {
+  text: '#3b82f6',
+  numeric: '#22c55e',
+  media: '#ec4899',
+  select: '#f97316',
+  visual: '#8b5cf6',
+  interactive: '#06b6d4',
+  datetime: '#eab308',
+};
+
+export function getDefaultColumnColor(type: string): string {
+  const category = getCategoryForType(type);
+  return (category && DEFAULT_COLOR_BY_CATEGORY[category]) || '#a3a3a3';
+}
+
 export function getDbType(type: string): string {
   return COLUMN_TYPES[type as RenderType]?.dbType ?? 'text';
 }

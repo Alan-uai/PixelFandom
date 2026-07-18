@@ -53,7 +53,7 @@ export function detectOpArray(value: unknown): boolean {
   });
 }
 
-export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean): ReactNode {
+export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): ReactNode {
   const entry = Object.entries(item as Record<string, unknown>)[0];
   const [label, rawVal] = entry;
   const op = parseOperatorPrefix(String(rawVal))!;
@@ -61,29 +61,25 @@ export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, 
   const labelColor = jsonbKeyColors?.[label];
 
   return (
-    <div
-      className="rounded-lg border bg-card p-2.5 text-xs min-w-[85px] hover:shadow-md hover:border-primary/20 transition-all cursor-default"
+    <span
+      onClick={onCompareClick}
+      role={onCompareClick ? 'button' : undefined}
+      tabIndex={onCompareClick ? 0 : undefined}
+      className={`inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs font-mono transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
       style={labelColor ? { borderColor: labelColor + '40' } : {}}
     >
-      <div className="flex flex-col gap-0.5">
-        <span className="font-bold text-primary font-mono text-sm">{op.symbol}{displayNum}</span>
-        <span
-          className="text-[10px] uppercase tracking-wider"
-          style={labelColor ? { color: labelColor } : { color: 'hsl(var(--muted-foreground))' }}
-        >
-          {humanizeLabel(label)}
-        </span>
-      </div>
-    </div>
+      <span className="font-bold text-primary">{op.symbol}{displayNum}</span>
+      <span style={labelColor ? { color: labelColor } : {}} className="text-muted-foreground">{humanizeLabel(label)}</span>
+    </span>
   );
 }
 
-export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean): ReactNode {
+export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): ReactNode {
   if (!Array.isArray(value)) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {value.map((item: unknown, i: number) => (
-        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix)}</div>
+        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix, onCompareClick)}</div>
       ))}
     </div>
   );

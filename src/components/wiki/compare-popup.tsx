@@ -9,6 +9,20 @@ import { ChipCarousel } from '@/components/ui/chip-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
+import { parseViewerConfig } from '@/lib/viewer-config';
+
+type ColumnConfigEntry = {
+  maxValue?: number;
+  jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>;
+  jsonbKeyColors?: Record<string, string>;
+  valueColors?: Record<string, string>;
+};
+
+type CompareColumnConfig = {
+  columnOpEnabled: Record<string, boolean>;
+  columnConfig: Record<string, ColumnConfigEntry>;
+  useSuffix: boolean;
+};
 
 type CompareInfo = {
   key: string;
@@ -58,7 +72,7 @@ const STAT_LABELS: Record<string, string> = {
   xp_drop: 'XP',
 };
 
-function renderCompareValue(item: Record<string, any>, stat: CompareInfo): React.ReactNode {
+function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: CompareColumnConfig): React.ReactNode {
   const val = item[stat.key];
 
   if (stat.format === 'range') {
@@ -94,7 +108,20 @@ function renderCompareValue(item: Record<string, any>, stat: CompareInfo): React
   }
 
   if (stat.format === 'jsonb') {
-    return <ColumnDisplay value={val} column={stat.key} renderType="jsonb" useSuffix />;
+    const parsed = typeof val === 'string'
+      ? (() => { try { return JSON.parse(val); } catch { return val; } })()
+      : val;
+    if (parsed === null || parsed === undefined) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <ColumnDisplay
+        value={parsed}
+        column={stat.key}
+        renderType="jsonb"
+        useSuffix={cfg.useSuffix}
+        opEnabled={cfg.columnOpEnabled[stat.key] !== false}
+        columnConfig={cfg.columnConfig[stat.key]}
+      />
+    );
   }
 
   // text fallback
@@ -120,7 +147,9 @@ export default function ComparePopup({
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [schema, setSchema] = useState<ColumnInfo[]>([]);
+  const [colConfig, setColConfig] = useState<CompareColumnConfig>({ columnOpEnabled: {}, columnConfig: {}, useSuffix: true });
   const itemsCache = useRef<Record<string, any>[] | null>(null);
+  const configCache = useRef<CompareColumnConfig | null>(null);
 
   const [compareStat, setCompareStat] = useState<CompareInfo | null>(null);
   const [compareFilter, setCompareFilter] = useState<string | null>(null);
@@ -129,6 +158,30 @@ export default function ComparePopup({
   useEffect(() => {
     getTableSchema(table).then(setSchema);
   }, [table]);
+
+  useEffect(() => {
+    if (!tenantId || !table) return;
+    if (configCache.current) {
+      setColConfig(configCache.current);
+      return;
+    }
+    supabase
+      .from('tenant_game_tables')
+      .select('viewer_config')
+      .eq('tenant_id', tenantId)
+      .eq('table_name', table)
+      .maybeSingle()
+      .then(({ data }) => {
+        const vc = parseViewerConfig(data?.viewer_config);
+        const cfg: CompareColumnConfig = {
+          columnOpEnabled: (vc.card?.columnOpEnabled || {}) as Record<string, boolean>,
+          columnConfig: ((vc.columnConfig || (vc.card as any)?.columnConfig || {}) as Record<string, ColumnConfigEntry>),
+          useSuffix: true,
+        };
+        configCache.current = cfg;
+        setColConfig(cfg);
+      });
+  }, [tenantId, table]);
 
   const allStats = useMemo(() => buildAllCompareInfo(schema), [schema]);
 
@@ -334,7 +387,7 @@ export default function ComparePopup({
                           </div>
                         </td>
                         <td className={`px-5 py-2.5 text-right ${isCurrent ? 'text-primary' : ''}`}>
-                          {renderCompareValue(item, compareStat)}
+                          {renderCompareValue(item, compareStat, colConfig)}
                         </td>
                       </tr>
                     );

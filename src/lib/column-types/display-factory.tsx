@@ -74,7 +74,7 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel, onCompareClick }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
@@ -82,6 +82,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   variant?: number;
   labelColor?: string;
   hideLabel?: boolean;
+  onCompareClick?: () => void;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
@@ -107,6 +108,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
+          onCompareClick={onCompareClick}
         />
       );
     }
@@ -122,6 +124,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
+          onCompareClick={onCompareClick}
         />
       );
     }
@@ -143,6 +146,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
+          onCompareClick={onCompareClick}
         />
       );
     }
@@ -198,6 +202,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       valueColors={valueColors}
       maxValue={maxValue}
       allowedValues={allowedValues}
+      onCompareClick={onCompareClick}
     />
   );
 }

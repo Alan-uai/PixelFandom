@@ -383,7 +383,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? () => onStatClick(c.column_name) : undefined} />
       </div>,
     );
   }
@@ -401,7 +401,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? () => onStatClick(c.column_name) : undefined} />
       </div>,
     );
   }
