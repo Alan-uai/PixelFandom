@@ -132,7 +132,6 @@ export function WikiContent({ content, className = '', wikiSlug }: WikiContentPr
     );
 
     const roots = iconRoots.current;
-    const roots = iconRoots.current;
     return () => {
       cancelled = true;
       roots.forEach((r) => r.unmount());
