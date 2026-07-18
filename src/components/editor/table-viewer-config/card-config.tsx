@@ -8,6 +8,7 @@ import { Select3D } from '@/components/ui/select3d';
 import { Input } from '@/components/ui/input';
 import { ColorSelect3D } from '@/components/ui/color-select-3d';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
+import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
@@ -26,6 +27,28 @@ const DEFAULT_BADGE_HEX_COLORS: Record<string, string> = {
 
 const LABEL_COLS = new Set(['name', 'title', 'description', 'summary', 'slug']);
 const SYSTEM_COLS_EXT = new Set([...SYSTEM_COLS, ...WIKI_MGMT_COLS]);
+
+function SizeStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(6, value - 2))}
+        className="h-5 w-5 rounded border border-border/50 bg-muted hover:bg-muted/80 flex items-center justify-center text-[10px] leading-none"
+      >
+        −
+      </button>
+      <span className="w-7 text-center text-[10px] font-mono">{value}px</span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(32, value + 2))}
+        className="h-5 w-5 rounded border border-border/50 bg-muted hover:bg-muted/80 flex items-center justify-center text-[10px] leading-none"
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 export function CardConfig({
   config,
@@ -76,6 +99,12 @@ export function CardConfig({
       ...c,
       badgeColors: { ...badgeColors, [col]: val },
     });
+  };
+
+  const badgeDisplayMode = c.badgeDisplayMode || 'inline';
+
+  const setBadgeDisplayMode = (mode: string) => {
+    onChange({ ...c, badgeDisplayMode: mode });
   };
 
   // Detail state
@@ -242,10 +271,33 @@ export function CardConfig({
             </div>
 
             {effectiveBadges.length > 0 && (
-              <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Modo dos badges</Label>
+                  <div className="flex gap-1">
+                    {(['lista', 'inline', 'footer-heading'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setBadgeDisplayMode(mode)}
+                        className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+                          badgeDisplayMode === mode
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-card border-border/50 text-muted-foreground hover:border-muted-foreground/30'
+                        }`}
+                      >
+                        {mode === 'lista' ? 'Lista' : mode === 'inline' ? 'Inline' : 'Footer'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-md border bg-muted/20 p-3">
                 <span className="text-xs font-medium text-muted-foreground">Configurar badges</span>
                 {effectiveBadges.map((col) => {
                   const bc = badgeConfig[col] || {};
+                  const iconSize = bc.iconSize ?? 10;
+                  const labelSize = bc.labelSize ?? 10;
                   return (
                     <div key={col} className="space-y-1.5 rounded border bg-background p-2">
                       <div className="flex items-center justify-between">
@@ -256,6 +308,25 @@ export function CardConfig({
                         >
                           {col}
                         </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-muted-foreground shrink-0">Ícone</Label>
+                        <IconPickerTrigger
+                          value={bc.icon || ''}
+                          onChange={(iconId) => updateBadgeConfig(col, 'icon', iconId)}
+                          size="sm"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-muted-foreground shrink-0">Tamanho ícone</Label>
+                        <SizeStepper value={iconSize} onChange={(v) => updateBadgeConfig(col, 'iconSize', v)} />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-muted-foreground shrink-0">Tamanho label</Label>
+                        <SizeStepper value={labelSize} onChange={(v) => updateBadgeConfig(col, 'labelSize', v)} />
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -310,7 +381,8 @@ export function CardConfig({
                   );
                 })}
               </div>
-            )}
+            </>
+          )}
           </div>
         </>
       )}

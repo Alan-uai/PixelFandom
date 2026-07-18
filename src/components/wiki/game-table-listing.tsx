@@ -112,6 +112,10 @@ function renderBadgeItem(
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
 
+  const bc = badgeConfig[col] || {};
+  const iconSize = bc.iconSize ?? 10;
+  const labelSize = bc.labelSize ?? 10;
+
   const renderType = columnTypes?.[col] || 'auto';
   let displayValue: React.ReactNode;
   if (typeof val === 'number') {
@@ -120,18 +124,22 @@ function renderBadgeItem(
     displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} columnConfig={columnConfig?.[col]} />;
   }
 
-  const bc = badgeConfig[col] || {};
   const rawColor = badgeColors[col] || '';
   const isColor = isColorString(rawColor);
   const hasHover = bc.hover === true;
   const hasAction = (bc.clickAction || 'none') !== 'none';
-  const baseClass = 'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium';
+  const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
   const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
   const classes = `${baseClass} ${colorClass} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
-  const style = isColor ? (hexToStyle(rawColor) || undefined) : undefined;
+  const style: React.CSSProperties = {
+    ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
+    fontSize: `${labelSize}px`,
+    padding: '2px 6px',
+  };
 
   const content = (
     <>
+      {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
       {displayValue}
     </>
   );
@@ -1462,6 +1470,7 @@ function ItemCard({
   const activeBadges: string[] = (cardConfig?.badges as string[]) || [];
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
+  const badgeDisplayMode = cardConfig?.badgeDisplayMode || 'inline';
   const hoverEffect = cardConfig?.hoverEffect || 'scale';
   const hoverEffectClass = hoverEffect === 'none' ? '' :
     hoverEffect === 'scale' ? 'hover:scale-[1.02] hover:shadow-md hover:border-primary/20 transition-all duration-200' :
@@ -1493,6 +1502,10 @@ function ItemCard({
     const val = item[col];
     if (val == null || val === '' || val === 'none') return null;
 
+    const bc = badgeConfig[col] || {};
+    const iconSize = bc.iconSize ?? 10;
+    const labelSize = bc.labelSize ?? 10;
+
     const renderType = columnTypes?.[col] || 'auto';
     let displayValue: React.ReactNode;
     if (typeof val === 'number') {
@@ -1501,24 +1514,29 @@ function ItemCard({
       displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} />;
     }
 
-    const bc = badgeConfig[col] || {};
     const rawColor = badgeColors[col] || '';
     const isColor = isColorString(rawColor);
     const hasHover = bc.hover === true;
     const hasAction = (bc.clickAction || 'none') !== 'none';
-    const baseClass = 'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium';
+    const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
     const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
     const classes = `${baseClass} ${colorClass} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
-    const style = isColor ? (hexToStyle(rawColor) || undefined) : undefined;
+    const style: React.CSSProperties = {
+      ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
+      fontSize: `${labelSize}px`,
+      padding: '2px 6px',
+    };
     if (hasAction) {
       return (
         <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes} style={style}>
+          {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
           {displayValue}
         </button>
       );
     }
     return (
       <span key={col} className={classes} style={style}>
+        {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
         {displayValue}
       </span>
     );
@@ -1556,12 +1574,17 @@ function ItemCard({
             </h3>
           </div>
           )}
-          {activeBadges.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
+          {activeBadges.length > 0 && badgeDisplayMode !== 'footer-heading' && (
+          <div className={`flex ${badgeDisplayMode === 'lista' ? 'flex-col items-end gap-1' : 'items-center gap-1.5 flex-wrap'} shrink-0 max-w-[180px] self-center`}>
             {activeBadges.map(col => renderBadge(col))}
           </div>
           )}
         </div>
+        {activeBadges.length > 0 && badgeDisplayMode === 'footer-heading' && (
+          <div className="relative px-3 pb-3 flex items-center justify-around gap-2 flex-wrap">
+            {activeBadges.map(col => renderBadge(col))}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pb-4 pt-3 border-t border-border/50">

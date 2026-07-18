@@ -158,6 +158,7 @@ export default function DataTableContent({
 
   const [editFieldCol, setEditFieldCol] = useState<string | null>(null);
   const [editFieldName, setEditFieldName] = useState('');
+  const [editFieldType, setEditFieldType] = useState<string>('text');
   const [editFieldSlug, setEditFieldSlug] = useState<string | null>(null);
   const [editFieldConflict, setEditFieldConflict] = useState<string | null>(null);
   const [editFieldChecking, setEditFieldChecking] = useState(false);
@@ -190,6 +191,7 @@ export default function DataTableContent({
   const handleEditFieldDisplayName = async () => {
     const rawName = editFieldName.trim();
     const col = editFieldCol;
+    const newType = editFieldType;
     if (!rawName || !col || !tenantId || editFieldConflict) return;
     setSchemaBusy(true);
 
@@ -198,22 +200,30 @@ export default function DataTableContent({
       [col]: { ...(prev[col] || {}), displayName: rawName },
     }));
 
+    if (newType !== columnRenderTypes[col]) {
+      setColumnRenderTypes((prev) => ({ ...prev, [col]: newType }));
+    }
+
     await updateViewerConfigField({ tenantId, table, slug }, (config) => {
       const next: Record<string, unknown> = { ...config };
       const prevColCfg = ((next.columnConfig as Record<string, unknown>) || {})[col];
       next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), [col]: { ...(prevColCfg as Record<string, unknown> || {}), displayName: rawName } };
+      const existingTypes = (next.columnTypes as Record<string, string>) || {};
+      next.columnTypes = { ...existingTypes, [col]: newType };
       return next;
     });
 
-    toast({ title: `Display name atualizado para "${rawName}".` });
+    toast({ title: `Campo "${rawName}" atualizado.` });
     setEditFieldCol(null);
     setEditFieldName('');
+    setEditFieldType('text');
     setSchemaBusy(false);
   };
 
   const handleOpenEditFieldDialog = (col: string) => {
     setEditFieldCol(col);
     setEditFieldName(columnConfigMap[col]?.displayName || col.replace(/_/g, ' '));
+    setEditFieldType(columnRenderTypes[col] || getTypeDef(col)?.id || 'text');
     setEditFieldSlug(null);
     setEditFieldConflict(null);
     setEditFieldChecking(false);
@@ -1632,15 +1642,15 @@ export default function DataTableContent({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editFieldCol !== null} onOpenChange={(open) => { if (!open) { setEditFieldCol(null); setEditFieldName(''); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); } }}>
-        <DialogContent className="sm:max-w-sm">
+      <Dialog open={editFieldCol !== null} onOpenChange={(open) => { if (!open) { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); } }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar campo</DialogTitle>
             <DialogDescription>
-              Altere o nome de exibição do campo. O identificador interno (slug) será verificado automaticamente.
+              Altere o nome de exibição e/ou o tipo do campo.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2 space-y-1">
+          <div className="py-2 space-y-3">
             <FloatingLabelInput
               label="Nome do campo"
               value={editFieldName}
@@ -1661,9 +1671,17 @@ export default function DataTableContent({
                 {editFieldSlug === editFieldCol ? ' (inalterado)' : ' (será diferente do identificador interno atual)'}
               </p>
             )}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <FieldTypeSelect3D
+                value={editFieldType}
+                onChange={setEditFieldType}
+                options={newFieldTypes}
+              />
+            </div>
           </div>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setEditFieldCol(null); setEditFieldName(''); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); }} disabled={schemaBusy}>
+            <Button variant="outline" size="sm" onClick={() => { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); }} disabled={schemaBusy}>
               Cancelar
             </Button>
             <Button size="sm" onClick={handleEditFieldDisplayName} disabled={schemaBusy || !!editFieldConflict || !editFieldName.trim()}>
