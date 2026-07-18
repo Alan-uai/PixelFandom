@@ -1472,12 +1472,16 @@ function MiniCardsSection({
   columnTypes,
   cardConfig,
   useSuffix,
+  opEnabled,
+  columnOpEnabled,
   onCompareStatClick,
 }: {
   item: any;
   columnTypes?: Record<string, string>;
   cardConfig?: Record<string, any>;
   useSuffix?: boolean;
+  opEnabled?: boolean;
+  columnOpEnabled?: Record<string, boolean>;
   onCompareStatClick?: (statKey: string) => void;
 }) {
   const visibleColumns: string[] = cardConfig?.visibleColumns || [];
@@ -1511,23 +1515,38 @@ function MiniCardsSection({
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
         const color = badgeColors[col] || 'hsl(var(--primary))';
+        const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
+        const showIcon = renderType === 'icon';
         return (
           <MiniCard3D
             key={col}
             label={col.replace(/_/g, ' ')}
             color={color}
-            onClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
-            className="group"
-            value={
+            icon={showIcon ? (
               <ColumnDisplay
                 value={item[col]}
                 column={col}
-                renderType={renderType}
+                renderType="icon"
                 useSuffix={useSuffix}
-                variant={1}
+                opEnabled={colOpEnabled}
                 hideLabel
-                onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
               />
+            ) : undefined}
+            onClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
+            className="group"
+            value={
+              showIcon ? null : (
+                <ColumnDisplay
+                  value={item[col]}
+                  column={col}
+                  renderType={renderType}
+                  useSuffix={useSuffix}
+                  opEnabled={colOpEnabled}
+                  variant={1}
+                  hideLabel
+                  onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
+                />
+              )
             }
           />
         );
@@ -1570,18 +1589,13 @@ function ItemCard({
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
   const badgeDisplayMode = cardConfig?.badgeDisplayMode || 'inline';
+  const columnOpEnabled: Record<string, boolean> = (detailConfig?.columnOpEnabled as Record<string, boolean>) || {};
+  const opEnabled = cardConfig?.opEnabled !== false;
   const hoverEffect = cardConfig?.hoverEffect || 'scale';
   const hoverEffectClass = hoverEffect === 'none' ? '' :
     hoverEffect === 'scale' ? 'hover:scale-[1.02] hover:shadow-md hover:border-primary/20 transition-all duration-200' :
     hoverEffect === 'glow' ? 'hover:shadow-[0_0_15px_rgba(75,197,255,0.3)] hover:border-primary/30 transition-all duration-200' :
     'hover:shadow-md hover:border-primary/20 transition-all duration-200';
-
-  const icon = getIcon(item);
-  const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
-  const imageUrl = (showCardImage ? item.image_url || item.image || item.icon_url || item.icon : undefined);
-
-  const rarity = item.rarity != null ? String(item.rarity) : undefined;
-  const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
   // ── Variantes: troca in-place do conteúdo do card ──
   const baseItemId = item.id as string;
@@ -1630,6 +1644,16 @@ function ItemCard({
     setActiveVariantSlug(null);
   }, [item]);
 
+  // Heading + badges refletem a variante ativa
+  const icon = getIcon(activeItem);
+  const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
+  const imageUrl = (showCardImage ? activeItem.image_url || activeItem.image || activeItem.icon_url || activeItem.icon : undefined);
+
+  const rarity = activeItem.rarity != null ? String(activeItem.rarity) : undefined;
+  const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
+
+  const activeLabel = activeItem.name || activeItem.title || activeItem.item_name || activeItem.code || label;
+
   const handleBadgeClick = (col: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const bc = badgeConfig[col] || {};
@@ -1645,7 +1669,7 @@ function ItemCard({
   };
 
   function renderBadge(col: string): React.ReactNode {
-    const val = item[col];
+    const val = activeItem[col];
     if (val == null || val === '' || val === 'none') return null;
 
     const bc = badgeConfig[col] || {};
@@ -1725,7 +1749,7 @@ function ItemCard({
           {showCardLabel && (
           <div className="flex-1 min-w-0 self-center">
             <h3 className={`${titleSize} leading-tight text-white`}>
-              {label}
+              {activeLabel}
             </h3>
           </div>
           )}
@@ -1761,6 +1785,8 @@ function ItemCard({
           columnTypes={columnTypes}
           cardConfig={cardConfig}
           useSuffix={useSuffix}
+          opEnabled={opEnabled}
+          columnOpEnabled={columnOpEnabled}
           onCompareStatClick={onCompareStatClick}
         />
         {!tenantId && (
