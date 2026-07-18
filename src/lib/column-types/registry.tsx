@@ -166,7 +166,7 @@ export const COLUMN_TYPES: Record<RenderType, ColumnTypeDefinition> = {
 
   // ── Numeric ──────────────────────────────────────
   integer: {
-    id: 'integer', label: 'Inteiro', category: 'numeric', dbType: 'integer',
+    id: 'integer', label: 'Inteiro', category: 'numeric', dbType: 'numeric',
     icon: <Hash className="h-3.5 w-3.5" />,
     nameMode: 'free',
     valueSchema: numericStr,
@@ -206,7 +206,7 @@ export const COLUMN_TYPES: Record<RenderType, ColumnTypeDefinition> = {
     sanitize: (v) => v.replace(/[^0-9-.e]/g, '').slice(0, 30),
   },
   rating: {
-    id: 'rating', label: 'Avaliação (Estrelas)', category: 'numeric', dbType: 'integer',
+    id: 'rating', label: 'Avaliação (Estrelas)', category: 'numeric', dbType: 'numeric',
     icon: <Star className="h-3.5 w-3.5" />,
     nameMode: 'free',
     valueSchema: numericStr,

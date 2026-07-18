@@ -39,7 +39,7 @@ import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { sanitizeUrl } from '@/lib/content-utils';
-import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType } from '@/lib/column-types/registry';
+import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType } from '@/lib/column-types/registry';
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
@@ -195,12 +195,31 @@ export default function DataTableContent({
     if (!rawName || !col || !tenantId || editFieldConflict) return;
     setSchemaBusy(true);
 
+    const oldRenderType = columnRenderTypes[col];
+    const oldDbType = getDbType(oldRenderType);
+    const newDbType = getDbType(newType);
+
+    if (oldDbType !== newDbType) {
+      const { data, error } = await supabase.rpc('alter_column_type', {
+        p_table: table,
+        p_column: col,
+        p_type: newDbType,
+        p_tenant_id: tenantId,
+      });
+      if (error || !(data as { ok: boolean })?.ok) {
+        const msg = (data as { error?: string })?.error || error?.message || 'Erro ao alterar tipo no banco';
+        toast({ variant: 'destructive', title: 'Erro', description: msg });
+        setSchemaBusy(false);
+        return;
+      }
+    }
+
     setColumnConfigMap((prev) => ({
       ...prev,
       [col]: { ...(prev[col] || {}), displayName: rawName },
     }));
 
-    if (newType !== columnRenderTypes[col]) {
+    if (newType !== oldRenderType) {
       setColumnRenderTypes((prev) => ({ ...prev, [col]: newType }));
     }
 

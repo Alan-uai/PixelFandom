@@ -72,6 +72,7 @@ export const ViewerConfigSchema = z.object({
     defaultExpanded: z.boolean().default(true),
     order: z.array(z.string()).default([]),
     categorySortDirection: z.enum(['asc', 'desc']).default('asc'),
+    categorySortColumn: z.string().nullable().default(null),
     autoDetect: z.boolean().default(true),
     manualGroups: z.array(ManualGroupSchema).default([]),
     secondaryColumn: z.string().nullable().default(null),

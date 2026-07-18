@@ -460,6 +460,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     // Apply custom order if set
     const customOrder = viewerConfig?.categorization?.order;
     const sortDir = viewerConfig?.categorization?.categorySortDirection || 'asc';
+    const categorySortCol = viewerConfig?.categorization?.categorySortColumn;
     if (customOrder && customOrder.length > 0) {
       const orderMap = new Map(customOrder.map((k, i) => [k, i]));
       entries.sort(([a], [b]) => {
@@ -469,6 +470,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (ai != null) return -1;
         if (bi != null) return 1;
         return sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
+      });
+    } else if (categorySortCol) {
+      const catSortValMap = new Map<string, string>();
+      for (const [cat, catItems] of entries) {
+        const first = catItems[0];
+        catSortValMap.set(cat, first != null && first[categorySortCol] != null ? String(first[categorySortCol]) : '');
+      }
+      entries.sort(([a], [b]) => {
+        const va = catSortValMap.get(a) || '';
+        const vb = catSortValMap.get(b) || '';
+        return sortDir === 'desc' ? vb.localeCompare(va) : va.localeCompare(vb);
       });
     } else {
       entries.sort(([a], [b]) => sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b));

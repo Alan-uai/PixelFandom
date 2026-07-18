@@ -149,6 +149,26 @@ export function CategorizationConfig({
   const catSortLabel = getColumnSortLabel(categoryValues, catColumnAnalysis);
   const subSortLabel = getColumnSortLabel(flatSubValues, subColumnAnalysis);
 
+  const catSortColumnValues = useMemo(() => {
+    const sortCol = c.categorySortColumn;
+    if (!sortCol || !items || items.length === 0) return [];
+    const values = new Set<string>();
+    for (const item of items) {
+      const v = item[sortCol];
+      if (v != null && v !== '' && v !== 'none') values.add(String(v));
+    }
+    return Array.from(values);
+  }, [c.categorySortColumn, items]);
+
+  const catSortColumnAnalysis = useMemo(
+    () => c.categorySortColumn && items && items.length > 0
+      ? analyzeColumnValues(items as Record<string, unknown>[], c.categorySortColumn)
+      : undefined,
+    [c.categorySortColumn, items],
+  );
+
+  const catSortColumnLabel = getColumnSortLabel(catSortColumnValues, catSortColumnAnalysis);
+
   const catItemSortValues = useMemo(() => {
     const sortCol = c.categoryItemSortColumn;
     if (!sortCol || !items || items.length === 0) return [];
@@ -223,6 +243,27 @@ export function CategorizationConfig({
   const sortedCategoryChips = useMemo(() => {
     const order = (c.order as string[]) || [];
     const dir = c.categorySortDirection || 'asc';
+    const sortCol = c.categorySortColumn;
+
+    if (sortCol && items && items.length > 0 && detectedColumn) {
+      const catToSortVal: Record<string, string> = {};
+      for (const item of items) {
+        const cat = String(item[detectedColumn] ?? '');
+        if (!cat || cat === 'none') continue;
+        if (!(cat in catToSortVal)) {
+          catToSortVal[cat] = String(item[sortCol] ?? '');
+        }
+      }
+      const ordered = order.filter((v) => categoryValues.includes(v));
+      const remaining = categoryValues.filter((v) => !ordered.includes(v));
+      remaining.sort((a, b) => {
+        const va = catToSortVal[a] || '';
+        const vb = catToSortVal[b] || '';
+        return dir === 'desc' ? vb.localeCompare(va) : va.localeCompare(vb);
+      });
+      return [...ordered, ...remaining];
+    }
+
     const colorMode = c.colorSortMode || 'value';
     const isColor = catColumnAnalysis?.type === 'color';
     const ordered = order.filter((v) => categoryValues.includes(v));
@@ -234,7 +275,7 @@ export function CategorizationConfig({
       remaining.sort((a, b) => (dir === 'desc' ? b.localeCompare(a) : a.localeCompare(b)));
     }
     return [...ordered, ...remaining];
-  }, [categoryValues, c.order, c.categorySortDirection, c.colorSortMode, catColumnAnalysis]);
+  }, [categoryValues, c.order, c.categorySortDirection, c.categorySortColumn, c.colorSortMode, catColumnAnalysis, detectedColumn, items]);
 
   const flatSubEntries = useMemo(() => {
     const entries: { key: string; cat: string; sub: string }[] = [];
@@ -616,13 +657,23 @@ export function CategorizationConfig({
       {/* === Ordem das categorias === */}
       <div className="space-y-2 border-t pt-3">
         <Label className="text-xs text-muted-foreground">Ordem das categorias</Label>
+        <Select3D
+          label="Ordenar por coluna"
+          value={c.categorySortColumn || 'none'}
+          options={[
+            { label: 'Nome da categoria', value: 'none' },
+            ...sortableColumns.map((col) => ({ label: col, value: col })),
+          ]}
+          onChange={(v) => onChange({ ...c, categorySortColumn: v === 'none' ? null : v })}
+        />
         {categoryValues.length > 0 && (
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] text-muted-foreground">Clique para definir posição. Vazias seguem ordem definida.</p>
             <button
               type="button"
               onClick={() => {
-                if (catColumnAnalysis?.type === 'color') {
+                const analysis = c.categorySortColumn ? catSortColumnAnalysis : catColumnAnalysis;
+                if (analysis?.type === 'color') {
                   if (clickTimer.current) {
                     clearTimeout(clickTimer.current);
                     clickTimer.current = null;
@@ -646,25 +697,29 @@ export function CategorizationConfig({
               className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
               title={catColumnAnalysis?.type === 'color' ? 'Clique simples: alternar modo/direção. Clique duplo: alternar entre modo e direção.' : 'Alternar direção da ordenação'}
             >
-              {catColumnAnalysis?.type === 'color' ? (
-                !catDirActive
-                  ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
-                  : (c.colorSortMode === 'value'
-                    ? (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
-                    : (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>))
-              ) : catSortLabel.mode === 'boolean' ? (
-                c.categorySortDirection === 'asc' ? (
-                  <><ArrowUpDown className="h-3 w-3" /> {catSortLabel.label}</>
+              {(() => {
+                const analysis = c.categorySortColumn ? catSortColumnAnalysis : catColumnAnalysis;
+                const label = c.categorySortColumn ? catSortColumnLabel : catSortLabel;
+                if (analysis?.type === 'color') {
+                  return !catDirActive
+                    ? (c.colorSortMode === 'value' ? <><Palette className="h-3 w-3" /> hex→A</> : <><Palette className="h-3 w-3" /> A→hex</>)
+                    : (c.colorSortMode === 'value'
+                      ? (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> hex1→hexN</> : <><Palette className="h-3 w-3" /> hexN→hex1</>)
+                      : (c.categorySortDirection === 'asc' ? <><Palette className="h-3 w-3" /> A→Z</> : <><Palette className="h-3 w-3" /> Z→A</>));
+                }
+                if (label.mode === 'boolean') {
+                  return c.categorySortDirection === 'asc' ? (
+                    <><ArrowUpDown className="h-3 w-3" /> {label.label}</>
+                  ) : (
+                    <><ArrowDownUp className="h-3 w-3" /> {label.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
+                  );
+                }
+                return c.categorySortDirection === 'asc' ? (
+                  <><ArrowUpDown className="h-3 w-3" /> {label.label}</>
                 ) : (
-                  <><ArrowDownUp className="h-3 w-3" /> {catSortLabel.label.replace(/^(.+)→(.+)$/, '$2→$1')}</>
-                )
-              ) : (
-                c.categorySortDirection === 'asc' ? (
-                  <><ArrowUpDown className="h-3 w-3" /> {catSortLabel.label}</>
-                ) : (
-                  <><ArrowDownUp className="h-3 w-3" /> {catSortLabel.isNumeric ? '1→0' : 'Z→A'}</>
-                )
-              )}
+                  <><ArrowDownUp className="h-3 w-3" /> {label.isNumeric ? '1→0' : 'Z→A'}</>
+                );
+              })()}
             </button>
           </div>
         )}
@@ -698,7 +753,7 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} />
+                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} hideLabel />
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
