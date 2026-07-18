@@ -17,7 +17,7 @@ export const ManualGroupSchema = z.object({
 
 export const BadgeEntrySchema = z.object({
   hover: z.boolean().default(false),
-  clickAction: z.enum(['comparison', 'external-link', 'none']).default('none'),
+  clickAction: z.enum(['comparison', 'external-link', 'popover', 'none']).default('none'),
   clickUrl: z.string().optional(),
 });
 

@@ -14,6 +14,18 @@ import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
 
 const BADGE_DEFAULTS = ['rarity', 'tier', 'element'];
 
+const CLICK_ACTION_OPTIONS: Record<string, { label: string; value: string }[]> = {
+  default: [
+    { label: 'Comparação', value: 'comparison' },
+    { label: 'Link externo', value: 'external-link' },
+  ],
+  popover: [
+    { label: 'Popover', value: 'popover' },
+    { label: 'Comparação', value: 'comparison' },
+    { label: 'Link externo', value: 'external-link' },
+  ],
+};
+
 const DEFAULT_BADGE_COLORS: Record<string, string> = {
   rarity: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
   tier: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10',
