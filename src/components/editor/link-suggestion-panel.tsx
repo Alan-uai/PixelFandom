@@ -2,15 +2,22 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Database, Package, FileText } from 'lucide-react';
 import { getTableCatalog, getTableItems } from '@/lib/data-access';
 import type { SuggestionState } from './extensions/smart-mention';
+
+const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  table: Database,
+  item: Package,
+  article: FileText,
+};
 
 interface SuggestionChip {
   label: string;
   slug: string;
   type: 'table' | 'item' | 'article';
   description?: string;
+  tableName?: string;
 }
 
 interface LinkSuggestionPanelProps {
@@ -53,6 +60,7 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert, activeSugges
               slug: (ti as any).slug || label,
               type: 'item' as const,
               description: table.display_label,
+              tableName: table.table_name,
             });
           }
           if (itemChips.length >= 15) break;
@@ -115,19 +123,19 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert, activeSugges
       return [...startsWith, ...includes, ...rest];
     }
 
-    const sections: { label: string; icon: string; chips: SuggestionChip[] }[] = [];
+    const sections: { label: string; iconType: 'table' | 'item' | 'article'; chips: SuggestionChip[] }[] = [];
 
     if (type === 'table' || (!type)) {
       const filtered = filterChips(tables);
-      if (filtered.length > 0) sections.push({ label: 'Tabelas', icon: '▦', chips: filtered });
+      if (filtered.length > 0) sections.push({ label: 'Tabelas', iconType: 'table', chips: filtered });
     }
     if (type === 'item' || (!type)) {
       const filtered = filterChips(items);
-      if (filtered.length > 0) sections.push({ label: 'Itens', icon: '◇', chips: filtered });
+      if (filtered.length > 0) sections.push({ label: 'Itens', iconType: 'item', chips: filtered });
     }
     if (type === 'article' || (!type)) {
       const filtered = filterChips(articles);
-      if (filtered.length > 0) sections.push({ label: 'Artigos', icon: '📄', chips: filtered });
+      if (filtered.length > 0) sections.push({ label: 'Artigos', iconType: 'article', chips: filtered });
     }
 
     return sections;
@@ -148,27 +156,27 @@ export default function LinkSuggestionPanel({ tenantSlug, onInsert, activeSugges
 
   return (
     <div className="space-y-2">
-      {sections.map((section) => (
-        <SectionCarousel
-          key={section.label}
-          label={section.label}
-          icon={section.icon}
-          chips={section.chips}
-          onInsert={onInsert}
-        />
-      ))}
+       {sections.map((section) => (
+         <SectionCarousel
+           key={section.label}
+           label={section.label}
+           iconType={section.iconType}
+           chips={section.chips}
+           onInsert={onInsert}
+         />
+       ))}
     </div>
   );
 }
 
 function SectionCarousel({
   label,
-  icon,
+  iconType,
   chips,
   onInsert,
 }: {
   label: string;
-  icon: string;
+  iconType: 'table' | 'item' | 'article';
   chips: SuggestionChip[];
   onInsert: (tag: string) => void;
 }) {
@@ -188,6 +196,14 @@ function SectionCarousel({
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
+        {(() => {
+          const Icon = SECTION_ICONS[iconType];
+          const colorClass =
+            iconType === 'table' ? 'text-primary'
+            : iconType === 'item' ? 'text-secondary'
+            : 'text-accent';
+          return Icon ? <Icon className={`h-3.5 w-3.5 ${colorClass}`} /> : null;
+        })()}
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {label}
         </span>
@@ -223,7 +239,10 @@ function SectionCarousel({
               item: 'text-secondary border-secondary/30 bg-secondary/10 hover:bg-secondary/20',
               article: 'text-accent border-accent/30 bg-accent/10 hover:bg-accent/20',
             };
-            const tag = `$${chip.type === 'table' ? 't' : chip.type === 'item' ? 'i' : 'a'}<${chip.slug}>`;
+            const tag =
+              chip.type === 'item' && chip.tableName
+                ? `$i<${chip.tableName}:${chip.slug}>`
+                : `$${chip.type === 'table' ? 't' : chip.type === 'item' ? 'i' : 'a'}<${chip.slug}>`;
             return (
               <motion.button
                 key={`${chip.type}:${chip.slug}`}
@@ -243,7 +262,10 @@ function SectionCarousel({
                 whileTap={{ scale: 0.95 }}
                 className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors ${colors[chip.type] || ''}`}
               >
-                <span>{icon}</span>
+                {(() => {
+                  const Icon = SECTION_ICONS[chip.type];
+                  return Icon ? <Icon className="h-3 w-3" /> : null;
+                })()}
                 <span className="max-w-[120px] truncate">{chip.label}</span>
               </motion.button>
             );

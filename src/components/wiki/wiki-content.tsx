@@ -1,11 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { micromark } from 'micromark';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { escapeHtml } from '@/lib/content-utils';
 import { UserMentionHydrator } from './user-mention-popover';
+import { IconRenderer } from '@/components/ui/icon-renderer';
+import { getTableCatalog, getTableItem } from '@/lib/data-access';
 
 type WikiContentProps = {
   content: string | null;
@@ -13,7 +16,46 @@ type WikiContentProps = {
   wikiSlug?: string;
 };
 
+// Default icon per mention type (used when no custom icon is defined)
+const DEFAULT_MENTION_ICON: Record<string, string> = {
+  table: 'Database',
+  item: 'Package',
+  article: 'FileText',
+  link: 'Link',
+};
+
+// Resolves the user-defined (custom) icon for a mention, falling back to the default.
+async function resolveMentionIcon(
+  type: string,
+  slug: string,
+  tableName: string | undefined,
+  wikiSlug: string | undefined,
+): Promise<string | null> {
+  if (!wikiSlug) return null;
+  try {
+    if (type === 'table') {
+      const catalog = await getTableCatalog(wikiSlug, false);
+      const entry = catalog.find((e) => e.table_name === slug);
+      return entry?.icon || null;
+    }
+    if (type === 'item' && tableName) {
+      const item = await getTableItem(wikiSlug, tableName, slug);
+      if (!item) return null;
+      const icon = (item as Record<string, unknown>).icon;
+      if (typeof icon === 'string' && icon) return icon;
+      const iconUrl = (item as Record<string, unknown>).icon_url;
+      if (typeof iconUrl === 'string' && iconUrl) return iconUrl;
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function WikiContent({ content, className = '', wikiSlug }: WikiContentProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const html = useMemo(() => {
     if (!content) return null;
 
@@ -48,6 +90,54 @@ export function WikiContent({ content, className = '', wikiSlug }: WikiContentPr
     }
   }, [content, wikiSlug]);
 
+  const iconRoots = useRef<Map<HTMLElement, Root>>(new Map());
+
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root || !html) return;
+
+    // Unmount any previously mounted icon roots
+    iconRoots.current.forEach((r) => r.unmount());
+    iconRoots.current.clear();
+
+    const spans = Array.from(root.querySelectorAll<HTMLElement>('.mention-icon[data-type]'));
+    if (spans.length === 0) return;
+
+    let cancelled = false;
+
+    Promise.all(
+      spans.map(async (el) => {
+        const type = el.dataset.type || '';
+        const slug = el.dataset.slug || '';
+        const tableName = el.dataset.table || undefined;
+        let iconId: string | null = await resolveMentionIcon(type, slug, tableName, wikiSlug);
+        if (!iconId) iconId = DEFAULT_MENTION_ICON[type] || 'Link';
+        if (cancelled) return;
+
+        while (el.firstChild) el.removeChild(el.firstChild);
+
+        const IconNode =
+          iconId.startsWith('http://') || iconId.startsWith('https://') ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={iconId} alt="" style={{ width: '0.85em', height: '0.85em', objectFit: 'contain' }} />
+          ) : (
+            <IconRenderer icon={iconId} size={14} />
+          );
+
+        const r = createRoot(el);
+        r.render(IconNode);
+        iconRoots.current.set(el, r);
+        el.classList.add('inline-flex', 'items-center', 'justify-center', 'shrink-0');
+      }),
+    );
+
+    return () => {
+      cancelled = true;
+      iconRoots.current.forEach((r) => r.unmount());
+      iconRoots.current.clear();
+    };
+  }, [html, wikiSlug]);
+
   if (!html) {
     return <p className="text-muted-foreground">Esta página ainda não tem conteúdo.</p>;
   }
@@ -56,6 +146,7 @@ export function WikiContent({ content, className = '', wikiSlug }: WikiContentPr
     <>
       <UserMentionHydrator />
       <div
+        ref={contentRef}
         className={`prose prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary prose-img:rounded-lg prose-pre:bg-muted prose-pre:border ${className}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -75,7 +166,7 @@ function preprocessSmartMentions(text: string, wikiSlug?: string): string {
       const href = sanitized.startsWith('http://') || sanitized.startsWith('https://')
         ? sanitized
         : `https://${sanitized}`;
-      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="smart-mention link-mention">🔗 ${escapeHtml(sanitized)}</a>`;
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="smart-mention link-mention"><span class="mention-icon" data-icon="Link"></span>${escapeHtml(sanitized)}</a>`;
     },
   );
 
@@ -86,18 +177,28 @@ function preprocessSmartMentions(text: string, wikiSlug?: string): string {
       const s = slug.trim().toLowerCase();
       if (!s) return '';
       const href = wikiSlug ? `/w/${wikiSlug}/${s}` : `/${s}`;
-      return `<a href="${escapeHtml(href)}" class="smart-mention table-mention" data-type="table" data-slug="${escapeHtml(s)}">▦ ${escapeHtml(s)}</a>`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention table-mention" data-type="table" data-slug="${escapeHtml(s)}"><span class="mention-icon" data-icon="Database"></span>${escapeHtml(s)}</a>`;
     },
   );
 
-  // $i<slug> → item link (resolve via search)
+  // $i<table:slug> or legacy $i<name> → item link (navigates to parent table, selects item)
   result = result.replace(
     /\$i<([^>]+)>/g,
-    (_, name: string) => {
-      const n = name.trim().toLowerCase();
+    (_, raw: string) => {
+      const n = raw.trim();
       if (!n) return '';
-      const href = wikiSlug ? `/w/${wikiSlug}?search=${encodeURIComponent(n)}` : `/?search=${encodeURIComponent(n)}`;
-      return `<a href="${escapeHtml(href)}" class="smart-mention item-mention" data-type="item" data-slug="${escapeHtml(n)}">◇ ${escapeHtml(n)}</a>`;
+      const nLow = n.toLowerCase();
+      if (n.includes(':')) {
+        const idx = n.indexOf(':');
+        const tableName = n.slice(0, idx).trim().toLowerCase();
+        const itemSlug = n.slice(idx + 1).trim();
+        if (tableName && itemSlug) {
+          const href = wikiSlug ? `/w/${wikiSlug}/${tableName}?item=${encodeURIComponent(itemSlug)}` : `/${tableName}?item=${encodeURIComponent(itemSlug)}`;
+          return `<a href="${escapeHtml(href)}" class="smart-mention item-mention" data-type="item" data-slug="${escapeHtml(itemSlug)}" data-table="${escapeHtml(tableName)}"><span class="mention-icon" data-icon="Package"></span>${escapeHtml(itemSlug)}</a>`;
+        }
+      }
+      const href = wikiSlug ? `/w/${wikiSlug}?search=${encodeURIComponent(nLow)}` : `/?search=${encodeURIComponent(nLow)}`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention item-mention" data-type="item" data-slug="${escapeHtml(nLow)}"><span class="mention-icon" data-icon="Package"></span>${escapeHtml(n)}</a>`;
     },
   );
 
@@ -108,7 +209,7 @@ function preprocessSmartMentions(text: string, wikiSlug?: string): string {
       const s = slug.trim().toLowerCase();
       if (!s) return '';
       const href = wikiSlug ? `/w/${wikiSlug}/${s}` : `/${s}`;
-      return `<a href="${escapeHtml(href)}" class="smart-mention article-mention" data-type="article" data-slug="${escapeHtml(s)}">📄 ${escapeHtml(s)}</a>`;
+      return `<a href="${escapeHtml(href)}" class="smart-mention article-mention" data-type="article" data-slug="${escapeHtml(s)}"><span class="mention-icon" data-icon="FileText"></span>${escapeHtml(s)}</a>`;
     },
   );
 

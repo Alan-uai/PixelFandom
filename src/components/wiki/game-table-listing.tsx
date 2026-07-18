@@ -26,6 +26,7 @@ import { resolveTableIcon } from '@/lib/table-icons';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { formatNumber } from '@/lib/format-number';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 const LONG_TEXT_COLS = new Set([
@@ -1241,7 +1242,7 @@ function ItemListRow({
         {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
         {activeBadges.length > 0 && (
           <div className="flex items-center gap-1 mt-1 flex-wrap">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, undefined, columnTypes, useSuffix))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
           </div>
         )}
       </div>
@@ -1323,7 +1324,7 @@ function ItemTableRow({
           <span className="text-sm font-medium truncate">{name}</span>
           {activeBadges.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
-              {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, undefined, columnTypes, useSuffix))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
             </div>
           )}
         </div>
@@ -1382,6 +1383,11 @@ function ItemAccordionBox({
   const name = item.name || item.title || item.slug || 'Item';
   const slug = item.slug || '';
   const isSelected = selectedSlug === slug;
+
+  // Auto-expand when this item is selected via ?item= (deep link from a wiki mention)
+  useEffect(() => {
+    if (isSelected) setExpanded(true);
+  }, [isSelected]);
 
   const showCardIcon = cardConfig?.showIcon !== false;
   const showCardLabel = cardConfig?.showLabel !== false;
@@ -1450,6 +1456,82 @@ function ItemAccordionBox({
   );
 }
 
+const MINI_CARD_SKIP_COLS = new Set([
+  'name', 'title', 'item_name', 'code', 'slug', 'description', 'image_url', 'image', 'icon_url', 'icon',
+  ...SYSTEM_COLS,
+]);
+
+/**
+ * Variant 1 section: every column value of the item is rendered as a 3D
+ * mini card, distributed in a 2-column grid inside the item card.
+ */
+function MiniCardsSection({
+  item,
+  columnTypes,
+  cardConfig,
+  useSuffix,
+  onCompareStatClick,
+}: {
+  item: any;
+  columnTypes?: Record<string, string>;
+  cardConfig?: Record<string, any>;
+  useSuffix?: boolean;
+  onCompareStatClick?: (statKey: string) => void;
+}) {
+  const order: string[] = cardConfig?.columnOrder?.length
+    ? cardConfig.columnOrder
+    : cardConfig?.visibleColumns || [];
+
+  const cols = order.length
+    ? order
+    : Object.keys(columnTypes || {});
+
+  const visible = cols.filter((c) => {
+    if (MINI_CARD_SKIP_COLS.has(c)) return false;
+    const val = item?.[c];
+    return val != null && val !== '' && val !== 'none';
+  });
+
+  if (visible.length === 0) return null;
+
+  const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
+  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
+
+  function handleClick(col: string) {
+    const action = badgeConfig[col]?.clickAction || 'none';
+    if (action === 'comparison') onCompareStatClick?.(col);
+  }
+
+  return (
+    <MiniCardGrid className="mb-3">
+      {visible.map((col) => {
+        const renderType = columnTypes?.[col] || 'text';
+        const color = badgeColors[col] || 'hsl(var(--primary))';
+        return (
+          <MiniCard3D
+            key={col}
+            label={col.replace(/_/g, ' ')}
+            color={color}
+            onClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
+            className="group"
+            value={
+              <ColumnDisplay
+                value={item[col]}
+                column={col}
+                renderType={renderType}
+                useSuffix={useSuffix}
+                variant={1}
+                hideLabel
+                onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
+              />
+            }
+          />
+        );
+      })}
+    </MiniCardGrid>
+  );
+}
+
 function ItemCard({
   item,
   tableName,
@@ -1474,7 +1556,7 @@ function ItemCard({
   columnTypes?: Record<string, string>;
 }) {
   const label = item.name || item.title || item.item_name || item.code || '';
-  const itemSlug = toSlug(String(label));
+  const itemSlug = item.slug || toSlug(String(label));
 
   const showCardIcon = cardConfig?.showIcon !== false;
   const showCardImage = cardConfig?.showImage !== false;
@@ -1601,6 +1683,13 @@ function ItemCard({
       </div>
 
       <div className="px-4 pb-4 pt-3 border-t border-border/50">
+        <MiniCardsSection
+          item={item}
+          columnTypes={columnTypes}
+          cardConfig={cardConfig}
+          useSuffix={useSuffix}
+          onCompareStatClick={onCompareStatClick}
+        />
         {tenantId ? (
           <CollectionItemView
             data={item}

@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
@@ -467,12 +468,43 @@ type Props = {
 
 export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
-  const name = (data.name || data.title || data.item_name || data.code || '') as string;
-  const description = data.description as string | undefined;
-  const rarity = data.rarity != null ? String(data.rarity) : undefined;
-  const tier = data.tier != null ? String(data.tier) : undefined;
-  const element = data.element != null ? String(data.element) : undefined;
-  const imageUrl = (data.image_url || data.image) as string | undefined;
+
+  // ── Variantes: troca in-place dos dados do card ──
+  const [activeData, setActiveData] = useState<Record<string, any>>(data);
+  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
+  const [loadingVariant, setLoadingVariant] = useState(false);
+  const [flipKey, setFlipKey] = useState(0);
+  const flipRef = useRef<HTMLDivElement>(null);
+  const baseItemId = data.id as string;
+  const baseItemSlug = data.slug as string;
+
+  useEffect(() => {
+    setActiveData(data);
+  }, [data]);
+
+  const handleSelectVariant = async (variantSlug: string | null) => {
+    if (variantSlug === null) {
+      setActiveVariantSlug(null);
+      setActiveData(data);
+      setFlipKey((k) => k + 1);
+      return;
+    }
+    if (!tenantId || !tenantSlug) return;
+    setLoadingVariant(true);
+    try {
+      const { getTableItem } = await import('@/lib/data-access');
+      const fetched = await getTableItem(tenantSlug, table, variantSlug);
+      if (fetched) {
+        setActiveVariantSlug(variantSlug);
+        setActiveData({ ...fetched, _source_table: sourceTable });
+        setFlipKey((k) => k + 1);
+      }
+    } catch {
+      // keep current data on failure
+    } finally {
+      setLoadingVariant(false);
+    }
+  };
 
   const effectiveHideHeader = hideHeader && detailConfig?.showHeader !== true;
   const effectiveVisibleColumns = detailConfig?.visibleColumns || [];
@@ -483,20 +515,6 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
   const showComparisonEnabled = detailConfig?.showComparison !== false;
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
-
-  const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
-
-  const itemIcon = data.icon_url ? (
-    <Image src={data.icon_url} alt="" fill className="object-contain" />
-  ) : data.icon && data.icon.includes(':') ? (
-    <IconRenderer icon={data.icon} size="lg" />
-  ) : data.icon && data.icon.startsWith('http') ? (
-    <Image src={data.icon} alt="" fill className="object-contain" />
-  ) : data.icon ? (
-    <span className="text-lg">{data.icon}</span>
-  ) : (
-    COLL_ICON[collectionType || ''] || <Sword className="h-5 w-5" />
-  );
 
   const handleStatClick = (statKey: string) => {
     if (!showComparisonEnabled) return;
@@ -511,63 +529,93 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   const rendered = new Set<string>();
 
+  const activeName = (activeData.name || activeData.title || activeData.item_name || activeData.code || '') as string;
+  const activeDescription = activeData.description as string | undefined;
+  const activeImageUrl = (activeData.image_url || activeData.image) as string | undefined;
+  const activeRarity = activeData.rarity != null ? String(activeData.rarity) : undefined;
+  const activeTier = activeData.tier != null ? String(activeData.tier) : undefined;
+  const activeElement = activeData.element != null ? String(activeData.element) : undefined;
+  const activeGrad = activeRarity ? (RARITY_GRAD[activeRarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
+  const activeIcon = activeData.icon_url ? (
+    <Image src={activeData.icon_url} alt="" fill className="object-contain" />
+  ) : activeData.icon && activeData.icon.includes(':') ? (
+    <IconRenderer icon={activeData.icon} size="lg" />
+  ) : activeData.icon && activeData.icon.startsWith('http') ? (
+    <Image src={activeData.icon} alt="" fill className="object-contain" />
+  ) : activeData.icon ? (
+    <span className="text-lg">{activeData.icon}</span>
+  ) : (
+    COLL_ICON[collectionType || ''] || <Sword className="h-5 w-5" />
+  );
+
   return (
       <div className="max-w-3xl mx-auto">
         {tenantId && (
           <VariantSelector
             tenantSlug={tenantSlug || ''}
             tableName={table}
-            currentItemId={data.id as string}
-            currentItemSlug={data.slug as string}
+            currentItemId={baseItemId}
+            currentItemSlug={baseItemSlug}
             tenantId={tenantId}
+            activeVariantSlug={activeVariantSlug}
+            onSelectVariant={handleSelectVariant}
+            loadingVariant={loadingVariant}
           />
         )}
 
         {showCompare && tenantId && showComparisonEnabled && (
-        <ComparePopup
+         <ComparePopup
           table={table}
           tenantId={tenantId}
           tenantSlug={tenantSlug}
-          currentItemId={data.id as string}
+          currentItemId={activeData.id as string}
           initialStat={showCompare.stat}
           useSuffix={useSuffix}
           onClose={() => setShowCompare(null)}
         />
-      )}
+       )}
 
+        <motion.div
+          key={flipKey}
+          ref={flipRef}
+          initial={{ rotateX: -8, opacity: 0, scale: 0.98 }}
+          animate={{ rotateX: 0, opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+          style={{ transformPerspective: 900 }}
+        >
       {!effectiveHideHeader && (
       <div className="rounded-xl mb-6 relative overflow-hidden"
-        style={imageUrl ? {
-          backgroundImage: `url(${imageUrl})`,
+        style={activeImageUrl ? {
+          backgroundImage: `url(${activeImageUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         } : undefined}
       >
-        <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
-        {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
+        <div className={`absolute inset-0 ${activeImageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${activeGrad}`}`} />
+        {!activeImageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
           <div className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
-            {itemIcon}
+            {activeIcon}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-white leading-tight">{name}</h1>
-            {description && <p className="text-sm text-white/80 mt-1.5 leading-relaxed">{description}</p>}
+            <h1 className="text-2xl font-bold text-white leading-tight">{activeName}</h1>
+            {activeDescription && <p className="text-sm text-white/80 mt-1.5 leading-relaxed">{activeDescription}</p>}
           </div>
           <div className="max-w-[200px]">
             <ChipCarousel>
-              {rarity && (
-                <Tag className={`${RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
-                  {rarity}
+              {activeRarity && (
+                <Tag className={`${RARITY_COLORS[activeRarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
+                  {activeRarity}
                 </Tag>
               )}
-              {tier && (
-                <Tag className={`${TIER_COL[tier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
-                  {TIER_LABEL[tier.toLowerCase()] || tier}
+              {activeTier && (
+                <Tag className={`${TIER_COL[activeTier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
+                  {TIER_LABEL[activeTier.toLowerCase()] || activeTier}
                 </Tag>
               )}
-              {element && element !== 'none' && (
-                <Tag className={`${elementClass(element)} bg-background/80 backdrop-blur-sm`} icon={elIcon(element)}>
-                  {element}
+              {activeElement && activeElement !== 'none' && (
+                <Tag className={`${elementClass(activeElement)} bg-background/80 backdrop-blur-sm`} icon={elIcon(activeElement)}>
+                  {activeElement}
                 </Tag>
               )}
             </ChipCarousel>
@@ -578,7 +626,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
       {/* Unified rendering pipeline: formats → types → auto-classified → catch-all */}
       <RenderTypeFields
-        data={data}
+        data={activeData}
         columnTypes={columnTypes || {}}
         columnFormats={columnFormats}
         formatVariants={formatVariants}
@@ -604,6 +652,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
         </div>
       )}
+        </motion.div>
     </div>
-  );
+   );
 }

@@ -457,6 +457,15 @@ function buildAllCompareInfo(schema: ColumnInfo[]): CompareInfo[] {
     result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'date' });
   }
 
+  // Text columns (incl. badge columns)
+  const textCols = schema.filter(
+    c => (c.data_type === 'text' || c.data_type?.startsWith('character varying') || c.data_type === 'varchar')
+      && !isSystem(c.column_name),
+  );
+  for (const col of textCols) {
+    result.push({ key: col.column_name, label: labelFromKey(col.column_name), format: 'text' });
+  }
+
   return result;
 }
 

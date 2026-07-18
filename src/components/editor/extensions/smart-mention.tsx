@@ -14,7 +14,7 @@ export interface SuggestionState {
   accept?: (tag: string) => void;
 }
 
-function parseQuery(query: string): { type: MentionType; search: string } | null {
+function parseQuery(query: string): { type: MentionType; search: string; tableName?: string } | null {
   const match = query.match(/^([tia@l])<([^>]*)/);
   if (!match) return null;
 
@@ -26,9 +26,19 @@ function parseQuery(query: string): { type: MentionType; search: string } | null
     l: 'link',
   };
 
+  let search = match[2];
+  let tableName: string | undefined;
+
+  if (match[1] === 'i' && search.includes(':')) {
+    const idx = search.indexOf(':');
+    tableName = search.slice(0, idx);
+    search = search.slice(idx + 1);
+  }
+
   return {
     type: typeMap[match[1]] || 'table',
-    search: match[2],
+    search,
+    tableName,
   };
 }
 

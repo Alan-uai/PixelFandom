@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
-  Star, Heart, ExternalLink, Clock, Download, Play, Info, ChevronDown,
+  Star, Heart, ExternalLink, Clock, Download, Play, Info,
   FileIcon, Video, Music, CalendarIcon,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, renderOpInline as renderOpInlineWidget } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
+import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 
 export interface AllowedValue {
   value: string;
@@ -105,8 +106,8 @@ function renderText(v: number, str: string, label: string, labelColor?: string, 
 }
 
 // ── number ────────────────────────────────────────────────
-function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
-  const color = valueColors?.[str];
+function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, rawValue?: string) {
+  const color = valueColors?.[str] ?? (rawValue != null ? valueColors?.[rawValue] : undefined);
   const valStyle: React.CSSProperties = color ? { color } : {};
   if (v === 2) {
     return (
@@ -1537,116 +1538,56 @@ function renderPerKeyCards(obj: Record<string, unknown>, jsonbKeyColors?: Record
   );
 }
 
-function renderComplexTable(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
-  const rows: React.ReactNode[] = [];
+function complexEntries(value: unknown): [string, unknown][] {
   if (Array.isArray(value)) {
-    const allKeys = [...new Set(value.flatMap((item: unknown) =>
-      typeof item === 'object' && item !== null ? Object.keys(item as Record<string, unknown>) : []
-    ))];
-    if (allKeys.length > 0) {
-      rows.push(
-        <thead key="thead" className="sticky top-0 bg-card">
-          <tr className="border-b text-xs text-muted-foreground">
-            <th className="text-left px-2 py-1.5 font-medium">#</th>
-            {allKeys.map(k => <th key={k} className="text-left px-2 py-1.5 font-medium capitalize" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</th>)}
-          </tr>
-        </thead>,
-      );
-    }
-    rows.push(
-      <tbody key="tbody">
-        {value.map((item: unknown, i: number) => (
-          <tr key={i} className="border-b last:border-0 text-xs hover:bg-muted/50">
-            <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
-            {allKeys.map(k => (
-              <td key={k} className="px-2 py-1.5 text-foreground">
-                {fmtComplexVal((item as Record<string, unknown>)?.[k], useSuffix)}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>,
+    return value.flatMap((item, i) =>
+      typeof item === 'object' && item !== null
+        ? Object.entries(item as Record<string, unknown>).map(([k, v]) => [`${k} ${i + 1}`, v] as [string, unknown])
+        : [[`Item ${i + 1}`, item] as [string, unknown]],
     );
-    return <table className="w-full text-sm">{rows}</table>;
   }
-  const obj = value as Record<string, unknown>;
-  rows.push(
-    <tbody key="tbody">
-      {Object.entries(obj).map(([k, val]) => (
-        <tr key={k} className="border-b last:border-0 text-xs">
-          <td className="px-3 py-1.5 font-medium text-foreground capitalize whitespace-nowrap" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</td>
-          <td className="px-3 py-1.5 text-muted-foreground">{fmtComplexVal(val, useSuffix)}</td>
-        </tr>
-      ))}
-    </tbody>,
-  );
-  return <table className="w-full text-sm">{rows}</table>;
+  if (typeof value === 'object' && value !== null) return Object.entries(value as Record<string, unknown>);
+  return [['Valor', value]];
 }
 
-function renderComplexInline(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
-  if (opEnabled && detectOpArray(value)) {
-    return renderOpInlineWidget(value, jsonbKeyColors, useSuffix);
-  }
-  const parts: React.ReactNode[] = [];
-  const addKeyValue = (k: string, val: unknown) => {
-    const keyColor = jsonbKeyColors?.[k];
-    parts.push(
-      <span key={parts.length} style={keyColor ? { color: keyColor } : {}}>
-        {k.replace(/_/g, ' ')}: {fmtComplexVal(val, useSuffix)}
-      </span>
-    );
-  };
-  if (Array.isArray(value)) {
-    value.forEach((item: unknown) => {
-      if (typeof item === 'object' && item !== null) {
-        Object.entries(item as Record<string, unknown>).forEach(([k, val]) => addKeyValue(k, val));
-      } else {
-        parts.push(fmtComplexVal(item, useSuffix));
-      }
-    });
-  } else {
-    Object.entries(value as Record<string, unknown>).forEach(([k, val]) => addKeyValue(k, val));
-  }
-  const result: React.ReactNode[] = [];
-  parts.forEach((p, i) => {
-    if (i > 0) result.push(' · ');
-    result.push(p);
-  });
-  return <span className="text-xs text-muted-foreground leading-relaxed">{result}</span>;
-}
-
-function render3DCarousel(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
-  const items = Array.isArray(value) ? value : [value as Record<string, unknown>];
+function ComplexRow3D({ k, val, color, useSuffix, depth = 0 }: { k: string; val: unknown; color?: string; useSuffix?: boolean; depth?: number }) {
   return (
-    <div className="flex flex-nowrap gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin"
-      style={{ perspective: '600px', transformStyle: 'preserve-3d' }}
+    <div
+      className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-card/60 px-2.5 py-1.5 backdrop-blur-sm"
+      style={{ transform: `translateZ(${8 + depth}px)`, borderColor: color ? `${color}55` : undefined }}
     >
-      {items.map((item: unknown, i: number) => {
-        if (typeof item !== 'object' || item === null) {
-          return (
-            <span key={i} className="snap-start shrink-0 rounded-xl bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-sm border border-border/40 p-3 text-xs shadow-lg"
-              style={{ transform: `rotateY(${(i - (items.length - 1) / 2) * 2}deg) translateZ(${30 - Math.abs(i - (items.length - 1) / 2) * 10}px)` }}
-            >
-              {String(item)}
-            </span>
-          );
-        }
-        const obj = item as Record<string, unknown>;
+      <span className="text-[10px] font-semibold uppercase tracking-wider capitalize" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+        {k.replace(/_/g, ' ')}
+      </span>
+      <span className="text-xs font-medium text-foreground truncate">{fmtComplexVal(val, useSuffix)}</span>
+    </div>
+  );
+}
+
+// ── v2: Holographic glass panels ──────────────────────────
+function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const entries = complexEntries(value);
+  return (
+    <div
+      className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1"
+      style={{ perspective: '900px', transformStyle: 'preserve-3d' }}
+    >
+      {entries.map(([k, val], i) => {
+        const color = jsonbKeyColors?.[k.replace(/\s\d+$/, '')];
         return (
           <div
-            key={i}
-            className="snap-start shrink-0 min-w-[140px] rounded-xl bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-sm border border-border/30 p-2.5 text-xs space-y-1.5 shadow-lg hover:shadow-xl transition-all duration-300"
+            key={k}
+            className="relative rounded-xl border border-border/40 bg-gradient-to-br from-card/80 via-card/60 to-card/40 p-2.5 backdrop-blur-md shadow-md transition-all duration-300 hover:shadow-lg"
             style={{
-              transform: `rotateY(${(i - (items.length - 1) / 2) * 3}deg) translateZ(${Math.max(0, 40 - Math.abs(i - (items.length - 1) / 2) * 15)}px)`,
+              transform: `rotateX(${i % 2 === 0 ? 3 : -3}deg) rotateY(${i % 2 === 0 ? -4 : 4}deg) translateZ(${10 + (i % 3) * 6}px)`,
               transformStyle: 'preserve-3d',
+              boxShadow: `0 8px 24px -12px ${color || 'hsl(var(--primary))'}66, inset 0 1px 0 rgba(255,255,255,0.06)`,
+              borderColor: color ? `${color}55` : undefined,
             }}
           >
-            {Object.entries(obj).map(([k, val]) => (
-              <div key={k} className="flex items-center gap-1.5" style={{ transform: 'translateZ(10px)' }}>
-                <span className="font-medium text-foreground/80 capitalize shrink-0" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
-                <span className="text-muted-foreground truncate">{fmtComplexVal(val, useSuffix)}</span>
-              </div>
-            ))}
+            <div className="pointer-events-none absolute inset-0 rounded-xl opacity-60"
+              style={{ background: `radial-gradient(circle at 30% 20%, ${color || 'hsl(var(--primary))'}22, transparent 70%)` }} />
+            <ComplexRow3D k={k} val={val} color={color} useSuffix={useSuffix} depth={4} />
           </div>
         );
       })}
@@ -1654,54 +1595,110 @@ function render3DCarousel(value: unknown, _label: string, useSuffix?: boolean, j
   );
 }
 
-function render3DDepth(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
-  const items = Array.isArray(value) ? value : [value as Record<string, unknown>];
+// ── v3: Neon depth grid ───────────────────────────────────
+function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const entries = complexEntries(value);
   return (
-    <div className="space-y-1" style={{ perspective: '800px', transformStyle: 'preserve-3d' }}>
-      {items.map((item: unknown, i: number) => {
-        if (typeof item !== 'object' || item === null) {
+    <div className="p-1" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', transform: 'rotateX(12deg)', transformStyle: 'preserve-3d' }}
+      >
+        {entries.map(([k, val], i) => {
+          const color = jsonbKeyColors?.[k.replace(/\s\d+$/, '')];
+          const accent = color || 'hsl(var(--primary))';
           return (
-            <div key={i} className="rounded-lg border border-border/20 bg-card p-2 text-xs"
-              style={{ transform: `translateZ(${-i * 2}px)`, opacity: 1 - i * 0.08 }}
+            <div
+              key={k}
+              className="relative overflow-hidden rounded-xl border bg-background/70 p-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1"
+              style={{
+                borderColor: `${accent}55`,
+                transform: `translateZ(${(i % 4) * 14}px)`,
+                boxShadow: `0 0 18px -6px ${accent}88, 0 10px 22px -14px #000`,
+              }}
             >
-              {String(item)}
+              <span className="absolute -top-6 -right-6 h-16 w-16 rounded-full blur-2xl" style={{ background: `${accent}40` }} />
+              <span className="relative block text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>
+                {k.replace(/_/g, ' ')}
+              </span>
+              <span className="relative mt-1 block text-sm font-bold text-foreground">{fmtComplexVal(val, useSuffix)}</span>
             </div>
           );
-        }
-        const obj = item as Record<string, unknown>;
-        const depth = i * 4;
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── v4: Orbital 3D carousel ───────────────────────────────
+function renderOrbitalCarousel(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const entries = complexEntries(value);
+  const mid = (entries.length - 1) / 2;
+  return (
+    <div
+      className="relative flex flex-nowrap gap-3 overflow-x-auto pb-3 pt-2 snap-x snap-mandatory scrollbar-thin"
+      style={{ perspective: '800px', transformStyle: 'preserve-3d' }}
+    >
+      {entries.map(([k, val], i) => {
+        const color = jsonbKeyColors?.[k.replace(/\s\d+$/, '')];
+        const accent = color || 'hsl(var(--primary))';
+        const offset = i - mid;
         return (
-          <details key={i} className="group rounded-lg overflow-hidden"
+          <div
+            key={k}
+            className="snap-center shrink-0 w-[150px] rounded-2xl border bg-gradient-to-br from-card via-card/90 to-card/70 p-3 backdrop-blur-md shadow-xl transition-all duration-500 hover:shadow-2xl"
             style={{
-              transform: `translateZ(${-depth}px)`,
+              transform: `rotateY(${offset * 14}deg) translateZ(${Math.max(0, 60 - Math.abs(offset) * 22)}px) translateY(${Math.abs(offset) * 8}px)`,
               transformStyle: 'preserve-3d',
-              marginTop: i > 0 ? `-${Math.min(8 + i * 2, 20)}px` : undefined,
+              borderColor: `${accent}66`,
+              boxShadow: `0 18px 40px -20px ${accent}aa`,
             }}
           >
-            <summary className="cursor-pointer rounded-lg bg-gradient-to-r from-card via-card/95 to-card/80 border border-border/30 px-3 py-2 text-xs font-medium text-foreground/80 shadow-sm transition-all group-open:rounded-b-none group-open:shadow-md list-none flex items-center gap-2"
-              style={{
-                transform: 'translateZ(20px)',
-                backgroundImage: `linear-gradient(135deg, hsl(var(--card) / ${1 - i * 0.06}), hsl(var(--card) / ${0.95 - i * 0.06}))`,
-              }}
-            >
-              <span className="text-muted-foreground/50 text-[10px] font-mono w-4">{i + 1}</span>
-              <span className="flex-1">{Object.values(obj).slice(0, 2).map(v => fmtComplexVal(v, useSuffix)).join(' · ') || `Item ${i + 1}`}</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="rounded-b-lg border-x border-b border-border/30 bg-gradient-to-b from-card/60 to-background/40 px-3 py-2 text-xs space-y-1.5 backdrop-blur-sm"
-              style={{
-                transform: 'translateZ(10px)',
-                boxShadow: `inset 0 4px 12px hsl(from hsl(var(--foreground)) h s l / 0.03)`,
-              }}
-            >
-              {Object.entries(obj).map(([k, val]) => (
-                <div key={k} className="flex items-center gap-2">
-                  <span className="font-medium text-foreground/60 capitalize shrink-0 min-w-[70px]" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
-                  <span className="text-muted-foreground">{fmtComplexVal(val, useSuffix)}</span>
-                </div>
-              ))}
+            <div className="mb-2 flex items-center gap-1.5" style={{ transform: 'translateZ(24px)' }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: accent, boxShadow: `0 0 8px ${accent}` }} />
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent }}>{k.replace(/_/g, ' ')}</span>
             </div>
-          </details>
+            <span className="block text-base font-bold text-foreground" style={{ transform: 'translateZ(14px)' }}>{fmtComplexVal(val, useSuffix)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── v5: Layered 3D depth stack ────────────────────────────
+function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const entries = complexEntries(value);
+  return (
+    <div className="relative space-y-1 py-1" style={{ perspective: '1200px', transformStyle: 'preserve-3d' }}>
+      {entries.map(([k, val], i) => {
+        const color = jsonbKeyColors?.[k.replace(/\s\d+$/, '')];
+        const accent = color || 'hsl(var(--primary))';
+        const isTop = i === 0;
+        return (
+          <div
+            key={k}
+            className={`relative rounded-xl border backdrop-blur-md transition-all duration-500 ${isTop ? 'shadow-2xl' : 'shadow-md'}`}
+            style={{
+              transform: `translateZ(${-i * 16}px) rotateX(${isTop ? 0 : 6}deg)`,
+              transformStyle: 'preserve-3d',
+              marginTop: i > 0 ? '-14px' : undefined,
+              marginLeft: `${i * 6}px`,
+              marginRight: `${i * 6}px`,
+              zIndex: entries.length - i,
+              backgroundImage: `linear-gradient(135deg, hsl(var(--card) / ${1 - i * 0.05}), hsl(var(--card) / ${0.85 - i * 0.05}))`,
+              borderColor: `${accent}${isTop ? '99' : '44'}`,
+              boxShadow: isTop ? `0 20px 50px -20px ${accent}cc, inset 0 1px 0 rgba(255,255,255,0.07)` : `0 10px 24px -16px #000`,
+            }}
+          >
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5" style={{ transform: 'translateZ(20px)' }}>
+              <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide" style={{ color: accent }}>
+                <span className="text-[10px] font-mono opacity-60">{String(i + 1).padStart(2, '0')}</span>
+                {k.replace(/_/g, ' ')}
+              </span>
+              <span className="text-sm font-bold text-foreground">{fmtComplexVal(val, useSuffix)}</span>
+            </div>
+          </div>
         );
       })}
     </div>
@@ -1710,10 +1707,144 @@ function render3DDepth(value: unknown, _label: string, useSuffix?: boolean, json
 
 function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void): React.ReactNode {
   if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
-  if (v === 2) return renderComplexTable(value, label, useSuffix, jsonbKeyColors);
-  if (v === 3) return renderComplexInline(value, label, useSuffix, jsonbKeyColors, opEnabled);
-  if (v === 4) return render3DCarousel(value, label, useSuffix, jsonbKeyColors);
-  return render3DDepth(value, label, useSuffix, jsonbKeyColors);
+  if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors);
+  if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors);
+  if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors);
+  return renderDepthStack(value, label, useSuffix, jsonbKeyColors);
+}
+
+// ── Variant 1: every scalar render type becomes a mini card ──
+function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, _opEnabled?: boolean): React.ReactNode {
+  const color = valueColors?.[str];
+  const valStyle: React.CSSProperties = color ? { color } : {};
+  switch (format) {
+    case 'badge': {
+      const av = findAllowed(allowedValues, str);
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ ...valStyle, color: color || 'hsl(var(--primary))' }}>
+          {av?.icon && <IconRenderer icon={av.icon} size={'sm'} />}
+          {av?.label || str}
+        </span>
+      );
+    }
+    case 'number': {
+      const num = typeof value === 'number' ? formatNumber(value, !!useSuffix) : str;
+      return <span className="text-sm font-bold font-mono" style={valStyle}>{num}</span>;
+    }
+    case 'color':
+      return (
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: str }} />
+          <span className="text-xs font-mono text-muted-foreground">{str}</span>
+        </span>
+      );
+    case 'icon':
+      return <IconRenderer icon={str} size="md" />;
+    case 'link': {
+      const isValid = str.startsWith('http://') || str.startsWith('https://');
+      return isValid ? (
+        <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-full">{str.replace(/^https?:\/\//, '').slice(0, 28)}</a>
+      ) : <span className="text-xs text-muted-foreground truncate max-w-full">{str}</span>;
+    }
+    case 'image': {
+      const isValid = str.startsWith('http') || str.startsWith('data:');
+      return isValid ? (
+        <span className="relative block h-10 w-full rounded-md overflow-hidden border">
+          <Image src={str} alt={label} fill className="object-cover" />
+        </span>
+      ) : <span className="text-xs text-muted-foreground">{str}</span>;
+    }
+    case 'rating': {
+      const num = Number(value);
+      const stars = isNaN(num) ? 0 : Math.round(Math.min(maxValue ?? 5, Math.max(0, num)));
+      return (
+        <span className="flex items-center gap-0.5">
+          {Array.from({ length: maxValue ?? 5 }).map((_, i) => (
+            <Star key={i} className={`h-3 w-3 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+          ))}
+        </span>
+      );
+    }
+    case 'progress': {
+      const num = Number(value);
+      const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, num));
+      return (
+        <span className="flex w-full items-center gap-1.5">
+          <span className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+            <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground">{isNaN(num) ? String(value) : `${Math.round(num)}%`}</span>
+        </span>
+      );
+    }
+    case 'tags':
+    case 'multi-select': {
+      const arr = Array.isArray(value) ? value.map(String) : String(value).split(',').map(s => s.trim()).filter(Boolean);
+      return (
+        <span className="flex flex-wrap gap-1">
+          {arr.slice(0, 3).map((t: string, i: number) => {
+            const av = findAllowed(allowedValues, t);
+            return <span key={i} className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">{av?.label || t}</span>;
+          })}
+          {arr.length > 3 && <span className="text-[10px] text-muted-foreground">+{arr.length - 3}</span>}
+        </span>
+      );
+    }
+    case 'boolean': {
+      const truthy = value === true || value === 'true' || value === 1 || value === '1';
+      return <span className={`text-sm ${truthy ? 'text-emerald-400' : 'text-red-400'}`}>{truthy ? '✓' : '✗'}</span>;
+    }
+    case 'date': {
+      const d = new Date(str);
+      const valid = !isNaN(d.getTime());
+      return <span className="text-xs text-foreground">{valid ? d.toLocaleDateString('pt-BR') : str}</span>;
+    }
+    case 'duration':
+      return <span className="text-xs text-foreground">{String(value ?? '')}</span>;
+    case 'file': {
+      const isValid = str.startsWith('http');
+      return isValid ? (
+        <span className="inline-flex items-center gap-1 text-xs text-primary"><Download className="h-3 w-3" />{str.split('/').pop()}</span>
+      ) : <span className="text-xs text-muted-foreground">{str}</span>;
+    }
+    case 'video':
+      return <span className="inline-flex items-center gap-1 text-xs text-primary"><Play className="h-3 w-3" />Vídeo</span>;
+    case 'audio':
+      return <span className="inline-flex items-center gap-1 text-xs text-primary"><Music className="h-3 w-3" />Áudio</span>;
+    case 'emoji':
+      return <span className="text-xl leading-none">{str}</span>;
+    case 'icon-set':
+    case 'color-palette': {
+      const arr = Array.isArray(value) ? value : [];
+      if (format === 'color-palette') {
+        return (
+          <span className="flex gap-1">
+            {arr.slice(0, 6).map((c: string, i: number) => <span key={i} className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: String(c) }} />)}
+          </span>
+        );
+      }
+      return (
+        <span className="flex gap-1">
+          {arr.slice(0, 4).map((ic: string, i: number) => <span key={i} className="flex items-center justify-center h-5 w-5 rounded bg-muted/40"><IconRenderer icon={String(ic)} size={12} /></span>)}
+        </span>
+      );
+    }
+    case 'select':
+    case 'toggle-group': {
+      const av = findAllowed(allowedValues, str);
+      const c = av?.color || color;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold" style={c ? { color: c } : {}}>
+          {av?.icon && <IconRenderer icon={av.icon} size={'sm'} />}
+          {av?.label || str}
+        </span>
+      );
+    }
+    case 'popover':
+      return <span className="text-xs text-muted-foreground truncate max-w-full">{str}</span>;
+    default:
+      return <span className="text-xs text-foreground" style={valStyle}>{str}</span>;
+  }
 }
 
 // ── Main component ────────────────────────────────────────
@@ -1728,11 +1859,19 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
+  if (n === 1) {
+    const content = renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled);
+    const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
+    return (
+      <MiniCard3D label={label} color={accent} value={content} onClick={onCompareClick} className="group" />
+    );
+  }
+
   switch (format) {
     case 'text':     return renderText(n, str, label, labelColor, valueColors);
     case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
     case 'number':
-      if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors);
+      if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value));
       return renderNumber(n, str, label, labelColor, valueColors);
     case 'color':    return renderColor(n, str, label, labelColor);
     case 'icon':     return renderIcon(n, str, label, labelColor);

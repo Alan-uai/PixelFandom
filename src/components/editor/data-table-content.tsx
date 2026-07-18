@@ -42,15 +42,10 @@ import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
 import { suggestJsonFormat } from '@/lib/json-format-suggestion';
 import { sanitizeUrl } from '@/lib/content-utils';
+import { slugifyItemName, generateUniqueItemSlug } from '@/lib/item-slug';
 
 function slugifyName(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9一-鿿\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+  return slugifyItemName(text);
 }
 import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType } from '@/lib/column-types/registry';
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
@@ -620,7 +615,8 @@ export default function DataTableContent({
 
     if ('name' in payload) {
       const nameVal = (payload['name'] as string | null)?.toString().trim();
-      payload['slug'] = nameVal ? slugifyName(nameVal) : null;
+      const baseSlug = nameVal ? slugifyName(nameVal) : '';
+      payload['slug'] = baseSlug && tenantId ? await generateUniqueItemSlug(table, tenantId, baseSlug, rowId) : (baseSlug || null);
     }
 
     const { error } = await supabase.from(table).update(payload).eq('id', rowId);
@@ -682,7 +678,7 @@ export default function DataTableContent({
     setSaving(true);
     const { data: newItem, error: insertError } = await supabase
       .from(table)
-      .insert({ name: variantName, slug: slugifyName(variantName), tenant_id: tenantId })
+      .insert({ name: variantName, slug: await generateUniqueItemSlug(table, tenantId, slugifyName(variantName)), tenant_id: tenantId })
       .select('id')
       .single();
     if (insertError || !newItem) {
@@ -731,7 +727,7 @@ export default function DataTableContent({
       payload[key] = sanitizeFieldValue(key, val);
     });
 
-    const slugVal = slugifyName(nameVal);
+    const slugVal = await generateUniqueItemSlug(table, tenantId, slugifyName(nameVal));
     if (slugVal) payload['slug'] = slugVal;
 
     const { error } = await supabase.from(table).insert(payload).select().single();
@@ -1059,12 +1055,15 @@ export default function DataTableContent({
     const isJson = ['craft_materials', 'set_bonus', 'key_buffs', 'possible_stats', 'attacks', 'effects', 'items_dropped', 'notable_loot', 'chapters', 'difficulties', 'rewards', 'crafting_materials'].includes(col);
 
     if (isJson || isLongText) {
+      const colLabel = columnConfigMap[col]?.displayName || col;
+      const jsonHint = isJson ? suggestJsonFormat(colLabel) : null;
       return (
         <textarea
           value={value}
           onChange={(e) => onChange(col, e.target.value)}
           rows={isJson ? 4 : 3}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+          placeholder={jsonHint ? jsonHint.example : undefined}
+          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs placeholder:text-muted-foreground/40"
         />
       );
     }
@@ -1369,7 +1368,7 @@ export default function DataTableContent({
                             options={typeDef.nameOptions}
                             value={newFieldSubType}
                             onChange={(opt) => {
-                              setNewFieldName(opt.defaultColumn);
+                              if (!newFieldName.trim()) setNewFieldName(opt.defaultColumn);
                               setNewFieldSubType(opt.value);
                             }}
                           />
@@ -1404,7 +1403,7 @@ export default function DataTableContent({
                         setNewFieldMaxValue(t === 'rating' ? '5' : '100');
                         const def = getTypeDef(t);
                         if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
-                          setNewFieldName(def.nameOptions[0].defaultColumn);
+                          if (!newFieldName.trim()) setNewFieldName(def.nameOptions[0].defaultColumn);
                           setNewFieldSubType(def.nameOptions[0].value);
                         } else if (def?.nameMode === 'selector') {
                           setNewFieldSubType('');
@@ -1651,7 +1650,7 @@ export default function DataTableContent({
                                   setNewFieldMaxValue('100');
                                   const def = getTypeDef(t);
                                   if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
-                                    setNewFieldName(def.nameOptions[0].defaultColumn);
+                                    if (!newFieldName.trim()) setNewFieldName(def.nameOptions[0].defaultColumn);
                                     setNewFieldSubType(def.nameOptions[0].value);
                                   } else if (def?.nameMode === 'selector') {
                                     setNewFieldSubType('');

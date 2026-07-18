@@ -19,7 +19,7 @@ export function sanitizeHtml(html: string): string {
       'tr', 'th', 'td',
     ],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
-    ALLOW_DATA_ATTR: false,
+    ALLOW_DATA_ATTR: true,
   } as Config);
 }
 

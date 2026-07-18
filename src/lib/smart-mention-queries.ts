@@ -216,7 +216,10 @@ export function extractPendingLinks(content: string): PendingLink[] {
       a: 'article',
     };
     const type = typeMap[match[1]];
-    const slug = match[2].trim().toLowerCase();
+    let slug = match[2].trim().toLowerCase();
+    if (type === 'item' && slug.includes(':')) {
+      slug = slug.split(':').slice(1).join(':');
+    }
     if (type && slug) {
       links.push({ type, slug, created_at: new Date().toISOString() });
     }

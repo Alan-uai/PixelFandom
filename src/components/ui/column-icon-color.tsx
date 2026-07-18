@@ -187,9 +187,25 @@ interface InputGlowProps {
   children: React.ReactNode;
 }
 
+const GLOW_RADIUS = 8;
+const GLOW_INSET = 1.5;
+
 export function InputGlow({ color, children }: InputGlowProps) {
   const [phase, setPhase] = useState<GlowPhase>('idle');
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const wrapRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (r) setSize({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -203,8 +219,17 @@ export function InputGlow({ color, children }: InputGlowProps) {
     typingTimer.current = setTimeout(() => setPhase('focus'), 600);
   };
 
+  const active = phase !== 'idle' && size.w > 0 && size.h > 0;
+  const w = size.w + GLOW_INSET * 2;
+  const h = size.h + GLOW_INSET * 2;
+  const rectW = Math.max(0, w - 2);
+  const rectH = Math.max(0, h - 2);
+  const perimeter = 2 * (rectW + rectH - 2 * GLOW_RADIUS) + 2 * Math.PI * GLOW_RADIUS;
+  const dash = Math.max(24, perimeter * 0.18);
+
   return (
     <div
+      ref={wrapRef}
       className="relative flex-1 min-w-0"
       style={{ ['--glow-c' as string]: color }}
       onFocus={() => {
@@ -216,15 +241,58 @@ export function InputGlow({ color, children }: InputGlowProps) {
       }}
       onKeyDown={handleKeyDown}
     >
-      {phase !== 'idle' && (
-        <>
-          <span
-            className={`pointer-events-none absolute inset-0 rounded-lg ${phase === 'typing' ? 'glow-ring-spin' : 'glow-ring-spin glow-ring-paused'}`}
+      {active && (
+        <svg
+          className="pointer-events-none absolute z-10"
+          style={{
+            top: -GLOW_INSET,
+            left: -GLOW_INSET,
+            width: w,
+            height: h,
+            filter: 'drop-shadow(0 0 5px var(--glow-c))',
+          }}
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          fill="none"
+        >
+          <rect
+            className={
+              phase === 'typing'
+                ? 'ig-svg-comet'
+                : phase === 'focus'
+                  ? 'ig-svg-comet ig-svg-paused'
+                  : ''
+            }
+            x={1}
+            y={1}
+            width={rectW}
+            height={rectH}
+            rx={GLOW_RADIUS}
+            ry={GLOW_RADIUS}
+            stroke="var(--glow-c)"
+            strokeWidth={2}
+            strokeLinecap="round"
+            style={{
+              strokeDasharray: `${dash} ${perimeter}`,
+              ['--ig-perim' as string]: `${dash + perimeter}`,
+            }}
           />
           {phase === 'focus' && (
-            <span className="glow-ring-pulse pointer-events-none absolute inset-0 rounded-lg" />
+            <rect
+              className="ig-svg-pulse"
+              x={1}
+              y={1}
+              width={rectW}
+              height={rectH}
+              rx={GLOW_RADIUS}
+              ry={GLOW_RADIUS}
+              stroke="var(--glow-c)"
+              strokeWidth={2}
+              fill="none"
+            />
           )}
-        </>
+        </svg>
       )}
       {children}
     </div>

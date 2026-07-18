@@ -21,7 +21,7 @@ import type { SuggestionState } from '@/components/editor/extensions/smart-menti
 import { useTranslations } from 'next-intl';
 import { extractTextFromContent, sanitizeUrl } from '@/lib/content-utils';
 import { extractPendingLinks } from '@/lib/smart-mention-queries';
-import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, History } from 'lucide-react';
+import { Sparkles, FileText, Wand2, Loader2, ShieldAlert, History, Database, Package } from 'lucide-react';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 import { Label } from '@/components/ui/label';
@@ -664,7 +664,7 @@ function EditPageContent() {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {detectedLinks.map((link, i) => {
-                      const icon = link.type === 'table' ? '▦' : link.type === 'item' ? '◇' : '📄';
+                      const Icon = link.type === 'table' ? Database : link.type === 'item' ? Package : FileText;
                       const color = link.type === 'table' ? 'text-primary border-primary/30 bg-primary/10' :
                         link.type === 'item' ? 'text-secondary border-secondary/30 bg-secondary/10' :
                         'text-accent border-accent/30 bg-accent/10';
@@ -673,7 +673,7 @@ function EditPageContent() {
                           key={`${link.type}:${link.slug}:${i}`}
                           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${color}`}
                         >
-                          <span>{icon}</span>
+                          <Icon className="h-3 w-3" />
                           <span>{link.slug}</span>
                         </span>
                       );
