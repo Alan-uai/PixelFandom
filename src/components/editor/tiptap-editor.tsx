@@ -72,7 +72,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
   { content, onChange, placeholder, articleId, tenantId, onSuggestionChange },
   ref,
 ) {
-  const suggestionRef = useRef<SuggestionState>({ active: false, type: null, search: '', range: undefined });
+  const suggestionRef = useRef<SuggestionState>({ active: false, type: null, search: '', range: undefined, accept: undefined });
   const stableOnSuggestionChange = useCallback((state: SuggestionState) => {
     suggestionRef.current = state;
     onSuggestionChange?.(state);
@@ -126,16 +126,16 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
     },
     insertSmartMention(tag: string) {
       if (!editor) return;
-      const range = suggestionRef.current.range;
-      if (range) {
-        const { from, to } = range;
+      const sug = suggestionRef.current;
+      if (sug.accept) {
+        sug.accept(tag);
+      } else if (sug.range) {
+        const { from, to } = sug.range;
         editor
           .chain()
           .focus()
           .command(({ tr, dispatch }) => {
-            if (dispatch) {
-              tr.insertText(tag, from, to);
-            }
+            if (dispatch) tr.insertText(tag, from, to);
             return true;
           })
           .run();
@@ -149,8 +149,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(function 
           })
           .run();
       }
-      suggestionRef.current = { active: false, type: null, search: '', range: undefined };
-      onSuggestionChange?.({ active: false, type: null, search: '', range: undefined });
+      suggestionRef.current = { active: false, type: null, search: '', range: undefined, accept: undefined };
+      onSuggestionChange?.({ active: false, type: null, search: '', range: undefined, accept: undefined });
     },
     focus() {
       editor?.chain().focus().run();

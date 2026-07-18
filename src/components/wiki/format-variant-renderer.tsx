@@ -11,7 +11,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText, normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue, humanizeLabel, parseOperatorPrefix, formatOpValue, hasOperatorPrefix } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 
 export interface AllowedValue {
@@ -1440,6 +1440,31 @@ function isComplexValue(value: unknown): boolean {
 
 // ── Complex value variants ────────────────────────────────
 
+function isOpArray(value: unknown): boolean {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.every(item => {
+    if (typeof item !== 'object' || item === null) return false;
+    const entries = Object.entries(item as Record<string, unknown>);
+    if (entries.length !== 1) return false;
+    return typeof entries[0][1] === 'string' && hasOperatorPrefix(entries[0][1]);
+  });
+}
+
+function renderOpInline(value: unknown, useSuffix?: boolean): React.ReactNode {
+  if (!Array.isArray(value)) return null;
+  const parts = value.map((item: unknown) => {
+    const entry = Object.entries(item as Record<string, unknown>)[0];
+    const [label, rawVal] = entry;
+    const op = parseOperatorPrefix(String(rawVal))!;
+    return formatOpValue(op.symbol, op.number, label, useSuffix);
+  });
+  return (
+    <span className="text-xs text-foreground font-mono">
+      {parts.join(', ')}
+    </span>
+  );
+}
+
 function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   if (typeof v === 'number') return formatNumber(v, !!useSuffix);
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
@@ -1451,6 +1476,19 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
 function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
   ensureDetectorsRegistered();
   if (Array.isArray(value)) {
+    if (isOpArray(value)) {
+      return <div className="flex flex-wrap gap-1.5">{value.map((item: unknown, i: number) => {
+        const entry = Object.entries(item as Record<string, unknown>)[0];
+        const [label, rawVal] = entry;
+        const op = parseOperatorPrefix(String(rawVal))!;
+        return (
+          <span key={i} className="inline-flex items-center gap-1 rounded-md border bg-card px-2 py-0.5 text-xs font-mono">
+            <span className="font-bold text-primary">{op.symbol}{op.number}</span>
+            <span className="text-muted-foreground">{humanizeLabel(label)}</span>
+          </span>
+        );
+      })}</div>;
+    }
     return (
       <div className="flex flex-wrap gap-2">
         {value.map((obj: unknown, i: number) => {

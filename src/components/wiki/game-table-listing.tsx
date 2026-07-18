@@ -116,7 +116,7 @@ function renderBadgeItem(
   const iconSize = bc.iconSize ?? 10;
   const labelSize = bc.labelSize ?? 10;
 
-  const renderType = columnTypes?.[col] || 'auto';
+  const renderType: string = 'badge';
   let displayValue: React.ReactNode;
   if (typeof val === 'number') {
     displayValue = formatNumber(val, useSuffix ?? true);
@@ -1506,7 +1506,7 @@ function ItemCard({
     const iconSize = bc.iconSize ?? 10;
     const labelSize = bc.labelSize ?? 10;
 
-    const renderType = columnTypes?.[col] || 'auto';
+    const renderType: string = 'badge';
     let displayValue: React.ReactNode;
     if (typeof val === 'number') {
       displayValue = formatNumber(val, useSuffix ?? true);

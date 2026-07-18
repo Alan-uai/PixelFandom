@@ -235,12 +235,21 @@ export default function DataTableContent({
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
+  const [showVariantCreate, setShowVariantCreate] = useState(false);
+  const [variantCreateName, setVariantCreateName] = useState('');
   const [rowHiddenFields, setRowHiddenFields] = useState<Record<string, string[]>>({});
   const [iconPickerState, setIconPickerState] = useState<{
     col: string;
     value: string;
     onChange: (key: string, val: string) => void;
   } | null>(null);
+
+  useEffect(() => {
+    if (!editingId) {
+      setShowVariantCreate(false);
+      setVariantCreateName('');
+    }
+  }, [editingId]);
 
   const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
     formSetter((prev) => {
@@ -1306,6 +1315,10 @@ export default function DataTableContent({
           </div>
 
           <div className="flex items-center gap-2 pt-2">
+            <Button size="sm" variant="outline" disabled title="Salve o item primeiro">
+              <Layers className="h-4 w-4 mr-1" />
+              +variante
+            </Button>
             <Button size="sm" onClick={handleNewSave} disabled={saving || schemaBusy}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
               Salvar
@@ -1536,6 +1549,10 @@ export default function DataTableContent({
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setShowVariantCreate(true)}>
+                        <Layers className="h-4 w-4 mr-1" />
+                        +variante
+                      </Button>
                       <Button size="sm" onClick={() => handleEditSave(row.id)} disabled={saving || schemaBusy}>
                         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                         Salvar
@@ -1545,6 +1562,54 @@ export default function DataTableContent({
                         Cancelar
                       </Button>
                     </div>
+
+                    {showVariantCreate && tenantId && (
+                      <div className="flex items-center gap-2 border-t pt-2">
+                        <input
+                          type="text"
+                          value={variantCreateName}
+                          onChange={(e) => setVariantCreateName(e.target.value)}
+                          placeholder="Nome da nova variante..."
+                          className="h-8 flex-1 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                        <Button size="sm" onClick={async () => {
+                          const name = variantCreateName.trim();
+                          if (!name || !tenantId) return;
+                          setSaving(true);
+                          const { data: newItem, error: insertError } = await supabase
+                            .from(table)
+                            .insert({ name, tenant_id: tenantId })
+                            .select('id')
+                            .single();
+                          if (insertError || !newItem) {
+                            toast({ variant: 'destructive', title: 'Erro', description: insertError?.message || 'Falha ao criar item.' });
+                            setSaving(false);
+                            return;
+                          }
+                          const { data: linkResult } = await supabase
+                            .rpc('link_item_variant', {
+                              p_table: table, p_item_id: editingId,
+                              p_target_item_id: newItem.id, p_tenant_id: tenantId,
+                              p_variant_label: name,
+                            });
+                          const linkOk = (linkResult as { ok?: boolean })?.ok;
+                          if (linkOk) {
+                            toast({ title: `Variante "${name}" criada!` });
+                            setShowVariantCreate(false);
+                            setVariantCreateName('');
+                            fetchRows();
+                          } else {
+                            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao vincular variante.' });
+                          }
+                          setSaving(false);
+                        }} disabled={!variantCreateName.trim() || saving}>
+                          Criar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowVariantCreate(false); setVariantCreateName(''); }}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
 
                     {tenantId && editingId && (
                       <EditorVariantSection
@@ -1715,6 +1780,7 @@ function EditorVariantSection({
   tableName: string;
   currentItemId: string;
 }) {
+  const { toast } = useToast();
   const { variants, loading, linkVariant, unlinkVariant, detectVariants } = useItemVariants(
     tenantId, tableName, currentItemId,
   );
@@ -1727,12 +1793,18 @@ function EditorVariantSection({
     if (!search.trim()) { setSearchResults([]); return; }
     setSearching(true);
     const timer = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from(tableName)
         .select('id, name')
         .eq('tenant_id', tenantId)
         .ilike('name', `%${search}%`)
         .limit(10);
+      if (error) {
+        console.error('Erro ao buscar variantes:', error);
+        setSearchResults([]);
+        setSearching(false);
+        return;
+      }
       setSearchResults((data || []).filter((r: any) => r.id !== currentItemId));
       setSearching(false);
     }, 300);
@@ -1800,10 +1872,15 @@ function EditorVariantSection({
             <button
               key={r.id}
               type="button"
-              onClick={() => {
-                linkVariant(r.id);
-                setSearch('');
-                setSearchResults([]);
+              onClick={async () => {
+                const ok = await linkVariant(r.id);
+                if (ok) {
+                  toast({ title: 'Variante vinculada!' });
+                  setSearch('');
+                  setSearchResults([]);
+                } else {
+                  toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível vincular a variante.' });
+                }
               }}
               className="w-full text-left px-2.5 py-1.5 text-xs hover:bg-muted transition-colors flex items-center gap-2"
             >

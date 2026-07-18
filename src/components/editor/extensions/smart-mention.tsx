@@ -11,6 +11,7 @@ export interface SuggestionState {
   type: MentionType | null;
   search: string;
   range?: { from: number; to: number };
+  accept?: (tag: string) => void;
 }
 
 function parseQuery(query: string): { type: MentionType; search: string } | null {
@@ -97,6 +98,9 @@ export const SmartMention = Extension.create({
                 type: parsed?.type ?? null,
                 search: parsed?.search ?? (props.query || ''),
                 range: props.range,
+                accept: (tag: string) => {
+                  props.command({ id: tag, label: tag });
+                },
               });
             },
 
@@ -107,6 +111,9 @@ export const SmartMention = Extension.create({
                 type: parsed?.type ?? null,
                 search: parsed?.search ?? (props.query || ''),
                 range: props.range,
+                accept: (tag: string) => {
+                  props.command({ id: tag, label: tag });
+                },
               });
             },
 
@@ -116,6 +123,7 @@ export const SmartMention = Extension.create({
                 type: null,
                 search: '',
                 range: undefined,
+                accept: undefined,
               });
             },
           };

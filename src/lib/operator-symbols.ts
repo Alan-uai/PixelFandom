@@ -16,6 +16,29 @@ function formatFracNum(n: string, useSuffix?: boolean): string {
   return n;
 }
 
+const OP_PREFIX_RE = /^([xX×÷+^/*])\s*(\d+(?:\.\d+)?)\s*$/;
+
+export interface OperatorPrefixResult {
+  symbol: string;
+  number: string;
+}
+
+export function parseOperatorPrefix(text: string): OperatorPrefixResult | null {
+  const m = String(text).trim().match(OP_PREFIX_RE);
+  if (!m) return null;
+  return { symbol: m[1], number: m[2] };
+}
+
+export function hasOperatorPrefix(text: string): boolean {
+  return parseOperatorPrefix(text) !== null;
+}
+
+export function formatOpValue(symbol: string, num: string, label: string, useSuffix?: boolean): string {
+  const n = Number(num);
+  const displayNum = useSuffix && isFinite(n) ? abbreviateNumber(n) : num;
+  return `${symbol}${displayNum} ${humanizeLabel(label)}`;
+}
+
 export function normalizeOperatorText(text: string, useSuffix?: boolean): string {
   const lower = text.toLowerCase().trim();
   if (OPERATOR_SYMBOLS[lower]) return OPERATOR_SYMBOLS[lower];

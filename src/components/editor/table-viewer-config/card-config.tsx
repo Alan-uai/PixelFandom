@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ColorSelect3D } from '@/components/ui/color-select-3d';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
 import { IconPickerTrigger } from '@/components/ui/icon-picker';
+import { IconRenderer } from '@/components/ui/icon-renderer';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
@@ -74,7 +75,7 @@ export function CardConfig({
     const badges: string[] = c.badges || [];
     if (badges.length > 0) return badges;
     const candidates = columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col));
-    return candidates.slice(0, 3);
+    return candidates.slice(0, 1);
   }, [c.badges, columns]);
 
   const toggleBadge = (col: string) => {
@@ -300,33 +301,33 @@ export function CardConfig({
                   const labelSize = bc.labelSize ?? 10;
                   return (
                     <div key={col} className="space-y-1.5 rounded border bg-background p-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-semibold">{col}</span>
-                        <span
-                          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium${!isColorString(badgeColors[col] || '') ? ` ${badgeColors[col] || DEFAULT_BADGE_COLORS[col] || 'bg-background/80 backdrop-blur-sm border-border'}` : ''}`}
-                          style={isColorString(badgeColors[col] || '') ? hexToStyle(badgeColors[col]) || {} : undefined}
-                        >
-                          {col}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium${!isColorString(badgeColors[col] || '') ? ` ${badgeColors[col] || DEFAULT_BADGE_COLORS[col] || 'bg-background/80 backdrop-blur-sm border-border'}` : ''}`}
+                            style={isColorString(badgeColors[col] || '') ? hexToStyle(badgeColors[col]) || {} : undefined}
+                          >
+                            {bc.icon && <IconRenderer icon={bc.icon} size={labelSize} />}
+                            {col}
+                          </span>
+                          <IconPickerTrigger
+                            value={bc.icon || ''}
+                            onChange={(iconId) => updateBadgeConfig(col, 'icon', iconId)}
+                            size="sm"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Label className="text-[10px] text-muted-foreground shrink-0">Ícone</Label>
-                        <IconPickerTrigger
-                          value={bc.icon || ''}
-                          onChange={(iconId) => updateBadgeConfig(col, 'icon', iconId)}
-                          size="sm"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Label className="text-[10px] text-muted-foreground shrink-0">Tamanho ícone</Label>
-                        <SizeStepper value={iconSize} onChange={(v) => updateBadgeConfig(col, 'iconSize', v)} />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Label className="text-[10px] text-muted-foreground shrink-0">Tamanho label</Label>
-                        <SizeStepper value={labelSize} onChange={(v) => updateBadgeConfig(col, 'labelSize', v)} />
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <Label className="text-[10px] text-muted-foreground shrink-0">Icon</Label>
+                          <SizeStepper value={iconSize} onChange={(v) => updateBadgeConfig(col, 'iconSize', v)} />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Label className="text-[10px] text-muted-foreground shrink-0">Label</Label>
+                          <SizeStepper value={labelSize} onChange={(v) => updateBadgeConfig(col, 'labelSize', v)} />
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -339,26 +340,27 @@ export function CardConfig({
                         />
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id={`badge-hover-${col}`}
-                          checked={bc.hover === true}
-                          onCheckedChange={(v) => updateBadgeConfig(col, 'hover', v)}
-                        />
-                        <Label htmlFor={`badge-hover-${col}`} className="text-[10px]">Efeito hover</Label>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id={`badge-action-${col}`}
-                          checked={(bc.clickAction || 'none') !== 'none'}
-                          onCheckedChange={(v) => updateBadgeConfig(col, 'clickAction', v ? 'comparison' : 'none')}
-                        />
-                        <Label htmlFor={`badge-action-${col}`} className="text-[10px]">Ação ao clicar</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <Switch
+                            id={`badge-hover-${col}`}
+                            checked={bc.hover === true}
+                            onCheckedChange={(v) => updateBadgeConfig(col, 'hover', v)}
+                          />
+                          <Label htmlFor={`badge-hover-${col}`} className="text-[10px]">Hover</Label>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Switch
+                            id={`badge-action-${col}`}
+                            checked={(bc.clickAction || 'none') !== 'none'}
+                            onCheckedChange={(v) => updateBadgeConfig(col, 'clickAction', v ? 'comparison' : 'none')}
+                          />
+                          <Label htmlFor={`badge-action-${col}`} className="text-[10px]">Ação</Label>
+                        </div>
                       </div>
 
                       {(bc.clickAction || 'none') !== 'none' && (
-                        <div className="space-y-1.5 pl-4">
+                        <div className="space-y-1.5">
                           <Select3D
                             value={bc.clickAction || 'comparison'}
                             options={[

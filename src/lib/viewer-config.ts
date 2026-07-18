@@ -19,6 +19,9 @@ export const BadgeEntrySchema = z.object({
   hover: z.boolean().default(false),
   clickAction: z.enum(['comparison', 'external-link', 'none']).default('none'),
   clickUrl: z.string().optional(),
+  icon: z.string().optional(),
+  iconSize: z.number().optional(),
+  labelSize: z.number().optional(),
 });
 
 export const AllowedValueSchema = z.object({
@@ -100,6 +103,7 @@ export const ViewerConfigSchema = z.object({
     badges: z.array(z.string()).default([]),
     badgeColors: z.record(z.string(), z.string()).default({}),
     badgeConfig: z.record(z.string(), BadgeEntrySchema).default({}),
+    badgeDisplayMode: z.enum(['inline', 'lista', 'footer-heading']).default('inline'),
     hoverEffect: z.enum(['scale', 'glow', 'shadow', 'none']).default('scale'),
     visibleColumns: z.array(z.string()).default([]),
     columnOrder: z.array(z.string()).default([]),
