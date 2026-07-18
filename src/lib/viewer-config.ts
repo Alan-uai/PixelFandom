@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ALL_FORMATS } from './column-types/format-compatibility';
 
 export const FilterColumnSchema = z.object({
   column: z.string(),
@@ -108,7 +109,7 @@ export const ViewerConfigSchema = z.object({
     hoverEffect: z.enum(['scale', 'glow', 'shadow', 'none']).default('scale'),
     visibleColumns: z.array(z.string()).default([]),
     columnOrder: z.array(z.string()).default([]),
-    columnFormats: z.record(z.string(), z.enum(['text', 'badge', 'number', 'color', 'icon', 'link', 'image', 'rating', 'progress', 'tags', 'boolean', 'date', 'duration', 'file', 'video', 'audio', 'emoji', 'jsonb-structured', 'popover'])).default({}),
+    columnFormats: z.record(z.string(), z.enum(ALL_FORMATS)).default({}),
     columnFormatVariants: z.record(z.string(), z.number().min(1).max(5)).default({}),
     columnOpEnabled: z.record(z.string(), z.boolean()).default({}),
     showComparison: z.boolean().default(true),
