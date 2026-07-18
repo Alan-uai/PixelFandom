@@ -187,8 +187,8 @@ interface InputGlowProps {
   children: React.ReactNode;
 }
 
-const GLOW_RADIUS = 8;
-const GLOW_INSET = 1.5;
+const GLOW_RADIUS = 0;
+const GLOW_INSET = 0;
 
 export function InputGlow({ color, children }: InputGlowProps) {
   const [phase, setPhase] = useState<GlowPhase>('idle');
@@ -230,7 +230,7 @@ export function InputGlow({ color, children }: InputGlowProps) {
   return (
     <div
       ref={wrapRef}
-      className="relative flex-1 min-w-0"
+      className="ig-glow-wrap relative flex-1 min-w-0"
       style={{ ['--glow-c' as string]: color }}
       onFocus={() => {
         if (phase !== 'typing') setPhase('focus');

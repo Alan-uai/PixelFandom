@@ -424,19 +424,28 @@
 }
 
 /* Input glow border (table editor)
-   Real SVG stroke on a rounded <rect> matching the input outline. A short
-   bright "comet" arc travels along the border via stroke-dashoffset — this
-   respects border-radius (unlike border-image) and never rotates the box. */
+   Real SVG stroke on a <rect> matching the input outline. A short bright
+   "comet" arc travels along the border by animating a registered custom
+   property (--ig-dashoffset), which is interpolatable, unlike animating
+   stroke-dashoffset through a var() calc directly. */
+@property --ig-dashoffset {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
+
 @keyframes ig-comet {
-  to { stroke-dashoffset: calc(-1 * var(--ig-perim, 1000)); }
+  from { --ig-dashoffset: 0; }
+  to   { --ig-dashoffset: var(--ig-perim, 1000); }
 }
 @keyframes ig-pulse {
-  0%, 100% { opacity: 0.45; }
+  0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
 
-/* Typing: a short arc runs around the rounded border. */
+/* Typing: a short arc runs around the border. */
 .ig-svg-comet {
+  stroke-dashoffset: calc(-1 * var(--ig-dashoffset));
   animation: ig-comet 1.4s linear infinite;
 }
 
@@ -448,4 +457,11 @@
 /* Idle-focus: full solid stroke breathing in place. */
 .ig-svg-pulse {
   animation: ig-pulse 1.5s ease-in-out infinite;
+}
+
+/* The SVG stroke is the only border: strip the field's own border/ring. */
+.ig-glow-wrap :is(input, textarea, select, [role='combobox'], button) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
