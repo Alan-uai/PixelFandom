@@ -12,8 +12,6 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
 
-const BADGE_DEFAULTS = ['rarity', 'tier', 'element'];
-
 const DEFAULT_BADGE_COLORS: Record<string, string> = {
   rarity: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
   tier: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10',
@@ -27,7 +25,6 @@ const DEFAULT_BADGE_HEX_COLORS: Record<string, string> = {
 };
 
 const LABEL_COLS = new Set(['name', 'title', 'description', 'summary', 'slug']);
-const BADGE_COLS = new Set(['rarity', 'tier', 'element']);
 const SYSTEM_COLS_EXT = new Set([...SYSTEM_COLS, ...WIKI_MGMT_COLS]);
 
 export function CardConfig({
@@ -53,7 +50,8 @@ export function CardConfig({
   const effectiveBadges = useMemo(() => {
     const badges: string[] = c.badges || [];
     if (badges.length > 0) return badges;
-    return BADGE_DEFAULTS.filter(col => columns.includes(col));
+    const candidates = columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col));
+    return candidates.slice(0, 3);
   }, [c.badges, columns]);
 
   const toggleBadge = (col: string) => {
@@ -97,8 +95,9 @@ export function CardConfig({
   const effectiveVisible = useMemo(() => {
     const visibleColumns: string[] = c.visibleColumns || [];
     if (visibleColumns.length > 0) return visibleColumns;
-    return columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col) && !BADGE_COLS.has(col));
-  }, [c.visibleColumns, columns]);
+    const badgeSet = new Set(effectiveBadges);
+    return columns.filter(col => !SYSTEM_COLS_EXT.has(col) && !LABEL_COLS.has(col) && !badgeSet.has(col));
+  }, [c.visibleColumns, columns, effectiveBadges]);
 
   const toggleColumn = (col: string) => {
     const wasVisible = effectiveVisible.includes(col);

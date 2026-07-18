@@ -138,7 +138,7 @@ export function WidgetsPage({ tenantId, slug, onRegisterSave, onDirtyChange }: {
 
   useEffect(() => {
     const islandsDirty = islandsSnapshot.current
-      ? JSON.stringify({ floatingIslands, slotFlow, clipStyle, singleIslandWidth }) !== islandsSnapshot.current
+      ? JSON.stringify({ islands: floatingIslands, slotFlow, clipStyle, singleIslandWidth }) !== islandsSnapshot.current
       : false;
     onDirtyChange?.(islandsDirty || widgetsDirty);
   }, [floatingIslands, slotFlow, clipStyle, singleIslandWidth, widgetsDirty, onDirtyChange]);

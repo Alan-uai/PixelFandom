@@ -685,7 +685,7 @@ function EditPageContent() {
                 <LinkSuggestionPanel
                   tenantSlug={params.slug as string}
                   onInsert={(tag) => {
-                    editorRef.current?.insertText(tag);
+                    editorRef.current?.insertSmartMention(tag);
                   }}
                   activeSuggestion={activeSuggestion}
                 />

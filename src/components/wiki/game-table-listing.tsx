@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight,
-  Star, BarChart3,
+  BarChart3,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
 import { isCustomIcon } from '@/lib/table-icons';
@@ -19,7 +19,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import ComparePopup from '@/components/wiki/compare-popup';
 import {
-  RARITY_GRAD, elIcon, COLL_ICON,
+  RARITY_GRAD, COLL_ICON,
 } from '@/lib/game-ui';
 import type { ViewerConfig } from '@/lib/viewer-config';
 import { resolveTableIcon } from '@/lib/table-icons';
@@ -112,11 +112,12 @@ function renderBadgeItem(
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
 
+  const renderType = columnTypes?.[col] || 'auto';
   let displayValue: React.ReactNode;
   if (typeof val === 'number') {
     displayValue = formatNumber(val, useSuffix ?? true);
   } else {
-    displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} columnConfig={columnConfig?.[col]} />;
+    displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} columnConfig={columnConfig?.[col]} />;
   }
 
   const bc = badgeConfig[col] || {};
@@ -131,8 +132,6 @@ function renderBadgeItem(
 
   const content = (
     <>
-      {col === 'element' && elIcon(String(val))}
-      {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
       {displayValue}
     </>
   );
@@ -1494,11 +1493,12 @@ function ItemCard({
     const val = item[col];
     if (val == null || val === '' || val === 'none') return null;
 
+    const renderType = columnTypes?.[col] || 'auto';
     let displayValue: React.ReactNode;
     if (typeof val === 'number') {
       displayValue = formatNumber(val, useSuffix ?? true);
     } else {
-      displayValue = <ColumnDisplay value={val} column={col} renderType="auto" useSuffix={useSuffix} />;
+      displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} />;
     }
 
     const bc = badgeConfig[col] || {};
@@ -1513,16 +1513,12 @@ function ItemCard({
     if (hasAction) {
       return (
         <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes} style={style}>
-          {col === 'element' && elIcon(String(val))}
-          {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
           {displayValue}
         </button>
       );
     }
     return (
       <span key={col} className={classes} style={style}>
-        {col === 'element' && elIcon(String(val))}
-        {col === 'rarity' && <Star className="h-2.5 w-2.5" />}
         {displayValue}
       </span>
     );
