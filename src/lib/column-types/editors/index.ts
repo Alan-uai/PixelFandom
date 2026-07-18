@@ -7,6 +7,7 @@ export { EntityLinkEditor } from './entity-link-editor';
 export { EmojiEditor } from './emoji-editor';
 export { MediaEditor } from './media-editor';
 export { SelectEditor } from './select-editor';
+export { MultiSelectEditor } from './multi-select-editor';
 export { ColorPaletteEditor } from './color-palette-editor';
 export { IconSetEditor } from './icon-set-editor';
 export { ToggleGroupEditor } from './toggle-group-editor';

@@ -10,8 +10,9 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WeldingCard } from '@/components/ui/welding-card';
-import { Plus, Settings, ExternalLink, Loader2, BookOpen, Users, Globe, FileText, BarChart3, LayoutDashboard } from 'lucide-react';
+import { Plus, Settings, ExternalLink, Loader2, BookOpen, Users, Globe, FileText, BarChart3 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import BrandIcon from '@/components/brand-icon';
 import type { Tenant } from '@/supabase/client';
 
 export default function DashboardPage() {
@@ -78,7 +79,7 @@ export default function DashboardPage() {
       <Tabs defaultValue="wikis" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="wikis" className="flex items-center gap-2">
-            <LayoutDashboard className="h-4 w-4" />
+            <BrandIcon size={16} />
             {t('my_wikis')}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">

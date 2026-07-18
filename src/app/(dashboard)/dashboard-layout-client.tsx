@@ -8,7 +8,6 @@ import { useUser, supabase } from '@/supabase';
 import { usePageScrollRestoration } from '@/hooks/use-page-scroll-restoration';
 import { useTenantRole } from '@/hooks/use-tenant-role';
 import {
-  LayoutDashboard,
   Settings,
   Globe,
   Users,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { SliderTabs, SliderTabsList, SliderTabsTrigger } from '@/components/ui/slider-tabs';
 import { UnsavedChangesProvider } from '@/components/unsaved-changes';
+import BrandIcon from '@/components/brand-icon';
 
 export default function DashboardLayoutClient({
   children,
@@ -39,6 +39,12 @@ export default function DashboardLayoutClient({
   const wikiSlug = pathname.match(/^\/dashboard\/([^/]+)/)?.[1];
   const isWikiPage = !!(wikiSlug && wikiSlug !== 'new');
   const { canManage, canEdit } = useTenantRole(isWikiPage ? wikiSlug : undefined);
+
+  useEffect(() => {
+    if (wikiSlug && pathname === `/dashboard/${wikiSlug}`) {
+      router.replace(`/dashboard/${wikiSlug}/editor`);
+    }
+  }, [wikiSlug, pathname, router]);
 
   const [wikiCustomDomain, setWikiCustomDomain] = useState<string | null>(null);
 
@@ -116,7 +122,7 @@ export default function DashboardLayoutClient({
           className="rounded-md p-2 text-primary hover:text-primary/80 hover:bg-muted transition-colors shrink-0"
           title={t('home_tooltip')}
         >
-          <LayoutDashboard className="h-4 w-4" />
+          <BrandIcon size={20} />
         </Link>
         <span className="hidden sm:inline text-sm font-semibold shrink-0">{t('brand')}</span>
 

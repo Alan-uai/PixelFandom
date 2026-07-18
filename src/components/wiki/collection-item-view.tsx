@@ -13,7 +13,7 @@ import { ChipCarousel } from '@/components/ui/chip-carousel';
 import ComparePopup from '@/components/wiki/compare-popup';
 import VariantSelector from '@/components/wiki/variant-selector';
 import type { ColumnInfo } from '@/lib/game-schema';
-import { ColumnDisplay } from '@/lib/column-types/display-factory';
+import { ColumnDisplay, type AllowedValue } from '@/lib/column-types/display-factory';
 import { getTypeDef } from '@/lib/column-types/registry';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
@@ -204,7 +204,7 @@ function RenderTypeFields({
   chipWrap?: boolean;
   columnOrder?: string[];
   useSuffix?: boolean;
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
 }) {
   const sections: React.ReactNode[] = [];
   const activeMode = comparisonMode || 'modal';
@@ -238,6 +238,7 @@ function RenderTypeFields({
                 valueColors={cc?.valueColors}
                 jsonbKeyColors={cc?.jsonbKeyColors}
                 maxValue={cc?.maxValue}
+                allowedValues={cc?.allowedValues}
               />
             );
           })}
@@ -443,7 +444,7 @@ type DetailConfig = {
   showComparison?: boolean;
   showHeader?: boolean;
   labelColor?: string;
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown> }>;
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown>; allowedValues?: AllowedValue[] }>;
 };
 
 type Props = {
@@ -479,7 +480,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
-  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string> }>;
+  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
   const showComparisonEnabled = detailConfig?.showComparison !== false;
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 

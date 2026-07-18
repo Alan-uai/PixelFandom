@@ -14,7 +14,7 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { LabelIconBox, LabelColorCircle, ValueColorSquare } from '@/components/ui/column-icon-color';
+import { LabelIconBox, LabelColorCircle, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
 import { getDefaultColumnColor } from '@/lib/column-types/registry';
 import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
@@ -31,7 +31,6 @@ import {
   Minus,
   Check,
   PlusCircle,
-  ListChecks,
   ImageIcon,
   Link2,
   Layers,
@@ -41,14 +40,24 @@ import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
 import { parseViewerConfig } from '@/lib/viewer-config';
 import { translateGameTerm } from '@/lib/translate';
+import { suggestJsonFormat } from '@/lib/json-format-suggestion';
 import { sanitizeUrl } from '@/lib/content-utils';
+
+function slugifyName(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9一-鿿\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType } from '@/lib/column-types/registry';
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
-import { OptionsConfig } from '@/components/editor/table-viewer-config/options-config';
 import { useItemVariants } from '@/hooks/use-item-variants';
 
 const tableLabels: Record<string, string> = {
@@ -278,8 +287,6 @@ export default function DataTableContent({
     onChange: (key: string, val: string) => void;
   } | null>(null);
 
-  const [optionsCol, setOptionsCol] = useState<string | null>(null);
-  const [optionsConfig, setOptionsConfig] = useState<Record<string, unknown>>({});
 
   const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
     formSetter((prev) => {
@@ -484,6 +491,14 @@ export default function DataTableContent({
   function isSystemColumn(col: string) {
     return systemColumns.includes(col) || col.startsWith('embedding');
   }
+  function isMediaColumn(col: string) {
+    return (
+      imageColumnNames.includes(col) ||
+      iconColumnNames.includes(col) ||
+      uploadColumns.has(col) ||
+      ['image', 'file', 'video', 'audio', 'icon'].includes(getColumnRenderType(col) || '')
+    );
+  }
 
   function isImageColumn(col: string) { return imageColumnNames.includes(col); }
   function isIconColumn(col: string) { return iconColumnNames.includes(col); }
@@ -603,6 +618,11 @@ export default function DataTableContent({
       payload[col] = null;
     }
 
+    if ('name' in payload) {
+      const nameVal = (payload['name'] as string | null)?.toString().trim();
+      payload['slug'] = nameVal ? slugifyName(nameVal) : null;
+    }
+
     const { error } = await supabase.from(table).update(payload).eq('id', rowId);
     if (error) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
@@ -662,7 +682,7 @@ export default function DataTableContent({
     setSaving(true);
     const { data: newItem, error: insertError } = await supabase
       .from(table)
-      .insert({ name: variantName, tenant_id: tenantId })
+      .insert({ name: variantName, slug: slugifyName(variantName), tenant_id: tenantId })
       .select('id')
       .single();
     if (insertError || !newItem) {
@@ -710,6 +730,9 @@ export default function DataTableContent({
     Object.entries(newForm).forEach(([key, val]) => {
       payload[key] = sanitizeFieldValue(key, val);
     });
+
+    const slugVal = slugifyName(nameVal);
+    if (slugVal) payload['slug'] = slugVal;
 
     const { error } = await supabase.from(table).insert(payload).select().single();
     if (error) {
@@ -1076,17 +1099,19 @@ export default function DataTableContent({
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground capitalize flex items-center gap-1">
           {isImageColumn(col) && <ImageIcon className="h-3 w-3" />}
-          <LabelIconBox
-            icon={columnConfigMap[col]?.labelIcon}
-            onChange={(iconId) =>
-              handleColumnConfigChange(col, { labelIcon: iconId })
-            }
-            className="h-4 w-4 rounded"
-          />
+          {!isSystemColumn(col) && !isMediaColumn(col) && (
+            <LabelIconBox
+              icon={columnConfigMap[col]?.labelIcon}
+              onChange={(iconId) =>
+                handleColumnConfigChange(col, { labelIcon: iconId })
+              }
+              className="h-4 w-4 rounded"
+            />
+          )}
           <span style={columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
             {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
           </span>
-          {!isSystemColumn(col) && (
+          {!isSystemColumn(col) && !isMediaColumn(col) && (
             <LabelColorCircle
               color={columnConfigMap[col]?.labelColor}
               onChange={(c) => handleColumnConfigChange(col, { labelColor: c })}
@@ -1115,19 +1140,6 @@ export default function DataTableContent({
             >
               <Edit className="h-3 w-3" />
             </button>
-            {['select', 'multi-select', 'toggle-group'].includes(getColumnRenderType(col) || '') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOptionsCol(col);
-                  setOptionsConfig({ columnConfig: { [col]: columnConfigMap[col] || {} } });
-                }}
-                className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                title="Configurar opções (select)"
-              >
-                <ListChecks className="h-3 w-3" />
-              </button>
-            )}
             <button
               type="button"
               onClick={() => value ? handleClearField(col, formSetter) : handleRemoveField(col, formSetter)}
@@ -1148,11 +1160,8 @@ export default function DataTableContent({
         )}
       </div>
       <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          {renderField(col, value, onChange, isBool, rowId)}
-        </div>
-        {!isSystemColumn(col) && (
-          <ValueColorSquare
+        {!isSystemColumn(col) && !isMediaColumn(col) && (
+          <ValueColorLine
             color={
               (columnConfigMap[col]?.valueColors as Record<string, string> | undefined)?.[value] ||
               columnConfigMap[col]?.labelColor ||
@@ -1166,6 +1175,15 @@ export default function DataTableContent({
             }}
           />
         )}
+        <InputGlow
+          color={
+            (columnConfigMap[col]?.valueColors as Record<string, string> | undefined)?.[value] ||
+            columnConfigMap[col]?.labelColor ||
+            getDefaultColumnColor(getColumnRenderType(col) || editFieldType)
+          }
+        >
+          {renderField(col, value, onChange, isBool, rowId)}
+        </InputGlow>
       </div>
     </div>
   );
@@ -1368,6 +1386,11 @@ export default function DataTableContent({
                           {newFieldNameError && (
                             <p className="text-xs text-red-500 mt-1">{newFieldNameError}</p>
                           )}
+                          {newFieldType === 'jsonb' && suggestJsonFormat(newFieldName) && (
+                            <p className="text-[11px] text-primary/70 mt-1 font-mono whitespace-pre-line">
+                              {suggestJsonFormat(newFieldName)!.hint}
+                            </p>
+                          )}
                         </>
                       );
                     })()}
@@ -1383,10 +1406,11 @@ export default function DataTableContent({
                         if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
                           setNewFieldName(def.nameOptions[0].defaultColumn);
                           setNewFieldSubType(def.nameOptions[0].value);
-                        } else {
-                          setNewFieldName('');
+                        } else if (def?.nameMode === 'selector') {
                           setNewFieldSubType('');
                         }
+                        // NOTE: never clears newFieldName so the user does not
+                        // have to retype the label after choosing the type.
                       }}
                       options={newFieldTypes}
                     />
@@ -1600,11 +1624,18 @@ export default function DataTableContent({
                                   );
                                 }
                                 return (
-                                  <Input
-                                    value={newFieldName}
-                                    onChange={(e) => setNewFieldName(e.target.value)}
-                                    className={`h-8 text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
-                                  />
+                                  <>
+                                    <Input
+                                      value={newFieldName}
+                                      onChange={(e) => setNewFieldName(e.target.value)}
+                                      className={`h-8 text-sm ${newFieldNameError ? 'border-red-500' : ''}`}
+                                    />
+                                    {newFieldType === 'jsonb' && suggestJsonFormat(newFieldName) && (
+                                      <p className="text-[11px] text-primary/70 mt-1 font-mono whitespace-pre-line">
+                                        {suggestJsonFormat(newFieldName)!.hint}
+                                      </p>
+                                    )}
+                                  </>
                                 );
                               })()}
                               {newFieldNameError && (
@@ -1622,10 +1653,11 @@ export default function DataTableContent({
                                   if (def?.nameMode === 'selector' && def.nameOptions?.[0]) {
                                     setNewFieldName(def.nameOptions[0].defaultColumn);
                                     setNewFieldSubType(def.nameOptions[0].value);
-                                  } else {
-                                    setNewFieldName('');
+                                  } else if (def?.nameMode === 'selector') {
                                     setNewFieldSubType('');
                                   }
+                                  // NOTE: never clears newFieldName so the user does not
+                                  // have to retype the label after choosing the type.
                                 }}
                                 options={newFieldTypes}
                               />
@@ -1717,10 +1749,10 @@ export default function DataTableContent({
                       return (
                         <div key={col} className="flex items-center gap-2">
                           <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px] flex items-center gap-1">
-                            {columnConfigMap[col]?.labelIcon && (
+                            {!isMediaColumn(col) && columnConfigMap[col]?.labelIcon && (
                               <IconRenderer icon={columnConfigMap[col]!.labelIcon!} size="sm" />
                             )}
-                            <span style={columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
+                            <span style={!isMediaColumn(col) && columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
                               {colDispName || col.replace(/_/g, ' ')}
                             </span>
                           </span>
@@ -1862,36 +1894,6 @@ export default function DataTableContent({
         />
       )}
 
-      {optionsCol !== null && (
-        <Dialog open onOpenChange={(open) => { if (!open) setOptionsCol(null); }}>
-          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Opções de &ldquo;{optionsCol}&rdquo;</DialogTitle>
-              <DialogDescription>
-                Configure as opções para esta coluna select. As cores e ícones definidos aqui são usados na Wiki.
-              </DialogDescription>
-            </DialogHeader>
-            <OptionsConfig
-              config={optionsConfig}
-              columns={[optionsCol]}
-              columnTypes={{ [optionsCol]: getColumnRenderType(optionsCol) || 'select' }}
-              onChange={(v) => {
-                setOptionsConfig(v);
-                const colCfg = (v.columnConfig as Record<string, unknown> | undefined)?.[optionsCol];
-                if (colCfg) handleColumnConfigChange(optionsCol, colCfg as Record<string, unknown>);
-              }}
-              table={table}
-              slug={slug}
-              tenantId={tenantId ?? undefined}
-            />
-            <DialogFooter>
-              <Button size="sm" onClick={() => setOptionsCol(null)}>
-                Concluído
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

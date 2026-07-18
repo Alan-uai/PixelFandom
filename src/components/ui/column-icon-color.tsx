@@ -157,18 +157,77 @@ export function LabelColorCircle({ color, onChange }: LabelColorCircleProps) {
   );
 }
 
-interface ValueColorSquareProps {
+interface ValueColorLineProps {
   color?: string;
   onChange: (color: string | undefined) => void;
 }
 
-export function ValueColorSquare({ color, onChange }: ValueColorSquareProps) {
+export function ValueColorLine({ color, onChange }: ValueColorLineProps) {
   return (
-    <ColorSwatch
-      color={color}
-      onChange={onChange}
-      className="h-4 w-4 rounded"
-      title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
-    />
+    <div className="flex flex-col items-center gap-1 pt-1.5">
+      <span
+        className="block w-[3px] rounded-full shrink-0"
+        style={{ backgroundColor: color || 'transparent', minHeight: '18px' }}
+        title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
+      />
+      <ColorSwatch
+        color={color}
+        onChange={onChange}
+        className="h-3.5 w-3.5 rounded"
+        title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
+      />
+    </div>
   );
 }
+
+type GlowPhase = 'idle' | 'typing' | 'focus';
+
+interface InputGlowProps {
+  color: string;
+  children: React.ReactNode;
+}
+
+export function InputGlow({ color, children }: InputGlowProps) {
+  const [phase, setPhase] = useState<GlowPhase>('idle');
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+    };
+  }, []);
+
+  const handleKeyDown = () => {
+    setPhase('typing');
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => setPhase('focus'), 600);
+  };
+
+  return (
+    <div
+      className="relative flex-1 min-w-0"
+      style={{ ['--glow-c' as string]: color }}
+      onFocus={() => {
+        if (phase !== 'typing') setPhase('focus');
+      }}
+      onBlur={() => {
+        if (typingTimer.current) clearTimeout(typingTimer.current);
+        setPhase('idle');
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      {phase !== 'idle' && (
+        <>
+          <span
+            className={`pointer-events-none absolute inset-0 rounded-lg ${phase === 'typing' ? 'glow-ring-spin' : 'glow-ring-spin glow-ring-paused'}`}
+          />
+          {phase === 'focus' && (
+            <span className="glow-ring-pulse pointer-events-none absolute inset-0 rounded-lg" />
+          )}
+        </>
+      )}
+      {children}
+    </div>
+  );
+}
+

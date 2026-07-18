@@ -9,12 +9,33 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-function detectTypeFromValue(value: string): 'number' | 'text' | 'boolean' | null {
+const BOOLEAN_WORDS = ['true', 'false', 'yes', 'no', 'sim', 'não', 'nao', 'on', 'off'];
+
+function isNumericString(value: string): boolean {
+  if (value.trim() === '') return false;
+  return !isNaN(Number(value));
+}
+
+// Detect the JSON value type from a raw string.
+// `0`/`1` are ALWAYS treated as numbers (never booleans) to avoid the bug
+// where a numeric 1 incorrectly rendered as a boolean toggle. Only explicit
+// boolean words (true/false/sim/não/etc.) map to boolean. When a persisted
+// type is provided, it takes precedence (see SmartValueInput).
+function detectTypeFromValue(
+  value: string,
+  persistedType?: string,
+): 'number' | 'text' | 'boolean' | null {
   if (value === '' || value === null || value === undefined) return null;
   const lower = value.toLowerCase().trim();
-  if (['true', 'false', 'yes', 'no', 'sim', 'não', 'nao', 'on', 'off', '0', '1'].includes(lower)) return 'boolean';
-  const num = Number(value);
-  if (!isNaN(num) && value.trim() !== '') return 'number';
+
+  // If a type was previously locked (e.g. stored "1" from a boolean column),
+  // honor it so toggles keep working. But never auto-assign boolean to a bare 0/1.
+  if (persistedType === 'boolean') {
+    if (BOOLEAN_WORDS.includes(lower) || lower === '0' || lower === '1') return 'boolean';
+  }
+
+  if (BOOLEAN_WORDS.includes(lower)) return 'boolean';
+  if (isNumericString(value)) return 'number';
   return 'text';
 }
 
@@ -43,7 +64,7 @@ export function SmartValueInput({
   onTypeChange?: (type: 'number' | 'text' | 'boolean') => void;
   onSuffixChange?: (suffix: string) => void;
 }) {
-  const effectiveType = (persistedType || detectTypeFromValue(value) || 'unknown') as 'number' | 'text' | 'boolean' | 'unknown';
+  const effectiveType = (persistedType || detectTypeFromValue(value, persistedType) || 'unknown') as 'number' | 'text' | 'boolean' | 'unknown';
 
   const handleNumberChange = useCallback((raw: string) => {
     const { num, suffix } = parseNumberWithSuffix(raw);
@@ -85,7 +106,7 @@ export function SmartValueInput({
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
-            const detected = detectTypeFromValue(e.target.value);
+            const detected = detectTypeFromValue(e.target.value, persistedType);
             if (detected && onTypeChange) onTypeChange(detected);
           }}
           className="h-8 text-sm flex-1"
@@ -116,15 +137,15 @@ export function SmartValueInput({
   }
 
   return (
-    <Input
-      value={value}
-      onChange={(e) => {
-        onChange(e.target.value);
-        const detected = detectTypeFromValue(e.target.value);
-        if (detected && onTypeChange) onTypeChange(detected);
-      }}
-      className="h-8 text-sm"
-      placeholder="Valor"
-    />
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          const detected = detectTypeFromValue(e.target.value, persistedType);
+          if (detected && onTypeChange) onTypeChange(detected);
+        }}
+        className="h-8 text-sm"
+        placeholder="Valor"
+      />
   );
 }

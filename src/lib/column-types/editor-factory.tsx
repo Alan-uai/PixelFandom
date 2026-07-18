@@ -8,7 +8,7 @@ import { COLUMN_TYPES, type RenderType } from './registry';
 import {
   RatingEditor, ColorEditor, SliderEditor, DurationEditor,
   TagsEditor, EntityLinkEditor, EmojiEditor, MediaEditor,
-  SelectEditor, ColorPaletteEditor, IconSetEditor, ToggleGroupEditor,
+  SelectEditor, MultiSelectEditor, ColorPaletteEditor, IconSetEditor, ToggleGroupEditor,
   PopoverEditor, JsonbEditor,
 } from './editors';
 
@@ -177,9 +177,7 @@ function renderEditor(
       return <IconInlineEditor value={value} onChange={onChange} />;
 
     case 'select': {
-      const options = allowedValues.length > 0
-        ? allowedValues.map((av) => av.value)
-        : undefined;
+      const dependentField = (columnConfig?.dependentField as string) || undefined;
       return (
         <SelectEditor
           value={value}
@@ -194,13 +192,26 @@ function renderEditor(
               }
             }
           }}
-          options={options}
-          allowedValues={allowedValues.length > 0 ? allowedValues : undefined}
+          allowedValues={allowedValues}
+          onColumnConfigChange={onColumnConfigChange}
+          dependentField={dependentField}
         />
       );
     }
 
     case 'multi-select':
+      if (onColumnConfigChange) {
+        return (
+          <MultiSelectEditor
+            value={value}
+            onChange={onChange}
+            allowedValues={allowedValues}
+            onColumnConfigChange={onColumnConfigChange}
+            maxSelect={(columnConfig?.maxSelect as number) || undefined}
+            dependentField={(columnConfig?.dependentField as string) || undefined}
+          />
+        );
+      }
       return (
         <TagsEditor
           value={value}
@@ -219,6 +230,8 @@ function renderEditor(
           onChange={onChange}
           options={allowedValues.length > 0 ? allowedValues.map((av) => av.value) : undefined}
           allowedValues={allowedValues.length > 0 ? allowedValues : undefined}
+          onColumnConfigChange={onColumnConfigChange}
+          dependentField={(columnConfig?.dependentField as string) || undefined}
         />
       );
 

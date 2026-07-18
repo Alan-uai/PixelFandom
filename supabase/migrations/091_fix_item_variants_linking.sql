@@ -31,10 +31,10 @@ DECLARE
   v_count INT := 0;
   v_tier_col TEXT;
   v_col_exists BOOLEAN;
-  v_tier_value TEXT;
   v_label TEXT;
   v_max_order INT;
   v_existing_group TEXT;
+  v_group_members INT;
 BEGIN
   IF p_tenant_id IS NULL OR NOT public.is_tenant_member_with_role(p_tenant_id, 'editor'::text) THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Permissão negada.');
@@ -59,18 +59,48 @@ BEGIN
       SELECT id, name, slug, %s
       FROM public.%I
       WHERE tenant_id = $1 AND name IS NOT NULL AND name != $2
-      ORDER BY name
+      ORDER BY (CASE WHEN name ~* '' [Vv]\.?\d+$'' THEN 1 ELSE 0 END), name
     ', COALESCE(quote_ident(v_tier_col) || ' AS tier_val', 'NULL::text AS tier_val'), p_table)
     USING p_tenant_id, ''
   LOOP
+    -- Extract base name: strip suffixes like " v2", " (V3)", " [Legendary]",
+    -- trailing " - something", and " Nv.2" so that "Item", "Item v2" and
+    -- "Item v3" all collapse to the same base name "Item".
     v_base_name := regexp_replace(v_item.name, ' ?[([{][^)\]}]*[)\]}]*$', '', 'g');
     v_base_name := regexp_replace(v_base_name, ' [-–—][^-–—]*$', '');
-    v_base_name := regexp_replace(v_base_name, ' [Nn]v\.?\d+', '');
+    v_base_name := regexp_replace(v_base_name, ' [Vv]\.?\d+', '', 'g');
+    v_base_name := regexp_replace(v_base_name, ' [Nn]v\.?\d+', '', 'g');
     v_base_name := trim(v_base_name);
 
     IF length(v_base_name) < 2 THEN CONTINUE; END IF;
 
     v_group_key := public.slugify(v_base_name || '-' || p_table);
+
+    -- Count how many items would fall into this base-name group. Only create a
+    -- variant group when there are 2+ members; a lone item has no variants and
+    -- must NOT be registered as a 1-member "variant of itself".
+    EXECUTE format('
+      SELECT COUNT(*)
+      FROM public.%I t
+      WHERE t.tenant_id = $1
+        AND t.name IS NOT NULL
+        AND t.name != ''''
+        AND public.slugify(
+          trim(regexp_replace(
+            regexp_replace(
+              regexp_replace(
+                regexp_replace(t.name, '' ?[([{][^)\]}]*[)\]}]*$'', '''', ''g''),
+              '' [-–—][^-–—]*$'', ''''),
+            '' [Vv]\.?\d+'', ''''),
+          '' [Nn]v\.?\d+'', ''''))
+          || ''-'' || $2) = $3
+    ', p_table)
+    USING p_tenant_id, p_table, v_group_key
+    INTO v_group_members;
+
+    IF v_group_members < 2 THEN
+      CONTINUE;
+    END IF;
 
     -- Preserve an existing group_key for the item (if already linked manually)
     SELECT group_key INTO v_existing_group
@@ -96,7 +126,11 @@ BEGIN
     ON CONFLICT (tenant_id, table_name, item_id)
     DO UPDATE SET group_key = v_group_key, variant_label = v_label, variant_order = v_max_order, auto_detected = true;
 
-    v_count := v_count + 1;
+    -- Only count non-base members as "detected variants" (the first member of a
+    -- group is treated as the canonical/base item, not a variant of itself).
+    IF v_max_order > 0 THEN
+      v_count := v_count + 1;
+    END IF;
   END LOOP;
 
   RETURN jsonb_build_object('ok', true, 'variants_created', v_count);
@@ -176,3 +210,22 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'group_key', v_group_key);
 END;
 $$;
+
+-- =====================================================
+-- 3. Cleanup: remove groups left by the old detection (090) that contain a
+--    single member. The corrected detect_item_variants (step 1) only creates
+--    groups with 2+ members, so leftover 1-member groups (an item registered as
+--    a "variant of itself") must be purged so the UI stops showing
+--    "Nenhuma variante vinculada" for items that genuinely have none.
+--    Idempotent: safe to run multiple times.
+-- =====================================================
+
+DELETE FROM public.item_variants iv
+WHERE iv.auto_detected = true
+  AND (
+    SELECT COUNT(*)
+    FROM public.item_variants g
+    WHERE g.tenant_id = iv.tenant_id
+      AND g.table_name = iv.table_name
+      AND g.group_key = iv.group_key
+  ) < 2;
