@@ -250,7 +250,10 @@ function RenderTypeFields({
 
   // 2. Columns with explicit render types from table schema
   const entries = Object.entries(columnTypes).filter(
-    ([col]) => !rendered.has(col) && hasValue(data[col]),
+    ([col]) => !rendered.has(col)
+      && !SYSTEM_FIELDS.has(col)
+      && (!visibleColumnsSet || visibleColumnsSet.has(col))
+      && hasValue(data[col]),
   );
   if (entries.length > 0) {
     const typeSections = entries.map(([col, renderType]) => {
@@ -482,8 +485,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     setActiveData(data);
   }, [data]);
 
-  const handleSelectVariant = async (variantSlug: string | null) => {
-    if (variantSlug === null) {
+  const handleSelectVariant = async (variant: { item_id: string; item_slug?: string | null } | null) => {
+    if (variant === null) {
       setActiveVariantSlug(null);
       setActiveData(data);
       setFlipKey((k) => k + 1);
@@ -492,10 +495,24 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     if (!tenantId || !tenantSlug) return;
     setLoadingVariant(true);
     try {
+      let fetched: Record<string, any> | null = null;
       const { getTableItem } = await import('@/lib/data-access');
-      const fetched = await getTableItem(tenantSlug, table, variantSlug);
+      if (variant.item_slug) {
+        fetched = await getTableItem(tenantSlug, table, variant.item_slug);
+      }
+      if (!fetched) {
+        // Fallback: busca direta pela PK (funciona mesmo sem a coluna slug)
+        const { supabase } = await import('@/supabase');
+        const { data: row } = await supabase
+          .from(table as any)
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('id', variant.item_id)
+          .maybeSingle();
+        fetched = (row as Record<string, any>) ?? null;
+      }
       if (fetched) {
-        setActiveVariantSlug(variantSlug);
+        setActiveVariantSlug(variant.item_slug ?? null);
         setActiveData({ ...fetched, _source_table: sourceTable });
         setFlipKey((k) => k + 1);
       }

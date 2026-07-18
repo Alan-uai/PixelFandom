@@ -23,7 +23,7 @@ interface Props {
   /** Slug da variante atualmente ativa (undefined = "Atual") */
   activeVariantSlug?: string | null;
   /** Chamado ao selecionar uma variante — o pai deve carregar os dados dela */
-  onSelectVariant?: (variantSlug: string | null) => void;
+  onSelectVariant?: (variant: { item_id: string; item_slug?: string | null } | null) => void;
   /** true enquanto os dados da variante selecionada estão carregando */
   loadingVariant?: boolean;
 }
@@ -74,9 +74,9 @@ export default function VariantSelector({
   const isActive = (slug: string | null) =>
     (activeVariantSlug ?? currentItemSlug) === (slug ?? currentItemSlug);
 
-  const handleSelect = (slug: string | null) => {
+  const handleSelect = (slug: string | null, variant?: Variant) => {
     if (onSelectVariant) {
-      onSelectVariant(slug);
+      onSelectVariant(slug === null ? null : { item_id: variant!.item_id, item_slug: variant?.item_slug ?? null });
     }
   };
 
@@ -126,7 +126,7 @@ export default function VariantSelector({
               <button
                 key={v.id}
                 type="button"
-                onClick={() => handleSelect(v.item_slug)}
+                onClick={() => handleSelect(v.item_slug, v)}
                 className={cn(
                   'text-xs px-2.5 py-1 rounded-full border transition-colors',
                   active

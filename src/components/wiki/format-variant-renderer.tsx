@@ -11,7 +11,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 
@@ -38,6 +38,7 @@ type Props = {
   maxValue?: number;
   allowedValues?: AllowedValue[];
   onCompareClick?: () => void;
+  plain?: boolean;
 };
 
 function findAllowed(allowedValues: AllowedValue[] | undefined, val: string): AllowedValue | undefined {
@@ -1489,52 +1490,123 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   return String(v);
 }
 
+/** Format a single mini-card value node, respecting suffix/scientific notation and OP symbols. */
+function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
+  if (typeof val === 'number') {
+    return <span className="font-mono">{formatNumber(val, !!useSuffix)}</span>;
+  }
+  if (typeof val === 'string') {
+    if (opEnabled) {
+      const op = parseOperatorPrefix(val);
+      if (op) {
+        const n = Number(op.number);
+        const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
+        return (
+          <span className="font-mono">
+            <span className="font-bold text-primary">{op.symbol}</span>
+            {displayNum}
+          </span>
+        );
+      }
+    }
+    return <span>{humanizeLabel(val)}</span>;
+  }
+  return <span>{fmtComplexVal(val, useSuffix)}</span>;
+}
+
+/** Body of a mini card: one row per key with color, suffix and OP support. */
+function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
+  const entries = Object.entries(obj);
+  return (
+    <div className="flex flex-col gap-1">
+      {entries.map(([k, val]) => {
+        const color = jsonbKeyColors?.[k];
+        return (
+          <div key={k} className="flex flex-col gap-0.5">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: color || 'hsl(var(--muted-foreground))' }}
+            >
+              {humanizeLabel(k)}
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Primary accent color for a card built from its first colored key. */
+function firstKeyColor(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>): string | undefined {
+  for (const k of Object.keys(obj)) {
+    if (jsonbKeyColors?.[k]) return jsonbKeyColors[k];
+  }
+  return undefined;
+}
+
 function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void): React.ReactNode {
   ensureDetectorsRegistered();
+
+  // Array → one independent mini card per element (object or scalar).
   if (Array.isArray(value)) {
     if (opEnabled && detectOpArray(value)) {
       return renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick);
     }
     return (
-      <div className="flex flex-wrap gap-2">
-        {value.map((obj: unknown, i: number) => {
-          if (typeof obj === 'object' && obj !== null) {
-            const d = findBestDetector(obj);
-            if (d) return <div key={i} className="min-w-[130px]">{d.render({ value: obj, useSuffix })}</div>;
-            return renderPerKeyCards(obj as Record<string, unknown>, jsonbKeyColors, useSuffix, onCompareClick);
+      <div className="flex flex-wrap gap-2" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+        {value.map((el: unknown, i: number) => {
+          if (typeof el === 'object' && el !== null) {
+            const obj = el as Record<string, unknown>;
+            return (
+              <MiniCard3D
+                key={i}
+                color={firstKeyColor(obj, jsonbKeyColors)}
+                value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled)}
+                onClick={onCompareClick}
+                className="min-w-[110px] flex-1"
+              />
+            );
           }
           return (
-            <span key={i} className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{String(obj)}</span>
+            <MiniCard3D
+              key={i}
+              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
+              onClick={onCompareClick}
+              className="min-w-[90px] flex-1"
+            />
           );
         })}
       </div>
     );
   }
-  const obj = value as Record<string, unknown>;
-  const d = findBestDetector(obj);
-  if (d) return d.render({ value: obj, useSuffix });
-  return renderPerKeyCards(obj, jsonbKeyColors, useSuffix, onCompareClick);
-}
 
-function renderPerKeyCards(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): React.ReactNode {
+  // Object → one independent mini card per key.
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    return (
+      <div className="flex flex-wrap gap-2" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+        {Object.entries(obj).map(([k, val]) => (
+          <MiniCard3D
+            key={k}
+            label={humanizeLabel(k)}
+            color={jsonbKeyColors?.[k]}
+            value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>}
+            onClick={onCompareClick}
+            className="min-w-[100px] flex-1"
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {Object.entries(obj).map(([k, val]) => (
-        <div
-          key={k}
-          onClick={onCompareClick}
-          role={onCompareClick ? 'button' : undefined}
-          tabIndex={onCompareClick ? 0 : undefined}
-          className={`rounded-lg border bg-card p-2.5 text-xs min-w-[100px] transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
-          style={jsonbKeyColors?.[k] ? { borderColor: jsonbKeyColors[k] + '40' } : {}}
-        >
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-foreground/70 text-[10px] uppercase tracking-wider" style={jsonbKeyColors?.[k] ? { color: jsonbKeyColors[k] } : {}}>{k.replace(/_/g, ' ')}</span>
-            <span className="text-foreground">{fmtComplexVal(val, useSuffix)}</span>
-          </div>
-        </div>
-      ))}
-    </div>
+    <MiniCard3D
+      value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>}
+      onClick={onCompareClick}
+    />
   );
 }
 
@@ -1705,8 +1777,27 @@ function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, j
   );
 }
 
-function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void): React.ReactNode {
-  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
+function renderComplexPlainInline(value: unknown, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+  const entries = complexEntries(value);
+  const parts = entries.map(([k, val]) => {
+    const color = jsonbKeyColors?.[k.replace(/\s\d+$/, '')];
+    return (
+      <span key={k} style={color ? { color } : {}}>
+        <span className="font-medium text-foreground/70">{k.replace(/_/g, ' ')}:</span>{' '}
+        <span className="text-foreground">{fmtComplexVal(val, useSuffix)}</span>
+      </span>
+    );
+  });
+  const result: React.ReactNode[] = [];
+  parts.forEach((p, i) => {
+    if (i > 0) result.push(' · ');
+    result.push(p);
+  });
+  return <span className="text-xs text-muted-foreground leading-relaxed">{result}</span>;
+}
+
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: () => void, plain?: boolean): React.ReactNode {
+  if (v === 1) return plain ? renderComplexPlainInline(value, useSuffix, jsonbKeyColors) : renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
   if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors);
   if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors);
   if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors);
@@ -1714,9 +1805,20 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
 }
 
 // ── Variant 1: every scalar render type becomes a mini card ──
-function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, _opEnabled?: boolean): React.ReactNode {
+function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
   const color = valueColors?.[str];
   const valStyle: React.CSSProperties = color ? { color } : {};
+  const opNode = opEnabled ? (() => {
+    const op = parseOperatorPrefix(str);
+    if (!op) return null;
+    const n = Number(op.number);
+    const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
+    return (
+      <span className="text-sm font-bold font-mono" style={valStyle}>
+        <span className="text-primary">{op.symbol}</span>{displayNum}
+      </span>
+    );
+  })() : null;
   switch (format) {
     case 'badge': {
       const av = findAllowed(allowedValues, str);
@@ -1843,23 +1945,23 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
     case 'popover':
       return <span className="text-xs text-muted-foreground truncate max-w-full">{str}</span>;
     default:
-      return <span className="text-xs text-foreground" style={valStyle}>{str}</span>;
+      return opNode ?? <span className="text-xs text-foreground" style={valStyle}>{str}</span>;
   }
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, plain }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering
   if (isComplexValue(value)) {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
+    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, plain);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
-  if (n === 1) {
+  if (n === 1 && format !== 'badge' && !plain) {
     const content = renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled);
     const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
     return (
@@ -1914,13 +2016,13 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     }
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
-      if (typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
+      if (!plain && typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
         ensureDetectorsRegistered();
         const detector = findBestDetector(detectValue);
         if (detector) return detector.render({ value: detectValue, useSuffix }, n);
       }
       if (isComplexValue(detectValue)) {
-        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick);
+        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, plain);
       }
       return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }

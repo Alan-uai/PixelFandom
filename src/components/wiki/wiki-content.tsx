@@ -131,10 +131,12 @@ export function WikiContent({ content, className = '', wikiSlug }: WikiContentPr
       }),
     );
 
+    const roots = iconRoots.current;
+    const roots = iconRoots.current;
     return () => {
       cancelled = true;
-      iconRoots.current.forEach((r) => r.unmount());
-      iconRoots.current.clear();
+      roots.forEach((r) => r.unmount());
+      roots.clear();
     };
   }, [html, wikiSlug]);
 

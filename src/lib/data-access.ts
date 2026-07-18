@@ -262,7 +262,31 @@ export async function getTableItems(
     return { items: [], labelCol };
   }
 
-  const result = { items: (data ?? []) as TableItem[], labelCol };
+  let items = (data ?? []) as TableItem[];
+
+  // Esconde itens que são apenas variantes (não o item base do grupo).
+  // O item base de cada grupo tem variant_order = 0 e permanece visível;
+  // os demais membros (variant_order > 0) são renderizados via toggle de
+  // variantes no card, nunca como itens separados na listagem.
+  try {
+    const { data: variantRows } = await supabase
+      .from('item_variants' as any)
+      .select('item_id, variant_order')
+      .eq('tenant_id', tenantId)
+      .eq('table_name', tableName);
+    const variantIds = new Set(
+      ((variantRows ?? []) as { item_id: string; variant_order: number }[])
+        .filter((r) => r.variant_order > 0)
+        .map((r) => r.item_id),
+    );
+    if (variantIds.size > 0) {
+      items = items.filter((it) => !variantIds.has(it.id as string));
+    }
+  } catch {
+    // se a tabela de variantes não existir, mantém todos os itens
+  }
+
+  const result = { items, labelCol };
   setCache(cacheKey, result);
   cacheNotify(cacheKey);
   return result;

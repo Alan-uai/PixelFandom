@@ -753,7 +753,7 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} hideLabel />
+                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} hideLabel plain />
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -860,7 +860,7 @@ export function CategorizationConfig({
                         }`}
                       >
                         {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                        <ColumnDisplay value={val} column={c.categoryItemSortColumn} renderType={columnTypes?.[c.categoryItemSortColumn] || 'auto'} />
+                        <ColumnDisplay value={val} column={c.categoryItemSortColumn} renderType={columnTypes?.[c.categoryItemSortColumn] || 'auto'} plain />
                         {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                       </motion.button>
                     );
@@ -955,7 +955,7 @@ export function CategorizationConfig({
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
                     <span className="text-[10px] opacity-60">{cat}:</span>
-                    <ColumnDisplay value={sub} column={secondaryColumn} renderType={columnTypes?.[secondaryColumn] || 'auto'} />
+                    <ColumnDisplay value={sub} column={secondaryColumn} renderType={columnTypes?.[secondaryColumn] || 'auto'} plain />
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -1059,7 +1059,7 @@ export function CategorizationConfig({
                           }`}
                         >
                           {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                          <ColumnDisplay value={val} column={c.subCategoryItemSortColumn} renderType={columnTypes?.[c.subCategoryItemSortColumn] || 'auto'} />
+                          <ColumnDisplay value={val} column={c.subCategoryItemSortColumn} renderType={columnTypes?.[c.subCategoryItemSortColumn] || 'auto'} plain />
                           {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                         </motion.button>
                       );

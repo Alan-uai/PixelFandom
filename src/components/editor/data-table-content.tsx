@@ -107,6 +107,7 @@ const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
 const newFieldTypes = FIELD_TYPE_NAMES;
 const dateColumnNames = ['verified_date', 'expired_date', 'release_date', 'event_date'];
 const systemDateColumns = ['created_at', 'updated_at'];
+const JSON_COLUMN_NAMES = ['craft_materials', 'set_bonus', 'key_buffs', 'possible_stats', 'attacks', 'effects', 'items_dropped', 'notable_loot', 'chapters', 'difficulties', 'rewards', 'crafting_materials'];
 
 interface Row {
   [key: string]: unknown;
@@ -509,6 +510,16 @@ export default function DataTableContent({
 
   function getColumnDataType(col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined {
     return columns?.find((c) => c.column_name === col)?.data_type;
+  }
+
+  // Effective render type: falls back to 'jsonb' for known JSON column names
+  // (e.g. effects) when the viewer_config has no explicit mapping, so the
+  // value is rendered as structured JSON instead of disappearing from the card.
+  function getEffectiveRenderType(col: string): string | undefined {
+    const mapped = getColumnRenderType(col);
+    if (mapped) return mapped;
+    if (JSON_COLUMN_NAMES.includes(col)) return 'jsonb';
+    return undefined;
   }
 
   const isDateColumn = (col: string, dataType?: string): boolean => {
@@ -1052,7 +1063,7 @@ export default function DataTableContent({
     }
 
     const isLongText = col.includes('description') || col.includes('notes') || col.includes('strategy') || col.includes('tips') || col === 'content' || col.endsWith('_details') || col === 'effect';
-    const isJson = ['craft_materials', 'set_bonus', 'key_buffs', 'possible_stats', 'attacks', 'effects', 'items_dropped', 'notable_loot', 'chapters', 'difficulties', 'rewards', 'crafting_materials'].includes(col);
+    const isJson = JSON_COLUMN_NAMES.includes(col);
 
     if (isJson || isLongText) {
       const colLabel = columnConfigMap[col]?.displayName || col;
@@ -1742,7 +1753,7 @@ export default function DataTableContent({
                     {detailColumns.map((col) => {
                       const val = row[col];
                       if (val === null || val === undefined) return null;
-                      const renderType = getColumnRenderType(col);
+                      const renderType = getEffectiveRenderType(col);
                       const fmt = getDefaultFormat(renderType);
                       const colDispName = columnConfigMap[col]?.displayName;
                       return (
@@ -1761,6 +1772,7 @@ export default function DataTableContent({
                             value={val}
                             label={colDispName || col}
                             maxValue={columnConfigMap[col]?.maxValue}
+                            plain
                           />
                         </div>
                       );

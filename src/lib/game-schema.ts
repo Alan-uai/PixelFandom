@@ -191,7 +191,7 @@ export function inferPrimaryColumns(columns: { column_name: string; data_type: s
     'rarity', 'tier', 'type', 'weapon_type', 'enemy_type', 'boss_type', 'reward_type',
     'item_type', 'resource_type', 'category', 'difficulty', 'element', 'status', 'is_hotfix',
     'is_active', 'world_name', 'source_world', 'realm', 'region', 'faction', 'class', 'role',
-    'config_value', 'shop_price', 'gold_cost', 'effects', 'world_number', 'world_name',
+    'config_value', 'shop_price', 'gold_cost', 'world_number', 'world_name',
   ];
 
   const skipCols = new Set([label, ...systemCols]);

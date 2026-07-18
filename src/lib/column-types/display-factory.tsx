@@ -74,7 +74,7 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel, onCompareClick }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel, onCompareClick, plain }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
@@ -83,6 +83,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   labelColor?: string;
   hideLabel?: boolean;
   onCompareClick?: () => void;
+  plain?: boolean;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
@@ -102,6 +103,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         <FormatVariantRenderer
           format="jsonb-structured"
           variant={tv}
+          plain={plain}
           value={parsed}
           label={dl}
           useSuffix={useSuffix}
@@ -118,6 +120,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         <FormatVariantRenderer
           format="jsonb-structured"
           variant={tv}
+          plain={plain}
           value={formatted}
           label={dl}
           useSuffix={useSuffix}
@@ -139,6 +142,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         <FormatVariantRenderer
           format="jsonb-structured"
           variant={tv}
+          plain={plain}
           value={prepared}
           label={displayLabel}
           useSuffix={useSuffix}

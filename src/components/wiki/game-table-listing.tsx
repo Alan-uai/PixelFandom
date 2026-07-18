@@ -1478,16 +1478,18 @@ function MiniCardsSection({
   useSuffix?: boolean;
   onCompareStatClick?: (statKey: string) => void;
 }) {
-  const order: string[] = cardConfig?.columnOrder?.length
-    ? cardConfig.columnOrder
-    : cardConfig?.visibleColumns || [];
+  const visibleColumns: string[] = cardConfig?.visibleColumns || [];
+  const columnOrder: string[] = cardConfig?.columnOrder || [];
 
-  const cols = order.length
-    ? order
-    : Object.keys(columnTypes || {});
+  const visibleSet = visibleColumns.length ? new Set(visibleColumns) : null;
 
-  const visible = cols.filter((c) => {
+  const order = columnOrder.length
+    ? columnOrder
+    : (visibleColumns.length ? visibleColumns : Object.keys(columnTypes || {}));
+
+  const visible = order.filter((c) => {
     if (MINI_CARD_SKIP_COLS.has(c)) return false;
+    if (visibleSet && !visibleSet.has(c)) return false;
     const val = item?.[c];
     return val != null && val !== '' && val !== 'none';
   });

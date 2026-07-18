@@ -93,7 +93,7 @@ export function DetailConfig({
         <p className="text-[10px] text-muted-foreground">Marque as colunas que aparecem no detalhe.</p>
         <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
           {(columns as string[]).map((col) => {
-            if (SYSTEM_COLS_EXT.has(col)) return null;
+            if (SYSTEM_COLS_EXT.has(col) || LABEL_COLS.has(col)) return null;
             const isVisible = effectiveVisible.includes(col);
             return (
               <div key={col} className="flex items-center gap-2">
