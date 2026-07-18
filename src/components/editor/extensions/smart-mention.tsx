@@ -67,6 +67,19 @@ export const SmartMention = Extension.create({
         allowSpaces: false,
         startOfLine: false,
 
+        command: ({ editor: ed, range, props }) => {
+          ed
+            .chain()
+            .focus()
+            .command(({ tr, dispatch }) => {
+              if (dispatch) {
+                tr.insertText(props.label, range.from, range.to);
+              }
+              return true;
+            })
+            .run();
+        },
+
         items: async ({ query }): Promise<MentionResult[]> => {
           if (!query) return [];
           const parsed = parseQuery(query);

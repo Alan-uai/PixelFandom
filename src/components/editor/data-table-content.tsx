@@ -254,21 +254,12 @@ export default function DataTableContent({
   const [potentialParents, setPotentialParents] = useState<string[]>([]);
   const [parentLoading, setParentLoading] = useState(false);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
-  const [showVariantCreate, setShowVariantCreate] = useState(false);
-  const [variantCreateName, setVariantCreateName] = useState('');
   const [rowHiddenFields, setRowHiddenFields] = useState<Record<string, string[]>>({});
   const [iconPickerState, setIconPickerState] = useState<{
     col: string;
     value: string;
     onChange: (key: string, val: string) => void;
   } | null>(null);
-
-  useEffect(() => {
-    if (!editingId) {
-      setShowVariantCreate(false);
-      setVariantCreateName('');
-    }
-  }, [editingId]);
 
   const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
     formSetter((prev) => {
@@ -631,6 +622,49 @@ export default function DataTableContent({
       notifyItemsChange(slug, table);
       toast({ title: 'Registro excluído.' });
     }
+  };
+
+  const handleCreateVariant = async (row: Row) => {
+    if (!tenantId) return;
+    const baseName = ((row['name'] as string) || '').replace(/\s+v\d+$/i, '').trim() || 'item';
+    const variantPattern = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+v(\\d+)$`, 'i');
+    let maxV = 1;
+    for (const r of rows) {
+      const m = String(r['name'] ?? '').match(variantPattern);
+      if (m) {
+        const v = parseInt(m[1], 10);
+        if (v > maxV) maxV = v;
+      }
+    }
+    const nextV = maxV + 1;
+    const variantName = `${baseName} v${nextV}`;
+
+    setSaving(true);
+    const { data: newItem, error: insertError } = await supabase
+      .from(table)
+      .insert({ name: variantName, tenant_id: tenantId })
+      .select('id')
+      .single();
+    if (insertError || !newItem) {
+      toast({ variant: 'destructive', title: 'Erro', description: insertError?.message || 'Falha ao criar item.' });
+      setSaving(false);
+      return;
+    }
+    const { data: linkResult } = await supabase
+      .rpc('link_item_variant', {
+        p_table: table, p_item_id: row.id,
+        p_target_item_id: newItem.id, p_tenant_id: tenantId,
+        p_variant_label: variantName,
+      });
+    const linkOk = (linkResult as { ok?: boolean })?.ok;
+    if (linkOk) {
+      toast({ title: `Variante "${variantName}" criada!` });
+      fetchRows();
+    } else {
+      const errMsg = (linkResult as { error?: string })?.error || 'Não foi possível vincular a variante.';
+      toast({ variant: 'destructive', title: 'Erro', description: errMsg });
+    }
+    setSaving(false);
   };
 
   const handleNewSave = async () => {
@@ -1361,26 +1395,31 @@ export default function DataTableContent({
         <div className="space-y-2">
           {filteredRows.map((row) => {
             const isEditing = editingId === row.id;
-            const rowTitle = primary.map((col) => {
+            const rowTitle = (row['name'] as string) || primary.map((col) => {
               if (!(col in row)) return '';
               return getPrimaryValue(row, col);
             }).filter(Boolean).join(' ');
-            const rowDesc = primary.length > 1
-              ? primary.slice(1).map((col) => {
-                  if (!(col in row)) return '';
-                  return `${col.replace(/_/g, ' ')}: ${getPrimaryValue(row, col)}`;
-                }).join(', ')
-              : undefined;
+
+            const rowIconUrl = (row['icon_url'] || row['icon_id'] || row['icon'] || '') as string;
+            const showIcon = rowIconUrl.includes(':');
 
             return (
               <CollapsibleSection
                 key={row.id}
                 id={row.id}
                 title={rowTitle}
-                description={rowDesc}
+                titleIcon={showIcon ? <IconRenderer icon={rowIconUrl} size="sm" /> : undefined}
                 open={isEditing || undefined}
                 corner={
                   <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleCreateVariant(row); }}
+                      className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-primary transition-colors shadow-sm inset-shadow text-[10px] font-bold leading-none"
+                      title="Criar variante"
+                    >
+                      +V
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); startEdit(row); }}
@@ -1568,8 +1607,11 @@ export default function DataTableContent({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setShowVariantCreate(true)}>
-                        <Layers className="h-4 w-4 mr-1" />
+                      <Button size="sm" variant="outline" onClick={async () => {
+                        const editingRow = rows.find(r => r.id === editingId);
+                        if (editingRow) await handleCreateVariant(editingRow);
+                      }} disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Layers className="h-4 w-4 mr-1" />}
                         +variante
                       </Button>
                       <Button size="sm" onClick={() => handleEditSave(row.id)} disabled={saving || schemaBusy}>
@@ -1581,54 +1623,6 @@ export default function DataTableContent({
                         Cancelar
                       </Button>
                     </div>
-
-                    {showVariantCreate && tenantId && (
-                      <div className="flex items-center gap-2 border-t pt-2">
-                        <input
-                          type="text"
-                          value={variantCreateName}
-                          onChange={(e) => setVariantCreateName(e.target.value)}
-                          placeholder="Nome da nova variante..."
-                          className="h-8 flex-1 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/50"
-                        />
-                        <Button size="sm" onClick={async () => {
-                          const name = variantCreateName.trim();
-                          if (!name || !tenantId) return;
-                          setSaving(true);
-                          const { data: newItem, error: insertError } = await supabase
-                            .from(table)
-                            .insert({ name, tenant_id: tenantId })
-                            .select('id')
-                            .single();
-                          if (insertError || !newItem) {
-                            toast({ variant: 'destructive', title: 'Erro', description: insertError?.message || 'Falha ao criar item.' });
-                            setSaving(false);
-                            return;
-                          }
-                          const { data: linkResult } = await supabase
-                            .rpc('link_item_variant', {
-                              p_table: table, p_item_id: editingId,
-                              p_target_item_id: newItem.id, p_tenant_id: tenantId,
-                              p_variant_label: name,
-                            });
-                          const linkOk = (linkResult as { ok?: boolean })?.ok;
-                          if (linkOk) {
-                            toast({ title: `Variante "${name}" criada!` });
-                            setShowVariantCreate(false);
-                            setVariantCreateName('');
-                            fetchRows();
-                          } else {
-                            toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao vincular variante.' });
-                          }
-                          setSaving(false);
-                        }} disabled={!variantCreateName.trim() || saving}>
-                          Criar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setShowVariantCreate(false); setVariantCreateName(''); }}>
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
 
                     {tenantId && editingId && (
                       <EditorVariantSection

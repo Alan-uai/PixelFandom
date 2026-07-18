@@ -33,14 +33,19 @@ export function useItemVariants(tenantId: string | null, tableName: string | nul
 
   const linkVariant = useCallback(async (targetItemId: string, label?: string) => {
     if (!tenantId || !tableName || !itemId) return false;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .rpc('link_item_variant', {
         p_table: tableName, p_item_id: itemId,
         p_target_item_id: targetItemId, p_tenant_id: tenantId,
         p_variant_label: label || null,
       });
+    if (error) {
+      console.error('link_item_variant RPC error:', error);
+      return false;
+    }
     const result = data as { ok?: boolean; error?: string } | null;
     if (result?.ok) { await fetchVariants(); return true; }
+    if (result?.error) console.error('link_item_variant failed:', result.error);
     return false;
   }, [tenantId, tableName, itemId, fetchVariants]);
 

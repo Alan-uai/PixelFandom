@@ -16,6 +16,7 @@ interface CollapsibleSectionProps {
   className?: string;
   corner?: ReactNode;
   storageKey?: string;
+  titleIcon?: ReactNode;
 }
 
 function getStoredOpen(key: string, fallback: boolean): boolean {
@@ -44,6 +45,7 @@ export function CollapsibleSection({
   className,
   corner,
   storageKey,
+  titleIcon,
 }: CollapsibleSectionProps) {
   const persistentKey = storageKey ? `pf:collapsible:${storageKey}` : undefined;
   const initialOpen = persistentKey ? getStoredOpen(persistentKey, defaultOpen) : defaultOpen;
@@ -91,7 +93,10 @@ export function CollapsibleSection({
         className="flex items-center justify-between gap-4 w-full px-6 py-4 text-left cursor-pointer select-none hover:bg-accent/50 transition-colors rounded-t-xl"
       >
         <div className="space-y-1 min-w-0 flex-1">
-          <h3 className="font-semibold leading-none tracking-tight">{title}</h3>
+          <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
+            {titleIcon && <span className="shrink-0">{titleIcon}</span>}
+            {title}
+          </h3>
           {description && (
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
