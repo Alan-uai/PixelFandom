@@ -1,6 +1,7 @@
 export const ALL_FORMATS = [
   'text',
   'badge',
+  'number',
   'color',
   'icon',
   'link',
@@ -35,6 +36,7 @@ export interface FormatDef {
 export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   text:     { value: 'text',     label: 'Texto',     description: 'Texto padrão' },
   badge:    { value: 'badge',    label: 'Badge',     description: 'Etiqueta estilizada' },
+  number:   { value: 'number',   label: 'Número',    description: 'Número com sufixo e notação científica' },
   color:    { value: 'color',    label: 'Cor',       description: 'Amostra de cor' },
   icon:     { value: 'icon',     label: 'Ícone',     description: 'Ícone decorativo' },
   link:     { value: 'link',     label: 'Link',      description: 'Link clicável' },
@@ -65,11 +67,11 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   'entity-link': ['link', 'text', 'badge'],
   jsonb:         ['jsonb-structured', 'tags', 'text'],
 
-  integer:  ['text', 'badge', 'rating', 'progress', 'duration'],
-  bigint:   ['text', 'badge', 'rating', 'progress', 'duration'],
-  real:     ['text', 'badge', 'rating', 'progress'],
-  double:   ['text', 'badge', 'rating', 'progress'],
-  numeric:  ['text', 'badge', 'rating', 'progress'],
+  integer:  ['number', 'text', 'badge', 'rating', 'progress', 'duration'],
+  bigint:   ['number', 'text', 'badge', 'rating', 'progress', 'duration'],
+  real:     ['number', 'text', 'badge', 'rating', 'progress'],
+  double:   ['number', 'text', 'badge', 'rating', 'progress'],
+  numeric:  ['number', 'text', 'badge', 'rating', 'progress'],
   rating:   ['rating', 'text', 'badge', 'progress'],
   slider:   ['progress', 'rating', 'text', 'badge'],
   duration: ['duration', 'text', 'badge'],

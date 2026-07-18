@@ -28,8 +28,9 @@ function renderTypeToFormat(rt: string): DisplayFormat {
     case 'video':       return 'video';
     case 'audio':       return 'audio';
     case 'slider':      return 'progress';
-    case 'duration':    return 'duration';
-    case 'emoji':       return 'emoji';
+    case 'duration':     return 'duration';
+    case 'number':       return 'number';
+    case 'emoji':        return 'emoji';
     case 'date':
     case 'time':        return 'date';
     case 'entity-link': return 'text';

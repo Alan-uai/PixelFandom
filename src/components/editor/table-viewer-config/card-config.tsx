@@ -319,17 +319,6 @@ export function CardConfig({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                          <Label className="text-[10px] text-muted-foreground shrink-0">Icon</Label>
-                          <SizeStepper value={iconSize} onChange={(v) => updateBadgeConfig(col, 'iconSize', v)} />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Label className="text-[10px] text-muted-foreground shrink-0">Label</Label>
-                          <SizeStepper value={labelSize} onChange={(v) => updateBadgeConfig(col, 'labelSize', v)} />
-                        </div>
-                      </div>
-
                       <div className="flex items-center gap-2">
                         <Label className="text-[10px] text-muted-foreground">Cor</Label>
                         <ColorSelect3D
@@ -340,22 +329,34 @@ export function CardConfig({
                         />
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                          <Switch
-                            id={`badge-hover-${col}`}
-                            checked={bc.hover === true}
-                            onCheckedChange={(v) => updateBadgeConfig(col, 'hover', v)}
-                          />
-                          <Label htmlFor={`badge-hover-${col}`} className="text-[10px]">Hover</Label>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <Label className="text-[10px] text-muted-foreground shrink-0">Label</Label>
+                            <SizeStepper value={labelSize} onChange={(v) => updateBadgeConfig(col, 'labelSize', v)} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Label className="text-[10px] text-muted-foreground shrink-0">Icon</Label>
+                            <SizeStepper value={iconSize} onChange={(v) => updateBadgeConfig(col, 'iconSize', v)} />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Switch
-                            id={`badge-action-${col}`}
-                            checked={(bc.clickAction || 'none') !== 'none'}
-                            onCheckedChange={(v) => updateBadgeConfig(col, 'clickAction', v ? 'comparison' : 'none')}
-                          />
-                          <Label htmlFor={`badge-action-${col}`} className="text-[10px]">Ação</Label>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              id={`badge-hover-${col}`}
+                              checked={bc.hover === true}
+                              onCheckedChange={(v) => updateBadgeConfig(col, 'hover', v)}
+                            />
+                            <Label htmlFor={`badge-hover-${col}`} className="text-[10px]">Hover</Label>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              id={`badge-action-${col}`}
+                              checked={(bc.clickAction || 'none') !== 'none'}
+                              onCheckedChange={(v) => updateBadgeConfig(col, 'clickAction', v ? 'comparison' : 'none')}
+                            />
+                            <Label htmlFor={`badge-action-${col}`} className="text-[10px]">Ação</Label>
+                          </div>
                         </div>
                       </div>
 
