@@ -14,7 +14,7 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { LabelIconBox, LabelColorCircle, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
+import { LabelIconBox, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
 import { getDefaultColumnColor } from '@/lib/column-types/registry';
 import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
@@ -35,6 +35,7 @@ import {
   Link2,
   Layers,
   Unlink,
+  GripVertical,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
@@ -170,6 +171,8 @@ export default function DataTableContent({
   const [uploadColumns, setUploadColumns] = useState<Set<string>>(new Set());
   const [columnRenderTypes, setColumnRenderTypes] = useState<Record<string, string>>({});
   const [columnConfigMap, setColumnConfigMap] = useState<Record<string, ColumnConfigEntry>>({});
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [dragFieldCol, setDragFieldCol] = useState<string | null>(null);
 
   const handleColumnConfigChange = useCallback((col: string, cfg: Record<string, unknown>) => {
     setColumnConfigMap((prev) => ({
@@ -354,6 +357,9 @@ export default function DataTableContent({
         }
         if (parsed.columnConfig) {
           setColumnConfigMap(parsed.columnConfig);
+        }
+        if (parsed.card?.columnOrder) {
+          setColumnOrder(parsed.card.columnOrder);
         }
         if (parsed.rowHiddenFields) {
           setRowHiddenFields(parsed.rowHiddenFields);
@@ -557,10 +563,17 @@ export default function DataTableContent({
       }
     });
     if (tableColumns) {
+      // Only auto-include columns that were applied to all items (global/applyToAll)
+      // plus any column already present on this specific row. Never assume every
+      // table column was selected for this item.
+      const globalCols = Object.keys(columnRenderTypes || {});
       tableColumns.forEach((col) => {
-        if (!isSystemColumn(col.column_name) && !(col.column_name in form) && !hiddenForRow.includes(col.column_name)) {
-          form[col.column_name] = '';
-        }
+        const name = col.column_name;
+        if (isSystemColumn(name)) return;
+        if (name in form) return;
+        if (hiddenForRow.includes(name)) return;
+        if (!globalCols.includes(name)) return;
+        form[name] = '';
       });
     }
     setEditForm(form);
@@ -779,6 +792,15 @@ export default function DataTableContent({
     } else {
       const result = data as { ok: boolean; error?: string };
       if (result.ok) {
+        setColumnOrder((prev) => prev.filter((c) => c !== col));
+        await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+          const nextCfg: Record<string, unknown> = { ...config };
+          const card = (nextCfg.card as Record<string, unknown>) || {};
+          const order = (card.columnOrder as string[]) || [];
+          card.columnOrder = order.filter((c) => c !== col);
+          nextCfg.card = card;
+          return nextCfg;
+        });
         toast({ title: `Coluna "${col}" removida.` });
         if (editingId) {
           setEditForm((prev) => {
@@ -787,6 +809,17 @@ export default function DataTableContent({
             return next;
           });
         }
+        setAvailableColumns((prev) => prev.filter((c) => c.column_name !== col));
+        setNewForm((prev) => {
+          const next = { ...prev };
+          delete next[col];
+          return next;
+        });
+        setEditForm((prev) => {
+          const next = { ...prev };
+          delete next[col];
+          return next;
+        });
         fetchColumns();
         fetchRows();
       } else {
@@ -910,14 +943,16 @@ export default function DataTableContent({
             colCfgBase.maxValue = parseInt(newFieldMaxValue) || defaultMax;
           }
           next.columnConfig = { ...(next.columnConfig as Record<string, unknown> || {}), [colSlug]: colCfgBase };
-          if (applyToAll) {
-            const card = (next.card as Record<string, unknown>) || {};
-            const visibleCols = (card.visibleColumns as string[]) || [];
-            if (!visibleCols.includes(colSlug)) {
-              card.visibleColumns = [...visibleCols, colSlug];
-            }
-            next.card = card;
+          const card = (next.card as Record<string, unknown>) || {};
+          const visibleCols = (card.visibleColumns as string[]) || [];
+          if (!visibleCols.includes(colSlug)) {
+            card.visibleColumns = [...visibleCols, colSlug];
           }
+          const orderCols = (card.columnOrder as string[]) || [];
+          if (!orderCols.includes(colSlug)) {
+            card.columnOrder = [...orderCols, colSlug];
+          }
+          next.card = card;
           return next;
         });
         fetchColumns();
@@ -1096,6 +1131,38 @@ export default function DataTableContent({
     setIconPickerState({ col, value: currentValue, onChange });
   };
 
+  const allColumns = tableColumns
+    ? tableColumns.map((c) => c.column_name).filter((c) => !isSystemColumn(c) || c === 'id')
+    : rows.length > 0
+      ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
+      : primary;
+
+  const persistColumnOrder = useCallback(async (next: string[]) => {
+    setColumnOrder(next);
+    if (!tenantId) return;
+    await updateViewerConfigField({ tenantId, table, slug }, (config) => {
+      const nextCfg: Record<string, unknown> = { ...config };
+      const card = (nextCfg.card as Record<string, unknown>) || {};
+      card.columnOrder = next;
+      nextCfg.card = card;
+      return nextCfg;
+    });
+  }, [tenantId, table, slug]);
+
+  const moveField = useCallback((col: string, dir: -1 | 1) => {
+    setColumnOrder((prev) => {
+      const base = prev.length > 0 ? prev : allColumns.filter((c) => isEditableColumn(c));
+      const idx = base.indexOf(col);
+      if (idx === -1) return prev;
+      const target = idx + dir;
+      if (target < 0 || target >= base.length) return prev;
+      const next = [...base];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      persistColumnOrder(next);
+      return next;
+    });
+  }, [allColumns, persistColumnOrder, isEditableColumn]);
+
   const renderFieldItem = (
     col: string,
     value: string,
@@ -1122,10 +1189,30 @@ export default function DataTableContent({
             {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
           </span>
           {!isSystemColumn(col) && !isMediaColumn(col) && (
-            <LabelColorCircle
-              color={columnConfigMap[col]?.labelColor}
-              onChange={(c) => handleColumnConfigChange(col, { labelColor: c })}
-            />
+            <span
+              draggable
+              onDragStart={(e) => { setDragFieldCol(col); e.dataTransfer.effectAllowed = 'move'; }}
+              onDragEnd={() => setDragFieldCol(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!dragFieldCol || dragFieldCol === col) return;
+                const base = columnOrder.length > 0 ? columnOrder : allColumns.filter((c) => isEditableColumn(c));
+                const from = base.indexOf(dragFieldCol);
+                const to = base.indexOf(col);
+                if (from === -1 || to === -1) return;
+                const next = [...base];
+                next.splice(to, 0, next.splice(from, 1)[0]);
+                persistColumnOrder(next);
+                setDragFieldCol(null);
+              }}
+              onClick={() => moveField(col, 1)}
+              className="flex items-center gap-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none select-none"
+              title="Arraste para reordenar as colunas/campos no conteúdo da Wiki (ou clique para mover para baixo)"
+            >
+              <GripVertical className="h-3 w-3" />
+              <GripVertical className="h-3 w-3" />
+            </span>
           )}
         </Label>
       </div>
@@ -1218,12 +1305,8 @@ export default function DataTableContent({
     );
   }
 
-  const allColumns = tableColumns
-    ? tableColumns.map((c) => c.column_name).filter((c) => !isSystemColumn(c) || c === 'id')
-    : rows.length > 0
-      ? Object.keys(rows[0]).filter((c) => !isSystemColumn(c) || c === 'id')
-      : primary;
   const detailColumns = getDetailColumns(allColumns);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -1239,7 +1322,20 @@ export default function DataTableContent({
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           )}
-          <Button size="sm" onClick={() => { setShowNewForm(true); fetchAvailableColumns(); }} disabled={showNewForm}>
+          <Button size="sm" onClick={() => {
+            // Pre-populate the new item form with applyToAll (global) columns so
+            // the user doesn't have to add them manually for every new item.
+            const globalCols = Object.keys(columnRenderTypes || {}).filter(
+              (c) => isEditableColumn(c) && !newFormDefaultFields.includes(c),
+            );
+            setNewForm((prev) => {
+              const next = { ...prev };
+              globalCols.forEach((c) => { if (!(c in next)) next[c] = ''; });
+              return next;
+            });
+            setShowNewForm(true);
+            fetchAvailableColumns();
+          }} disabled={showNewForm}>
             <Plus className="h-4 w-4 mr-1" /> Adicionar
           </Button>
         </div>
