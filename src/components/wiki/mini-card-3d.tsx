@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 export interface MiniCard3DProps {
-  label?: string;
+  label?: React.ReactNode;
   value: React.ReactNode;
   icon?: React.ReactNode;
   color?: string;

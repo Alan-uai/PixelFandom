@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
@@ -538,8 +538,21 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const [flipKey, setFlipKey] = useState(0);
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
   const flipRef = useRef<HTMLDivElement>(null);
+  // Full pre-fetched variant rows keyed by id and slug (populated by VariantSelector's
+  // background pre-cache). Used as the primary source so the FIRST click never waits on
+  // an async fetch that may not have completed yet.
+  const variantRecordsRef = useRef<Map<string, Record<string, any>>>(new Map());
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
+
+  const captureVariantRecords = useCallback((records: Record<string, any>[]) => {
+    for (const r of records) {
+      if (!r?.id) continue;
+      variantRecordsRef.current.set(r.id as string, r);
+      const slug = r.slug as string | undefined;
+      if (slug) variantRecordsRef.current.set(slug, r);
+    }
+  }, []);
 
   // Track the base item id so we only reset when the BASE item changes,
   // never when the user is merely viewing one of its variants.
@@ -574,11 +587,19 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     try {
       let fetched: Record<string, any> | null = null;
 
-      // 1) Background pre-cache (sem request por clique)
-      const cacheKey = variant.item_slug ?? variant.item_id;
-      const { getCachedVariantRow } = await import('@/components/wiki/variant-selector');
-      const cached = getCachedVariantRow(tenantId, table, cacheKey);
-      if (cached) fetched = cached;
+      // 0) Pre-fetched full rows (VariantSelector background pre-cache) — fonte primária,
+      //    garante que o PRIMEIRO clique troca o card sem esperar fetch assíncrono.
+      const localKey = variant.item_slug ?? variant.item_id;
+      const local = variantRecordsRef.current.get(localKey);
+      if (local) fetched = local;
+
+      // 1) Module-level cache (preenchido pelo pre-cache ou por cliques anteriores)
+      if (!fetched) {
+        const { getCachedVariantRow } = await import('@/components/wiki/variant-selector');
+        const cacheKey = variant.item_slug ?? variant.item_id;
+        const cached = getCachedVariantRow(tenantId, table, cacheKey);
+        if (cached) fetched = cached;
+      }
 
       // 2) Fallback seguro (getTableItem)
       if (!fetched) {
@@ -671,6 +692,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             activeVariantSlug={activeVariantSlug}
             baseItemLabel={data.name || data.title || data.item_name || data.code || ''}
             onSelectVariant={handleSelectVariant}
+            onVariantsLoaded={captureVariantRecords}
             loadingVariant={loadingVariant}
           />
         )}

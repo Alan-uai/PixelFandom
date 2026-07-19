@@ -27,7 +27,8 @@ import { resolveTableIcon } from '@/lib/table-icons';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
-import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
@@ -1605,11 +1606,6 @@ function MiniCardsSection({
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
 
-  function handleClick(col: string) {
-    const action = badgeConfig[col]?.clickAction || 'none';
-    if (action === 'comparison') onCompareStatClick?.(col);
-  }
-
   // Inner mini-card click: a jsonb sub-key path may be provided (e.g. `stats.damage`).
   // Falls back to the whole column when no sub-key is given.
   function handleCompare(col: string, subKey?: string) {
@@ -1623,52 +1619,55 @@ function MiniCardsSection({
     <MiniCardGrid className="mb-3" count={visible.length}>
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
-        const color = badgeColors[col] || 'hsl(var(--primary))';
+        const colConfig = columnConfig?.[col];
+        const detailColor = colConfig?.labelColor;
+        const color = detailColor || badgeColors[col] || 'hsl(var(--primary))';
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
         const showIcon = renderType === 'icon';
-        const colConfig = columnConfig?.[col];
+        const labelText = colConfig?.displayName || col.replace(/_/g, ' ');
+        const labelNode = (
+          <span className="flex items-center gap-1">
+            {colConfig?.labelIcon && <IconRenderer icon={colConfig.labelIcon} size={12} />}
+            {labelText}
+          </span>
+        );
         return (
-          <MiniCard3D
+          <VariantAnimatedValue
             key={col}
-            label={col.replace(/_/g, ' ')}
-            color={color}
-            icon={showIcon ? (
-              <ColumnDisplay
-                value={item[col]}
-                column={col}
-                renderType="icon"
-                useSuffix={useSuffix}
-                opEnabled={colOpEnabled}
-                hideLabel
-                columnConfig={colConfig}
-              />
-            ) : undefined}
-            onClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
-            className="group"
-            value={
-              showIcon ? null : (
-                <VariantAnimatedValue
+            value={item[col]}
+            renderType={renderType}
+            trigger={variationKey}
+            useSuffix={useSuffix}
+            formatNumber={(n) => formatNumber(n, !!useSuffix)}
+          >
+            <FormatVariantRenderer
+              format={renderType as any}
+              variant={1}
+              value={item[col]}
+              label={labelText}
+              labelNode={labelNode}
+              labelColor={color}
+              valueColors={badgeColors}
+              jsonbKeyColors={colConfig?.jsonbKeyColors}
+              useSuffix={useSuffix}
+              opEnabled={colOpEnabled}
+              maxValue={colConfig?.maxValue}
+              allowedValues={colConfig?.allowedValues}
+              icon={showIcon ? (
+                <ColumnDisplay
                   value={item[col]}
-                  renderType={renderType}
-                  trigger={variationKey}
+                  column={col}
+                  renderType="icon"
                   useSuffix={useSuffix}
-                  formatNumber={(n) => formatNumber(n, !!useSuffix)}
-                >
-                  <ColumnDisplay
-                    value={item[col]}
-                    column={col}
-                    renderType={renderType}
-                    useSuffix={useSuffix}
-                    opEnabled={colOpEnabled}
-                    variant={1}
-                    hideLabel
-                    columnConfig={colConfig}
-                    onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
-                  />
-                </VariantAnimatedValue>
-              )
-            }
-          />
+                  opEnabled={colOpEnabled}
+                  hideLabel
+                  columnConfig={colConfig}
+                />
+              ) : undefined}
+              onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
+              column={col}
+            />
+          </VariantAnimatedValue>
         );
       })}
     </MiniCardGrid>
