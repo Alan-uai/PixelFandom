@@ -26,6 +26,8 @@ interface Props {
   tenantId: string;
   /** Slug da variante atualmente ativa (undefined = "Atual") */
   activeVariantSlug?: string | null;
+  /** Nome real do item base (usado como rótulo do chip "Atual" quando inativo) */
+  baseItemLabel?: string;
   /** Chamado ao selecionar uma variante — o pai deve carregar os dados dela.
    *  `direction` é a direção do feixe 3D ('ltr' | 'rtl') com base na posição
    *  do chip clicado; `index` é a posição do chip na linha. */
@@ -82,6 +84,7 @@ export default function VariantSelector({
   currentItemSlug,
   tenantId,
   activeVariantSlug,
+  baseItemLabel,
   onSelectVariant,
   loadingVariant,
   onVariantsLoaded,
@@ -199,10 +202,17 @@ export default function VariantSelector({
             : 'bg-card border-primary/20 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:-translate-y-0.5',
     );
 
+  const chipDisplayLabel = (v: Variant | null, label: string): string => {
+    const slug = v?.item_slug ?? null;
+    if (isActive(slug)) return 'Atual';
+    if (slug === null) return baseItemLabel && baseItemLabel.trim() ? baseItemLabel : label;
+    return v?.display_label || label;
+  };
+
   const renderChipContent = (v: Variant | null, label: string) => (
     <>
       {v?.icon && <IconRenderer icon={v.icon} size="sm" />}
-      <span>{v?.display_label || label}</span>
+      <span>{chipDisplayLabel(v, label)}</span>
       {isActive(v?.item_slug ?? null) && (
         <span
           className="ml-0.5 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_2px_rgba(75,197,255,0.8)]"
@@ -229,7 +239,11 @@ export default function VariantSelector({
           const chipEl = onSelectVariant ? (
             <button
               type="button"
-              onClick={() => handleSelect(c.slug, c.v ?? undefined, i)}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleSelect(c.slug, c.v ?? undefined, i);
+              }}
               className={chipClass(c.v, active)}
               style={chipStyle(c.v, active)}
               aria-pressed={active}
@@ -239,6 +253,7 @@ export default function VariantSelector({
           ) : (
             <Link
               href={buildHref(tenantSlug, tableName, c.slug ?? currentItemSlug)}
+              onClick={(e) => e.stopPropagation()}
               className={chipClass(c.v, active)}
               style={chipStyle(c.v, active)}
             >

@@ -1815,7 +1815,7 @@ function ItemCard({
     } finally {
       setLoadingVariant(false);
     }
-  }, [item, tableName, tenantId, tenantSlug, triggerTransition]);
+  }, [item, tableName, tenantId, tenantSlug, triggerTransition, onVariantNameChange]);
 
   useEffect(() => {
     if (baseIdRef.current === baseItemId) return;
@@ -1969,6 +1969,7 @@ function ItemCard({
           currentItemSlug={baseItemSlug}
           tenantId={tenantId}
           activeVariantSlug={activeVariantSlug}
+          baseItemLabel={label}
           onSelectVariant={handleSelectVariant}
           loadingVariant={loadingVariant}
         />

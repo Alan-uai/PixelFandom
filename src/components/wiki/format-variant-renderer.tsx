@@ -1617,11 +1617,10 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
     );
   }
 
+  // Scalar jsonb value already sits inside the column's own mini card, so we
+  // must not wrap it in yet another tiny card — just render the value node.
   return (
-    <MiniCard3D
-      value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>}
-      onClick={onCompareClick}
-    />
+    <span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>
   );
 }
 

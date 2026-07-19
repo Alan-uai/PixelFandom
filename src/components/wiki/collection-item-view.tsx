@@ -289,10 +289,13 @@ function RenderTypeFields({
                 label={colLabel(col)}
                 useSuffix={useSuffix}
                 opEnabled={columnOpEnabled?.[col] !== false}
+                labelColor={cc?.labelColor}
                 valueColors={cc?.valueColors}
                 jsonbKeyColors={cc?.jsonbKeyColors}
                 maxValue={cc?.maxValue}
                 allowedValues={cc?.allowedValues}
+                column={col}
+                onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? col) : undefined}
               />
             );
           })}
@@ -666,6 +669,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             currentItemSlug={baseItemSlug}
             tenantId={tenantId}
             activeVariantSlug={activeVariantSlug}
+            baseItemLabel={data.name || data.title || data.item_name || data.code || ''}
             onSelectVariant={handleSelectVariant}
             loadingVariant={loadingVariant}
           />

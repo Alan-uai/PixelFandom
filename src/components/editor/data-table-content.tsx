@@ -34,7 +34,6 @@ import {
   Link2,
   Layers,
   Unlink,
-  GripVertical,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
@@ -883,7 +882,7 @@ export default function DataTableContent({
     setRecovering(false);
   };
 
-  const handleAddColumn = async (applyToAll = false) => {
+  const handleAddColumn = async () => {
     const rawName = newFieldName.trim();
     if (!rawName) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Digite um nome para o campo.' });
@@ -1496,7 +1495,7 @@ export default function DataTableContent({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleAddColumn(false)}
+                      onClick={() => handleAddColumn()}
                       disabled={schemaBusy || !!newFieldNameError}
                       title="Criar campo e usar apenas neste item"
                     >
@@ -1504,7 +1503,7 @@ export default function DataTableContent({
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => handleAddColumn(true)}
+                      onClick={() => handleAddColumn()}
                       disabled={schemaBusy || !!newFieldNameError}
                       title="Criar campo e mostrar em todos os itens"
                     >
@@ -1743,7 +1742,7 @@ export default function DataTableContent({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleAddColumn(false)}
+                                onClick={() => handleAddColumn()}
                                 disabled={schemaBusy || !!newFieldNameError}
                                 title="Criar campo e usar apenas neste item"
                               >
@@ -1751,7 +1750,7 @@ export default function DataTableContent({
                               </Button>
                               <Button
                                 size="sm"
-                                onClick={() => handleAddColumn(true)}
+                                onClick={() => handleAddColumn()}
                                 disabled={schemaBusy || !!newFieldNameError}
                                 title="Criar campo e mostrar em todos os itens"
                               >
