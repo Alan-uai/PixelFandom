@@ -23,7 +23,7 @@ import { CommentsSection } from '@/components/comments/comments-section';
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
 import { FollowButton } from '@/components/wiki/follow-button';
-import { useSlugResolution, useTableCatalog } from '@/hooks/use-data-access';
+import { useSlugResolution, useTableCatalog, useViewerConfig } from '@/hooks/use-data-access';
 import type { CardPosition } from '@/components/page-builder/types';
 
 export default function WikiPage() {
@@ -92,6 +92,19 @@ export default function WikiPage() {
     articleSlug,
   );
   const { data: catalog } = useTableCatalog(articleSlug ? slug : null, true);
+
+  // Resolve the table that owns the currently displayed game item so we can
+  // load its viewer_config (columnConfig with labelIcon / labelColor, etc).
+  const itemTable = useMemo(() => {
+    if (!articleSlug) return null;
+    if (articleSlug.includes('/')) return articleSlug.split('/')[0];
+    return slugResolved?.table ?? null;
+  }, [articleSlug, slugResolved]);
+  const { data: itemViewerConfigRaw } = useViewerConfig(slug, itemTable);
+  const itemDetailConfig = useMemo(
+    () => (itemViewerConfigRaw ? parseViewerConfig(itemViewerConfigRaw) : null),
+    [itemViewerConfigRaw],
+  );
 
   const gameItemRedirect = useMemo(() => {
     if (articleSlug && articleSlug.includes('/') && catalog) {
@@ -313,6 +326,7 @@ export default function WikiPage() {
                 updatedAt={article.updated_at}
                 createdAt={article.created_at}
                 schema={undefined}
+                detailConfig={itemDetailConfig as any}
               />
             ) : (
               <>

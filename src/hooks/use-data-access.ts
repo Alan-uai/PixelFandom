@@ -146,6 +146,22 @@ export function useSlugResolution(
   );
 }
 
+export function useViewerConfig(
+  tenantSlug: string | null,
+  table: string | null,
+) {
+  const cacheKey = tenantSlug && table ? `viewer-config:${tenantSlug}:${table}` : null;
+  return useDataAccess<Record<string, unknown> | null>(
+    async () => {
+      const { getTableViewerConfig } = await import('@/lib/data-access');
+      if (!tenantSlug || !table) return null;
+      return getTableViewerConfig(tenantSlug, table);
+    },
+    [tenantSlug, table],
+    cacheKey,
+  );
+}
+
 export function useSearch(
   tenantSlug: string | null,
   query: string | null,

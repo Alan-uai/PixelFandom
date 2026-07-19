@@ -157,13 +157,7 @@ export default function VariantSelector({
       .map((v) => ({ v, label: v.variant_label, slug: v.item_slug })),
   ];
 
-  // Reorder: active chip to the front (if one is active)
-  const activeChipIdx = allChips.findIndex((c) => isActive(c.slug));
-  const ordered = [...allChips];
-  if (activeChipIdx > 0) {
-    const [active] = ordered.splice(activeChipIdx, 1);
-    ordered.unshift(active);
-  }
+  const ordered = allChips;
 
   const reduced = prefersReducedMotion();
 

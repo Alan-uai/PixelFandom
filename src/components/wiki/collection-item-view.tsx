@@ -176,14 +176,6 @@ function fieldLabel(key: string): string {
   return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function fieldIcon(key: string): React.ReactNode | undefined {
-  return FIELD_LABELS[key]?.icon;
-}
-
-function fieldColor(key: string): string | undefined {
-  return FIELD_LABELS[key]?.color;
-}
-
 const SYSTEM_FIELDS = new Set([
   'id', 'tenant_id', 'created_at', 'updated_at',
   'name', 'title', 'description', 'summary',
@@ -247,9 +239,28 @@ function RenderTypeFields({
   chipWrap?: boolean;
   columnOrder?: string[];
   useSuffix?: boolean;
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
+  columnConfig?: Record<string, { maxValue?: number; displayName?: string; labelIcon?: string; labelColor?: string; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
 }) {
   const sections: React.ReactNode[] = [];
+
+  // Per-column label metadata that merges the user-defined columnConfig
+  // (labelIcon / labelColor / displayName) with the built-in FIELD_LABELS fallback.
+  const colLabel = (key: string): string => {
+    const cc = columnConfig?.[key];
+    if (cc?.displayName) return cc.displayName;
+    return fieldLabel(key);
+  };
+  const colIcon = (key: string): React.ReactNode | undefined => {
+    const cc = columnConfig?.[key];
+    if (cc?.labelIcon) return <IconRenderer icon={cc.labelIcon} size="sm" />;
+    return FIELD_LABELS[key]?.icon;
+  };
+  const colColor = (key: string): string | undefined => {
+    const cc = columnConfig?.[key];
+    if (cc?.labelColor) return cc.labelColor;
+    return FIELD_LABELS[key]?.color;
+  };
+
   const activeMode = comparisonMode || 'modal';
 
   // 1. Custom format overrides from card detail config
@@ -275,7 +286,7 @@ function RenderTypeFields({
                 format={fmt as DisplayFormat}
                 variant={formatVariants?.[col] || 1}
                 value={data[col]}
-                label={fieldLabel(col)}
+                label={colLabel(col)}
                 useSuffix={useSuffix}
                 opEnabled={columnOpEnabled?.[col] !== false}
                 valueColors={cc?.valueColors}
@@ -304,8 +315,9 @@ function RenderTypeFields({
       rendered.add(col);
       return (
         <div key={`rt-${col}`} className="mb-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            {col.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            {colIcon(col)}
+            {colLabel(col)}
           </h3>
           <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} hideLabel columnConfig={columnConfig?.[col]} />
         </div>
@@ -331,14 +343,13 @@ function RenderTypeFields({
     sections.push(
       <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
         {numCols.map((c) => {
-          const meta = FIELD_LABELS[c.column_name];
           return (
             <StatCard
               key={c.column_name}
-              label={meta?.label || fieldLabel(c.column_name)}
+              label={colLabel(c.column_name)}
                value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />}
-              icon={meta?.icon || fieldIcon(c.column_name)}
-              color={meta?.color || fieldColor(c.column_name)}
+              icon={colIcon(c.column_name)}
+              color={colColor(c.column_name)}
               onClick={tenantId ? () => {
                 if (activeMode === 'page') {
                   window.location.href = `/w/${tenantSlug || ''}/compare/${table}?stat=${c.column_name}`;
@@ -368,7 +379,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {fieldLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -393,7 +404,7 @@ function RenderTypeFields({
             const color = cc?.valueColors?.[String(val)];
             return (
               <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-                {fieldLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} /></span>
+                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} /></span>
               </Tag>
             );
           })}
@@ -412,7 +423,7 @@ function RenderTypeFields({
     rendered.add(c.column_name);
     sections.push(
       <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
         <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
       </div>,
     );
@@ -429,7 +440,7 @@ function RenderTypeFields({
     rendered.add(c.column_name);
     sections.push(
       <div key={c.column_name} className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{fieldLabel(c.column_name)}</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
         <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
@@ -447,7 +458,7 @@ function RenderTypeFields({
     rendered.add(c.column_name);
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
-        <h3 className="text-sm font-semibold mb-3">{fieldLabel(c.column_name)}</h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
         <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
@@ -463,8 +474,9 @@ function RenderTypeFields({
           <div>
             {remainingCols.map((c) => (
               <div key={c.column_name} className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0">
-                <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0">
-                  {fieldLabel(c.column_name)}
+                <span className="text-xs font-medium text-muted-foreground min-w-[120px] pt-0.5 shrink-0 flex items-center gap-1.5">
+                  {colIcon(c.column_name)}
+                  <span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span>
                 </span>
                 <div className="text-sm flex-1">
                   <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
@@ -490,7 +502,7 @@ type DetailConfig = {
   showComparison?: boolean;
   showHeader?: boolean;
   labelColor?: string;
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown>; allowedValues?: AllowedValue[] }>;
+  columnConfig?: Record<string, { maxValue?: number; displayName?: string; labelIcon?: string; labelColor?: string; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; jsonbKeyTypes?: Record<string, unknown>; allowedValues?: AllowedValue[] }>;
 };
 
 type Props = {

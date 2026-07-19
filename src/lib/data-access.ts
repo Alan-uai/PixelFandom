@@ -392,6 +392,40 @@ export async function getTableCatalog(
   return entries;
 }
 
+export async function getTableViewerConfig(
+  tenantSlug: string,
+  table: string,
+): Promise<Record<string, unknown> | null> {
+  const cacheKey = `viewer-config:${tenantSlug}:${table}`;
+  const cached = getCached<Record<string, unknown> | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const tenantId = await getTenantId(tenantSlug);
+  if (!tenantId) {
+    setCache(cacheKey, null);
+    return null;
+  }
+
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('tenant_game_tables')
+    .select('viewer_config')
+    .eq('tenant_id', tenantId)
+    .eq('table_name', table)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getTableViewerConfig error:', error);
+    setCache(cacheKey, null);
+    return null;
+  }
+
+  const config = (data?.viewer_config as Record<string, unknown>) ?? null;
+  setCache(cacheKey, config);
+  cacheNotify(cacheKey);
+  return config;
+}
+
 export async function resolveSlug(
   tenantSlug: string,
   slug: string,

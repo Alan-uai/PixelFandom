@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import { useWikiPath } from '@/hooks/use-wiki-path';
-import { useTableItem } from '@/hooks/use-data-access';
+import { useTableItem, useViewerConfig } from '@/hooks/use-data-access';
+import { parseViewerConfig } from '@/lib/viewer-config';
 
 type Props = {
   tenantSlug: string;
@@ -17,6 +18,8 @@ type Props = {
 export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId, comparisonMode }: Props) {
   const { data: item, loading } = useTableItem(tenantSlug, tableName, itemSlug);
   const { homePath } = useWikiPath(tenantSlug);
+  const { data: viewerConfigRaw } = useViewerConfig(tenantSlug, tableName);
+  const detailConfig = viewerConfigRaw ? parseViewerConfig(viewerConfigRaw) : null;
 
   return (
     <article className="max-w-3xl mx-auto">
@@ -46,6 +49,7 @@ export default function GameItemView({ tenantSlug, tableName, itemSlug, tenantId
           sourceTable={tableName}
           comparisonMode={comparisonMode}
           schema={undefined}
+          detailConfig={detailConfig as any}
         />
       ) : (
         <div className="text-center py-20 rounded-xl border bg-card">
