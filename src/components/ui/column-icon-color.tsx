@@ -160,22 +160,83 @@ export function LabelColorCircle({ color, onChange }: LabelColorCircleProps) {
 interface ValueColorLineProps {
   color?: string;
   onChange: (color: string | undefined) => void;
+  children?: React.ReactNode;
 }
 
-export function ValueColorLine({ color, onChange }: ValueColorLineProps) {
+export function ValueColorLine({ color, onChange, children }: ValueColorLineProps) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(color || '');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setText(color || ''); }, [color]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const setColor = (c: string) => {
+    setText(c);
+    onChange(c);
+  };
+  const clear = () => {
+    setText('');
+    onChange(undefined);
+    setOpen(false);
+  };
+
   return (
-    <div className="flex flex-col items-center gap-1 pt-1.5">
-      <span
-        className="block w-[3px] rounded-full shrink-0"
-        style={{ backgroundColor: color || 'transparent', minHeight: '18px' }}
+    <div className="flex flex-col items-center gap-1 pt-1.5" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="block w-[3px] rounded-full shrink-0 transition-all hover:scale-x-150"
+        style={{
+          backgroundColor: color || 'transparent',
+          minHeight: '18px',
+          ...(!color ? { border: '1px dashed', borderColor: 'var(--muted-foreground)' } : {}),
+        }}
         title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
       />
-      <ColorSwatch
-        color={color}
-        onChange={onChange}
-        className="h-3.5 w-3.5 rounded"
-        title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
-      />
+      {children}
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-card border rounded-lg p-2 shadow-xl min-w-[180px]">
+          <div className="flex flex-wrap gap-1">
+            {COLOR_PRESETS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                className="h-5 w-5 rounded-full border transition-all hover:scale-110"
+                style={{ backgroundColor: c, ...(color === c ? { borderColor: 'var(--foreground)', boxShadow: '0 0 0 2px var(--foreground)' } : {}) }}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setColor(e.target.value)}
+              placeholder="#ff6600"
+              className="flex-1 h-6 rounded border bg-background px-1.5 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+            <div className="h-5 w-5 rounded border shrink-0" style={{ backgroundColor: text || 'transparent' }} />
+          </div>
+          {color && (
+            <button
+              type="button"
+              onClick={clear}
+              className="mt-1 text-[10px] text-muted-foreground hover:text-destructive transition-colors w-full text-left"
+            >
+              Remover cor
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

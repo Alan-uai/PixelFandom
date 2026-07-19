@@ -218,10 +218,6 @@ export default function VariantSelector({
     </>
   );
 
-  // Active selection indicator
-  const activeChipMeta = allChips.find((c) => isActive(c.slug));
-  const activeName = activeChipMeta?.v?.display_label || activeChipMeta?.label || 'Atual';
-
   return (
     <div className="px-4 py-2.5 border-t border-border/50 bg-muted/20">
       <div className="flex items-center gap-2 mb-2">
@@ -258,11 +254,6 @@ export default function VariantSelector({
           return <div key={c.slug ?? 'atual'} className="[transform-style:preserve-3d]">{chipEl}</div>;
         })}
       </div>
-
-      <p className="mt-2 text-[11px] text-muted-foreground flex items-center gap-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_2px_rgba(75,197,255,0.7)]" />
-        Selecionado: <span className="font-medium text-foreground">{activeName}</span>
-      </p>
 
       <ChipKeyframes />
     </div>

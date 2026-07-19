@@ -1845,6 +1845,7 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
       );
     }
     case 'number': {
+      if (opNode) return opNode;
       const num = typeof value === 'number' ? formatNumber(value, !!useSuffix) : str;
       return <span className="text-sm font-bold font-mono" style={valStyle}>{num}</span>;
     }

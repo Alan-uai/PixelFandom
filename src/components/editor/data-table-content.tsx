@@ -14,7 +14,7 @@ import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { LabelIconBox, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
+import { LabelIconBox, LabelColorCircle, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
 import { getDefaultColumnColor } from '@/lib/column-types/registry';
 import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
@@ -1189,30 +1189,10 @@ export default function DataTableContent({
             {columnConfigMap[col]?.displayName || col.replace(/_/g, ' ')}
           </span>
           {!isSystemColumn(col) && !isMediaColumn(col) && (
-            <span
-              draggable
-              onDragStart={(e) => { setDragFieldCol(col); e.dataTransfer.effectAllowed = 'move'; }}
-              onDragEnd={() => setDragFieldCol(null)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (!dragFieldCol || dragFieldCol === col) return;
-                const base = columnOrder.length > 0 ? columnOrder : allColumns.filter((c) => isEditableColumn(c));
-                const from = base.indexOf(dragFieldCol);
-                const to = base.indexOf(col);
-                if (from === -1 || to === -1) return;
-                const next = [...base];
-                next.splice(to, 0, next.splice(from, 1)[0]);
-                persistColumnOrder(next);
-                setDragFieldCol(null);
-              }}
-              onClick={() => moveField(col, 1)}
-              className="flex items-center gap-0.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none select-none"
-              title="Arraste para reordenar as colunas/campos no conteúdo da Wiki (ou clique para mover para baixo)"
-            >
-              <GripVertical className="h-3 w-3" />
-              <GripVertical className="h-3 w-3" />
-            </span>
+            <LabelColorCircle
+              color={columnConfigMap[col]?.labelColor}
+              onChange={(c) => handleColumnConfigChange(col, { labelColor: c })}
+            />
           )}
         </Label>
       </div>
@@ -1270,7 +1250,32 @@ export default function DataTableContent({
               else vc[value] = c;
               handleColumnConfigChange(col, { valueColors: vc });
             }}
-          />
+          >
+            <span
+              draggable
+              onDragStart={(e) => { setDragFieldCol(col); e.dataTransfer.effectAllowed = 'move'; }}
+              onDragEnd={() => setDragFieldCol(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!dragFieldCol || dragFieldCol === col) return;
+                const base = columnOrder.length > 0 ? columnOrder : allColumns.filter((c) => isEditableColumn(c));
+                const from = base.indexOf(dragFieldCol);
+                const to = base.indexOf(col);
+                if (from === -1 || to === -1) return;
+                const next = [...base];
+                next.splice(to, 0, next.splice(from, 1)[0]);
+                persistColumnOrder(next);
+                setDragFieldCol(null);
+              }}
+              onClick={() => moveField(col, 1)}
+              className="flex flex-col items-center gap-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none select-none"
+              title="Arraste para reordenar as colunas/campos no conteúdo da Wiki (ou clique para mover para baixo)"
+            >
+              <GripVertical className="h-3 w-3" />
+              <GripVertical className="h-3 w-3" />
+            </span>
+          </ValueColorLine>
         )}
         <InputGlow
           color={

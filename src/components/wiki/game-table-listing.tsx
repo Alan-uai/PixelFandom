@@ -1566,6 +1566,7 @@ function MiniCardsSection({
   item,
   columnTypes,
   cardConfig,
+  detailConfig,
   useSuffix,
   opEnabled,
   columnOpEnabled,
@@ -1576,6 +1577,7 @@ function MiniCardsSection({
   item: any;
   columnTypes?: Record<string, string>;
   cardConfig?: Record<string, any>;
+  detailConfig?: Record<string, any>;
   useSuffix?: boolean;
   opEnabled?: boolean;
   columnOpEnabled?: Record<string, boolean>;
@@ -1615,6 +1617,8 @@ function MiniCardsSection({
     onCompareStatClick?.(subKey ?? col);
   }
 
+  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, any>;
+
   return (
     <MiniCardGrid className="mb-3" count={visible.length}>
       {visible.map((col) => {
@@ -1622,6 +1626,7 @@ function MiniCardsSection({
         const color = badgeColors[col] || 'hsl(var(--primary))';
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
         const showIcon = renderType === 'icon';
+        const colConfig = columnConfig?.[col];
         return (
           <MiniCard3D
             key={col}
@@ -1635,6 +1640,7 @@ function MiniCardsSection({
                 useSuffix={useSuffix}
                 opEnabled={colOpEnabled}
                 hideLabel
+                columnConfig={colConfig}
               />
             ) : undefined}
             onClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
@@ -1656,6 +1662,7 @@ function MiniCardsSection({
                     opEnabled={colOpEnabled}
                     variant={1}
                     hideLabel
+                    columnConfig={colConfig}
                     onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
                   />
                 </VariantAnimatedValue>
@@ -1810,9 +1817,10 @@ function ItemCard({
   useEffect(() => {
     setActiveItem(item);
     setActiveVariantSlug(null);
-    onVariantNameChange?.(item.id, null);
     setVariationKey((k) => k + 1);
-  }, [item, onVariantNameChange]);
+    onVariantNameChange?.(item.id, null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseItemId]);
 
   // Heading + badges refletem a variante ativa
   const icon = getIcon(activeItem);
@@ -1966,6 +1974,7 @@ function ItemCard({
           item={activeItem}
           columnTypes={columnTypes}
           cardConfig={cardConfig}
+          detailConfig={detailConfig}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           columnOpEnabled={columnOpEnabled}

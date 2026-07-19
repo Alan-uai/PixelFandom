@@ -527,8 +527,12 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const baseItemSlug = data.slug as string;
 
   useEffect(() => {
-    setActiveData(data);
-  }, [data]);
+    if (data.id !== activeData?.id) {
+      setActiveData(data);
+      setActiveVariantSlug(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.id]);
 
   const prefersReduced = () =>
     typeof window !== 'undefined' &&

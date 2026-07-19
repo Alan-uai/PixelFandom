@@ -281,12 +281,13 @@ export default function TableViewerConfig({
       <div
         className="rounded-lg border p-4"
         style={activeSection === 'display' || activeSection === 'card' ? {
+          clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)',
           position: 'relative',
         } as React.CSSProperties : undefined}
       >
         {(activeSection === 'display' || activeSection === 'card') && (
-          <div className="absolute -top-[10px] -right-[10px] z-10">
-            <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 p-0.5 shadow-sm">
+          <div className="absolute top-0 right-0 z-10">
+            <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 shadow-sm pt-1.5 pb-0 px-0.5">
               <button
                 type="button"
                 onClick={() => {
