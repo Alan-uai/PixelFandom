@@ -82,7 +82,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   variant?: number;
   labelColor?: string;
   hideLabel?: boolean;
-  onCompareClick?: () => void;
+  onCompareClick?: (subKey?: string) => void;
   plain?: boolean;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
@@ -111,6 +111,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
           onCompareClick={onCompareClick}
+          column={column}
         />
       );
     }
@@ -128,6 +129,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
           onCompareClick={onCompareClick}
+          column={column}
         />
       );
     }
@@ -151,6 +153,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
           onCompareClick={onCompareClick}
+          column={column}
         />
       );
     }
@@ -207,6 +210,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       maxValue={maxValue}
       allowedValues={allowedValues}
       onCompareClick={onCompareClick}
+      column={column}
     />
   );
 }

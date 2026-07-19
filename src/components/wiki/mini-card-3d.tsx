@@ -64,7 +64,7 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
         transformStyle: 'preserve-3d',
         borderColor: `${accent}55`,
       }}
-      className={`relative overflow-hidden rounded-xl border bg-card/70 p-2.5 text-xs shadow-sm backdrop-blur-md transition-shadow ${
+      className={`relative w-full overflow-hidden rounded-xl border bg-card/70 p-2.5 text-xs shadow-sm backdrop-blur-md transition-shadow ${
         onClick ? 'cursor-pointer hover:shadow-lg hover:shadow-primary/20' : 'cursor-default'
       } ${className}`}
     >
@@ -97,13 +97,67 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
  * shorter cards do not stretch to match taller neighbours — unlike a
  * fixed 2-column grid. Cards break inside of themselves are avoided.
  */
-export function MiniCardGrid({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+/**
+ * Bento-box layout wrapper used to lay mini cards inside an item card.
+ *
+ * Flexible bento behaviour (1–2 columns ONLY):
+ *  - With a single card it spans the FULL column width (no forced 2-column
+ *    track that would leave the card squished in the left half).
+ *  - With 2+ cards it lays them out in at most 2 columns. We use a flex
+ *    wrap with each card taking 1/2 width, so an uneven count still fills
+ *    the row (e.g. 3 cards → 2 on top, 1 full-width below) and a lone card
+ *    in a row stretches to full width.
+ *  - When `singleFullWidth` is false (e.g. explicit 2-column grids) the old
+ *    balanced `columns-2` behaviour is kept.
+ */
+export function MiniCardGrid({
+  children,
+  className = '',
+  singleFullWidth = true,
+  count,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  singleFullWidth?: boolean;
+  /** Optional explicit count of cards; used to skip the 2-col track for a single card. */
+  count?: number;
+}) {
+  const kids = count ?? (Array.isArray(children) ? children.length : children ? 1 : 0);
+  const solo = singleFullWidth && kids === 1;
+
+  if (solo) {
+    return (
+      <div
+        className={`flex flex-col gap-2 ${className}`}
+        style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`columns-2 gap-2 [column-fill:_balance] [&>*]:mb-2 [&>*]:break-inside-avoid ${className}`}
+      className={`flex flex-wrap gap-2 ${className}`}
       style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
     >
-      {children}
+      {wrapChildren(children)}
     </div>
+  );
+}
+
+/**
+ * Each direct child is wrapped so it takes 1/2 width on wider screens but
+ * stretches to full width when it is the only item on its row. The
+ * `min-w-0` keeps long content from overflowing the flex item.
+ */
+function wrapChildren(children: React.ReactNode) {
+  const arr = Array.isArray(children) ? children : [children];
+  return arr.map((child, i) =>
+    child == null ? null : (
+      <div key={i} className="min-w-0 flex-[1_1_48%] max-w-full">
+        {child}
+      </div>
+    ),
   );
 }

@@ -28,9 +28,67 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
+import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
 import { humanizeLabel } from '@/lib/operator-symbols';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
+
+// 3D transition keyframes (beam + tilt + reflection) for variant switches.
+let variant3dKfInjected = false;
+function ensureVariant3dKeyframes() {
+  if (typeof document === 'undefined' || variant3dKfInjected) return;
+  variant3dKfInjected = true;
+  if (document.getElementById('variant-3d-kf')) return;
+  const el = document.createElement('style');
+  el.id = 'variant-3d-kf';
+  el.textContent = `
+@keyframes variant-beam-ltr {
+  0% { left: -35%; opacity: 0; }
+  15% { opacity: 1; }
+  100% { left: 110%; opacity: 0; }
+}
+@keyframes variant-beam-rtl {
+  0% { right: -35%; left: auto; opacity: 0; }
+  15% { opacity: 1; }
+  100% { right: 110%; opacity: 0; }
+}
+.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
+.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
+
+@keyframes variant-content-tilt {
+  0% { transform: perspective(1100px) rotateY(0deg) scale(1); }
+  30% { transform: perspective(1100px) rotateY(-9deg) scale(1.015); }
+  60% { transform: perspective(1100px) rotateY(6deg) scale(1.01); }
+  100% { transform: perspective(1100px) rotateY(0deg) scale(1); }
+}
+.variant-content-tilt { animation: variant-content-tilt 0.7s ease-in-out; transform-origin: center bottom; }
+
+/* glossy reflection sweep that settles after the update */
+@keyframes variant-reflection {
+  0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
+  40% { opacity: 0.6; }
+  100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
+}
+.variant-3d-transition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+  animation: variant-reflection 0.8s ease-out;
+  z-index: 5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .variant-beam-ltr, .variant-beam-rtl, .variant-content-tilt, .variant-3d-transition::after {
+    animation: none !important;
+  }
+}
+`;
+  document.head.appendChild(el);
+}
+
 const LONG_TEXT_COLS = new Set([
   'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
   'content', 'details', 'items_dropped', 'notable_loot',
@@ -1475,6 +1533,8 @@ function MiniCardsSection({
   opEnabled,
   columnOpEnabled,
   onCompareStatClick,
+  /** muda a cada troca de variante — re-dispara animações 3D por coluna */
+  variationKey = 0,
 }: {
   item: any;
   columnTypes?: Record<string, string>;
@@ -1483,6 +1543,7 @@ function MiniCardsSection({
   opEnabled?: boolean;
   columnOpEnabled?: Record<string, boolean>;
   onCompareStatClick?: (statKey: string) => void;
+  variationKey?: number;
 }) {
   const visibleColumns: string[] = cardConfig?.visibleColumns || [];
   const columnOrder: string[] = cardConfig?.columnOrder || [];
@@ -1510,8 +1571,15 @@ function MiniCardsSection({
     if (action === 'comparison') onCompareStatClick?.(col);
   }
 
+  // Inner mini-card click: a jsonb sub-key path may be provided (e.g. `stats.damage`).
+  // Falls back to the whole column when no sub-key is given.
+  function handleCompare(col: string, subKey?: string) {
+    if (badgeConfig[col]?.clickAction !== 'comparison') return;
+    onCompareStatClick?.(subKey ?? col);
+  }
+
   return (
-    <MiniCardGrid className="mb-3">
+    <MiniCardGrid className="mb-3" count={visible.length}>
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
         const color = badgeColors[col] || 'hsl(var(--primary))';
@@ -1536,16 +1604,23 @@ function MiniCardsSection({
             className="group"
             value={
               showIcon ? null : (
-                <ColumnDisplay
+                <VariantAnimatedValue
                   value={item[col]}
-                  column={col}
                   renderType={renderType}
+                  trigger={variationKey}
                   useSuffix={useSuffix}
-                  opEnabled={colOpEnabled}
-                  variant={1}
-                  hideLabel
-                  onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? () => handleClick(col) : undefined}
-                />
+                >
+                  <ColumnDisplay
+                    value={item[col]}
+                    column={col}
+                    renderType={renderType}
+                    useSuffix={useSuffix}
+                    opEnabled={colOpEnabled}
+                    variant={1}
+                    hideLabel
+                    onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
+                  />
+                </VariantAnimatedValue>
               )
             }
           />
@@ -1603,21 +1678,61 @@ function ItemCard({
   const [activeItem, setActiveItem] = useState<any>(item);
   const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
   const [loadingVariant, setLoadingVariant] = useState(false);
+  // 3D content transition bookkeeping
+  const [variationKey, setVariationKey] = useState(0);
+  const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
+  const [transitioning, setTransitioning] = useState(false);
+  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSelectVariant = useCallback(async (variant: { item_id: string; item_slug?: string | null } | null) => {
+  const prefersReduced = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+
+  const triggerTransition = (direction: 'ltr' | 'rtl') => {
+    if (prefersReduced()) {
+      setVariationKey((k) => k + 1);
+      return;
+    }
+    setBeamDir(direction);
+    setTransitioning(true);
+    setVariationKey((k) => k + 1);
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
+  };
+
+  const handleSelectVariant = useCallback(async (
+    variant: { item_id: string; item_slug?: string | null } | null,
+    meta?: { direction: 'ltr' | 'rtl'; index: number; total: number },
+  ) => {
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveItem(item);
+      triggerTransition('ltr');
       return;
     }
     if (!tenantId || !tenantSlug) return;
     setLoadingVariant(true);
     try {
       let fetched: Record<string, any> | null = null;
-      const { getTableItem } = await import('@/lib/data-access');
-      if (variant.item_slug) {
-        fetched = await getTableItem(tenantSlug, tableName, variant.item_slug);
+
+      // 1) Background pre-cache primeiro (sem request por clique)
+      const cacheKey = variant.item_slug
+        ? variant.item_slug
+        : variant.item_id;
+      const cached = getCachedVariantRow(tenantId, tableName, cacheKey);
+      if (cached) {
+        fetched = cached;
       }
+
+      // 2) Fallback seguro (getTableItem) somente se não estiver em cache
+      if (!fetched) {
+        const { getTableItem } = await import('@/lib/data-access');
+        if (variant.item_slug) {
+          fetched = await getTableItem(tenantSlug, tableName, variant.item_slug);
+        }
+      }
+
+      // 3) Último recurso: busca direta por PK (com pre-cache para a próxima vez)
       if (!fetched) {
         const { supabase } = await import('@/supabase');
         const { data: row } = await supabase
@@ -1627,10 +1742,19 @@ function ItemCard({
           .eq('id', variant.item_id)
           .maybeSingle();
         fetched = (row as Record<string, any>) ?? null;
+        if (fetched?.id) {
+          const { setCachedVariantRow } = await import('@/components/wiki/variant-selector');
+          setCachedVariantRow(tenantId, tableName, fetched.id as string, fetched);
+          if (fetched.slug) {
+            setCachedVariantRow(tenantId, tableName, fetched.slug as string, fetched);
+          }
+        }
       }
+
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
         setActiveItem({ ...fetched, _source_table: tableName });
+        triggerTransition(meta?.direction ?? 'ltr');
       }
     } catch {
       // keep current data on failure
@@ -1642,6 +1766,7 @@ function ItemCard({
   useEffect(() => {
     setActiveItem(item);
     setActiveVariantSlug(null);
+    setVariationKey((k) => k + 1);
   }, [item]);
 
   // Heading + badges refletem a variante ativa
@@ -1728,7 +1853,9 @@ function ItemCard({
   return (
     <div
       ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
-      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass}`}
+      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
+      style={{ perspective: transitioning ? '1100px' : undefined, transformStyle: 'preserve-3d' }}
+      data-beam={transitioning ? beamDir : undefined}
     >
       <div
         className="relative overflow-hidden"
@@ -1740,6 +1867,16 @@ function ItemCard({
       >
         <div className={`absolute inset-0 ${imageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${grad}`}`} />
         {!imageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
+        {/* Feixe dourado diagonal que varre o heading durante a troca de variante */}
+        {transitioning && (
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
+              beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'
+            }`}
+            style={{ transform: 'rotate(18deg)' }}
+          />
+        )}
         <div className={`relative ${cardPadding} flex items-start gap-3`}>
           {showCardIcon && (
           <div className={`relative ${iconSize} flex items-center justify-center shrink-0`}>
@@ -1779,7 +1916,7 @@ function ItemCard({
         />
       )}
 
-      <div className="px-4 pb-4 pt-3 border-t border-border/50">
+      <div className={`px-4 pb-4 pt-3 border-t border-border/50 ${transitioning ? 'variant-content-tilt' : ''}`}>
         <MiniCardsSection
           item={activeItem}
           columnTypes={columnTypes}
@@ -1788,6 +1925,7 @@ function ItemCard({
           opEnabled={opEnabled}
           columnOpEnabled={columnOpEnabled}
           onCompareStatClick={onCompareStatClick}
+          variationKey={variationKey}
         />
         {!tenantId && (
           <p className="text-sm text-muted-foreground">{activeItem.description || ''}</p>

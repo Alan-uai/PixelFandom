@@ -53,16 +53,17 @@ export function detectOpArray(value: unknown): boolean {
   });
 }
 
-export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): ReactNode {
+export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): ReactNode {
   const entry = Object.entries(item as Record<string, unknown>)[0];
   const [label, rawVal] = entry;
   const op = parseOperatorPrefix(String(rawVal))!;
   const displayNum = displayOpNum(op.number, useSuffix);
   const labelColor = jsonbKeyColors?.[label];
+  const sub = column ? `${column}[].${label}` : undefined;
 
   return (
     <span
-      onClick={onCompareClick}
+      onClick={sub ? () => onCompareClick?.(sub) : (onCompareClick ? () => onCompareClick() : undefined)}
       role={onCompareClick ? 'button' : undefined}
       tabIndex={onCompareClick ? 0 : undefined}
       className={`inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs font-mono transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
@@ -74,12 +75,12 @@ export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, 
   );
 }
 
-export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: () => void): ReactNode {
+export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): ReactNode {
   if (!Array.isArray(value)) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {value.map((item: unknown, i: number) => (
-        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix, onCompareClick)}</div>
+        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix, onCompareClick, column)}</div>
       ))}
     </div>
   );

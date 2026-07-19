@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/supabase';
 
-interface Variant {
+export interface Variant {
   id: string;
   item_id: string;
   variant_label: string;
   variant_order: number;
   auto_detected: boolean;
+  display_label?: string | null;
+  icon?: string | null;
+  color?: string | null;
 }
 
 interface VariantGroup {
@@ -75,7 +78,32 @@ export function useItemVariants(tenantId: string | null, tableName: string | nul
     return result;
   }, [tenantId, tableName, fetchVariants]);
 
-  return { variants, loading, fetchVariants, linkVariant, unlinkVariant, detectVariants };
+  const updateVariantMeta = useCallback(async (
+    variantId: string,
+    meta: { display_label?: string | null; icon?: string | null; color?: string | null },
+  ) => {
+    if (!tenantId) return false;
+    const { data, error } = await supabase.rpc('update_item_variant_meta', {
+      p_id: variantId,
+      p_tenant_id: tenantId,
+      p_display_label: meta.display_label ?? null,
+      p_icon: meta.icon ?? null,
+      p_color: meta.color ?? null,
+    });
+    if (error) {
+      console.error('update_item_variant_meta RPC error:', error);
+      return false;
+    }
+    const result = data as { ok?: boolean; error?: string } | null;
+    if (result?.ok) {
+      setVariants((prev) => prev.map((v) => (v.id === variantId ? { ...v, ...meta } : v)));
+      return true;
+    }
+    if (result?.error) console.error('update_item_variant_meta failed:', result.error);
+    return false;
+  }, [tenantId]);
+
+  return { variants, loading, fetchVariants, linkVariant, unlinkVariant, detectVariants, updateVariantMeta };
 }
 
 export function useVariantGroups(tenantId: string | null, tableName: string | null) {

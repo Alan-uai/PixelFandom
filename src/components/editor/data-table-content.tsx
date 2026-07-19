@@ -2005,6 +2005,132 @@ export default function DataTableContent({
   );
 }
 
+function VariantEditorRow({
+  variant,
+  onUnlink,
+  onUpdateMeta,
+}: {
+  variant: import('@/hooks/use-item-variants').Variant;
+  onUnlink: (itemId: string) => void;
+  onUpdateMeta: (
+    id: string,
+    meta: { display_label?: string | null; icon?: string | null; color?: string | null },
+  ) => Promise<boolean>;
+}) {
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [draftLabel, setDraftLabel] = useState(variant.display_label ?? variant.variant_label ?? '');
+  const [draftColor, setDraftColor] = useState(variant.color ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const displayLabel = variant.display_label || variant.variant_label;
+
+  const save = async () => {
+    setSaving(true);
+    const ok = await onUpdateMeta(variant.id, {
+      display_label: draftLabel.trim() || null,
+      icon: variant.icon ?? null,
+      color: draftColor.trim() || null,
+    });
+    setSaving(false);
+    if (ok) {
+      setEditing(false);
+      toast({ title: 'Variante atualizada!' });
+    } else {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a variante.' });
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1.5 text-xs">
+      <button
+        type="button"
+        onClick={() => { setDraftLabel(variant.display_label ?? variant.variant_label ?? ''); setDraftColor(variant.color ?? ''); setEditing((s) => !s); }}
+        className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+        title="Editar ícone, cor e rótulo"
+      >
+        {variant.icon ? (
+          <IconRenderer icon={variant.icon} size="sm" />
+        ) : (
+          <span className="h-3.5 w-3.5 rounded-full border border-dashed border-muted-foreground/40 shrink-0" />
+        )}
+        <span className="truncate" style={variant.color ? { color: variant.color } : {}}>{displayLabel}</span>
+      </button>
+      {variant.auto_detected && (
+        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">auto</span>
+      )}
+      <button
+        type="button"
+        onClick={() => onUnlink(variant.item_id)}
+        className="text-destructive/60 hover:text-destructive transition-colors"
+        title="Desvincular"
+      >
+        <Unlink className="h-3 w-3" />
+      </button>
+
+      {editing && (
+        <div className="absolute left-0 right-0 z-30 mt-1 top-full rounded-md border bg-popover shadow-xl p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowIconPicker(true)}
+              className="flex items-center gap-1.5 h-7 rounded-md border px-2 text-xs hover:bg-muted transition-colors"
+              title="Selecionar ícone"
+            >
+              {variant.icon ? <IconRenderer icon={variant.icon} size="sm" /> : <Layers className="h-3.5 w-3.5" />}
+              <span className="text-muted-foreground">Ícone</span>
+            </button>
+            <input
+              type="text"
+              value={draftColor}
+              onChange={(e) => setDraftColor(e.target.value)}
+              placeholder="cor (ex: hsl(198 100% 65%))"
+              className="flex-1 h-7 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/50 font-mono"
+            />
+            {variant.color && (
+              <span className="h-5 w-5 rounded border shrink-0" style={{ backgroundColor: variant.color }} />
+            )}
+          </div>
+          <input
+            type="text"
+            value={draftLabel}
+            onChange={(e) => setDraftLabel(e.target.value)}
+            placeholder="Rótulo exibido no toggle"
+            className="w-full h-7 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-[11px] px-2 py-1 rounded-md hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="text-[11px] px-2 py-1 rounded-md bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 transition-colors flex items-center gap-1"
+            >
+              {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showIconPicker && (
+        <IconPicker
+          value={variant.icon ?? undefined}
+          onChange={(iconId) => { onUpdateMeta(variant.id, { icon: iconId || null }); setShowIconPicker(false); }}
+          onClose={() => setShowIconPicker(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 function EditorVariantSection({
   tenantId,
   tableName,
@@ -2015,7 +2141,7 @@ function EditorVariantSection({
   currentItemId: string;
 }) {
   const { toast } = useToast();
-  const { variants, loading, linkVariant, unlinkVariant, detectVariants } = useItemVariants(
+  const { variants, loading, linkVariant, unlinkVariant, detectVariants, updateVariantMeta } = useItemVariants(
     tenantId, tableName, currentItemId,
   );
   const [search, setSearch] = useState('');
@@ -2047,7 +2173,7 @@ function EditorVariantSection({
   }, [search, tableName, tenantId, currentItemId]);
 
   return (
-    <div className="border-t pt-3 mt-3">
+    <div className="border-t pt-3 mt-3 relative">
       <div className="flex items-center gap-2 mb-2">
         <Layers className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-medium">Variantes</span>
@@ -2081,20 +2207,12 @@ function EditorVariantSection({
       ) : variants.length > 0 ? (
         <div className="space-y-1 mb-3">
           {variants.map((v) => (
-            <div key={v.id} className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1.5 text-xs">
-              <span className="flex-1">{v.variant_label}</span>
-              {v.auto_detected && (
-                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">auto</span>
-              )}
-              <button
-                type="button"
-                onClick={() => unlinkVariant(v.item_id)}
-                className="text-destructive/60 hover:text-destructive transition-colors"
-                title="Desvincular"
-              >
-                <Unlink className="h-3 w-3" />
-              </button>
-            </div>
+            <VariantEditorRow
+              key={v.id}
+              variant={v}
+              onUnlink={unlinkVariant}
+              onUpdateMeta={updateVariantMeta}
+            />
           ))}
         </div>
       ) : (
