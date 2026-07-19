@@ -88,7 +88,6 @@ export default function VariantSelector({
 }: Props) {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
   const loadedFor = useRef<string>('');
 
   useEffect(() => {
@@ -173,7 +172,6 @@ export default function VariantSelector({
     const total = allChips.length;
     // direção do feixe 3D: chip à direita => rtl, à esquerda => ltr
     const direction: 'ltr' | 'rtl' = idx >= Math.ceil(total / 2) ? 'rtl' : 'ltr';
-    setActiveIndex(idx);
     if (onSelectVariant) {
       onSelectVariant(
         slug === null ? null : { item_id: variant!.item_id, item_slug: variant?.item_slug ?? null },

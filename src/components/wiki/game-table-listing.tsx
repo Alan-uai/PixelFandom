@@ -141,6 +141,29 @@ function toSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// Natural/ordenação numérica: "2" < "10" < "100" (útil p/ categorias numéricas)
+function naturalCompare(a: string, b: string): number {
+  const ax: (string | number)[] = [];
+  const bx: (string | number)[] = [];
+  a.replace(/(\d+)|(\D+)/g, (_m, num, str) => {
+    ax.push(num != null ? Number(num) : str);
+    return '';
+  });
+  b.replace(/(\d+)|(\D+)/g, (_m, num, str) => {
+    bx.push(num != null ? Number(num) : str);
+    return '';
+  });
+  while (ax.length && bx.length) {
+    const an = ax.shift()!;
+    const bn = bx.shift()!;
+    if (typeof an === 'number' && typeof bn === 'number') {
+      if (an !== bn) return an - bn;
+    } else if (an < bn) return -1;
+    else if (an > bn) return 1;
+  }
+  return ax.length - bx.length;
+}
+
 const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
 const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
 
@@ -305,6 +328,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const [selectedSlug, setSelectedSlug] = useState<string | null>(urlItem);
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>({});
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  // Mapa itemId -> nome da variante ativa (usado p/ refletir variantes na categoria quando catColumn === 'name')
+  const [activeVariantNames, setActiveVariantNames] = useState<Record<string, string>>({});
+  const handleVariantNameChange = useCallback((itemId: string, name: string | null) => {
+    setActiveVariantNames(prev => {
+      const next = { ...prev };
+      if (name == null) delete next[itemId];
+      else next[itemId] = name;
+      return next;
+    });
+  }, []);
   
   useEffect(() => {
     setSelectedSlug(urlItem);
@@ -503,7 +537,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const manualGroups = viewerConfig?.categorization?.manualGroups || [];
 
     for (const item of filteredItems) {
-      const raw = item[catCol];
+      const raw = catCol === 'name'
+        ? (activeVariantNames[item.id as string] ?? item[catCol] ?? item.name)
+        : item[catCol];
       let cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
 
       // Apply manual group mapping
@@ -530,7 +566,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (ai != null && bi != null) return sortDir === 'desc' ? bi - ai : ai - bi;
         if (ai != null) return -1;
         if (bi != null) return 1;
-        return sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b);
+        return sortDir === 'desc' ? naturalCompare(b, a) : naturalCompare(a, b);
       });
     } else if (categorySortCol) {
       const catSortValMap = new Map<string, string>();
@@ -541,10 +577,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       entries.sort(([a], [b]) => {
         const va = catSortValMap.get(a) || '';
         const vb = catSortValMap.get(b) || '';
-        return sortDir === 'desc' ? vb.localeCompare(va) : va.localeCompare(vb);
+        return sortDir === 'desc' ? naturalCompare(vb, va) : naturalCompare(va, vb);
       });
     } else {
-      entries.sort(([a], [b]) => sortDir === 'desc' ? b.localeCompare(a) : a.localeCompare(b));
+      entries.sort(([a], [b]) => sortDir === 'desc' ? naturalCompare(b, a) : naturalCompare(a, b));
     }
 
     // Sort items within each category
@@ -582,7 +618,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     return entries;
-  }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
+  }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig, activeVariantNames]);
 
   useEffect(() => {
     if (!activeTab && groupedItems && groupedItems.length > 0) {
@@ -627,6 +663,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       cardConfig,
       detailConfig,
       columnTypes,
+      onVariantNameChange: handleVariantNameChange,
     };
 
     const rowSelectionProps = {
@@ -1609,6 +1646,7 @@ function MiniCardsSection({
                   renderType={renderType}
                   trigger={variationKey}
                   useSuffix={useSuffix}
+                  formatNumber={(n) => formatNumber(n, !!useSuffix)}
                 >
                   <ColumnDisplay
                     value={item[col]}
@@ -1641,6 +1679,7 @@ function ItemCard({
   cardConfig,
   detailConfig,
   columnTypes,
+  onVariantNameChange,
 }: {
   item: any;
   tableName: string;
@@ -1652,7 +1691,10 @@ function ItemCard({
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   columnTypes?: Record<string, string>;
+  onVariantNameChange?: (itemId: string, name: string | null) => void;
 }) {
+  ensureVariant3dKeyframes();
+
   const label = item.name || item.title || item.item_name || item.code || '';
   const itemSlug = item.slug || toSlug(String(label));
 
@@ -1688,7 +1730,7 @@ function ItemCard({
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
-  const triggerTransition = (direction: 'ltr' | 'rtl') => {
+  const triggerTransition = useCallback((direction: 'ltr' | 'rtl') => {
     if (prefersReduced()) {
       setVariationKey((k) => k + 1);
       return;
@@ -1698,7 +1740,7 @@ function ItemCard({
     setVariationKey((k) => k + 1);
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
     transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
-  };
+  }, []);
 
   const handleSelectVariant = useCallback(async (
     variant: { item_id: string; item_slug?: string | null } | null,
@@ -1707,6 +1749,7 @@ function ItemCard({
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveItem(item);
+      onVariantNameChange?.(item.id, item.name ?? item.title ?? item.item_name ?? item.code ?? null);
       triggerTransition('ltr');
       return;
     }
@@ -1754,6 +1797,7 @@ function ItemCard({
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
         setActiveItem({ ...fetched, _source_table: tableName });
+        onVariantNameChange?.(item.id, fetched.name ?? fetched.title ?? fetched.item_name ?? fetched.code ?? null);
         triggerTransition(meta?.direction ?? 'ltr');
       }
     } catch {
@@ -1761,13 +1805,14 @@ function ItemCard({
     } finally {
       setLoadingVariant(false);
     }
-  }, [item, tableName, tenantId, tenantSlug]);
+  }, [item, tableName, tenantId, tenantSlug, triggerTransition]);
 
   useEffect(() => {
     setActiveItem(item);
     setActiveVariantSlug(null);
+    onVariantNameChange?.(item.id, null);
     setVariationKey((k) => k + 1);
-  }, [item]);
+  }, [item, onVariantNameChange]);
 
   // Heading + badges refletem a variante ativa
   const icon = getIcon(activeItem);

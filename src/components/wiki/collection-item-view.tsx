@@ -23,6 +23,48 @@ import {
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
 
+// 3D transition keyframes (beam + reflection) for variant switches in this view.
+let civ3dKfInjected = false;
+function ensureCivVariant3dKeyframes() {
+  if (typeof document === 'undefined' || civ3dKfInjected) return;
+  civ3dKfInjected = true;
+  if (document.getElementById('variant-3d-kf-civ')) return;
+  const el = document.createElement('style');
+  el.id = 'variant-3d-kf-civ';
+  el.textContent = `
+@keyframes variant-beam-ltr {
+  0% { left: -35%; opacity: 0; }
+  15% { opacity: 1; }
+  100% { left: 110%; opacity: 0; }
+}
+@keyframes variant-beam-rtl {
+  0% { right: -35%; left: auto; opacity: 0; }
+  15% { opacity: 1; }
+  100% { right: 110%; opacity: 0; }
+}
+.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
+.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
+@keyframes variant-reflection {
+  0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
+  40% { opacity: 0.6; }
+  100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
+}
+.variant-3d-transition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+  animation: variant-reflection 0.8s ease-out;
+  z-index: 5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .variant-beam-ltr, .variant-beam-rtl, .variant-3d-transition::after { animation: none !important; }
+}
+`;
+  document.head.appendChild(el);
+}
+
 function Tag({ children, className = '', icon, title }: { children: React.ReactNode; className?: string; icon?: React.ReactNode; title?: string }) {
   return (
     <span title={title} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium max-w-[220px] truncate shrink-0 ${className}`}>
@@ -472,11 +514,14 @@ type Props = {
 export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
 
+  ensureCivVariant3dKeyframes();
+
   // ── Variantes: troca in-place dos dados do card ──
   const [activeData, setActiveData] = useState<Record<string, any>>(data);
   const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
   const [loadingVariant, setLoadingVariant] = useState(false);
   const [flipKey, setFlipKey] = useState(0);
+  const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
   const flipRef = useRef<HTMLDivElement>(null);
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
@@ -485,23 +530,43 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     setActiveData(data);
   }, [data]);
 
-  const handleSelectVariant = async (variant: { item_id: string; item_slug?: string | null } | null) => {
+  const prefersReduced = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+
+  const handleSelectVariant = async (
+    variant: { item_id: string; item_slug?: string | null } | null,
+    meta?: { direction: 'ltr' | 'rtl'; index: number; total: number },
+  ) => {
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveData(data);
+      setBeamDir(meta?.direction ?? 'ltr');
       setFlipKey((k) => k + 1);
       return;
     }
     if (!tenantId || !tenantSlug) return;
     setLoadingVariant(true);
+    setBeamDir(meta?.direction ?? 'ltr');
     try {
       let fetched: Record<string, any> | null = null;
-      const { getTableItem } = await import('@/lib/data-access');
-      if (variant.item_slug) {
-        fetched = await getTableItem(tenantSlug, table, variant.item_slug);
-      }
+
+      // 1) Background pre-cache (sem request por clique)
+      const cacheKey = variant.item_slug ?? variant.item_id;
+      const { getCachedVariantRow } = await import('@/components/wiki/variant-selector');
+      const cached = getCachedVariantRow(tenantId, table, cacheKey);
+      if (cached) fetched = cached;
+
+      // 2) Fallback seguro (getTableItem)
       if (!fetched) {
-        // Fallback: busca direta pela PK (funciona mesmo sem a coluna slug)
+        const { getTableItem } = await import('@/lib/data-access');
+        if (variant.item_slug) {
+          fetched = await getTableItem(tenantSlug, table, variant.item_slug);
+        }
+      }
+
+      // 3) Último recurso: busca direta por PK + pre-cache
+      if (!fetched) {
         const { supabase } = await import('@/supabase');
         const { data: row } = await supabase
           .from(table as any)
@@ -510,7 +575,13 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           .eq('id', variant.item_id)
           .maybeSingle();
         fetched = (row as Record<string, any>) ?? null;
+        if (fetched?.id) {
+          const { setCachedVariantRow } = await import('@/components/wiki/variant-selector');
+          setCachedVariantRow(tenantId, table, fetched.id as string, fetched);
+          if (fetched.slug) setCachedVariantRow(tenantId, table, fetched.slug as string, fetched);
+        }
       }
+
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
         setActiveData({ ...fetched, _source_table: sourceTable });
@@ -599,7 +670,19 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           animate={{ rotateX: 0, opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           style={{ transformPerspective: 900 }}
+          className={`relative overflow-hidden ${!prefersReduced() && flipKey > 0 ? 'variant-3d-transition' : ''}`}
+          data-beam={flipKey > 0 ? beamDir : undefined}
         >
+          {/* Feixe dourado diagonal varre o conteúdo durante a troca de variante */}
+          {flipKey > 0 && !prefersReduced() && (
+            <span
+              aria-hidden
+              className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
+                beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'
+              }`}
+              style={{ transform: 'rotate(18deg)' }}
+            />
+          )}
       {!effectiveHideHeader && (
       <div className="rounded-xl mb-6 relative overflow-hidden"
         style={activeImageUrl ? {

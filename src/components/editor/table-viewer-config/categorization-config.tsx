@@ -15,7 +15,6 @@ import { MediaLibrary } from '@/components/ui/media-library';
 import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyzeColumnValues, getHexHue } from '@/lib/categorizable-columns';
-import { ColumnDisplay } from '@/lib/column-types/display-factory';
 
 export function CategorizationConfig({
   config,
@@ -753,7 +752,7 @@ export function CategorizationConfig({
                     }`}
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                    <ColumnDisplay value={cat} column={detectedColumn} renderType={columnTypes?.[detectedColumn] || 'auto'} hideLabel plain />
+                    <span className="truncate">{cat}</span>
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -860,7 +859,7 @@ export function CategorizationConfig({
                         }`}
                       >
                         {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                        <ColumnDisplay value={val} column={c.categoryItemSortColumn} renderType={columnTypes?.[c.categoryItemSortColumn] || 'auto'} plain />
+                        <span className="truncate">{val}</span>
                         {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                       </motion.button>
                     );
@@ -955,7 +954,7 @@ export function CategorizationConfig({
                   >
                     {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
                     <span className="text-[10px] opacity-60">{cat}:</span>
-                    <ColumnDisplay value={sub} column={secondaryColumn} renderType={columnTypes?.[secondaryColumn] || 'auto'} plain />
+                    <span className="truncate">{sub}</span>
                     {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                   </motion.button>
                 );
@@ -1059,7 +1058,7 @@ export function CategorizationConfig({
                           }`}
                         >
                           {isOrdered && <span className="text-[10px] font-mono opacity-60">{orderIndex + 1}.</span>}
-                          <ColumnDisplay value={val} column={c.subCategoryItemSortColumn} renderType={columnTypes?.[c.subCategoryItemSortColumn] || 'auto'} plain />
+                          <span className="truncate">{val}</span>
                           {isOrdered && <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                         </motion.button>
                       );
