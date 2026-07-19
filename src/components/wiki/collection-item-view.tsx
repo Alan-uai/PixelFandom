@@ -526,8 +526,12 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
 
+  // Track the base item id so we only reset when the BASE item changes,
+  // never when the user is merely viewing one of its variants.
+  const baseIdRef = useRef<string | undefined>(data.id as string | undefined);
   useEffect(() => {
-    if (data.id !== activeData?.id) {
+    if (baseIdRef.current !== data.id) {
+      baseIdRef.current = data.id as string | undefined;
       setActiveData(data);
       setActiveVariantSlug(null);
     }

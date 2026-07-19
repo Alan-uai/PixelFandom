@@ -173,12 +173,27 @@ export default function DataTableContent({
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [dragFieldCol, setDragFieldCol] = useState<string | null>(null);
 
+  const columnConfigRef = useRef<Record<string, ColumnConfigEntry>>({});
+  const persistColumnConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleColumnConfigChange = useCallback((col: string, cfg: Record<string, unknown>) => {
-    setColumnConfigMap((prev) => ({
-      ...prev,
-      [col]: { ...(prev[col] || {}), ...cfg },
-    }));
-  }, []);
+    setColumnConfigMap((prev) => {
+      const next = { ...prev, [col]: { ...(prev[col] || {}), ...cfg } };
+      columnConfigRef.current = next;
+      return next;
+    });
+    if (persistColumnConfigTimerRef.current) clearTimeout(persistColumnConfigTimerRef.current);
+    persistColumnConfigTimerRef.current = setTimeout(() => {
+      if (!tenantId) return;
+      const current = columnConfigRef.current;
+      if (Object.keys(current).length === 0) return;
+      updateViewerConfigField({ tenantId, table, slug }, (config) => {
+        const next: Record<string, unknown> = { ...config };
+        next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), ...current };
+        return next;
+      });
+    }, 600);
+  }, [tenantId, table, slug]);
 
   const [editFieldCol, setEditFieldCol] = useState<string | null>(null);
   const [editFieldName, setEditFieldName] = useState('');
@@ -351,7 +366,8 @@ export default function DataTableContent({
           setColumnRenderTypes(parsed.columnTypes);
         }
         if (parsed.columnConfig) {
-          setColumnConfigMap(parsed.columnConfig);
+          setColumnConfigMap(parsed.columnConfig as Record<string, ColumnConfigEntry>);
+          columnConfigRef.current = parsed.columnConfig as Record<string, ColumnConfigEntry>;
         }
         if (parsed.card?.columnOrder) {
           setColumnOrder(parsed.card.columnOrder);
@@ -1120,20 +1136,6 @@ export default function DataTableContent({
     });
   }, [tenantId, table, slug]);
 
-  const moveField = useCallback((col: string, dir: -1 | 1) => {
-    setColumnOrder((prev) => {
-      const base = prev.length > 0 ? prev : allColumns.filter((c) => isEditableColumn(c));
-      const idx = base.indexOf(col);
-      if (idx === -1) return prev;
-      const target = idx + dir;
-      if (target < 0 || target >= base.length) return prev;
-      const next = [...base];
-      [next[idx], next[target]] = [next[target], next[idx]];
-      persistColumnOrder(next);
-      return next;
-    });
-  }, [allColumns, persistColumnOrder, isEditableColumn]);
-
   const renderFieldItem = (
     col: string,
     value: string,
@@ -1212,32 +1214,22 @@ export default function DataTableContent({
               else vc[value] = c;
               handleColumnConfigChange(col, { valueColors: vc });
             }}
-          >
-            <span
-              draggable
-              onDragStart={(e) => { setDragFieldCol(col); e.dataTransfer.effectAllowed = 'move'; }}
-              onDragEnd={() => setDragFieldCol(null)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (!dragFieldCol || dragFieldCol === col) return;
-                const base = columnOrder.length > 0 ? columnOrder : allColumns.filter((c) => isEditableColumn(c));
-                const from = base.indexOf(dragFieldCol);
-                const to = base.indexOf(col);
-                if (from === -1 || to === -1) return;
-                const next = [...base];
-                next.splice(to, 0, next.splice(from, 1)[0]);
-                persistColumnOrder(next);
-                setDragFieldCol(null);
-              }}
-              onClick={() => moveField(col, 1)}
-              className="flex flex-col items-center gap-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none select-none"
-              title="Arraste para reordenar as colunas/campos no conteúdo da Wiki (ou clique para mover para baixo)"
-            >
-              <GripVertical className="h-3 w-3" />
-              <GripVertical className="h-3 w-3" />
-            </span>
-          </ValueColorLine>
+            onDragStart={(e) => { setDragFieldCol(col); e.dataTransfer.effectAllowed = 'move'; }}
+            onDragEnd={() => setDragFieldCol(null)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (!dragFieldCol || dragFieldCol === col) return;
+              const base = columnOrder.length > 0 ? columnOrder : allColumns.filter((c) => isEditableColumn(c));
+              const from = base.indexOf(dragFieldCol);
+              const to = base.indexOf(col);
+              if (from === -1 || to === -1) return;
+              const next = [...base];
+              next.splice(to, 0, next.splice(from, 1)[0]);
+              persistColumnOrder(next);
+              setDragFieldCol(null);
+            }}
+          />
         )}
         <InputGlow
           color={

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Icon } from '@iconify/react';
+import { loadIcon } from '@iconify/react';
 import { TABLE_ICONS, resolveTableIcon, isCustomIcon } from '@/lib/table-icons';
 import { ImagePicker } from '@/components/ui/image-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -25,10 +25,41 @@ function isIconifyIcon(value: string): boolean {
   return !!value && value.includes(':');
 }
 
+function IconifyIcon({ icon, className, size = 16 }: { icon: string; className?: string; size?: number }) {
+  const [data, setData] = useState<{ body: string; width: number; height: number } | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    let cancelled = false;
+    loadIcon(icon).then((d) => {
+      if (!cancelled && mountedRef.current && d?.body) {
+        setData({ body: d.body, width: d.width || 24, height: d.height || 24 });
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; mountedRef.current = false; };
+  }, [icon]);
+
+  if (data) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox={`0 0 ${data.width} ${data.height}`}
+        className={className}
+        dangerouslySetInnerHTML={{ __html: data.body }}
+      />
+    );
+  }
+
+  return <span className={className} style={{ width: size, height: size, display: 'inline-block' }} />;
+}
+
 function IconRender({ name, className }: { name?: string | null; className?: string }) {
   if (!name) return null;
   if (isIconifyIcon(name)) {
-    return <Icon icon={name} width={16} height={16} className={className} />;
+    return <IconifyIcon icon={name} className={className} size={14} />;
   }
   return React.createElement(resolveTableIcon(name), { className } as React.Attributes);
 }
@@ -229,7 +260,7 @@ export function TableIconPicker({ value, onChange, slug, tenantId, size = 'md' }
                         selected ? 'ring-2 ring-primary bg-primary/10 text-primary' : ''
                       }`}
                     >
-                      <Icon icon={iconId} width={16} height={16} />
+                      <IconifyIcon icon={iconId} size={16} />
                     </button>
                   );
                 })}

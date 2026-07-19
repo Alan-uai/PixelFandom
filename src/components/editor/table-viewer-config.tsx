@@ -278,15 +278,22 @@ export default function TableViewerConfig({
           }
         </div>
       )}
+      <svg width="0" height="0" className="absolute" aria-hidden="true">
+        <defs>
+          <clipPath id="cardNotchClip" clipPathUnits="objectBoundingBox">
+            <path d="M0.5524 0.165 C0.5524 0.1872 0.5717 0.2052 0.5959 0.2052 L0.9563 0.2052 C0.9805 0.2052 1 0.2233 1 0.2455 L1 0.9598 C1 0.9814 0.9805 1 0.9563 1 L0.0437 1 C0.0196 1 0 0.9814 0 0.9598 L0 0.0402 C0 0.018 0.0196 0 0.0437 0 L0.5087 0 C0.5329 0 0.5524 0.018 0.5524 0.0402 L0.5524 0.165 Z" />
+          </clipPath>
+        </defs>
+      </svg>
       <div
         className="rounded-lg border p-4"
         style={activeSection === 'display' || activeSection === 'card' ? {
-          clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)',
+          clipPath: 'url(#cardNotchClip)',
           position: 'relative',
         } as React.CSSProperties : undefined}
       >
         {(activeSection === 'display' || activeSection === 'card') && (
-          <div className="absolute top-0 right-0 z-10">
+          <div className="absolute top-0 right-0 z-10 -mt-1.5 mr-1">
             <div className="flex items-center gap-0.5 rounded-full border bg-muted/30 shadow-sm pt-1.5 pb-0 px-0.5">
               <button
                 type="button"

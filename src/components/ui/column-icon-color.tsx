@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Palette } from 'lucide-react';
+import { Palette, GripVertical } from 'lucide-react';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { cn } from '@/lib/utils';
 
@@ -138,10 +138,13 @@ export function LabelColorCircle({ color, onChange }: LabelColorCircleProps) {
 interface ValueColorLineProps {
   color?: string;
   onChange: (color: string | undefined) => void;
-  children?: React.ReactNode;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
-export function ValueColorLine({ color, onChange, children }: ValueColorLineProps) {
+export function ValueColorLine({ color, onChange, onDragStart, onDragEnd, onDragOver, onDrop }: ValueColorLineProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(color || '');
   const ref = useRef<HTMLDivElement>(null);
@@ -168,19 +171,19 @@ export function ValueColorLine({ color, onChange, children }: ValueColorLineProp
   };
 
   return (
-    <div className="flex flex-col items-center gap-1 pt-1.5" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="block w-[3px] rounded-full shrink-0 transition-all hover:scale-x-150"
-        style={{
-          backgroundColor: color || 'transparent',
-          minHeight: '18px',
-          ...(!color ? { border: '1px dashed', borderColor: 'var(--muted-foreground)' } : {}),
-        }}
-        title={color ? `Cor do valor: ${color}` : 'Cor do valor'}
-      />
-      {children}
+    <div className="relative flex flex-col items-center pt-1.5" ref={ref}>
+      <span
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        className="flex cursor-grab active:cursor-grabbing touch-none select-none text-muted-foreground hover:text-foreground transition-colors"
+        title="Arraste para reordenar · clique para escolher cor"
+      >
+        <GripVertical className="h-4 w-4" style={color ? { color } : undefined} />
+      </span>
       {open && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-card border rounded-lg p-2 shadow-xl min-w-[180px]">
           <div className="flex flex-wrap gap-1">

@@ -1724,6 +1724,9 @@ function ItemCard({
   // ── Variantes: troca in-place do conteúdo do card ──
   const baseItemId = item.id as string;
   const baseItemSlug = item.slug as string;
+  // Track the base item id so the variant state only resets when the BASE
+  // item changes — not when a variant is selected or the parent re-renders.
+  const baseIdRef = useRef<string | undefined>(item.id as string | undefined);
   const [activeItem, setActiveItem] = useState<any>(item);
   const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
   const [loadingVariant, setLoadingVariant] = useState(false);
@@ -1815,6 +1818,8 @@ function ItemCard({
   }, [item, tableName, tenantId, tenantSlug, triggerTransition]);
 
   useEffect(() => {
+    if (baseIdRef.current === baseItemId) return;
+    baseIdRef.current = baseItemId;
     setActiveItem(item);
     setActiveVariantSlug(null);
     setVariationKey((k) => k + 1);
