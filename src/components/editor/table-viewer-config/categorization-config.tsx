@@ -9,10 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
-import { MediaLibrary } from '@/components/ui/media-library';
-import { Plus, Trash2, ImageIcon, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
+import { TableIconPicker } from '@/components/ui/table-icon-picker';
+import { Plus, Trash2, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyzeColumnValues, getHexHue } from '@/lib/categorizable-columns';
 
@@ -41,7 +40,6 @@ export function CategorizationConfig({
   const [subDirActive, setSubDirActive] = useState(false);
   const [catItemDirActive, setCatItemDirActive] = useState(false);
   const [subCatItemDirActive, setSubCatItemDirActive] = useState(false);
-  const [mediaLib, setMediaLib] = useState<{ open: boolean; pathPrefix: string; onChange: (url: string) => void }>({ open: false, pathPrefix: '', onChange: () => {} });
 
   const categorizableColumns = useMemo(
     () => getCategorizableColumns(columns as string[], {
@@ -382,17 +380,13 @@ export function CategorizationConfig({
 
                         <span className="text-xs font-medium flex-1 truncate">{cat}</span>
 
-                        <IconPickerTrigger
-                          value={currentIcon && !isImg ? currentIcon : undefined}
-                          onChange={(iconId) => handleIconSelect(cat, iconId)}
+                        <TableIconPicker
+                          value={currentIcon || ''}
+                          onChange={(icon) => handleIconSelect(cat, icon)}
+                          slug={slug || ''}
+                          tenantId={tenantId}
                           size="sm"
                         />
-
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
-                          onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-categories/${slug}/${cat}`, onChange: (url) => handleImageChange(cat, url) })}
-                        >
-                          <ImageIcon className="h-3 w-3" />
-                        </Button>
 
                         {currentIcon && (
                           <button
@@ -604,32 +598,21 @@ export function CategorizationConfig({
                         )}
                       </div>
                       <span className="text-[10px]">{sub}</span>
-                      <IconPickerTrigger
-                        value={currentIcon && !isImg ? currentIcon : undefined}
-                        onChange={(iconId) => {
+                      <TableIconPicker
+                        value={currentIcon || ''}
+                        onChange={(icon) => {
                           onChange({
                             ...c,
                             secondaryIcons: {
                               ...secondaryIcons,
-                              [cat]: { ...(secondaryIcons[cat] || {}), [sub]: iconId },
+                              [cat]: { ...(secondaryIcons[cat] || {}), [sub]: icon },
                             },
                           });
                         }}
+                        slug={slug || ''}
+                        tenantId={tenantId}
                         size="sm"
                       />
-                      <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" title="Upload de imagem"
-                        onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-subcategories/${slug}/${cat}/${sub}`, onChange: (url) => {
-                          onChange({
-                            ...c,
-                            secondaryIcons: {
-                              ...secondaryIcons,
-                              [cat]: { ...(secondaryIcons[cat] || {}), [sub]: url },
-                            },
-                          });
-                        }})}
-                      >
-                        <ImageIcon className="h-2.5 w-2.5" />
-                      </Button>
                       {currentIcon && (
                         <button
                           type="button"
@@ -1076,20 +1059,10 @@ export function CategorizationConfig({
         <Label className="text-xs text-muted-foreground">Grupos manuais</Label>
         <p className="text-[10px] text-muted-foreground">Agrupe valores existentes sob um novo nome.</p>
         {manualGroups.map((mg: any, i: number) => {
-          const currentIcon = mg.icon || (mg.imageUrl ? mg.imageUrl : undefined);
-          const isImg = mg.imageUrl ? true : false;
+          const currentIcon = mg.icon || mg.imageUrl || undefined;
           return (
             <div key={i} className="space-y-1 rounded border p-2">
               <div className="flex items-center gap-2">
-                {currentIcon && (
-                  <div className="w-6 h-6 shrink-0 rounded border flex items-center justify-center bg-muted/20 overflow-hidden">
-                    {isImg ? (
-                      <Image src={mg.imageUrl} alt="" width={14} height={14} className="object-contain" />
-                    ) : (
-                      <IconRenderer icon={mg.icon} size="sm" />
-                    )}
-                  </div>
-                )}
                 <Input
                   value={mg.label}
                   onChange={(e) => updateManualGroup(i, { label: e.target.value })}
@@ -1098,16 +1071,13 @@ export function CategorizationConfig({
                 />
               </div>
               <div className="flex items-center gap-1 pl-8">
-                <IconPickerTrigger
-                  value={mg.icon && !isImg ? mg.icon : undefined}
-                  onChange={(iconId) => updateManualGroup(i, { icon: iconId, imageUrl: undefined })}
+                <TableIconPicker
+                  value={currentIcon || ''}
+                  onChange={(icon) => updateManualGroup(i, { icon, imageUrl: undefined })}
+                  slug={slug || ''}
+                  tenantId={tenantId}
                   size="sm"
                 />
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
-                  onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-manual-groups/${slug}/${i}`, onChange: (url) => updateManualGroup(i, { imageUrl: url, icon: undefined }) })}
-                >
-                  <ImageIcon className="h-3 w-3" />
-                </Button>
                 {currentIcon && (
                   <button
                     type="button"
@@ -1191,20 +1161,10 @@ export function CategorizationConfig({
           <Label className="text-xs text-muted-foreground">Sub-grupos manuais</Label>
           <p className="text-[10px] text-muted-foreground">Agrupe valores de sub-categorias sob um novo nome.</p>
           {subManualGroups.map((mg: any, i: number) => {
-            const currentIcon = mg.icon || (mg.imageUrl ? mg.imageUrl : undefined);
-            const isImg = mg.imageUrl ? true : false;
+            const currentIcon = mg.icon || mg.imageUrl || undefined;
             return (
               <div key={i} className="space-y-1 rounded border p-2">
                 <div className="flex items-center gap-2">
-                  {currentIcon && (
-                    <div className="w-6 h-6 shrink-0 rounded border flex items-center justify-center bg-muted/20 overflow-hidden">
-                      {isImg ? (
-                        <Image src={mg.imageUrl} alt="" width={14} height={14} className="object-contain" />
-                      ) : (
-                        <IconRenderer icon={mg.icon} size="sm" />
-                      )}
-                    </div>
-                  )}
                   <Input
                     value={mg.label}
                     onChange={(e) => updateSubManualGroup(i, { label: e.target.value })}
@@ -1213,16 +1173,13 @@ export function CategorizationConfig({
                   />
                 </div>
                 <div className="flex items-center gap-1 pl-8">
-                  <IconPickerTrigger
-                    value={mg.icon && !isImg ? mg.icon : undefined}
-                    onChange={(iconId) => updateSubManualGroup(i, { icon: iconId, imageUrl: undefined })}
+                  <TableIconPicker
+                    value={currentIcon || ''}
+                    onChange={(icon) => updateSubManualGroup(i, { icon, imageUrl: undefined })}
+                    slug={slug || ''}
+                    tenantId={tenantId}
                     size="sm"
                   />
-                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Upload de imagem"
-                    onClick={() => setMediaLib({ open: true, pathPrefix: `wiki-sub-manual-groups/${slug}/${i}`, onChange: (url) => updateSubManualGroup(i, { imageUrl: url, icon: undefined }) })}
-                  >
-                    <ImageIcon className="h-3 w-3" />
-                  </Button>
                   {currentIcon && (
                     <button
                       type="button"
@@ -1289,14 +1246,6 @@ export function CategorizationConfig({
         </div>
       )}
 
-      <MediaLibrary
-        open={mediaLib.open}
-        onOpenChange={(open) => setMediaLib(p => ({ ...p, open }))}
-        tenantId={tenantId!}
-        onSelect={(url) => { mediaLib.onChange(url); setMediaLib(p => ({ ...p, open: false })); }}
-        bucket="game-items"
-        pathPrefix={mediaLib.pathPrefix}
-      />
     </div>
   );
 }

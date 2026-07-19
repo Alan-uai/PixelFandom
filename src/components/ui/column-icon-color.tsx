@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Palette, ImageOff } from 'lucide-react';
-import { IconPicker } from './icon-picker';
 import { IconRenderer } from './icon-renderer';
+import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { cn } from '@/lib/utils';
 
 const COLOR_PRESETS = [
@@ -105,39 +105,19 @@ interface LabelIconBoxProps {
   icon?: string;
   onChange: (iconId: string | undefined) => void;
   className?: string;
+  slug?: string;
+  tenantId?: string;
 }
 
-export function LabelIconBox({ icon, onChange, className }: LabelIconBoxProps) {
-  const [open, setOpen] = useState(false);
+export function LabelIconBox({ icon, onChange, className, slug, tenantId }: LabelIconBoxProps) {
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          'flex items-center justify-center border transition-all hover:scale-105 shrink-0',
-          icon ? 'border-transparent' : 'border-dashed border-muted-foreground/40 hover:border-foreground',
-          className,
-        )}
-        title={icon ? `Ícone: ${icon}` : 'Definir ícone'}
-      >
-        {icon ? (
-          <IconRenderer icon={icon} size="sm" />
-        ) : (
-          <ImageOff className="h-3 w-3 text-muted-foreground" />
-        )}
-      </button>
-      {open && (
-        <IconPicker
-          value={icon?.includes(':') ? icon.split(':')[0] : icon}
-          onChange={(iconId) => {
-            onChange(iconId || undefined);
-            setOpen(false);
-          }}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </>
+    <TableIconPicker
+      value={icon || ''}
+      onChange={(v) => onChange(v || undefined)}
+      slug={slug || ''}
+      tenantId={tenantId}
+      size="sm"
+    />
   );
 }
 

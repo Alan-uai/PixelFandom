@@ -9,11 +9,10 @@ import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ImageUpload } from '@/components/ui/image-upload';
 import { ImagePicker } from '@/components/ui/image-picker';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
-import { IconPicker, IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { LabelIconBox, LabelColorCircle, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
 import { getDefaultColumnColor } from '@/lib/column-types/registry';
 import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
@@ -280,11 +279,7 @@ export default function DataTableContent({
   const [parentLoading, setParentLoading] = useState(false);
   const [removedFields, setRemovedFields] = useState<Set<string>>(new Set());
   const [rowHiddenFields, setRowHiddenFields] = useState<Record<string, string[]>>({});
-  const [iconPickerState, setIconPickerState] = useState<{
-    col: string;
-    value: string;
-    onChange: (key: string, val: string) => void;
-  } | null>(null);
+
 
 
   const handleRemoveField = (key: string, formSetter: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => {
@@ -1024,28 +1019,12 @@ export default function DataTableContent({
 
     if (isIconColumn(col)) {
       return (
-        <div className="space-y-2">
-          {value && value.includes(':') ? (
-            <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
-              <IconRenderer icon={value} size="sm" />
-              <span className="font-mono">{value}</span>
-            </div>
-          ) : value && !value.includes(':') ? (
-            <ImageUpload
-              bucket="game-items"
-              pathPrefix={`${slug}/${table}/${rowId || 'new'}`}
-              value={value}
-              onChange={(url) => onChange(col, url)}
-              previewSize="w-8 h-8"
-              label="Ícone"
-              tenantId={tenantId ?? undefined}
-            />
-          ) : null}
-          <IconPickerTrigger
-            value={value?.includes(':') ? value : ''}
-            onChange={(iconId) => onChange(col, iconId)}
-          />
-        </div>
+        <TableIconPicker
+          value={value || ''}
+          onChange={(icon) => onChange(col, icon)}
+          slug={slug}
+          tenantId={tenantId ?? undefined}
+        />
       );
     }
 
@@ -1123,14 +1102,6 @@ export default function DataTableContent({
     );
   };
 
-  const handleOpenIconPicker = (
-    col: string,
-    currentValue: string,
-    onChange: (key: string, val: string) => void,
-  ) => {
-    setIconPickerState({ col, value: currentValue, onChange });
-  };
-
   const allColumns = tableColumns
     ? tableColumns.map((c) => c.column_name).filter((c) => !isSystemColumn(c) || c === 'id')
     : rows.length > 0
@@ -1182,6 +1153,8 @@ export default function DataTableContent({
               onChange={(iconId) =>
                 handleColumnConfigChange(col, { labelIcon: iconId })
               }
+              slug={slug}
+              tenantId={tenantId ?? undefined}
               className="h-4 w-4 rounded"
             />
           )}
@@ -1199,16 +1172,6 @@ export default function DataTableContent({
       <div className="absolute -top-0.5 -right-0.5 z-20 flex items-center gap-0.5">
         {!isSystemColumn(col) && (
           <>
-            {isIconColumn(col) ? (
-              <button
-                type="button"
-                onClick={() => handleOpenIconPicker(col, value, onChange)}
-                className="flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background text-muted-foreground hover:text-foreground transition-colors shadow-sm inset-shadow"
-                title="Selecionar ícone"
-              >
-                <ImageIcon className="h-3 w-3" />
-              </button>
-            ) : null}
             <button
               type="button"
               onClick={() => handleOpenEditFieldDialog(col)}
@@ -1846,6 +1809,7 @@ export default function DataTableContent({
                         tenantId={tenantId}
                         tableName={table}
                         currentItemId={editingId}
+                        slug={slug}
                       />
                     )}
                   </div>
@@ -1995,17 +1959,6 @@ export default function DataTableContent({
         </DialogContent>
       </Dialog>
 
-      {iconPickerState && (
-        <IconPicker
-          value={iconPickerState.value?.includes(':') ? iconPickerState.value.split(':')[0] : iconPickerState.value}
-          onChange={(iconId) => {
-            iconPickerState.onChange(iconPickerState.col, iconId);
-            setIconPickerState(null);
-          }}
-          onClose={() => setIconPickerState(null)}
-        />
-      )}
-
     </div>
   );
 }
@@ -2014,6 +1967,8 @@ function VariantEditorRow({
   variant,
   onUnlink,
   onUpdateMeta,
+  slug,
+  tenantId,
 }: {
   variant: import('@/hooks/use-item-variants').Variant;
   onUnlink: (itemId: string) => void;
@@ -2021,10 +1976,11 @@ function VariantEditorRow({
     id: string,
     meta: { display_label?: string | null; icon?: string | null; color?: string | null },
   ) => Promise<boolean>;
+  slug?: string;
+  tenantId?: string;
 }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
-  const [showIconPicker, setShowIconPicker] = useState(false);
   const [draftLabel, setDraftLabel] = useState(variant.display_label ?? variant.variant_label ?? '');
   const [draftColor, setDraftColor] = useState(variant.color ?? '');
   const [saving, setSaving] = useState(false);
@@ -2077,15 +2033,13 @@ function VariantEditorRow({
       {editing && (
         <div className="absolute left-0 right-0 z-30 mt-1 top-full rounded-md border bg-popover shadow-xl p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowIconPicker(true)}
-              className="flex items-center gap-1.5 h-7 rounded-md border px-2 text-xs hover:bg-muted transition-colors"
-              title="Selecionar ícone"
-            >
-              {variant.icon ? <IconRenderer icon={variant.icon} size="sm" /> : <Layers className="h-3.5 w-3.5" />}
-              <span className="text-muted-foreground">Ícone</span>
-            </button>
+            <TableIconPicker
+              value={variant.icon || ''}
+              onChange={(icon) => { onUpdateMeta(variant.id, { icon: icon || null }); }}
+              slug={slug || ''}
+              tenantId={tenantId}
+              size="sm"
+            />
             <input
               type="text"
               value={draftColor}
@@ -2124,14 +2078,6 @@ function VariantEditorRow({
           </div>
         </div>
       )}
-
-      {showIconPicker && (
-        <IconPicker
-          value={variant.icon ?? undefined}
-          onChange={(iconId) => { onUpdateMeta(variant.id, { icon: iconId || null }); setShowIconPicker(false); }}
-          onClose={() => setShowIconPicker(false)}
-        />
-      )}
     </div>
   );
 }
@@ -2140,10 +2086,12 @@ function EditorVariantSection({
   tenantId,
   tableName,
   currentItemId,
+  slug,
 }: {
   tenantId: string;
   tableName: string;
   currentItemId: string;
+  slug?: string;
 }) {
   const { toast } = useToast();
   const { variants, loading, linkVariant, unlinkVariant, detectVariants, updateVariantMeta } = useItemVariants(
@@ -2217,6 +2165,8 @@ function EditorVariantSection({
               variant={v}
               onUnlink={unlinkVariant}
               onUpdateMeta={updateVariantMeta}
+              slug={slug}
+              tenantId={tenantId}
             />
           ))}
         </div>

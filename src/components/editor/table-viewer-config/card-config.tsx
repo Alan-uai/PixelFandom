@@ -8,8 +8,8 @@ import { Select3D } from '@/components/ui/select3d';
 import { Input } from '@/components/ui/input';
 import { ColorSelect3D } from '@/components/ui/color-select-3d';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
-import { IconPickerTrigger } from '@/components/ui/icon-picker';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { isColorString, hexToStyle } from '@/lib/color';
 import { getCompatibleFormats, getDefaultFormat } from '@/lib/column-types/format-compatibility';
 import { SYSTEM_COLS, WIKI_MGMT_COLS } from '@/lib/categorizable-columns';
@@ -56,12 +56,15 @@ export function CardConfig({
   columns = [],
   columnTypes = {},
   onChange,
+  slug,
+  tenantId,
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   columns?: string[];
   columnTypes?: Record<string, string>;
   slug?: string;
+  tenantId?: string;
 }) {
   const c: Record<string, any> = config || {};
   const layout = c.layout || 'card';
@@ -317,9 +320,11 @@ export function CardConfig({
                             {bc.icon && <IconRenderer icon={bc.icon} size={labelSize} />}
                             {col}
                           </span>
-                          <IconPickerTrigger
+                          <TableIconPicker
                             value={bc.icon || ''}
-                            onChange={(iconId) => updateBadgeConfig(col, 'icon', iconId)}
+                            onChange={(icon) => updateBadgeConfig(col, 'icon', icon)}
+                            slug={slug || ''}
+                            tenantId={tenantId}
                             size="sm"
                           />
                         </div>
