@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Palette, ImageOff } from 'lucide-react';
-import { IconRenderer } from './icon-renderer';
+import { Palette } from 'lucide-react';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { cn } from '@/lib/utils';
 
@@ -102,14 +101,13 @@ function ColorSwatch({ color, onChange, className, title }: ColorSwatchProps) {
 }
 
 interface LabelIconBoxProps {
-  icon?: string;
+  icon: string | undefined;
   onChange: (iconId: string | undefined) => void;
-  className?: string;
   slug?: string;
   tenantId?: string;
 }
 
-export function LabelIconBox({ icon, onChange, className, slug, tenantId }: LabelIconBoxProps) {
+export function LabelIconBox({ icon, onChange, slug, tenantId }: LabelIconBoxProps) {
   return (
     <TableIconPicker
       value={icon || ''}

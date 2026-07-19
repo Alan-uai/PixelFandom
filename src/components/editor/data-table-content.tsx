@@ -1155,7 +1155,6 @@ export default function DataTableContent({
               }
               slug={slug}
               tenantId={tenantId ?? undefined}
-              className="h-4 w-4 rounded"
             />
           )}
           <span style={columnConfigMap[col]?.labelColor ? { color: columnConfigMap[col]!.labelColor } : undefined}>
