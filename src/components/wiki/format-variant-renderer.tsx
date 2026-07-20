@@ -1556,7 +1556,7 @@ function firstKeyColor(obj: Record<string, unknown>, jsonbKeyColors?: Record<str
   return undefined;
 }
 
-function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): React.ReactNode {
+function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, _labelNode?: React.ReactNode): React.ReactNode {
   ensureDetectorsRegistered();
 
   // Builds the full stat key for a jsonb sub-path, matching CompareInfo keys
@@ -1592,6 +1592,7 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
           return (
             <MiniCard3D
               key={i}
+              color={labelColor}
               value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
               onClick={onCompareClick}
               className="min-w-[90px] flex-1"
@@ -1611,7 +1612,7 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
           <MiniCard3D
             key={k}
             label={humanizeLabel(k)}
-            color={jsonbKeyColors?.[k]}
+            color={jsonbKeyColors?.[k] || labelColor}
             value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>}
             onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick}
             className="min-w-[100px] flex-1"
@@ -1798,8 +1799,8 @@ function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, j
   );
 }
 
-function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): React.ReactNode {
-  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
+  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
   if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors);
   if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors);
   if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors);
@@ -1808,7 +1809,7 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
 
 // ── Variant 1: every scalar render type becomes a mini card ──
 function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
-  const color = valueColors?.[str];
+  const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   const opNode = opEnabled ? (() => {
     const op = parseOperatorPrefix(str);
@@ -1959,7 +1960,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   // For complex values (objects/arrays of objects), use variant-aware rendering
   if (isComplexValue(value)) {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
@@ -2028,13 +2029,13 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         // Any array (including scalars) or complex object → renderMiniCards
         ensureDetectorsRegistered();
         if (Array.isArray(detectValue)) {
-          return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+          return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
         }
         if (!plain) {
           const detector = findBestDetector(detectValue);
           if (detector) return detector.render({ value: detectValue, useSuffix }, n);
         }
-        return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+        return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
       }
       return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }

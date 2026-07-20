@@ -1936,7 +1936,7 @@ function ItemCard({
         )}
       </div>
 
-      {tenantId && (
+      {tenantId && tenantSlug && (
         <VariantSelector
           tenantSlug={tenantSlug}
           tableName={tableName}

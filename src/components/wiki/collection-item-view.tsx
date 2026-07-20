@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
@@ -58,8 +57,24 @@ function ensureCivVariant3dKeyframes() {
   animation: variant-reflection 0.8s ease-out;
   z-index: 5;
 }
+@keyframes variant-3d-flip-in {
+  0% { opacity: 0; transform: rotateX(-10deg) scale(0.97); }
+  100% { opacity: 1; transform: rotateX(0deg) scale(1); }
+}
+.variant-3d-flip-in {
+  animation: variant-3d-flip-in 0.5s ease-out;
+  transformStyle: preserve-3d;
+}
+@keyframes variant-content-expand {
+  0% { opacity: 0; transform: translateY(-10px) scaleY(0.95); }
+  100% { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+.variant-content-expand {
+  animation: variant-content-expand 0.4s ease-out 0.08s both;
+  transformOrigin: top;
+}
 @media (prefers-reduced-motion: reduce) {
-  .variant-beam-ltr, .variant-beam-rtl, .variant-3d-transition::after { animation: none !important; }
+  .variant-beam-ltr, .variant-beam-rtl, .variant-3d-transition::after, .variant-3d-flip-in, .variant-content-expand { animation: none !important; }
 }
 `;
   document.head.appendChild(el);
@@ -280,6 +295,7 @@ function RenderTypeFields({
             {formatEntries.map(([col, fmt]) => {
             rendered.add(col);
             const cc = columnConfig?.[col];
+            const lblIcon = colIcon(col);
             return (
               <FormatVariantRenderer
                 key={col}
@@ -287,6 +303,12 @@ function RenderTypeFields({
                 variant={formatVariants?.[col] || 1}
                 value={data[col]}
                 label={colLabel(col)}
+                labelNode={lblIcon ? (
+                  <span className="flex items-center gap-1">
+                    {lblIcon}
+                    {colLabel(col)}
+                  </span>
+                ) : undefined}
                 useSuffix={useSuffix}
                 opEnabled={columnOpEnabled?.[col] !== false}
                 labelColor={cc?.labelColor}
@@ -535,9 +557,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const [activeData, setActiveData] = useState<Record<string, any>>(data);
   const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
   const [loadingVariant, setLoadingVariant] = useState(false);
-  const [flipKey, setFlipKey] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
-  const flipRef = useRef<HTMLDivElement>(null);
+  const transitionTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
 
@@ -557,6 +579,13 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
+  const triggerTransition = (dir?: 'ltr' | 'rtl') => {
+    if (dir) setBeamDir(dir);
+    setTransitioning(true);
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
+  };
+
   const handleSelectVariant = async (
     variant: { item_id: string; item_slug?: string | null; fullRow?: Record<string, any> } | null,
     meta?: { direction: 'ltr' | 'rtl'; index: number; total: number },
@@ -564,8 +593,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveData(data);
-      setBeamDir(meta?.direction ?? 'ltr');
-      setFlipKey((k) => k + 1);
+      triggerTransition(meta?.direction ?? 'ltr');
       return;
     }
     if (!tenantId || !tenantSlug) return;
@@ -575,14 +603,13 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     if (variant.fullRow) {
       setActiveVariantSlug(variant.item_slug ?? null);
       setActiveData({ ...variant.fullRow, _source_table: sourceTable });
-      setBeamDir(meta?.direction ?? 'ltr');
-      setFlipKey((k) => k + 1);
+      triggerTransition(meta?.direction ?? 'ltr');
       return;
     }
 
     // Fallback raro: se fullRow não veio (pre-cache falhou), busca async.
     setLoadingVariant(true);
-    setBeamDir(meta?.direction ?? 'ltr');
+    const dir = meta?.direction ?? 'ltr';
     try {
       let fetched: Record<string, any> | null = null;
 
@@ -617,7 +644,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
         setActiveData({ ...fetched, _source_table: sourceTable });
-        setFlipKey((k) => k + 1);
+        triggerTransition(dir);
       }
     } catch {
       // keep current data on failure
@@ -670,9 +697,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   return (
       <div className="max-w-3xl mx-auto">
-        {tenantId && (
+        {tenantId && tenantSlug && (
           <VariantSelector
-            tenantSlug={tenantSlug || ''}
+            tenantSlug={tenantSlug as string}
             tableName={table}
             currentItemId={baseItemId}
             currentItemSlug={baseItemSlug}
@@ -696,15 +723,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         />
        )}
 
-        <motion.div
-          key={flipKey}
-          ref={flipRef}
-          initial={{ rotateX: -8, opacity: 0, scale: 0.98 }}
-          animate={{ rotateX: 0, opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-          style={{ transformPerspective: 900 }}
-          className={`relative overflow-hidden ${!prefersReduced() && flipKey > 0 ? 'variant-3d-transition' : ''}`}
-          data-beam={flipKey > 0 ? beamDir : undefined}
+        <div
+          style={{ perspective: transitioning ? 900 : undefined }}
+          className={`relative overflow-hidden ${!prefersReduced() && transitioning ? 'variant-3d-transition variant-3d-flip-in' : ''}`}
+          data-beam={transitioning ? beamDir : undefined}
         >
       {!effectiveHideHeader && (
       <div className="rounded-xl mb-6 relative overflow-hidden"
@@ -717,7 +739,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         <div className={`absolute inset-0 ${activeImageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${activeGrad}`}`} />
         {!activeImageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
         {/* Feixe dourado diagonal varre o heading durante a troca de variante */}
-        {flipKey > 0 && !prefersReduced() && (
+        {transitioning && !prefersReduced() && (
           <span
             aria-hidden
             className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
@@ -758,11 +780,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       )}
 
       {/* Conteúdo animado: expand/colapse suave 3D entre variantes */}
-      <motion.div
-        initial={{ opacity: 0, y: -12, scaleY: 0.95 }}
-        animate={{ opacity: 1, y: 0, scaleY: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.08 }}
-        style={{ transformOrigin: 'top', transformPerspective: 600 }}
+      <div className={`${!prefersReduced() && transitioning ? 'variant-content-expand' : ''}`}
+        style={{ perspective: 600 }}
       >
         <RenderTypeFields
           data={activeData}
@@ -791,8 +810,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
           </div>
         )}
-      </motion.div>
-        </motion.div>
+      </div>
+        </div>
     </div>
    );
 }
