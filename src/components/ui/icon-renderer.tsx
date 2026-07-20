@@ -2,7 +2,8 @@
 
 import { Icon, type IconProps } from '@iconify/react';
 import { motion, type Variants } from 'framer-motion';
-import { type CSSProperties } from 'react';
+import { type CSSProperties, createElement } from 'react';
+import { resolveTableIcon } from '@/lib/table-icons';
 
 export type AnimationStyle = 'none' | 'pulse' | 'spin' | 'bounce' | 'shake' | 'wiggle' | 'float' | 'glow';
 
@@ -69,7 +70,10 @@ export function IconRenderer({ icon, animation: animProp, size = 'md', style, cl
   const variants = animationVariants[anim];
   const transition = animationTransitions[anim];
 
-  const iconEl = <Icon icon={iconId} width={dim} height={dim} style={style as CSSProperties} className={className} {...props} />;
+  const hasColon = iconId.includes(':');
+  const iconEl = hasColon
+    ? <Icon icon={iconId} width={dim} height={dim} style={style as CSSProperties} className={className} {...props} />
+    : createElement(resolveTableIcon(iconId) as React.ComponentType<{ className?: string; size?: number; style?: CSSProperties }>, { className, size: dim, style: style as CSSProperties });
 
   if (anim === 'none' || !anim) return iconEl;
 

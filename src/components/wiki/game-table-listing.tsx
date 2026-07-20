@@ -1336,7 +1336,7 @@ function ItemListRow({
         {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
         {activeBadges.length > 0 && (
           <div className="flex items-center gap-1 mt-1 flex-wrap">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix, _detailConfig?.columnConfig))}
           </div>
         )}
       </div>
@@ -1418,7 +1418,7 @@ function ItemTableRow({
           <span className="text-sm font-medium truncate">{name}</span>
           {activeBadges.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix, _detailConfig?.columnConfig))}
             </div>
           )}
         </div>
@@ -1514,7 +1514,7 @@ function ItemAccordionBox({
         )}
         {activeBadges.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap shrink-0 max-w-[180px] self-center">
-            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix))}
+            {activeBadges.map(col => renderBadgeItem(col, item, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix, detailConfig?.columnConfig))}
           </div>
         )}
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />

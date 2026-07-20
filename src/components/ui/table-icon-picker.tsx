@@ -184,12 +184,12 @@ export function TableIconPicker({ value, onChange, slug, tenantId, size = 'md' }
               <div className="grid grid-cols-8 gap-1">
                 {filtered.map((name) => {
                   const IconComp = resolveTableIcon(name);
-                  const selected = value === name;
+                  const selected = value === name || value === 'lucide:' + name.toLowerCase();
                   return (
                     <button
                       key={name}
                       type="button"
-                      onClick={() => { onChange(name); setOpen(false); }}
+                      onClick={() => { onChange('lucide:' + name.toLowerCase()); setOpen(false); }}
                       title={name}
                       className={`flex items-center justify-center rounded-md p-1.5 transition-all text-muted-foreground hover:text-foreground hover:bg-muted ${
                         selected ? 'ring-2 ring-primary bg-primary/10 text-primary' : ''

@@ -758,7 +758,13 @@ export default function DataTableContent({
     }
     const payload: Record<string, unknown> = { tenant_id: tenantId };
     Object.entries(newForm).forEach(([key, val]) => {
-      payload[key] = sanitizeFieldValue(key, val);
+      const sanitized = sanitizeFieldValue(key, val);
+      const dataType = getColumnDataType(key, tableColumns);
+      if (dataType === 'jsonb') {
+        try { payload[key] = JSON.parse(sanitized); } catch { payload[key] = sanitized; }
+      } else {
+        payload[key] = sanitized;
+      }
     });
 
     const slugVal = await generateUniqueItemSlug(table, tenantId, slugifyName(nameVal));
