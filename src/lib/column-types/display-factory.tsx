@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { normalizeValue, humanizeLabel } from '@/lib/operator-symbols';
 import type { DisplayFormat } from './format-compatibility';
+import { IconRenderer } from '@/components/ui/icon-renderer';
 
 export interface DisplayProps {
   value: unknown;
@@ -24,6 +25,7 @@ function renderTypeToFormat(rt: string): DisplayFormat {
     case 'boolean':     return 'boolean';
     case 'tags':
     case 'multi-select': return 'multi-select';
+    case 'popover':      return 'popover';
     case 'link':        return 'link';
     case 'video':       return 'video';
     case 'audio':       return 'audio';
@@ -74,13 +76,14 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, hideLabel, onCompareClick, plain }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
-  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] };
+  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[]; labelIcon?: string };
   variant?: number;
   labelColor?: string;
+  valueColors?: Record<string, string>;
   hideLabel?: boolean;
   onCompareClick?: (subKey?: string) => void;
   plain?: boolean;
@@ -91,8 +94,19 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   const tv = variant ?? 1;
 
   const jsonbKeyColors = columnConfig?.jsonbKeyColors;
-  const valueColors = columnConfig?.valueColors;
+  const resolvedValueColors = valueColors ?? columnConfig?.valueColors;
   const allowedValues = columnConfig?.allowedValues;
+
+  /** Build the label ReactNode: icon + text when labelIcon is present. */
+  function withLabelIcon(text: string): ReactNode {
+    if (!columnConfig?.labelIcon) return text;
+    return (
+      <span className="flex items-center gap-1">
+        <IconRenderer icon={columnConfig.labelIcon} size={12} />
+        {text}
+      </span>
+    );
+  }
 
   // jsonb: data extraction first (parse + key formatting), then delegate
   if (renderType === 'jsonb') {
@@ -106,6 +120,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           plain={plain}
           value={parsed}
           label={dl}
+          labelNode={withLabelIcon(dl)}
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
@@ -124,6 +139,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           plain={plain}
           value={formatted}
           label={dl}
+          labelNode={withLabelIcon(dl)}
           useSuffix={useSuffix}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
@@ -147,6 +163,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           plain={plain}
           value={prepared}
           label={displayLabel}
+          labelNode={withLabelIcon(displayLabel)}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           labelColor={labelColor}
@@ -167,10 +184,11 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         variant={tv}
         value={prepared}
         label={displayLabel}
+        labelNode={withLabelIcon(displayLabel)}
         useSuffix={useSuffix}
         opEnabled={opEnabled}
         labelColor={labelColor}
-        valueColors={valueColors}
+        valueColors={resolvedValueColors}
         maxValue={maxValue}
       />
     );
@@ -186,9 +204,10 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         variant={tv}
         value={Array.isArray(arr) ? arr : prepared}
         label={dl}
+        labelNode={withLabelIcon(dl)}
         useSuffix={useSuffix}
         labelColor={labelColor}
-        valueColors={valueColors}
+        valueColors={resolvedValueColors}
         maxValue={maxValue}
         allowedValues={allowedValues}
       />
@@ -203,10 +222,11 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       variant={tv}
       value={prepared}
       label={dl}
+      labelNode={withLabelIcon(dl)}
       useSuffix={useSuffix}
       opEnabled={opEnabled}
       labelColor={labelColor}
-      valueColors={valueColors}
+      valueColors={resolvedValueColors}
       maxValue={maxValue}
       allowedValues={allowedValues}
       onCompareClick={onCompareClick}

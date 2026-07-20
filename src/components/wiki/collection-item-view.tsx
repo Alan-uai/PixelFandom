@@ -706,16 +706,6 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           className={`relative overflow-hidden ${!prefersReduced() && flipKey > 0 ? 'variant-3d-transition' : ''}`}
           data-beam={flipKey > 0 ? beamDir : undefined}
         >
-          {/* Feixe dourado diagonal varre o conteúdo durante a troca de variante */}
-          {flipKey > 0 && !prefersReduced() && (
-            <span
-              aria-hidden
-              className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
-                beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'
-              }`}
-              style={{ transform: 'rotate(18deg)' }}
-            />
-          )}
       {!effectiveHideHeader && (
       <div className="rounded-xl mb-6 relative overflow-hidden"
         style={activeImageUrl ? {
@@ -726,6 +716,16 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       >
         <div className={`absolute inset-0 ${activeImageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${activeGrad}`}`} />
         {!activeImageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
+        {/* Feixe dourado diagonal varre o heading durante a troca de variante */}
+        {flipKey > 0 && !prefersReduced() && (
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
+              beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'
+            }`}
+            style={{ transform: 'rotate(18deg)' }}
+          />
+        )}
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
           <div className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
             {activeIcon}
@@ -757,34 +757,41 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
       )}
 
-      {/* Unified rendering pipeline: formats → types → auto-classified → catch-all */}
-      <RenderTypeFields
-        data={activeData}
-        columnTypes={columnTypes || {}}
-        columnFormats={columnFormats}
-        formatVariants={formatVariants}
-        columnOpEnabled={columnOpEnabled}
-        rendered={rendered}
-        visibleColumnsSet={visibleColumnsSet}
-        schema={schema}
-        tenantId={tenantId}
-        tenantSlug={tenantSlug}
-        table={table}
-        comparisonMode={comparisonMode}
-        onStatClick={handleStatClick}
-        chipWrap={chipWrap}
-        columnOrder={detailConfig?.columnOrder}
-        useSuffix={useSuffix}
-        columnConfig={columnConfig}
-      />
+      {/* Conteúdo animado: expand/colapse suave 3D entre variantes */}
+      <motion.div
+        initial={{ opacity: 0, y: -12, scaleY: 0.95 }}
+        animate={{ opacity: 1, y: 0, scaleY: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.08 }}
+        style={{ transformOrigin: 'top', transformPerspective: 600 }}
+      >
+        <RenderTypeFields
+          data={activeData}
+          columnTypes={columnTypes || {}}
+          columnFormats={columnFormats}
+          formatVariants={formatVariants}
+          columnOpEnabled={columnOpEnabled}
+          rendered={rendered}
+          visibleColumnsSet={visibleColumnsSet}
+          schema={schema}
+          tenantId={tenantId}
+          tenantSlug={tenantSlug}
+          table={table}
+          comparisonMode={comparisonMode}
+          onStatClick={handleStatClick}
+          chipWrap={chipWrap}
+          columnOrder={detailConfig?.columnOrder}
+          useSuffix={useSuffix}
+          columnConfig={columnConfig}
+        />
 
-      {/* Footer */}
-      {(updatedAt || createdAt) && (
-        <div className="mt-8 pt-4 border-t border-border flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-          {updatedAt && <span>Atualizado em {new Date(updatedAt).toLocaleDateString('pt-BR')}</span>}
-          {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
-        </div>
-      )}
+        {/* Footer */}
+        {(updatedAt || createdAt) && (
+          <div className="mt-8 pt-4 border-t border-border flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+            {updatedAt && <span>Atualizado em {new Date(updatedAt).toLocaleDateString('pt-BR')}</span>}
+            {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
+          </div>
+        )}
+      </motion.div>
         </motion.div>
     </div>
    );

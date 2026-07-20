@@ -28,7 +28,6 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
-import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
@@ -1623,14 +1622,6 @@ function MiniCardsSection({
         const detailColor = colConfig?.labelColor;
         const color = detailColor || badgeColors[col] || 'hsl(var(--primary))';
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
-        const showIcon = renderType === 'icon';
-        const labelText = colConfig?.displayName || col.replace(/_/g, ' ');
-        const labelNode = (
-          <span className="flex items-center gap-1">
-            {colConfig?.labelIcon && <IconRenderer icon={colConfig.labelIcon} size={12} />}
-            {labelText}
-          </span>
-        );
         return (
           <VariantAnimatedValue
             key={col}
@@ -1640,32 +1631,17 @@ function MiniCardsSection({
             useSuffix={useSuffix}
             formatNumber={(n) => formatNumber(n, !!useSuffix)}
           >
-            <FormatVariantRenderer
-              format={renderType as any}
-              variant={1}
+            <ColumnDisplay
               value={item[col]}
-              label={labelText}
-              labelNode={labelNode}
-              labelColor={color}
-              valueColors={badgeColors}
-              jsonbKeyColors={colConfig?.jsonbKeyColors}
+              column={col}
+              renderType={renderType}
               useSuffix={useSuffix}
               opEnabled={colOpEnabled}
-              maxValue={colConfig?.maxValue}
-              allowedValues={colConfig?.allowedValues}
-              icon={showIcon ? (
-                <ColumnDisplay
-                  value={item[col]}
-                  column={col}
-                  renderType="icon"
-                  useSuffix={useSuffix}
-                  opEnabled={colOpEnabled}
-                  hideLabel
-                  columnConfig={colConfig}
-                />
-              ) : undefined}
+              variant={1}
+              labelColor={color}
+              valueColors={badgeColors}
+              columnConfig={colConfig}
               onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
-              column={col}
             />
           </VariantAnimatedValue>
         );
