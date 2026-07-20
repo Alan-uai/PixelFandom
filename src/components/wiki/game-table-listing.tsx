@@ -16,6 +16,7 @@ import { useTableItems } from '@/hooks/use-data-access';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import VariantSelector from '@/components/wiki/variant-selector';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import ComparePopup from '@/components/wiki/compare-popup';
@@ -191,7 +192,7 @@ function renderBadgeItem(
   onCompareStatClick?: (statKey: string) => void,
   columnTypes?: Record<string, string>,
   useSuffix?: boolean,
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }> }>,
+  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; labelIcon?: string; labelColor?: string }>,
 ): React.ReactNode {
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
@@ -200,13 +201,9 @@ function renderBadgeItem(
   const iconSize = bc.iconSize ?? 10;
   const labelSize = bc.labelSize ?? 10;
 
-  const renderType: string = 'badge';
+  const renderType = columnTypes?.[col] || 'text';
   let displayValue: React.ReactNode;
-  if (typeof val === 'number') {
-    displayValue = formatNumber(val, useSuffix ?? true);
-  } else {
-    displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} columnConfig={columnConfig?.[col]} />;
-  }
+  displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} plain columnConfig={columnConfig?.[col]} />;
 
   const rawColor = badgeColors[col] || '';
   const isColor = isColorString(rawColor);
@@ -1833,6 +1830,41 @@ function ItemCard({
     const bc = badgeConfig[col] || {};
     const iconSize = bc.iconSize ?? 10;
     const labelSize = bc.labelSize ?? 10;
+
+    // Popover column: render badge as an interactive Popover trigger
+    if (columnTypes?.[col] === 'popover') {
+      let items: string[] = [];
+      if (Array.isArray(val)) {
+        items = val.map(v => typeof v === 'string' ? v : String(v));
+      } else if (typeof val === 'string') {
+        try { const p = JSON.parse(val); if (Array.isArray(p)) items = p.map(v => String(v)); } catch { items = [val]; }
+      }
+      const rawColor = badgeColors[col] || '';
+      const isColor = isColorString(rawColor);
+      const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
+      const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
+      const style: React.CSSProperties = {
+        ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
+        fontSize: `${labelSize}px`,
+        padding: '2px 6px',
+      };
+      return (
+        <Popover key={col}>
+          <PopoverTrigger asChild>
+            <button type="button" className={`${baseClass} ${colorClass} cursor-pointer`} style={style}>
+              {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
+              {items.length > 0 ? `${items[0]}${items.length > 1 ? ` +${items.length - 1}` : ''}` : 'Popover'}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-3 text-xs space-y-1" side="top" align="center">
+            <p className="font-medium text-foreground mb-1">{(bc as any).label || col}</p>
+            {items.map((item, i) => (
+              <div key={i} className="text-muted-foreground">• {item}</div>
+            ))}
+          </PopoverContent>
+        </Popover>
+      );
+    }
 
     // Badges ALWAYS render as plain text in a Badge pill — never minicards,
     // regardless of the column data type (numeric, text, jsonb, etc).

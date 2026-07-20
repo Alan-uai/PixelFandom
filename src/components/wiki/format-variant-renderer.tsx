@@ -78,7 +78,7 @@ function ColWrap({ label, children, labelColor }: { label: string; children: Rea
 
 // ── text ──────────────────────────────────────────────────
 function renderText(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
-  const color = valueColors?.[str];
+  const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   if (v === 2) {
     return (
@@ -117,7 +117,7 @@ function renderText(v: number, str: string, label: string, labelColor?: string, 
 
 // ── number ────────────────────────────────────────────────
 function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, rawValue?: string) {
-  const color = valueColors?.[str] ?? (rawValue != null ? valueColors?.[rawValue] : undefined);
+  const color = valueColors?.[str] ?? (rawValue != null ? valueColors?.[rawValue] : undefined) ?? labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   if (v === 2) {
     return (
@@ -156,7 +156,7 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
 
 // ── badge ─────────────────────────────────────────────────
 function renderBadge(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
-  const color = valueColors?.[str];
+  const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color, borderColor: color, backgroundColor: `${color}1a` } : {};
   if (v === 2) {
     return (
@@ -1556,7 +1556,7 @@ function firstKeyColor(obj: Record<string, unknown>, jsonbKeyColors?: Record<str
   return undefined;
 }
 
-function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, _labelNode?: React.ReactNode): React.ReactNode {
+function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
   ensureDetectorsRegistered();
 
   // Builds the full stat key for a jsonb sub-path, matching CompareInfo keys
@@ -1566,39 +1566,50 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
     return `${column}.${key}`;
   };
 
+  const header = label && labelNode !== undefined
+    ? <div className="text-xs font-medium text-muted-foreground mb-1">{labelNode}</div>
+    : label
+    ? <div className="text-xs font-medium text-muted-foreground mb-1" style={labelColor ? { color: labelColor } : {}}>{label}</div>
+    : null;
+
+  const wrapperClass = 'flex flex-wrap gap-2';
+
   // Array → one independent mini card per element (object or scalar).
   if (Array.isArray(value)) {
     if (opEnabled && detectOpArray(value)) {
-      return renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick, column);
+      return <>{header}{renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick, column)}</>;
     }
     return (
-      <div className="flex flex-wrap gap-2" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
-        {value.map((el: unknown, i: number) => {
-          if (typeof el === 'object' && el !== null) {
-            const obj = el as Record<string, unknown>;
-            // Array-of-objects: compare the key of the first element across items.
-            const singleKey = Object.keys(obj)[0];
-            const sub = column && singleKey !== undefined ? `${column}[].${singleKey}` : undefined;
+      <div>
+        {header}
+        <div className={wrapperClass} style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+          {value.map((el: unknown, i: number) => {
+            if (typeof el === 'object' && el !== null) {
+              const obj = el as Record<string, unknown>;
+              // Array-of-objects: compare the key of the first element across items.
+              const singleKey = Object.keys(obj)[0];
+              const sub = column && singleKey !== undefined ? `${column}[].${singleKey}` : undefined;
+              return (
+                <MiniCard3D
+                  key={i}
+                  color={firstKeyColor(obj, jsonbKeyColors)}
+                  value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled)}
+                  onClick={sub ? () => onCompareClick?.(sub) : onCompareClick}
+                  className="min-w-[110px] flex-1"
+                />
+              );
+            }
             return (
               <MiniCard3D
                 key={i}
-                color={firstKeyColor(obj, jsonbKeyColors)}
-                value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled)}
-                onClick={sub ? () => onCompareClick?.(sub) : onCompareClick}
-                className="min-w-[110px] flex-1"
+                color={labelColor}
+                value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
+                onClick={onCompareClick}
+                className="min-w-[90px] flex-1"
               />
             );
-          }
-          return (
-            <MiniCard3D
-              key={i}
-              color={labelColor}
-              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
-              onClick={onCompareClick}
-              className="min-w-[90px] flex-1"
-            />
-          );
-        })}
+          })}
+        </div>
       </div>
     );
   }
@@ -1607,17 +1618,20 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
   if (typeof value === 'object' && value !== null) {
     const obj = value as Record<string, unknown>;
     return (
-      <div className="flex flex-wrap gap-2" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
-        {Object.entries(obj).map(([k, val]) => (
-          <MiniCard3D
-            key={k}
-            label={humanizeLabel(k)}
-            color={jsonbKeyColors?.[k] || labelColor}
-            value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>}
-            onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick}
-            className="min-w-[100px] flex-1"
-          />
-        ))}
+      <div>
+        {header}
+        <div className={wrapperClass} style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+          {Object.entries(obj).map(([k, val]) => (
+            <MiniCard3D
+              key={k}
+              label={humanizeLabel(k)}
+              color={jsonbKeyColors?.[k] || labelColor}
+              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>}
+              onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick}
+              className="min-w-[100px] flex-1"
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1625,10 +1639,13 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
   // Scalar jsonb value → one mini card (kept, as requested: jsonb keeps its
   // per-item mini cards).
   return (
-    <MiniCard3D
-      value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>}
-      onClick={onCompareClick}
-    />
+    <div>
+      {header}
+      <MiniCard3D
+        value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>}
+        onClick={onCompareClick}
+      />
+    </div>
   );
 }
 
@@ -1965,7 +1982,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
-  if (n === 1 && format !== 'badge' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
+  if (n === 1 && format !== 'badge' && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
     // When an `icon` is supplied for the leading slot (e.g. icon-type columns)
     // the value body is left empty — the icon lives in the slot instead.
     const content = format === 'icon' && icon

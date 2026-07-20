@@ -216,6 +216,30 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
   // All other types: direct delegation
   const dl = hideLabel ? '' : column;
+
+  // Auto-detect JSON array/object stored as text string (e.g. popover_config
+  // with empty/missing columnTypes). Parse and route as jsonb-structured to
+  // avoid showing raw JSON text.
+  const autoParsed = typeof prepared === 'string' ? parseIfJson(prepared) : prepared;
+  if (Array.isArray(autoParsed) || (typeof autoParsed === 'object' && autoParsed !== null)) {
+    return (
+      <FormatVariantRenderer
+        format="jsonb-structured"
+        variant={tv}
+        plain={plain}
+        value={autoParsed}
+        label={dl}
+        labelNode={withLabelIcon(dl)}
+        useSuffix={useSuffix}
+        labelColor={labelColor}
+        jsonbKeyColors={jsonbKeyColors}
+        maxValue={maxValue}
+        onCompareClick={onCompareClick}
+        column={column}
+      />
+    );
+  }
+
   return (
     <FormatVariantRenderer
       format={renderTypeToFormat(renderType)}
