@@ -809,6 +809,29 @@ export default function DataTableContent({
           const order = (card.columnOrder as string[]) || [];
           card.columnOrder = order.filter((c) => c !== col);
           nextCfg.card = card;
+
+          const types = (nextCfg.columnTypes as Record<string, string>) || {};
+          delete types[col];
+          nextCfg.columnTypes = types;
+
+          const colCfg = (nextCfg.columnConfig as Record<string, unknown>) || {};
+          delete colCfg[col];
+          nextCfg.columnConfig = colCfg;
+
+          const badges = (nextCfg.badges as string[]) || [];
+          nextCfg.badges = badges.filter((b) => b !== col);
+
+          const badgeCfg = (nextCfg.badgeConfig as Record<string, unknown>) || {};
+          delete badgeCfg[col];
+          nextCfg.badgeConfig = badgeCfg;
+
+          const badgeColors = (nextCfg.badgeColors as Record<string, string>) || {};
+          delete badgeColors[col];
+          nextCfg.badgeColors = badgeColors;
+
+          const uploadCols = (nextCfg.uploadColumns as string[]) || [];
+          nextCfg.uploadColumns = uploadCols.filter((u) => u !== col);
+
           return nextCfg;
         });
         toast({ title: `Coluna "${col}" removida.` });
@@ -826,6 +849,16 @@ export default function DataTableContent({
           return next;
         });
         setEditForm((prev) => {
+          const next = { ...prev };
+          delete next[col];
+          return next;
+        });
+        setColumnRenderTypes((prev) => {
+          const next = { ...prev };
+          delete next[col];
+          return next;
+        });
+        setColumnConfigMap((prev) => {
           const next = { ...prev };
           delete next[col];
           return next;
