@@ -24,21 +24,15 @@ interface Props {
   currentItemId: string;
   currentItemSlug: string;
   tenantId: string;
-  /** Slug da variante atualmente ativa (undefined = "Atual") */
   activeVariantSlug?: string | null;
-  /** Nome real do item base (usado como rótulo do chip "Atual" quando inativo) */
   baseItemLabel?: string;
-  /** Chamado ao selecionar uma variante — o pai deve carregar os dados dela.
-   *  `direction` é a direção do feixe 3D ('ltr' | 'rtl') com base na posição
-   *  do chip clicado; `index` é a posição do chip na linha. */
+  /** Chamado ao selecionar uma variante. `fullRow` é a linha completa da tabela,
+   *  pre-cacheadas antes dos chips ficarem visíveis — o pai usa diretamente. */
   onSelectVariant?: (
-    variant: { item_id: string; item_slug?: string | null } | null,
+    variant: { item_id: string; item_slug?: string | null; fullRow?: Record<string, any> } | null,
     meta?: { direction: 'ltr' | 'rtl'; index: number; total: number },
   ) => void;
-  /** true enquanto os dados da variante selecionada estão carregando */
   loadingVariant?: boolean;
-  /** Novo: recebe todos os registros completos das variantes (background pre-cache) */
-  onVariantsLoaded?: (records: Record<string, any>[]) => void;
 }
 
 function buildHref(tenantSlug: string, tableName: string, slug: string) {
@@ -87,7 +81,6 @@ export default function VariantSelector({
   baseItemLabel,
   onSelectVariant,
   loadingVariant,
-  onVariantsLoaded,
 }: Props) {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +101,8 @@ export default function VariantSelector({
         const list = ((data || []) as Variant[]).filter((v) => v.item_id !== currentItemId);
         setVariants(list);
 
-        // Background pre-cache: busca o row completo de cada variante de uma vez
+        // Pre-cache síncrono: busca TODOS os rows completos ANTES de mostrar os chips,
+        // garantindo que getCachedVariantRow retorne dados no PRIMEIRO clique.
         const cacheKey = `${tenantId}:${tableName}:${currentItemId}`;
         if (list.length > 0 && loadedFor.current !== cacheKey) {
           loadedFor.current = cacheKey;
@@ -121,18 +115,15 @@ export default function VariantSelector({
               .in('id', ids as any);
             if (cancelled) return;
             const records = (rows as Record<string, any>[] | null) || [];
-            // store full rows (keyed by id) in the module cache
             for (const r of records) {
               if (r?.id) {
                 setCachedVariantRow(tenantId, tableName, r.id as string, r);
-                // also index by slug when present
                 const slug = r.slug as string | undefined;
                 if (slug) setCachedVariantRow(tenantId, tableName, slug, r);
               }
             }
-            if (onVariantsLoaded) onVariantsLoaded(records);
           } catch {
-            /* ignore background pre-cache failures */
+            /* ignore */
           }
         }
       } catch {
@@ -141,10 +132,8 @@ export default function VariantSelector({
       if (!cancelled) setLoading(false);
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId, tableName, currentItemId, onVariantsLoaded]);
+    return () => { cancelled = true; };
+  }, [tenantId, tableName, currentItemId]);
 
   if (loading) return null;
   if (variants.length === 0) return null;
@@ -167,11 +156,19 @@ export default function VariantSelector({
   const handleSelect = (slug: string | null, variant?: Variant, index?: number) => {
     const idx = index ?? 0;
     const total = allChips.length;
-    // direção do feixe 3D: chip à direita => rtl, à esquerda => ltr
     const direction: 'ltr' | 'rtl' = idx >= Math.ceil(total / 2) ? 'rtl' : 'ltr';
     if (onSelectVariant) {
+      // Busca síncrona: o pre-cache já completou antes dos chips ficarem visíveis,
+      // então getCachedVariantRow SEMPRE retorna dados no primeiro clique.
+      let fullRow: Record<string, any> | undefined;
+      if (variant) {
+        fullRow = getCachedVariantRow(tenantId, tableName, variant.item_slug)
+               ?? getCachedVariantRow(tenantId, tableName, variant.item_id);
+      }
       onSelectVariant(
-        slug === null ? null : { item_id: variant!.item_id, item_slug: variant?.item_slug ?? null },
+        slug === null
+          ? null
+          : { item_id: variant!.item_id, item_slug: variant?.item_slug ?? null, fullRow },
         { direction, index: idx, total },
       );
     }

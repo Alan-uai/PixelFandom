@@ -1590,7 +1590,12 @@ function renderMiniCards(value: unknown, _label: string, useSuffix?: boolean, js
             );
           }
           return (
-            <span key={i} className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>
+            <MiniCard3D
+              key={i}
+              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
+              onClick={onCompareClick}
+              className="min-w-[90px] flex-1"
+            />
           );
         })}
       </div>
@@ -1959,7 +1964,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
-  if (n === 1 && format !== 'badge' && !plain) {
+  if (n === 1 && format !== 'badge' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
     // When an `icon` is supplied for the leading slot (e.g. icon-type columns)
     // the value body is left empty — the icon lives in the slot instead.
     const content = format === 'icon' && icon
@@ -2016,15 +2021,20 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       }
       return <RenderPopover v={n} title={popoverTitle} content={popoverContent} labelColor={labelColor} triggerMode={popoverTrigger} position={popoverPosition} triggerText={popoverTriggerText} />;
     }
+    case 'jsonb':
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
-      if (!plain && typeof detectValue === 'object' && detectValue !== null && !Array.isArray(detectValue)) {
+      if (typeof detectValue === 'object' && detectValue !== null) {
+        // Any array (including scalars) or complex object → renderMiniCards
         ensureDetectorsRegistered();
-        const detector = findBestDetector(detectValue);
-        if (detector) return detector.render({ value: detectValue, useSuffix }, n);
-      }
-      if (isComplexValue(detectValue)) {
-        return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+        if (Array.isArray(detectValue)) {
+          return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
+        }
+        if (!plain) {
+          const detector = findBestDetector(detectValue);
+          if (detector) return detector.render({ value: detectValue, useSuffix }, n);
+        }
+        return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column);
       }
       return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }
