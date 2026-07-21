@@ -2050,8 +2050,12 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'jsonb-structured': {
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null) {
-        // Any array (including scalars) or complex object → renderMiniCards
         ensureDetectorsRegistered();
+        // v2-v5: use variant-aware complex renderers
+        if (n > 1 && n <= 5) {
+          return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+        }
+        // v1: mini cards with OP and detector support
         if (Array.isArray(detectValue)) {
           return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
         }

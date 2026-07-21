@@ -1581,6 +1581,7 @@ function MiniCardsSection({
   onCompareStatClick?: (statKey: string) => void;
   variationKey?: number;
 }) {
+  const formatVariants: Record<string, number> = (detailConfig?.columnFormatVariants as Record<string, number>) || {};
   const visibleColumns: string[] = cardConfig?.visibleColumns || [];
   const columnOrder: string[] = cardConfig?.columnOrder || [];
 
@@ -1634,7 +1635,7 @@ function MiniCardsSection({
               renderType={renderType}
               useSuffix={useSuffix}
               opEnabled={colOpEnabled}
-              variant={1}
+              variant={formatVariants[col] || 1}
               labelColor={color}
               valueColors={badgeColors}
               columnConfig={colConfig}

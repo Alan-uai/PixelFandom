@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 import { type CSSProperties } from 'react';
 
@@ -72,15 +73,30 @@ function pascalToKebab(name: string): string {
     .toLowerCase();
 }
 
+function isUrlIcon(value: string): boolean {
+  return value.startsWith('http://') || value.startsWith('https://');
+}
+
+function isIconifyIcon(value: string): boolean {
+  return value.includes(':') && !value.startsWith('http');
+}
+
 export function IconRenderer({ icon, animation: animProp, size = 'md', style, className }: IconRendererProps) {
   const iconId = typeof icon === 'string' ? icon : icon.icon;
-  const normalizedIcon = iconId.includes(':') ? iconId : `lucide:${pascalToKebab(iconId)}`;
   const anim = typeof icon === 'string' ? (animProp || 'none') : (icon.animation || 'none');
   const dim = typeof size === 'number' ? size : (SIZE_MAP[size] || 20);
   const variants = animationVariants[anim];
   const transition = animationTransitions[anim];
 
-  const iconEl = <Icon icon={normalizedIcon} width={dim} height={dim} color="currentColor" style={style as CSSProperties} className={className} />;
+  let iconEl: React.ReactNode;
+
+  if (isUrlIcon(iconId)) {
+    iconEl = <Image src={iconId} alt="" width={dim} height={dim} className={className} style={style as CSSProperties} />;
+  } else if (isIconifyIcon(iconId)) {
+    iconEl = <Icon icon={iconId} width={dim} height={dim} style={style as CSSProperties} className={className} />;
+  } else {
+    iconEl = <Icon icon={`lucide:${pascalToKebab(iconId)}`} width={dim} height={dim} style={style as CSSProperties} className={className} />;
+  }
 
   if (anim === 'none' || !anim) return iconEl;
 

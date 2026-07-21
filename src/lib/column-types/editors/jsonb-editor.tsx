@@ -1,8 +1,8 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Code2 } from 'lucide-react';
-import { SimpleObjectEditor } from './simple-object-editor';
-import { ArrayOfObjectsEditor } from './array-of-objects-editor';
+import { TreeEditor, jsonToTreeEntries, treeEntriesToJson } from './tree-editor';
+import type { TreeEntry } from './tree-editor';
 
 interface JsonbKeyEntry {
   type: 'number' | 'text' | 'boolean';
@@ -29,17 +29,17 @@ export function JsonbEditor({
   columnName?: string;
 }) {
   const [rawMode, setRawMode] = useState(false);
-  const [listMode, setListMode] = useState(false);
 
+  // Parse to determine kind — but render always uses TreeEditor
   const parsed = useMemo(() => {
-    if (!value) return { type: 'empty' as const, data: null };
+    if (!value) return { kind: 'empty' as const, data: null };
     try {
       const p = JSON.parse(value);
-      if (Array.isArray(p)) return { type: 'array' as const, data: p as Record<string, unknown>[] };
-      if (typeof p === 'object' && p !== null) return { type: 'object' as const, data: p as Record<string, unknown> };
-      return { type: 'scalar' as const, data: String(p) };
+      if (Array.isArray(p)) return { kind: 'array' as const, data: p as unknown };
+      if (typeof p === 'object' && p !== null) return { kind: 'object' as const, data: p as Record<string, unknown> };
+      return { kind: 'scalar' as const, data: String(p) };
     } catch {
-      return { type: 'invalid' as const, data: value };
+      return { kind: 'invalid' as const, data: value };
     }
   }, [value]);
 
@@ -95,14 +95,12 @@ export function JsonbEditor({
     return () => { cancelled = true; };
   }, [hasKeyTypes, table, columnName, slug, tenantId, onColumnConfigChange, keyColors]);
 
-  const convertObjectToArray = useCallback(() => {
-    try {
-      const p = JSON.parse(value);
-      if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
-        onChange(JSON.stringify([p]));
-      }
-    } catch { /* ignore */ }
-  }, [value, onChange]);
+  const handleTreeChange = useCallback(
+    (entries: TreeEntry[], rootKind: 'object' | 'array') => {
+      onChange(JSON.stringify(treeEntriesToJson(entries, rootKind)));
+    },
+    [onChange],
+  );
 
   if (rawMode) {
     return (
@@ -124,74 +122,25 @@ export function JsonbEditor({
     );
   }
 
-  if (parsed.type === 'invalid') {
+  if (parsed.kind === 'invalid' || parsed.kind === 'scalar') {
     return (
       <div className="space-y-1.5">
-        <p className="text-xs text-red-400">JSON inválido</p>
+        {parsed.kind === 'invalid' && (
+          <p className="text-xs text-red-400">JSON inválido</p>
+        )}
         <textarea
-          value={parsed.data as string}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
+          value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
+          onChange={(e) => {
+            try {
+              onChange(JSON.stringify(e.target.value));
+            } catch { onChange(e.target.value); }
+          }}
+          rows={3}
           className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
         />
         <button
           type="button"
           onClick={() => setRawMode(true)}
-          className="text-xs text-primary hover:text-primary/80 transition-colors"
-        >
-          Editar como JSON
-        </button>
-      </div>
-    );
-  }
-
-  if (parsed.type === 'empty') {
-    return (
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setListMode(false)}
-            className={`flex-1 text-xs py-1.5 px-3 rounded-lg border transition-colors ${!listMode ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border/50 text-muted-foreground hover:border-primary/30'}`}
-          >
-            Objeto
-          </button>
-          <button
-            type="button"
-            onClick={() => setListMode(true)}
-            className={`flex-1 text-xs py-1.5 px-3 rounded-lg border transition-colors ${listMode ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border/50 text-muted-foreground hover:border-primary/30'}`}
-          >
-            Lista
-          </button>
-        </div>
-        {listMode ? (
-          <ArrayOfObjectsEditor
-            value="[]"
-            onChange={onChange}
-            keyTypes={keyTypes}
-            onKeyTypesChange={handleKeyTypesChange}
-            jsonbKeyColors={keyColors}
-            onKeyColorsChange={handleKeyColorsChange}
-          />
-        ) : (
-          <SimpleObjectEditor
-            entries={[]}
-            onEntriesChange={(e) => {
-              const obj: Record<string, unknown> = Object.fromEntries(e);
-              for (const [k, v] of Object.entries(obj)) {
-                if (keyTypes[k]?.type === 'number') obj[k] = Number(v);
-              }
-              onChange(JSON.stringify(obj));
-            }}
-            keyTypes={keyTypes}
-            onKeyTypesChange={handleKeyTypesChange}
-            jsonbKeyColors={keyColors}
-            onKeyColorsChange={handleKeyColorsChange}
-          />
-        )}
-        <button
-          type="button"
-          onClick={() => setRawMode(true)}
           className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
         >
           <Code2 className="h-3 w-3" /> Editar como JSON
@@ -200,71 +149,20 @@ export function JsonbEditor({
     );
   }
 
-  if (parsed.type === 'array') {
-    return (
-      <div className="space-y-2">
-        <ArrayOfObjectsEditor
-          value={value}
-          onChange={onChange}
-          keyTypes={keyTypes}
-          onKeyTypesChange={handleKeyTypesChange}
-          jsonbKeyColors={keyColors}
-          onKeyColorsChange={handleKeyColorsChange}
-        />
-        <button
-          type="button"
-          onClick={() => setRawMode(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-        >
-          <Code2 className="h-3 w-3" /> Editar como JSON
-        </button>
-      </div>
-    );
-  }
-
-  if (parsed.type === 'scalar') {
-    return (
-      <div className="space-y-1.5">
-        <input
-          value={parsed.data as string}
-          onChange={(e) => onChange(JSON.stringify(e.target.value))}
-          className="h-8 w-full rounded-lg border bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        />
-        <button
-          type="button"
-          onClick={() => setRawMode(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-        >
-          <Code2 className="h-3 w-3" /> Editar como JSON
-        </button>
-      </div>
-    );
-  }
+  const treeData = parsed.kind === 'empty'
+    ? { rootKind: 'object' as const, entries: [] as TreeEntry[] }
+    : jsonToTreeEntries(parsed.data);
 
   return (
     <div className="space-y-2">
-      {parsed.type === 'object' && (
-        <button
-          type="button"
-          onClick={convertObjectToArray}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors"
-        >
-          Converter para Lista
-        </button>
-      )}
-      <SimpleObjectEditor
-        entries={parsed.type === 'object' ? Object.entries(parsed.data as Record<string, string>) : []}
-        onEntriesChange={(e) => {
-          const obj: Record<string, unknown> = Object.fromEntries(e);
-          for (const [k, v] of Object.entries(obj)) {
-            if (keyTypes[k]?.type === 'number') obj[k] = Number(v);
-          }
-          onChange(JSON.stringify(obj));
-        }}
+      <TreeEditor
+        entries={treeData.entries}
+        onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
         keyTypes={keyTypes}
         onKeyTypesChange={handleKeyTypesChange}
         jsonbKeyColors={keyColors}
         onKeyColorsChange={handleKeyColorsChange}
+        depth={0}
       />
       <button
         type="button"
