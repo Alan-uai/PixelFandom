@@ -1974,8 +1974,9 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
 export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode }: Props) {
   const n = v(variant);
 
-  // For complex values (objects/arrays of objects), use variant-aware rendering
-  if (isComplexValue(value)) {
+  // For complex values (objects/arrays of objects), use variant-aware rendering.
+  // Popover, jsonb and jsonb-structured have their own dedicated format handlers.
+  if (isComplexValue(value) && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured') {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
     return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
   }

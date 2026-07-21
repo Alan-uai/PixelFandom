@@ -659,7 +659,12 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
-  const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
+  const columnConfigRaw = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
+  const badgeColors: Record<string, string> = ((detailConfig as any)?.badgeColors as Record<string, string>) || {};
+  const columnConfig: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }> = {};
+  for (const [k, v] of Object.entries(columnConfigRaw)) {
+    columnConfig[k] = v ? { ...v, valueColors: { ...badgeColors, ...v.valueColors } } : undefined as any;
+  }
   const showComparisonEnabled = detailConfig?.showComparison !== false;
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 

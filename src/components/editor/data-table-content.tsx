@@ -636,7 +636,16 @@ export default function DataTableContent({
       } else if (typeof original === 'number') {
         payload[key] = val === '' ? null : Number(val);
       } else if (typeof original === 'string' || original === null || original === undefined) {
-        payload[key] = val === '' ? null : sanitizeFieldValue(key, val);
+        const sanitized = sanitizeFieldValue(key, val);
+        if (val === '') { payload[key] = null; }
+        else {
+          const dataType = getColumnDataType(key, tableColumns);
+          if (dataType === 'jsonb') {
+            try { payload[key] = JSON.parse(sanitized); } catch { payload[key] = sanitized; }
+          } else {
+            payload[key] = sanitized;
+          }
+        }
       } else {
         payload[key] = sanitizeFieldValue(key, val);
       }
@@ -763,7 +772,12 @@ export default function DataTableContent({
       if (dataType === 'jsonb') {
         try { payload[key] = JSON.parse(sanitized); } catch { payload[key] = sanitized; }
       } else {
-        payload[key] = sanitized;
+        try {
+          const parsed = JSON.parse(sanitized);
+          payload[key] = (typeof parsed === 'object' && parsed !== null) ? parsed : sanitized;
+        } catch {
+          payload[key] = sanitized;
+        }
       }
     });
 

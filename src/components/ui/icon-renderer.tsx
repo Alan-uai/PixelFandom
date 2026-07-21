@@ -2,8 +2,7 @@
 
 import { Icon, type IconProps } from '@iconify/react';
 import { motion, type Variants } from 'framer-motion';
-import { type CSSProperties, createElement } from 'react';
-import { resolveTableIcon } from '@/lib/table-icons';
+import { type CSSProperties } from 'react';
 
 export type AnimationStyle = 'none' | 'pulse' | 'spin' | 'bounce' | 'shake' | 'wiggle' | 'float' | 'glow';
 
@@ -65,15 +64,13 @@ interface IconRendererProps extends Omit<IconProps, 'icon'> {
 
 export function IconRenderer({ icon, animation: animProp, size = 'md', style, className, ...props }: IconRendererProps) {
   const iconId = typeof icon === 'string' ? icon : icon.icon;
+  const normalizedIcon = iconId.includes(':') ? iconId : `lucide:${iconId.toLowerCase()}`;
   const anim = typeof icon === 'string' ? (animProp || 'none') : (icon.animation || 'none');
   const dim = typeof size === 'number' ? size : (SIZE_MAP[size] || 20);
   const variants = animationVariants[anim];
   const transition = animationTransitions[anim];
 
-  const hasColon = iconId.includes(':');
-  const iconEl = hasColon
-    ? <Icon icon={iconId} width={dim} height={dim} style={style as CSSProperties} className={className} {...props} />
-    : createElement(resolveTableIcon(iconId) as React.ComponentType<{ className?: string; size?: number; style?: CSSProperties }>, { className, size: dim, style: style as CSSProperties });
+  const iconEl = <Icon icon={normalizedIcon} width={dim} height={dim} style={style as CSSProperties} className={className} {...props} />;
 
   if (anim === 'none' || !anim) return iconEl;
 
