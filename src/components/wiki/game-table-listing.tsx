@@ -1874,10 +1874,17 @@ function ItemCard({
     } else if (typeof val === 'boolean') {
       displayValue = val ? 'Sim' : 'Não';
     } else if (Array.isArray(val)) {
-      displayValue = val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
+      displayValue = val.map((v) => {
+        if (typeof v === 'object' && v !== null) {
+          return Object.entries(v as Record<string, unknown>)
+            .map(([k, v2]) => `${v2} ${humanizeLabel(k)}`)
+            .join(', ');
+        }
+        return String(v);
+      }).join(' | ');
     } else if (typeof val === 'object' && val !== null) {
       displayValue = Object.entries(val as Record<string, unknown>)
-        .map(([k, v]) => `${humanizeLabel(k)}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+        .map(([k, v]) => `${v} ${humanizeLabel(k)}`)
         .join(' · ');
     } else {
       displayValue = String(val);

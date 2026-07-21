@@ -71,6 +71,7 @@ function isRichVisualRenderType(rt: string): boolean {
     rt === 'icon-set' ||
     rt === 'color' ||
     rt === 'color-palette' ||
+    rt === 'jsonb' ||
     rt === 'image' ||
     rt === 'video' ||
     rt === 'audio' ||
