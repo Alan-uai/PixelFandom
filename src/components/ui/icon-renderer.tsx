@@ -1,9 +1,8 @@
 'use client';
 
-import { loadIcon } from '@iconify/react';
+import { Icon } from '@iconify/react';
 import { motion, type Variants } from 'framer-motion';
-import { type CSSProperties, useState, useEffect, useRef, createElement } from 'react';
-import { resolveTableIcon } from '@/lib/table-icons';
+import { type CSSProperties } from 'react';
 
 export type AnimationStyle = 'none' | 'pulse' | 'spin' | 'bounce' | 'shake' | 'wiggle' | 'float' | 'glow';
 
@@ -65,58 +64,23 @@ interface IconRendererProps {
   style?: CSSProperties;
 }
 
+function pascalToKebab(name: string): string {
+  return name
+    .replace(/([A-Z]{2,})([A-Z][a-z])/g, '$1-$2')
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/([a-zA-Z])(\d)/g, '$1-$2')
+    .toLowerCase();
+}
+
 export function IconRenderer({ icon, animation: animProp, size = 'md', style, className }: IconRendererProps) {
   const iconId = typeof icon === 'string' ? icon : icon.icon;
+  const normalizedIcon = iconId.includes(':') ? iconId : `lucide:${pascalToKebab(iconId)}`;
   const anim = typeof icon === 'string' ? (animProp || 'none') : (icon.animation || 'none');
   const dim = typeof size === 'number' ? size : (SIZE_MAP[size] || 20);
   const variants = animationVariants[anim];
   const transition = animationTransitions[anim];
 
-  const isIconifyIcon = iconId.includes(':');
-  const normalizedIcon = isIconifyIcon ? iconId : `lucide:${iconId.toLowerCase()}`;
-
-  const [svgData, setSvgData] = useState<{ body: string; width: number; height: number } | null>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    let cancelled = false;
-
-    if (isIconifyIcon) {
-      loadIcon(normalizedIcon).then((d) => {
-        if (!cancelled && mountedRef.current && d?.body) {
-          setSvgData({ body: d.body, width: d.width || 24, height: d.height || 24 });
-        }
-      }).catch(() => {});
-    }
-
-    return () => { cancelled = true; mountedRef.current = false; };
-  }, [normalizedIcon, isIconifyIcon]);
-
-  let iconEl: React.ReactNode;
-
-  if (isIconifyIcon) {
-    if (svgData) {
-      iconEl = (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width={dim}
-          height={dim}
-          viewBox={`0 0 ${svgData.width} ${svgData.height}`}
-          style={style as CSSProperties}
-          className={className}
-          dangerouslySetInnerHTML={{ __html: svgData.body }}
-        />
-      );
-    } else {
-      iconEl = <span className={className} style={{ width: dim, height: dim, display: 'inline-block' }} />;
-    }
-  } else {
-    iconEl = createElement(
-      resolveTableIcon(iconId) as React.ComponentType<{ className?: string; size?: number; style?: CSSProperties }>,
-      { className, size: dim, style: style as CSSProperties },
-    );
-  }
+  const iconEl = <Icon icon={normalizedIcon} width={dim} height={dim} color="currentColor" style={style as CSSProperties} className={className} />;
 
   if (anim === 'none' || !anim) return iconEl;
 

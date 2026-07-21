@@ -14,6 +14,8 @@ import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detecto
 import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
+import { hasBaseMaxShape } from '@/lib/scaling-engine';
+import { ScaledValue } from '@/lib/scaling-context';
 
 export interface AllowedValue {
   value: string;
@@ -1496,6 +1498,7 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   if (typeof v === 'string') return humanizeLabel(v);
   if (v === null || v === undefined) return '—';
+  if (hasBaseMaxShape(v)) return `${v.base} → ${v.max}`;
   return String(v);
 }
 
@@ -1519,6 +1522,9 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
       }
     }
     return <span>{humanizeLabel(val)}</span>;
+  }
+  if (hasBaseMaxShape(val)) {
+    return <ScaledValue base={val.base} max={val.max} />;
   }
   return <span>{fmtComplexVal(val, useSuffix)}</span>;
 }

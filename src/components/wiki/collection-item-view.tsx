@@ -21,6 +21,8 @@ import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
+import { ScalingContext, type ScalingInfo } from '@/lib/scaling-context';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 
 // 3D transition keyframes (beam + reflection) for variant switches in this view.
 let civ3dKfInjected = false;
@@ -668,6 +670,18 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const showComparisonEnabled = detailConfig?.showComparison !== false;
   const [showCompare, setShowCompare] = useState<{ stat?: string } | null>(null);
 
+  const scalingRaw = (detailConfig as any)?.scaling;
+  const scalingEnabled = scalingRaw?.enabled === true;
+  const maxCopies = scalingRaw?.maxCopies ?? 10000;
+  const scalingFormula = scalingRaw?.formula ?? 'linear';
+  const [copies, setCopies] = useState(0);
+  const scalingInfo: ScalingInfo = {
+    enabled: scalingEnabled,
+    copies,
+    maxCopies,
+    formula: scalingFormula,
+  };
+
   const handleStatClick = (statKey: string) => {
     if (!showComparisonEnabled) return;
     if (onCompareStatClick) {
@@ -701,6 +715,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   );
 
   return (
+      <ScalingContext.Provider value={scalingInfo}>
       <div className="max-w-3xl mx-auto">
         {tenantId && tenantSlug && (
           <VariantSelector
@@ -809,14 +824,42 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         />
 
         {/* Footer */}
-        {(updatedAt || createdAt) && (
-          <div className="mt-8 pt-4 border-t border-border flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-            {updatedAt && <span>Atualizado em {new Date(updatedAt).toLocaleDateString('pt-BR')}</span>}
-            {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
-          </div>
-        )}
+        <div className="mt-8 pt-4 border-t border-border space-y-3">
+          {(updatedAt || createdAt) && (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+              {updatedAt && <span>Atualizado em {new Date(updatedAt).toLocaleDateString('pt-BR')}</span>}
+              {createdAt && <span>Criado em {new Date(createdAt).toLocaleDateString('pt-BR')}</span>}
+            </div>
+          )}
+          {scalingEnabled && (
+            <div className="bg-card/50 rounded-xl border p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Cópias Possuídas
+                </span>
+                <span className="text-sm font-mono text-primary font-bold">
+                  {copies.toLocaleString()} / {maxCopies.toLocaleString()}
+                </span>
+              </div>
+              <ElasticSlider3D
+                maxValue={maxCopies}
+                defaultValue={copies}
+                onValueChange={setCopies}
+                isStepped
+                stepSize={1}
+                showValue={false}
+              />
+              {copies > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Efeitos calculados para <strong className="text-foreground">{copies.toLocaleString()}</strong> de {maxCopies.toLocaleString()} cópias
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
         </div>
     </div>
+      </ScalingContext.Provider>
    );
 }

@@ -153,6 +153,12 @@ export const ViewerConfigSchema = z.object({
     dependentField: z.string().optional(),
     parentValueMap: z.record(z.string(), z.array(z.string())).optional(),
   })).default({}).optional(),
+  scaling: z.object({
+    enabled: z.boolean().default(false),
+    maxCopies: z.number().default(10000),
+    costPerCopy: z.number().optional(),
+    formula: z.enum(['linear', 'diminishing']).default('linear'),
+  }).optional(),
   rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});
 

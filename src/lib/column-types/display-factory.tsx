@@ -122,6 +122,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           label={dl}
           labelNode={withLabelIcon(dl)}
           useSuffix={useSuffix}
+          opEnabled={opEnabled}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
@@ -141,6 +142,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           label={dl}
           labelNode={withLabelIcon(dl)}
           useSuffix={useSuffix}
+          opEnabled={opEnabled}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
@@ -231,6 +233,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         label={dl}
         labelNode={withLabelIcon(dl)}
         useSuffix={useSuffix}
+        opEnabled={opEnabled}
         labelColor={labelColor}
         jsonbKeyColors={jsonbKeyColors}
         maxValue={maxValue}
