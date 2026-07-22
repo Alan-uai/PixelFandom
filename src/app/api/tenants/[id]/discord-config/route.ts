@@ -198,7 +198,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
     }
 
-    const isMember = await isTenantMember(id, user.id, 'admin');
+    const isMember = await isTenantMember(id, user.id, 'admin', supabase);
     if (!isMember) {
       return NextResponse.json({ error: 'Permissão insuficiente.' }, { status: 403 });
     }
@@ -215,17 +215,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body: Record<string, unknown> = await request.json();
 
-    const errors = validateConfig(body, tenant.slug);
+    const { guild_id, ...configBody } = body;
+
+    const errors = validateConfig(configBody, tenant.slug);
     if (errors.length > 0) {
       return NextResponse.json({ error: 'Validação falhou.', details: errors }, { status: 400 });
     }
 
     // Validate auto_ingest target_table against catalog
-    if (Array.isArray(body.auto_ingest)) {
+    if (Array.isArray(configBody.auto_ingest)) {
       const catalog = await getTableCatalog(tenant.slug, false);
       const validTables = new Set(catalog.map(e => e.table_name));
-      for (let i = 0; i < body.auto_ingest.length; i++) {
-        const ingest = body.auto_ingest[i] as Record<string, unknown>;
+      for (let i = 0; i < configBody.auto_ingest.length; i++) {
+        const ingest = configBody.auto_ingest[i] as Record<string, unknown>;
         if (typeof ingest.target_table === 'string' && ingest.target_table.length > 0 && !validTables.has(ingest.target_table)) {
           return NextResponse.json({
             error: 'Validação falhou.',
@@ -237,12 +239,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { error: updateError } = await supabase
       .from('tenants')
-      .update({ discord_config: body })
+      .update({ discord_config: configBody })
       .eq('id', id);
 
     if (updateError) {
       console.error('[discord-config] PUT update error:', updateError.message);
       return NextResponse.json({ error: 'Erro ao salvar configuração do Discord.' }, { status: 500 });
+    }
+
+    // Salvar guild_id na tabela discord_guilds
+    if (guild_id && typeof guild_id === 'string') {
+      const { error: guildUpsertError } = await supabase
+        .from('discord_guilds')
+        .upsert(
+          { guild_id, tenant_id: id },
+          { onConflict: 'guild_id' }
+        );
+
+      if (guildUpsertError) {
+        console.error('[discord-config] PUT discord_guilds upsert error:', guildUpsertError.message);
+      }
     }
 
     return NextResponse.json({ success: true });

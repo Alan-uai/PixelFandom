@@ -1,4 +1,5 @@
-import { supabase } from '@/supabase';
+import { supabase as browserSupabase } from '@/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Tenant } from '@/supabase/client';
 
 const TENANT_CACHE = new Map<string, { tenant: Tenant; expiresAt: number }>();
@@ -30,7 +31,7 @@ export async function getTenantByDomain(domain: string): Promise<Tenant | null> 
   const cached = getCached(key);
   if (cached) return cached;
 
-  const { data, error } = await supabase
+  const { data, error } = await browserSupabase
     .from('tenants')
     .select('*')
     .eq('custom_domain', domain)
@@ -47,7 +48,7 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
   const cached = getCached(key);
   if (cached) return cached;
 
-  const { data, error } = await supabase
+  const { data, error } = await browserSupabase
     .from('tenants')
     .select('*')
     .eq('slug', slug)
@@ -60,7 +61,7 @@ export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
 }
 
 export async function getTenantById(id: string): Promise<Tenant | null> {
-  const { data, error } = await supabase
+  const { data, error } = await browserSupabase
     .from('tenants')
     .select('*')
     .eq('id', id)
@@ -71,7 +72,7 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
 }
 
 export async function getPublicTenants(): Promise<Tenant[]> {
-  const { data, error } = await supabase
+  const { data, error } = await browserSupabase
     .from('tenants')
     .select('*')
     .eq('is_public', true)
@@ -97,7 +98,7 @@ export function extractSlugFromHost(host: string, mainDomain: string): string | 
 }
 
 export async function getUserTenants(userId: string): Promise<(Tenant & { role: string })[]> {
-  const { data, error } = await supabase
+  const { data, error } = await browserSupabase
     .from('tenant_members')
     .select('role, tenants(*)')
     .eq('user_id', userId) as any;
@@ -122,11 +123,13 @@ export const ROLE_HIERARCHY: Record<string, number> = {
 export async function isTenantMember(
   tenantId: string,
   userId: string,
-  minRole?: 'viewer' | 'editor' | 'admin' | 'owner'
+  minRole?: 'viewer' | 'editor' | 'admin' | 'owner',
+  supabase?: SupabaseClient
 ): Promise<boolean> {
+  const client = supabase || browserSupabase;
   const minLevel = minRole ? ROLE_HIERARCHY[minRole] : 0;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('tenant_members')
     .select('role')
     .eq('tenant_id', tenantId)

@@ -1533,20 +1533,34 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
 function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
   const entries = Object.entries(obj);
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex ${opEnabled ? 'flex-row flex-wrap gap-x-3 gap-y-0.5' : 'flex-col'} gap-1`}>
       {entries.map(([k, val]) => {
         const color = jsonbKeyColors?.[k];
+        const labelEl = (
+          <span
+            className="text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: color || 'hsl(var(--muted-foreground))' }}
+          >
+            {humanizeLabel(k)}
+          </span>
+        );
+        const valueEl = (
+          <span className="text-sm font-medium text-foreground">
+            {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+          </span>
+        );
+        if (opEnabled) {
+          return (
+            <span key={k} className="inline-flex items-center gap-1">
+              {labelEl}
+              {valueEl}
+            </span>
+          );
+        }
         return (
           <div key={k} className="flex flex-col gap-0.5">
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: color || 'hsl(var(--muted-foreground))' }}
-            >
-              {humanizeLabel(k)}
-            </span>
-            <span className="text-sm font-medium text-foreground">
-              {renderMiniCardValueNode(val, useSuffix, opEnabled)}
-            </span>
+            {labelEl}
+            {valueEl}
           </div>
         );
       })}
@@ -1623,6 +1637,34 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
   // Object → one independent mini card per key.
   if (typeof value === 'object' && value !== null) {
     const obj = value as Record<string, unknown>;
+    if (opEnabled) {
+      return (
+        <div>
+          {header}
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {Object.entries(obj).map(([k, val]) => {
+              const color = jsonbKeyColors?.[k] || labelColor;
+              return (
+                <span
+                  key={k}
+                  onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick ? () => onCompareClick() : undefined}
+                  role={onCompareClick ? 'button' : undefined}
+                  tabIndex={onCompareClick ? 0 : undefined}
+                  className={`inline-flex items-center gap-1.5 text-xs ${onCompareClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+                >
+                  <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+                    {humanizeLabel(k)}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
     return (
       <div>
         {header}
@@ -2051,19 +2093,20 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
       if (typeof detectValue === 'object' && detectValue !== null) {
         ensureDetectorsRegistered();
+        const normalizedForOp = opEnabled ? normalizeValue(detectValue, useSuffix, opEnabled) : detectValue;
         // v2-v5: use variant-aware complex renderers
         if (n > 1 && n <= 5) {
-          return renderComplexValue(n, detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+          return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
         }
         // v1: mini cards with OP and detector support
-        if (Array.isArray(detectValue)) {
-          return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+        if (Array.isArray(normalizedForOp)) {
+          return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
         }
         if (!plain) {
           const detector = findBestDetector(detectValue);
           if (detector) return detector.render({ value: detectValue, useSuffix }, n);
         }
-        return renderMiniCards(detectValue, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+        return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
       }
       return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
     }

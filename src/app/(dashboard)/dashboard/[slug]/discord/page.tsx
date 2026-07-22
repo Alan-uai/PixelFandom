@@ -194,6 +194,13 @@ export default function WikiDiscordPage() {
   };
 
   const handleSave = async () => {
+    const getCookie = (name: string): string | null => {
+      if (typeof document === 'undefined') return null;
+      const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+    const selectedGuildId = getCookie('discord_selected_guild') || undefined;
+
     const discordConfig: DiscordConfigType = {
       enabled,
       bot_name: botName,
@@ -228,7 +235,7 @@ export default function WikiDiscordPage() {
     const res = await fetch(`/api/tenants/${tenant!.id}/discord-config`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(discordConfig),
+      body: JSON.stringify({ ...discordConfig, guild_id: selectedGuildId }),
     });
 
     if (!res.ok) {
