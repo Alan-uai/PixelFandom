@@ -35,19 +35,19 @@ function ensureCivVariant3dKeyframes() {
   el.textContent = `
 @keyframes variant-beam-ltr {
   0% { left: -35%; opacity: 0; }
-  15% { opacity: 1; }
+  12% { opacity: 1; }
   100% { left: 110%; opacity: 0; }
 }
 @keyframes variant-beam-rtl {
-  0% { right: -35%; left: auto; opacity: 0; }
-  15% { opacity: 1; }
-  100% { right: 110%; opacity: 0; }
+  0% { left: 110%; opacity: 0; }
+  12% { opacity: 1; }
+  100% { left: -35%; opacity: 0; }
 }
-.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
-.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
+.variant-beam-ltr { animation: variant-beam-ltr 0.7s ease-in-out; }
+.variant-beam-rtl { animation: variant-beam-rtl 0.7s ease-in-out; }
 @keyframes variant-reflection {
   0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
-  40% { opacity: 0.6; }
+  30% { opacity: 0.7; }
   100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
 }
 .variant-3d-transition::after {
@@ -55,28 +55,38 @@ function ensureCivVariant3dKeyframes() {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
-  animation: variant-reflection 0.8s ease-out;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255,255,255,0.18) 45%,
+    rgba(255,215,0,0.12) 50%,
+    rgba(255,255,255,0.22) 55%,
+    transparent 75%
+  );
+  animation: variant-reflection 0.9s ease-out 0.3s both;
   z-index: 5;
 }
 @keyframes variant-3d-flip-in {
-  0% { opacity: 0; transform: rotateX(-10deg) scale(0.97); }
+  0% { opacity: 0; transform: rotateX(-12deg) scale(0.96); }
   100% { opacity: 1; transform: rotateX(0deg) scale(1); }
 }
 .variant-3d-flip-in {
-  animation: variant-3d-flip-in 0.5s ease-out;
-  transformStyle: preserve-3d;
+  animation: variant-3d-flip-in 0.45s ease-out;
+  transform-style: preserve-3d;
 }
 @keyframes variant-content-expand {
-  0% { opacity: 0; transform: translateY(-10px) scaleY(0.95); }
+  0% { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
   100% { opacity: 1; transform: translateY(0) scaleY(1); }
 }
 .variant-content-expand {
-  animation: variant-content-expand 0.4s ease-out 0.08s both;
-  transformOrigin: top;
+  animation: variant-content-expand 0.35s ease-out 0.05s both;
+  transform-origin: top;
 }
 @media (prefers-reduced-motion: reduce) {
   .variant-beam-ltr, .variant-beam-rtl, .variant-3d-transition::after, .variant-3d-flip-in, .variant-content-expand { animation: none !important; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .variant-beam-ltr, .variant-beam-rtl { will-change: left, opacity; }
 }
 `;
   document.head.appendChild(el);
@@ -239,6 +249,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 function RenderTypeFields({
   data, columnTypes, columnFormats, formatVariants, columnOpEnabled, rendered, visibleColumnsSet,
   schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix, columnConfig,
+  variantTrigger,
 }: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
@@ -257,6 +268,7 @@ function RenderTypeFields({
   columnOrder?: string[];
   useSuffix?: boolean;
   columnConfig?: Record<string, { maxValue?: number; displayName?: string; labelIcon?: string; labelColor?: string; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
+  variantTrigger?: number;
 }) {
   const sections: React.ReactNode[] = [];
 
@@ -320,6 +332,7 @@ function RenderTypeFields({
                 allowedValues={cc?.allowedValues}
                 column={col}
                 onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? col) : undefined}
+                animTrigger={variantTrigger}
               />
             );
           })}
@@ -346,7 +359,7 @@ function RenderTypeFields({
             {colIcon(col)}
             {colLabel(col)}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} hideLabel columnConfig={columnConfig?.[col]} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} hideLabel columnConfig={columnConfig?.[col]} animTrigger={variantTrigger} />
         </div>
       );
     }).filter(Boolean);
@@ -374,7 +387,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={colLabel(c.column_name)}
-               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />}
+               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />}
               icon={colIcon(c.column_name)}
               color={colColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -406,7 +419,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -431,7 +444,7 @@ function RenderTypeFields({
             const color = cc?.valueColors?.[String(val)];
             return (
               <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} /></span>
+                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} animTrigger={variantTrigger} /></span>
               </Tag>
             );
           })}
@@ -451,7 +464,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
       </div>,
     );
   }
@@ -468,7 +481,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -486,7 +499,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -506,7 +519,7 @@ function RenderTypeFields({
                   <span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span>
                 </span>
                 <div className="text-sm flex-1">
-                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} />
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
                 </div>
               </div>
             ))}
@@ -561,6 +574,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const [loadingVariant, setLoadingVariant] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
+  const [variantTrigger, setVariantTrigger] = useState(0);
   const transitionTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
@@ -583,9 +597,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   const triggerTransition = (dir?: 'ltr' | 'rtl') => {
     if (dir) setBeamDir(dir);
+    setVariantTrigger((p) => p + 1);
     setTransitioning(true);
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
-    transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
+    transitionTimer.current = setTimeout(() => setTransitioning(false), 1000);
   };
 
   const handleSelectVariant = async (
@@ -758,14 +773,19 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       >
         <div className={`absolute inset-0 ${activeImageUrl ? 'bg-gradient-to-br from-black/80 via-black/60 to-black/80' : `bg-gradient-to-br ${activeGrad}`}`} />
         {!activeImageUrl && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />}
-        {/* Feixe dourado diagonal varre o heading durante a troca de variante */}
+        {/* Feixe dourado 3D diagonal varre o heading durante troca de variante */}
         {transitioning && !prefersReduced() && (
           <span
             aria-hidden
-            className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${
-              beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'
+            className={`pointer-events-none absolute inset-y-0 z-10 w-[40%] ${
+              beamDir === 'rtl' ? 'variant-beam-rtl right-0' : 'variant-beam-ltr left-0'
             }`}
-            style={{ transform: 'rotate(18deg)' }}
+            style={{
+              transform: 'rotate(16deg) scaleY(1.6)',
+              background: 'linear-gradient(90deg, transparent 0%, hsl(45 100% 60% / 0.9) 40%, hsl(45 100% 70% / 0.95) 50%, hsl(45 100% 60% / 0.9) 60%, transparent 100%)',
+              filter: 'blur(3px) brightness(1.3)',
+              boxShadow: '0 0 30px hsl(45 100% 50% / 0.5), 0 0 60px hsl(45 100% 50% / 0.25)',
+            }}
           />
         )}
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
@@ -821,6 +841,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           columnOrder={detailConfig?.columnOrder}
           useSuffix={useSuffix}
           columnConfig={columnConfig}
+          variantTrigger={variantTrigger}
         />
 
         {/* Footer */}

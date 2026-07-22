@@ -14,6 +14,7 @@ import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detecto
 import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
+import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { hasBaseMaxShape } from '@/lib/scaling-engine';
 import { ScaledValue } from '@/lib/scaling-context';
 
@@ -50,6 +51,8 @@ type Props = {
   icon?: React.ReactNode;
   /** Optional rich label (e.g. with an icon) overriding `label` on the v1 column card. */
   labelNode?: React.ReactNode;
+  /** Animation trigger counter — incremented when variant changes to fire entry animations. */
+  animTrigger?: number;
 };
 
 function findAllowed(allowedValues: AllowedValue[] | undefined, val: string): AllowedValue | undefined {
@@ -2019,7 +2022,7 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering.
@@ -2032,84 +2035,99 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
   if (n === 1 && format !== 'badge' && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
-    // When an `icon` is supplied for the leading slot (e.g. icon-type columns)
-    // the value body is left empty — the icon lives in the slot instead.
-    const content = format === 'icon' && icon
+    const rawContent = format === 'icon' && icon
       ? null
       : renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled);
+    const animatedContent = animTrigger && rawContent !== null
+      ? (
+        <VariantAnimatedValue value={value} renderType={format} trigger={animTrigger} useSuffix={useSuffix}>
+          {rawContent}
+        </VariantAnimatedValue>
+      )
+      : rawContent;
     const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
     return (
-      <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={content} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
+      <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={animatedContent} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
     );
   }
 
-  switch (format) {
-    case 'text':     return renderText(n, str, label, labelColor, valueColors);
-    case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
-    case 'number':
-      if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value));
-      return renderNumber(n, str, label, labelColor, valueColors);
-    case 'color':    return renderColor(n, str, label, labelColor);
-    case 'icon':     return renderIcon(n, str, label, labelColor);
-    case 'link':     return renderLink(n, str, label, labelColor);
-    case 'image':    return renderImage(n, str, label, labelColor);
-    case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, maxValue);
-    case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, maxValue);
-    case 'tags':     return renderTags(n, value, label, labelColor);
-    case 'boolean':  return renderBoolean(n, value, label, labelColor);
-    case 'date':     return renderDate(n, value, label, labelColor);
-    case 'duration': return renderDuration(n, value, label, labelColor);
-    case 'file':     return renderFile(n, str, label, labelColor);
-    case 'video':    return renderVideo(n, str, label, labelColor);
-    case 'audio':    return renderAudio(n, str, label, labelColor);
-    case 'emoji':    return renderEmoji(n, str, label, labelColor);
-    case 'icon-set': return renderIconSet(n, value, label, labelColor);
-    case 'color-palette': return renderColorPalette(n, value, label, labelColor);
-    case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors);
-    case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues);
-    case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors);
-    case 'popover': {
-      let popoverTitle = '';
-      let popoverContent = str;
-      let popoverTrigger: 'hover' | 'click' = 'hover';
-      let popoverPosition: 'top' | 'bottom' | 'left' | 'right' = 'top';
-      let popoverTriggerText = '';
-      if (typeof value === 'string') {
-        try {
-          const parsed = JSON.parse(value);
-          if (parsed && typeof parsed === 'object') {
-            popoverTitle = parsed.title || '';
-            popoverContent = parsed.content || str;
-            popoverTrigger = parsed.trigger === 'click' ? 'click' : 'hover';
-            popoverPosition = parsed.position || 'top';
-            popoverTriggerText = parsed.triggerText || '';
-          }
-        } catch { /* not JSON, use raw string */ }
-      }
-      return <RenderPopover v={n} title={popoverTitle} content={popoverContent} labelColor={labelColor} triggerMode={popoverTrigger} position={popoverPosition} triggerText={popoverTriggerText} />;
-    }
-    case 'jsonb':
-    case 'jsonb-structured': {
-      const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
-      if (typeof detectValue === 'object' && detectValue !== null) {
-        ensureDetectorsRegistered();
-        const normalizedForOp = opEnabled ? normalizeValue(detectValue, useSuffix, opEnabled) : detectValue;
-        // v2-v5: use variant-aware complex renderers
-        if (n > 1 && n <= 5) {
-          return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+  const rendered = (() => {
+    switch (format) {
+      case 'text':     return renderText(n, str, label, labelColor, valueColors);
+      case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
+      case 'number':
+        if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value));
+        return renderNumber(n, str, label, labelColor, valueColors);
+      case 'color':    return renderColor(n, str, label, labelColor);
+      case 'icon':     return renderIcon(n, str, label, labelColor);
+      case 'link':     return renderLink(n, str, label, labelColor);
+      case 'image':    return renderImage(n, str, label, labelColor);
+      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, maxValue);
+      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, maxValue);
+      case 'tags':     return renderTags(n, value, label, labelColor);
+      case 'boolean':  return renderBoolean(n, value, label, labelColor);
+      case 'date':     return renderDate(n, value, label, labelColor);
+      case 'duration': return renderDuration(n, value, label, labelColor);
+      case 'file':     return renderFile(n, str, label, labelColor);
+      case 'video':    return renderVideo(n, str, label, labelColor);
+      case 'audio':    return renderAudio(n, str, label, labelColor);
+      case 'emoji':    return renderEmoji(n, str, label, labelColor);
+      case 'icon-set': return renderIconSet(n, value, label, labelColor);
+      case 'color-palette': return renderColorPalette(n, value, label, labelColor);
+      case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors);
+      case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues);
+      case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors);
+      case 'popover': {
+        let popoverTitle = '';
+        let popoverContent = str;
+        let popoverTriggerMode: 'hover' | 'click' = 'hover';
+        let popoverPosition: 'top' | 'bottom' | 'left' | 'right' = 'top';
+        let popoverTriggerText = '';
+        if (typeof value === 'string') {
+          try {
+            const parsed = JSON.parse(value);
+            if (parsed && typeof parsed === 'object') {
+              popoverTitle = parsed.title || '';
+              popoverContent = parsed.content || str;
+              popoverTriggerMode = parsed.trigger === 'click' ? 'click' : 'hover';
+              popoverPosition = parsed.position || 'top';
+              popoverTriggerText = parsed.triggerText || '';
+            }
+          } catch { /* not JSON, use raw string */ }
         }
-        // v1: mini cards with OP and detector support
-        if (Array.isArray(normalizedForOp)) {
+        return <RenderPopover v={n} title={popoverTitle} content={popoverContent} labelColor={labelColor} triggerMode={popoverTriggerMode} position={popoverPosition} triggerText={popoverTriggerText} />;
+      }
+      case 'jsonb':
+      case 'jsonb-structured': {
+        const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+        if (typeof detectValue === 'object' && detectValue !== null) {
+          ensureDetectorsRegistered();
+          const normalizedForOp = opEnabled ? normalizeValue(detectValue, useSuffix, opEnabled) : detectValue;
+          if (n > 1 && n <= 5) {
+            return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+          }
+          if (Array.isArray(normalizedForOp)) {
+            return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+          }
+          if (!plain) {
+            const detector = findBestDetector(detectValue);
+            if (detector) return detector.render({ value: detectValue, useSuffix }, n);
+          }
           return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
         }
-        if (!plain) {
-          const detector = findBestDetector(detectValue);
-          if (detector) return detector.render({ value: detectValue, useSuffix }, n);
-        }
-        return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+        return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
       }
-      return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
+      default:         return renderText(n, str, label, labelColor, valueColors);
     }
-    default:         return renderText(n, str, label, labelColor, valueColors);
-  }
+  })();
+
+  if (rendered === null) return null;
+  if (!animTrigger) return rendered;
+
+  const animRenderType = format === 'jsonb' || format === 'jsonb-structured' ? 'jsonb' : format;
+  return (
+    <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger} useSuffix={useSuffix}>
+      {rendered}
+    </VariantAnimatedValue>
+  );
 }

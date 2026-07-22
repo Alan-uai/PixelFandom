@@ -76,7 +76,7 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain, animTrigger }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   maxValue?: number;
@@ -87,6 +87,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   hideLabel?: boolean;
   onCompareClick?: (subKey?: string) => void;
   plain?: boolean;
+  animTrigger?: number;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
@@ -121,6 +122,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           value={parsed}
           label={dl}
           labelNode={withLabelIcon(dl)}
+          animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           labelColor={labelColor}
@@ -141,6 +143,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           value={formatted}
           label={dl}
           labelNode={withLabelIcon(dl)}
+          animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           labelColor={labelColor}
@@ -166,6 +169,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           value={prepared}
           label={displayLabel}
           labelNode={withLabelIcon(displayLabel)}
+          animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           labelColor={labelColor}
