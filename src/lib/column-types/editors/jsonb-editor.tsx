@@ -31,7 +31,6 @@ export function JsonbEditor({
 }) {
   const [rawMode, setRawMode] = useState(false);
 
-  // Parse to determine kind — but render always uses TreeEditor
   const parsed = useMemo(() => {
     if (!value) return { kind: 'empty' as const, data: null };
     try {
@@ -57,7 +56,6 @@ export function JsonbEditor({
     if (onColumnConfigChange) onColumnConfigChange({ jsonbKeyTypes: keyTypes, jsonbKeyColors: colors });
   }, [onColumnConfigChange, keyTypes]);
 
-  /* Auto-detect keyTypes for old columns without persisted keyTypes */
   useEffect(() => {
     if (hasKeyTypes || !table || !columnName || !slug || !tenantId) return;
     let cancelled = false;
@@ -107,22 +105,23 @@ export function JsonbEditor({
     ? { rootKind: 'object' as const, entries: [] as TreeEntry[] }
     : jsonToTreeEntries(parsed.data);
 
-  const modeKey = rawMode ? 'raw'
-    : (parsed.kind === 'invalid' || parsed.kind === 'scalar') ? 'fallback'
-    : 'tree';
+  const isFallback = parsed.kind === 'invalid' || parsed.kind === 'scalar';
+
+  const springTransition = { type: 'spring' as const, stiffness: 350, damping: 28 };
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={modeKey}
-        initial={{ opacity: 0, rotateX: -15, scale: 0.97 }}
-        animate={{ opacity: 1, rotateX: 0, scale: 1 }}
-        exit={{ opacity: 0, rotateX: 15, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
-      >
-        {modeKey === 'raw' && (
-          <div className="space-y-1.5">
+    <motion.div layout className="space-y-2 overflow-hidden" transition={springTransition} style={{ transformStyle: 'preserve-3d', perspective: '600px' }}>
+      <AnimatePresence mode="popLayout">
+        {rawMode ? (
+          <motion.div
+            key="raw"
+            layout
+            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
+            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
+            transition={springTransition}
+            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          >
             <textarea
               value={value}
               onChange={(e) => onChange(e.target.value)}
@@ -132,17 +131,23 @@ export function JsonbEditor({
             <button
               type="button"
               onClick={() => setRawMode(false)}
-              className="text-xs text-primary hover:text-primary/80 transition-colors"
+              className="mt-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
             >
               Voltar ao editor visual
             </button>
-          </div>
-        )}
-
-        {modeKey === 'fallback' && (
-          <div className="space-y-1.5">
+          </motion.div>
+        ) : isFallback ? (
+          <motion.div
+            key="fallback"
+            layout
+            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
+            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
+            transition={springTransition}
+            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          >
             {parsed.kind === 'invalid' && (
-              <p className="text-xs text-red-400">JSON inválido</p>
+              <p className="text-xs text-red-400 mb-1">JSON inválido</p>
             )}
             <textarea
               value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
@@ -157,15 +162,21 @@ export function JsonbEditor({
             <button
               type="button"
               onClick={() => setRawMode(true)}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
             >
               <Code2 className="h-3 w-3" /> Editar como JSON
             </button>
-          </div>
-        )}
-
-        {modeKey === 'tree' && (
-          <div className="space-y-2">
+          </motion.div>
+        ) : (
+          <motion.div
+            key="tree"
+            layout
+            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
+            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
+            transition={springTransition}
+            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          >
             <TreeEditor
               entries={treeData.entries}
               onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
@@ -178,13 +189,13 @@ export function JsonbEditor({
             <button
               type="button"
               onClick={() => setRawMode(true)}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
             >
               <Code2 className="h-3 w-3" /> Editar como JSON
             </button>
-          </div>
+          </motion.div>
         )}
-      </motion.div>
-    </AnimatePresence>
+      </AnimatePresence>
+    </motion.div>
   );
 }
