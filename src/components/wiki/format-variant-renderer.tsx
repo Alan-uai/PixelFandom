@@ -2138,11 +2138,18 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         const displayNum = displayOpNum(op.number, useSuffix);
         const opValue = <span className="font-bold text-primary">{op.symbol}</span>;
         const opNum = <span className={n > 1 ? 'text-sm font-mono' : 'text-xs font-mono'}>{displayNum}</span>;
+        const opContent = <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>{opValue}{opNum}</span>;
+        if (opFlipped) {
+          return (
+            <div className="flex items-center gap-2">
+              {opContent}
+              <span className="text-xs font-medium text-muted-foreground" style={labelColor ? { color: labelColor } : {}}>{label}</span>
+            </div>
+          );
+        }
         return (
           <Row label={label} labelColor={labelColor}>
-            <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>
-              {opValue}{opNum}
-            </span>
+            {opContent}
           </Row>
         );
       }
