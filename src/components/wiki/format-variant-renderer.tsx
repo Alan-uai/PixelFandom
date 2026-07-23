@@ -1546,11 +1546,7 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
         const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
         return (
           <span className="font-mono">
-            {opFlipped ? (
-              <><span className="font-bold text-primary">{displayNum}</span>{op.symbol}</>
-            ) : (
-              <><span className="font-bold text-primary">{op.symbol}</span>{displayNum}</>
-            )}
+            <span className="font-bold text-primary">{op.symbol}</span>{displayNum}
           </span>
         );
       }
@@ -1576,16 +1572,23 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
     if (entries.length === 0) return <span className="text-muted-foreground text-xs">{'{}'}</span>;
     return (
       <div className="flex flex-col gap-0.5">
-        {entries.map(([k, v]) => (
-          <div key={k} className="flex items-center gap-1.5">
+        {entries.map(([k, v]) => {
+          const labelSpan = (
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
               {humanizeLabel(k)}
             </span>
+          );
+          const valueSpan = (
             <span className="text-sm font-medium text-foreground">
-              {renderMiniCardValueNode(v, useSuffix, opEnabled, opFlipped)}
+              {renderMiniCardValueNode(v, useSuffix, opEnabled)}
             </span>
-          </div>
-        ))}
+          );
+          return (
+            <div key={k} className="flex items-center gap-1.5">
+              {opFlipped ? <>{valueSpan}{labelSpan}</> : <>{labelSpan}{valueSpan}</>}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -1613,9 +1616,17 @@ function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<stri
           </span>
         );
         if (opEnabled) {
+          const isComplex = typeof val === 'object' && val !== null;
+          if (isComplex) {
+            return (
+              <span key={k} className="inline-flex items-center gap-1">
+                {labelEl}{valueEl}
+              </span>
+            );
+          }
           return (
             <span key={k} className="inline-flex items-center gap-1">
-              {labelEl}{valueEl}
+              {opFlipped ? <>{valueEl}{labelEl}</> : <>{labelEl}{valueEl}</>}
             </span>
           );
         }
@@ -1705,7 +1716,18 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
           {header}
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {Object.entries(obj).map(([k, val]) => {
+              const isComplex = typeof val === 'object' && val !== null;
               const color = jsonbKeyColors?.[k] || labelColor;
+              const labelSpan = (
+                <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+                  {humanizeLabel(k)}
+                </span>
+              );
+              const valueSpan = (
+                <span className="font-medium text-foreground">
+                  {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
+                </span>
+              );
               return (
                 <span
                   key={k}
@@ -1714,12 +1736,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
                   tabIndex={onCompareClick ? 0 : undefined}
                   className={`inline-flex items-center gap-1.5 text-xs ${onCompareClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
                 >
-                  <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
-                    {humanizeLabel(k)}
-                  </span>
-                  <span className="font-medium text-foreground">
-                    {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
-                  </span>
+                  {isComplex ? <>{labelSpan}{valueSpan}</> : opFlipped ? <>{valueSpan}{labelSpan}</> : <>{labelSpan}{valueSpan}</>}
                 </span>
               );
             })}
@@ -1771,7 +1788,7 @@ function complexEntries(value: unknown): [string, unknown][] {
   return [['Valor', value]];
 }
 
-function ComplexRow3D({ k, val, color, useSuffix, depth = 0 }: { k: string; val: unknown; color?: string; useSuffix?: boolean; depth?: number }) {
+function ComplexRow3D({ k, val, color, useSuffix, depth = 0, opEnabled }: { k: string; val: unknown; color?: string; useSuffix?: boolean; depth?: number; opEnabled?: boolean }) {
   return (
     <div
       className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-card/60 px-2.5 py-1.5 backdrop-blur-sm"
@@ -1780,13 +1797,13 @@ function ComplexRow3D({ k, val, color, useSuffix, depth = 0 }: { k: string; val:
       <span className="text-[10px] font-semibold uppercase tracking-wider capitalize" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
         {k.replace(/_/g, ' ')}
       </span>
-      <span className="text-xs font-medium text-foreground truncate">{fmtComplexVal(val, useSuffix)}</span>
+      <span className="text-xs font-medium text-foreground truncate">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>
     </div>
   );
 }
 
 // ── v2: Holographic glass panels ──────────────────────────
-function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
   const entries = complexEntries(value);
   return (
     <div
@@ -1808,7 +1825,7 @@ function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, j
           >
             <div className="pointer-events-none absolute inset-0 rounded-xl opacity-60"
               style={{ background: `radial-gradient(circle at 30% 20%, ${color || 'hsl(var(--primary))'}22, transparent 70%)` }} />
-            <ComplexRow3D k={k} val={val} color={color} useSuffix={useSuffix} depth={4} />
+            <ComplexRow3D k={k} val={val} color={color} useSuffix={useSuffix} depth={4} opEnabled={opEnabled} />
           </div>
         );
       })}
@@ -1817,7 +1834,7 @@ function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, j
 }
 
 // ── v3: Neon depth grid ───────────────────────────────────
-function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
   const entries = complexEntries(value);
   return (
     <div className="p-1" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
@@ -1842,7 +1859,7 @@ function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jso
               <span className="relative block text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>
                 {k.replace(/_/g, ' ')}
               </span>
-              <span className="relative mt-1 block text-sm font-bold text-foreground">{fmtComplexVal(val, useSuffix)}</span>
+              <span className="relative mt-1 block text-sm font-bold text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>
             </div>
           );
         })}
@@ -1852,7 +1869,7 @@ function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jso
 }
 
 // ── v4: Orbital 3D carousel ───────────────────────────────
-function renderOrbitalCarousel(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderOrbitalCarousel(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
   const entries = complexEntries(value);
   const mid = (entries.length - 1) / 2;
   return (
@@ -1879,7 +1896,7 @@ function renderOrbitalCarousel(value: unknown, _label: string, useSuffix?: boole
               <span className="h-2 w-2 rounded-full" style={{ background: accent, boxShadow: `0 0 8px ${accent}` }} />
               <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent }}>{k.replace(/_/g, ' ')}</span>
             </div>
-            <span className="block text-base font-bold text-foreground" style={{ transform: 'translateZ(14px)' }}>{fmtComplexVal(val, useSuffix)}</span>
+            <span className="block text-base font-bold text-foreground" style={{ transform: 'translateZ(14px)' }}>{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>
           </div>
         );
       })}
@@ -1888,7 +1905,7 @@ function renderOrbitalCarousel(value: unknown, _label: string, useSuffix?: boole
 }
 
 // ── v5: Layered 3D depth stack ────────────────────────────
-function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>): React.ReactNode {
+function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean): React.ReactNode {
   const entries = complexEntries(value);
   return (
     <div className="relative space-y-1 py-1" style={{ perspective: '1200px', transformStyle: 'preserve-3d' }}>
@@ -1917,7 +1934,7 @@ function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, j
                 <span className="text-[10px] font-mono opacity-60">{String(i + 1).padStart(2, '0')}</span>
                 {k.replace(/_/g, ' ')}
               </span>
-              <span className="text-sm font-bold text-foreground">{fmtComplexVal(val, useSuffix)}</span>
+              <span className="text-sm font-bold text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>
             </div>
           </div>
         );
@@ -1928,10 +1945,10 @@ function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, j
 
 function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
   if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
-  if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors);
-  if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors);
-  if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors);
-  return renderDepthStack(value, label, useSuffix, jsonbKeyColors);
+  if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors, opEnabled);
+  if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors, opEnabled);
+  if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors, opEnabled);
+  return renderDepthStack(value, label, useSuffix, jsonbKeyColors, opEnabled);
 }
 
 // ── Variant 1: every scalar render type becomes a mini card ──
@@ -1945,7 +1962,7 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
     const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
     return (
       <span className="text-sm font-bold font-mono" style={valStyle}>
-        {_opFlipped ? <><span className="text-primary">{displayNum}</span>{op.symbol}</> : <><span className="text-primary">{op.symbol}</span>{displayNum}</>}
+        <span className="text-primary">{op.symbol}</span>{displayNum}
       </span>
     );
   })() : null;
@@ -2118,7 +2135,15 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         const displayNum = displayOpNum(op.number, useSuffix);
         const opValue = <span className="font-bold text-primary">{op.symbol}</span>;
         const opNum = <span className={n > 1 ? 'text-sm font-mono' : 'text-xs font-mono'}>{displayNum}</span>;
-        const opContent = <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>{opFlipped ? <>{opNum}{opValue}</> : <>{opValue}{opNum}</>}</span>;
+        const opContent = <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>{opValue}{opNum}</span>;
+        if (opFlipped) {
+          return (
+            <div className="flex items-center gap-2">
+              {opContent}
+              <span className="text-xs font-medium text-muted-foreground" style={labelColor ? { color: labelColor } : {}}>{label}</span>
+            </div>
+          );
+        }
         return (
           <Row label={label} labelColor={labelColor}>
             {opContent}

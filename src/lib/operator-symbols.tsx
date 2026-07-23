@@ -62,7 +62,7 @@ export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, 
   const displayNum = displayOpNum(op.number, useSuffix);
   const labelColor = jsonbKeyColors?.[label];
   const sub = column ? `${column}[].${label}` : undefined;
-  const opPart = <span className="font-bold text-primary">{flipped ? <>{displayNum}{op.symbol}</> : <>{op.symbol}{displayNum}</>}</span>;
+  const opPart = <span className="font-bold text-primary">{op.symbol}{displayNum}</span>;
   const labelPart = <span style={labelColor ? { color: labelColor } : {}} className="text-muted-foreground">{humanizeLabel(label)}</span>;
 
   return (
@@ -73,7 +73,7 @@ export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, 
       className={`inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs font-mono transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
       style={labelColor ? { borderColor: labelColor + '40' } : {}}
     >
-      {labelPart}{opPart}
+      {flipped ? <>{opPart}{labelPart}</> : <>{labelPart}{opPart}</>}
     </span>
   );
 }
@@ -98,11 +98,11 @@ export function renderOpInline(value: unknown, jsonbKeyColors?: Record<string, s
     const op = parseOperatorPrefix(String(rawVal))!;
     const displayNum = displayOpNum(op.number, useSuffix);
     const labelColor = jsonbKeyColors?.[label];
-    const opPart = <span className="font-bold text-primary font-mono">{flipped ? <>{displayNum}{op.symbol}</> : <>{op.symbol}{displayNum}</>}</span>;
+    const opPart = <span className="font-bold text-primary font-mono">{op.symbol}{displayNum}</span>;
     const labelPart = <span style={labelColor ? { color: labelColor } : {}}>{humanizeLabel(label)}</span>;
     parts.push(
       <span key={i} style={labelColor ? { color: labelColor } : {}} className="inline-flex items-center gap-1">
-        {labelPart}{opPart}
+        {flipped ? <>{opPart}{labelPart}</> : <>{labelPart}{opPart}</>}
       </span>
     );
   });
