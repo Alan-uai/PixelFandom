@@ -247,7 +247,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 
 
 function RenderTypeFields({
-  data, columnTypes, columnFormats, formatVariants, columnOpEnabled, rendered, visibleColumnsSet,
+  data, columnTypes, columnFormats, formatVariants, columnOpEnabled, columnOpFlipped, rendered, visibleColumnsSet,
   schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix, columnConfig,
   variantTrigger,
 }: {
@@ -256,6 +256,7 @@ function RenderTypeFields({
   columnFormats?: Record<string, string>;
   formatVariants?: Record<string, number>;
   columnOpEnabled?: Record<string, boolean>;
+  columnOpFlipped?: Record<string, boolean>;
   rendered: Set<string>;
   visibleColumnsSet?: Set<string> | null;
   schema?: ColumnInfo[];
@@ -325,6 +326,7 @@ function RenderTypeFields({
                 ) : undefined}
                 useSuffix={useSuffix}
                 opEnabled={columnOpEnabled?.[col] !== false}
+                opFlipped={columnOpFlipped?.[col] === true}
                 labelColor={cc?.labelColor}
                 valueColors={cc?.valueColors}
                 jsonbKeyColors={cc?.jsonbKeyColors}
@@ -359,7 +361,7 @@ function RenderTypeFields({
             {colIcon(col)}
             {colLabel(col)}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} hideLabel columnConfig={columnConfig?.[col]} animTrigger={variantTrigger} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} opFlipped={columnOpFlipped?.[col] === true} hideLabel columnConfig={columnConfig?.[col]} animTrigger={variantTrigger} />
         </div>
       );
     }).filter(Boolean);
@@ -387,7 +389,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={colLabel(c.column_name)}
-               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />}
+               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />}
               icon={colIcon(c.column_name)}
               color={colColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -419,7 +421,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -444,7 +446,7 @@ function RenderTypeFields({
             const color = cc?.valueColors?.[String(val)];
             return (
               <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={cc} animTrigger={variantTrigger} /></span>
+                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={cc} animTrigger={variantTrigger} /></span>
               </Tag>
             );
           })}
@@ -464,7 +466,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
       </div>,
     );
   }
@@ -481,7 +483,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -499,7 +501,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -519,7 +521,7 @@ function RenderTypeFields({
                   <span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span>
                 </span>
                 <div className="text-sm flex-1">
-                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
                 </div>
               </div>
             ))}
@@ -539,6 +541,7 @@ type DetailConfig = {
   columnFormats?: Record<string, string>;
   columnFormatVariants?: Record<string, number>;
   columnOpEnabled?: Record<string, boolean>;
+  columnOpFlipped?: Record<string, boolean>;
   showComparison?: boolean;
   showHeader?: boolean;
   labelColor?: string;
@@ -676,6 +679,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
+  const columnOpFlipped = detailConfig?.columnOpFlipped || {};
   const columnConfigRaw = (detailConfig?.columnConfig || {}) as Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
   const badgeColors: Record<string, string> = ((detailConfig as any)?.badgeColors as Record<string, string>) || {};
   const columnConfig: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }> = {};
@@ -829,6 +833,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           columnFormats={columnFormats}
           formatVariants={formatVariants}
           columnOpEnabled={columnOpEnabled}
+          columnOpFlipped={columnOpFlipped}
           rendered={rendered}
           visibleColumnsSet={visibleColumnsSet}
           schema={schema}

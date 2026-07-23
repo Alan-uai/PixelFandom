@@ -76,9 +76,10 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain, animTrigger }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, opFlipped, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain, animTrigger }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
+  opFlipped?: boolean;
   maxValue?: number;
   columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[]; labelIcon?: string };
   variant?: number;
@@ -125,6 +126,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
+          opFlipped={opFlipped}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
@@ -146,6 +148,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
+          opFlipped={opFlipped}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}
@@ -172,6 +175,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           animTrigger={animTrigger}
           useSuffix={useSuffix}
           opEnabled={opEnabled}
+          opFlipped={opFlipped}
           labelColor={labelColor}
           jsonbKeyColors={jsonbKeyColors}
           maxValue={maxValue}

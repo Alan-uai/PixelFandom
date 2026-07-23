@@ -112,6 +112,7 @@ export const ViewerConfigSchema = z.object({
     columnFormats: z.record(z.string(), z.enum(ALL_FORMATS)).default({}),
     columnFormatVariants: z.record(z.string(), z.number().min(1).max(5)).default({}),
     columnOpEnabled: z.record(z.string(), z.boolean()).default({}),
+    columnOpFlipped: z.record(z.string(), z.boolean()).default({}),
     showComparison: z.boolean().default(true),
     showHeader: z.boolean().default(false),
     defaultExpanded: z.boolean().default(false),

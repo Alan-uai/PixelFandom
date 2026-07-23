@@ -20,6 +20,7 @@ type ColumnConfigEntry = {
 
 type CompareColumnConfig = {
   columnOpEnabled: Record<string, boolean>;
+  columnOpFlipped: Record<string, boolean>;
   columnConfig: Record<string, ColumnConfigEntry>;
   useSuffix: boolean;
 };
@@ -153,6 +154,7 @@ function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: C
         renderType="jsonb"
         useSuffix={cfg.useSuffix}
         opEnabled={cfg.columnOpEnabled[cfgKey] !== false}
+        opFlipped={cfg.columnOpFlipped[cfgKey] === true}
         columnConfig={cfg.columnConfig[cfgKey]}
       />
     );
@@ -182,9 +184,9 @@ export default function ComparePopup({
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [schema, setSchema] = useState<ColumnInfo[]>([]);
-  const [viewerCfg, setViewerCfg] = useState<{ columnOpEnabled: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> }>({ columnOpEnabled: {}, columnConfig: {} });
+  const [viewerCfg, setViewerCfg] = useState<{ columnOpEnabled: Record<string, boolean>; columnOpFlipped: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> }>({ columnOpEnabled: {}, columnOpFlipped: {}, columnConfig: {} });
   const itemsCache = useRef<Record<string, any>[] | null>(null);
-  const configCache = useRef<{ columnOpEnabled: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> } | null>(null);
+  const configCache = useRef<{ columnOpEnabled: Record<string, boolean>; columnOpFlipped: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> } | null>(null);
 
   const colConfig = useMemo<CompareColumnConfig>(
     () => ({ ...viewerCfg, useSuffix }),
@@ -215,6 +217,7 @@ export default function ComparePopup({
         const vc = parseViewerConfig(data?.viewer_config);
         const cfg = {
           columnOpEnabled: (vc.card?.columnOpEnabled || {}) as Record<string, boolean>,
+          columnOpFlipped: (vc.card?.columnOpFlipped || {}) as Record<string, boolean>,
           columnConfig: ((vc.columnConfig || (vc.card as any)?.columnConfig || {}) as Record<string, ColumnConfigEntry>),
         };
         configCache.current = cfg;

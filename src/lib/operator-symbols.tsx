@@ -34,13 +34,15 @@ export function hasOperatorPrefix(text: string): boolean {
   return parseOperatorPrefix(text) !== null;
 }
 
-function displayOpNum(num: string, useSuffix?: boolean): string {
+export function displayOpNum(num: string, useSuffix?: boolean): string {
   const n = Number(num);
   return useSuffix && isFinite(n) ? abbreviateNumber(n) : num;
 }
 
-export function formatOpValue(symbol: string, num: string, label: string, useSuffix?: boolean): string {
-  return `${symbol}${displayOpNum(num, useSuffix)} ${humanizeLabel(label)}`;
+export function formatOpValue(symbol: string, num: string, label: string, useSuffix?: boolean, flipped?: boolean): string {
+  const op = `${symbol}${displayOpNum(num, useSuffix)}`;
+  const lbl = humanizeLabel(label);
+  return flipped ? `${op} ${lbl}` : `${lbl} ${op}`;
 }
 
 export function detectOpArray(value: unknown): boolean {
@@ -53,13 +55,15 @@ export function detectOpArray(value: unknown): boolean {
   });
 }
 
-export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): ReactNode {
+export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, flipped?: boolean): ReactNode {
   const entry = Object.entries(item as Record<string, unknown>)[0];
   const [label, rawVal] = entry;
   const op = parseOperatorPrefix(String(rawVal))!;
   const displayNum = displayOpNum(op.number, useSuffix);
   const labelColor = jsonbKeyColors?.[label];
   const sub = column ? `${column}[].${label}` : undefined;
+  const opPart = <span className="font-bold text-primary">{op.symbol}{displayNum}</span>;
+  const labelPart = <span style={labelColor ? { color: labelColor } : {}} className="text-muted-foreground">{humanizeLabel(label)}</span>;
 
   return (
     <span
@@ -69,24 +73,23 @@ export function renderOpMiniCard(item: unknown, jsonbKeyColors?: Record<string, 
       className={`inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs font-mono transition-all ${onCompareClick ? 'cursor-pointer hover:shadow-md hover:border-primary/20' : 'cursor-default'}`}
       style={labelColor ? { borderColor: labelColor + '40' } : {}}
     >
-      <span className="font-bold text-primary">{op.symbol}{displayNum}</span>
-      <span style={labelColor ? { color: labelColor } : {}} className="text-muted-foreground">{humanizeLabel(label)}</span>
+      {flipped ? <>{opPart}{labelPart}</> : <>{labelPart}{opPart}</>}
     </span>
   );
 }
 
-export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string): ReactNode {
+export function renderOpMiniCards(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, flipped?: boolean): ReactNode {
   if (!Array.isArray(value)) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {value.map((item: unknown, i: number) => (
-        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix, onCompareClick, column)}</div>
+        <div key={i}>{renderOpMiniCard(item, jsonbKeyColors, useSuffix, onCompareClick, column, flipped)}</div>
       ))}
     </div>
   );
 }
 
-export function renderOpInline(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean): ReactNode {
+export function renderOpInline(value: unknown, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, flipped?: boolean): ReactNode {
   if (!Array.isArray(value)) return null;
   const parts: ReactNode[] = [];
   value.forEach((item: unknown, i: number) => {
@@ -95,10 +98,11 @@ export function renderOpInline(value: unknown, jsonbKeyColors?: Record<string, s
     const op = parseOperatorPrefix(String(rawVal))!;
     const displayNum = displayOpNum(op.number, useSuffix);
     const labelColor = jsonbKeyColors?.[label];
+    const opPart = <span className="font-bold text-primary font-mono">{op.symbol}{displayNum}</span>;
+    const labelPart = <span style={labelColor ? { color: labelColor } : {}}>{humanizeLabel(label)}</span>;
     parts.push(
       <span key={i} style={labelColor ? { color: labelColor } : {}} className="inline-flex items-center gap-1">
-        <span className="font-bold text-primary font-mono">{op.symbol}{displayNum}</span>
-        <span style={labelColor ? { color: labelColor } : {}}>{humanizeLabel(label)}</span>
+        {flipped ? <>{opPart}{labelPart}</> : <>{labelPart}{opPart}</>}
       </span>
     );
   });

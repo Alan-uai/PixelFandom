@@ -125,14 +125,30 @@ export function CardConfig({
   const columnFormats: Record<string, string> = c.columnFormats || {};
   const formatVariants: Record<string, number> = c.columnFormatVariants || {};
   const columnOpEnabled: Record<string, boolean> = c.columnOpEnabled || {};
+  const columnOpFlipped: Record<string, boolean> = c.columnOpFlipped || {};
 
-  const isOpEnabled = (col: string): boolean => columnOpEnabled[col] !== false;
+  /** 3-state OP toggle: OFF → ON(normal) → ON(flipped) → OFF */
+  const getOpState = (col: string): 'off' | 'on' | 'flipped' => {
+    if (columnOpEnabled[col] === false) return 'off';
+    return columnOpFlipped[col] === true ? 'flipped' : 'on';
+  };
 
-  const toggleOp = (col: string) => {
-    onChange({
-      ...c,
-      columnOpEnabled: { ...columnOpEnabled, [col]: !isOpEnabled(col) },
-    });
+  const cycleOp = (col: string) => {
+    const state = getOpState(col);
+    switch (state) {
+      case 'off':
+        // OFF → ON (normal): enable, not flipped
+        onChange({ ...c, columnOpEnabled: { ...columnOpEnabled, [col]: true }, columnOpFlipped: { ...columnOpFlipped, [col]: false } });
+        break;
+      case 'on':
+        // ON (normal) → ON (flipped): enable, flipped
+        onChange({ ...c, columnOpFlipped: { ...columnOpFlipped, [col]: true } });
+        break;
+      case 'flipped':
+        // ON (flipped) → OFF: disable, not flipped
+        onChange({ ...c, columnOpEnabled: { ...columnOpEnabled, [col]: false }, columnOpFlipped: { ...columnOpFlipped, [col]: false } });
+        break;
+    }
   };
 
   const effectiveVisible = useMemo(() => {
@@ -435,15 +451,17 @@ export function CardConfig({
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => toggleOp(col)}
+                        onClick={() => cycleOp(col)}
                         className={`h-5 rounded px-1.5 text-[10px] font-bold leading-none border transition-colors ${
-                          isOpEnabled(col)
-                            ? 'bg-primary/10 border-primary/30 text-primary'
-                            : 'bg-muted hover:bg-muted/80 text-muted-foreground border-border/50'
+                          getOpState(col) === 'off'
+                            ? 'bg-muted hover:bg-muted/80 text-muted-foreground border-border/50'
+                            : getOpState(col) === 'flipped'
+                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                            : 'bg-primary/10 border-primary/30 text-primary'
                         }`}
-                        title="Converter operadores textuais em símbolos (×, −, +, ², etc.)"
+                        title={getOpState(col) === 'off' ? 'Ativar operadores (×, −, +)' : getOpState(col) === 'flipped' ? 'Ordem invertida: valor antes do label' : 'Clique para inverter ordem'}
                       >
-                        OP
+                        {getOpState(col) === 'off' ? 'OP' : getOpState(col) === 'flipped' ? 'OP↔' : 'OP→'}
                       </button>
                       <button
                         type="button"

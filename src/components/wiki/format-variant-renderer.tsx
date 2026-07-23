@@ -11,7 +11,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
-import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix } from '@/lib/operator-symbols';
+import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix, displayOpNum } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
@@ -35,6 +35,7 @@ type Props = {
   label: string;
   useSuffix?: boolean;
   opEnabled?: boolean;
+  opFlipped?: boolean;
   labelColor?: string;
   valueColors?: Record<string, string>;
   jsonbKeyColors?: Record<string, string>;
@@ -426,9 +427,21 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── rating ────────────────────────────────────────────────
-function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, maxValue = 5) {
+function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 5) {
   const num = Number(val);
   const stars = isNaN(num) ? 0 : Math.round(Math.min(maxValue, Math.max(0, num)));
+
+  // OP handling for operator-prefixed values
+  if (opEnabled && typeof val === 'string') {
+    const op = parseOperatorPrefix(val);
+    if (op) {
+      const displayNum = displayOpNum(op.number, true);
+      const opContent = <><span className="text-primary font-bold">{op.symbol}</span>{displayNum}<span className="text-muted-foreground ml-0.5">/{maxValue}</span></>;
+      if (v === 1) return <Row label={label} labelColor={labelColor}><span className="text-sm font-bold font-mono">{opContent}</span></Row>;
+      return <Row label={label} labelColor={labelColor}><span className="text-xs font-mono">{opContent}</span></Row>;
+    }
+  }
+
   const fraction = !isNaN(num) && opEnabled ? `${num}/${maxValue}` : '';
 
   if (v === 2) {
@@ -490,10 +503,22 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
 }
 
 // ── progress ──────────────────────────────────────────────
-function renderProgress(v: number, val: unknown, label: string, labelColor?: string, _opEnabled?: boolean, maxValue = 100) {
+function renderProgress(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 100) {
   const num = Number(val);
   const clamped = isNaN(num) ? 0 : Math.min(maxValue, Math.max(0, num));
   const normalizedPct = maxValue > 0 ? (clamped / maxValue) * 100 : 0;
+
+  // OP handling for operator-prefixed values
+  if (opEnabled && typeof val === 'string') {
+    const op = parseOperatorPrefix(val);
+    if (op) {
+      const displayNum = displayOpNum(op.number, true);
+      const opContent = <><span className="text-primary font-bold">{op.symbol}</span>{displayNum}{maxValue === 100 ? '%' : `/${maxValue}`}</>;
+      if (v === 1) return <Row label={label} labelColor={labelColor}><span className="text-sm font-bold font-mono">{opContent}</span></Row>;
+      return <Row label={label} labelColor={labelColor}><span className="text-xs font-mono">{opContent}</span></Row>;
+    }
+  }
+
   const displayText = isNaN(num) ? String(val) : maxValue === 100 ? `${Math.round(clamped)}%` : `${num}/${maxValue}`;
 
   if (v === 2) {
@@ -1510,6 +1535,9 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
   if (typeof val === 'number') {
     return <span className="font-mono">{formatNumber(val, !!useSuffix)}</span>;
   }
+  if (typeof val === 'boolean') {
+    return <span>{val ? 'Sim' : 'Não'}</span>;
+  }
   if (typeof val === 'string') {
     if (opEnabled) {
       const op = parseOperatorPrefix(val);
@@ -1529,11 +1557,40 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
   if (hasBaseMaxShape(val)) {
     return <ScaledValue base={val.base} max={val.max} />;
   }
+  if (Array.isArray(val)) {
+    if (val.length === 0) return <span className="text-muted-foreground text-xs">[]</span>;
+    return (
+      <div className="flex flex-col gap-0.5">
+        {val.map((item, i) => (
+          <span key={i}>{renderMiniCardValueNode(item, useSuffix, opEnabled)}</span>
+        ))}
+      </div>
+    );
+  }
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, unknown>;
+    const entries = Object.entries(obj);
+    if (entries.length === 0) return <span className="text-muted-foreground text-xs">{'{}'}</span>;
+    return (
+      <div className="flex flex-col gap-0.5">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
+              {humanizeLabel(k)}
+            </span>
+            <span className="text-sm font-medium text-foreground">
+              {renderMiniCardValueNode(v, useSuffix, opEnabled)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
   return <span>{fmtComplexVal(val, useSuffix)}</span>;
 }
 
 /** Body of a mini card: one row per key with color, suffix and OP support. */
-function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
+function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean): React.ReactNode {
   const entries = Object.entries(obj);
   return (
     <div className={`flex ${opEnabled ? 'flex-row flex-wrap gap-x-3 gap-y-0.5' : 'flex-col'} gap-1`}>
@@ -1555,8 +1612,7 @@ function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<stri
         if (opEnabled) {
           return (
             <span key={k} className="inline-flex items-center gap-1">
-              {labelEl}
-              {valueEl}
+              {opFlipped ? <>{valueEl}{labelEl}</> : <>{labelEl}{valueEl}</>}
             </span>
           );
         }
@@ -1579,7 +1635,7 @@ function firstKeyColor(obj: Record<string, unknown>, jsonbKeyColors?: Record<str
   return undefined;
 }
 
-function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
+function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
   ensureDetectorsRegistered();
 
   // Builds the full stat key for a jsonb sub-path, matching CompareInfo keys
@@ -1600,7 +1656,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
   // Array → one independent mini card per element (object or scalar).
   if (Array.isArray(value)) {
     if (opEnabled && detectOpArray(value)) {
-      return <>{header}{renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick, column)}</>;
+      return <>{header}{renderOpMiniCards(value, jsonbKeyColors, useSuffix, onCompareClick, column, opFlipped)}</>;
     }
     return (
       <div>
@@ -1616,7 +1672,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
                 <MiniCard3D
                   key={i}
                   color={firstKeyColor(obj, jsonbKeyColors)}
-                  value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled)}
+                  value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled, opFlipped)}
                   onClick={sub ? () => onCompareClick?.(sub) : onCompareClick}
                   className="min-w-[110px] flex-1"
                 />
@@ -1655,12 +1711,25 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
                   tabIndex={onCompareClick ? 0 : undefined}
                   className={`inline-flex items-center gap-1.5 text-xs ${onCompareClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
                 >
-                  <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
-                    {humanizeLabel(k)}
-                  </span>
-                  <span className="font-medium text-foreground">
-                    {renderMiniCardValueNode(val, useSuffix, opEnabled)}
-                  </span>
+                  {opFlipped ? (
+                    <>
+                      <span className="font-medium text-foreground">
+                        {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+                      </span>
+                      <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+                        {humanizeLabel(k)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+                        {humanizeLabel(k)}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+                      </span>
+                    </>
+                  )}
                 </span>
               );
             })}
@@ -1867,8 +1936,8 @@ function renderDepthStack(value: unknown, _label: string, useSuffix?: boolean, j
   );
 }
 
-function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
-  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+function renderComplexValue(v: number, value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
+  if (v === 1) return renderMiniCards(value, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
   if (v === 2) return renderHoloPanels(value, label, useSuffix, jsonbKeyColors);
   if (v === 3) return renderNeonGrid(value, label, useSuffix, jsonbKeyColors);
   if (v === 4) return renderOrbitalCarousel(value, label, useSuffix, jsonbKeyColors);
@@ -1876,7 +1945,7 @@ function renderComplexValue(v: number, value: unknown, label: string, useSuffix?
 }
 
 // ── Variant 1: every scalar render type becomes a mini card ──
-function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
+function renderScalarMiniContent(format: string, value: unknown, str: string, label: string, labelColor: string | undefined, valueColors: Record<string, string> | undefined, allowedValues: AllowedValue[] | undefined, maxValue: number | undefined, useSuffix?: boolean, opEnabled?: boolean, _opFlipped?: boolean): React.ReactNode {
   const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   const opNode = opEnabled ? (() => {
@@ -2022,14 +2091,14 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, opFlipped, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger }: Props) {
   const n = v(variant);
 
   // For complex values (objects/arrays of objects), use variant-aware rendering.
   // Popover, jsonb and jsonb-structured have their own dedicated format handlers.
   if (isComplexValue(value) && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured') {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
@@ -2037,21 +2106,47 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   if (n === 1 && format !== 'badge' && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
     const rawContent = format === 'icon' && icon
       ? null
-      : renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled);
-    const animatedContent = animTrigger && rawContent !== null
+      : renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled, opFlipped);
+    const animatedContent = rawContent !== null
       ? (
-        <VariantAnimatedValue value={value} renderType={format} trigger={animTrigger} useSuffix={useSuffix}>
+        <VariantAnimatedValue value={value} renderType={format} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
           {rawContent}
         </VariantAnimatedValue>
       )
       : rawContent;
     const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
+    if (opFlipped && opEnabled) {
+      const opNodeForFlip = opEnabled ? parseOperatorPrefix(str) : null;
+      if (opNodeForFlip) {
+        const displayNum = displayOpNum(opNodeForFlip.number, useSuffix);
+        const flippedLabel = <span><span className="text-primary font-bold">{opNodeForFlip.symbol}</span>{displayNum}</span>;
+        return (
+          <MiniCard3D label={flippedLabel} color={accent} icon={icon} value={labelNode ?? label} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
+        );
+      }
+    }
     return (
       <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={animatedContent} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
     );
   }
 
   const rendered = (() => {
+    // OP intercept for simple formats — when value has operator prefix
+    if (opEnabled && format !== 'jsonb' && format !== 'jsonb-structured' && format !== 'popover') {
+      const op = parseOperatorPrefix(str);
+      if (op) {
+        const displayNum = displayOpNum(op.number, useSuffix);
+        const opValue = <span className="font-bold text-primary">{op.symbol}</span>;
+        const opNum = <span className={n > 1 ? 'text-sm font-mono' : 'text-xs font-mono'}>{displayNum}</span>;
+        return (
+          <Row label={label} labelColor={labelColor}>
+            <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>
+              {opValue}{opNum}
+            </span>
+          </Row>
+        );
+      }
+    }
     switch (format) {
       case 'text':     return renderText(n, str, label, labelColor, valueColors);
       case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
@@ -2062,8 +2157,8 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       case 'icon':     return renderIcon(n, str, label, labelColor);
       case 'link':     return renderLink(n, str, label, labelColor);
       case 'image':    return renderImage(n, str, label, labelColor);
-      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, maxValue);
-      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, maxValue);
+      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue);
+      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue);
       case 'tags':     return renderTags(n, value, label, labelColor);
       case 'boolean':  return renderBoolean(n, value, label, labelColor);
       case 'date':     return renderDate(n, value, label, labelColor);
@@ -2104,16 +2199,16 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
           ensureDetectorsRegistered();
           const normalizedForOp = opEnabled ? normalizeValue(detectValue, useSuffix, opEnabled) : detectValue;
           if (n > 1 && n <= 5) {
-            return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+            return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
           }
           if (Array.isArray(normalizedForOp)) {
-            return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+            return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
           }
           if (!plain) {
             const detector = findBestDetector(detectValue);
             if (detector) return detector.render({ value: detectValue, useSuffix }, n);
           }
-          return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, onCompareClick, column, labelColor, labelNode);
+          return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
         }
         return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
       }
@@ -2122,11 +2217,10 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   })();
 
   if (rendered === null) return null;
-  if (!animTrigger) return rendered;
 
   const animRenderType = format === 'jsonb' || format === 'jsonb-structured' ? 'jsonb' : format;
   return (
-    <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger} useSuffix={useSuffix}>
+    <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
       {rendered}
     </VariantAnimatedValue>
   );

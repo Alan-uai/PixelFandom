@@ -1567,6 +1567,7 @@ function MiniCardsSection({
   useSuffix,
   opEnabled,
   columnOpEnabled,
+  columnOpFlipped,
   onCompareStatClick,
   /** muda a cada troca de variante — re-dispara animações 3D por coluna */
   variationKey = 0,
@@ -1578,6 +1579,7 @@ function MiniCardsSection({
   useSuffix?: boolean;
   opEnabled?: boolean;
   columnOpEnabled?: Record<string, boolean>;
+  columnOpFlipped?: Record<string, boolean>;
   onCompareStatClick?: (statKey: string) => void;
   variationKey?: number;
 }) {
@@ -1620,6 +1622,7 @@ function MiniCardsSection({
         const detailColor = colConfig?.labelColor;
         const color = detailColor || badgeColors[col] || 'hsl(var(--primary))';
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
+        const colOpFlipped = columnOpFlipped?.[col] === true;
         return (
           <VariantAnimatedValue
             key={col}
@@ -1635,6 +1638,7 @@ function MiniCardsSection({
               renderType={renderType}
               useSuffix={useSuffix}
               opEnabled={colOpEnabled}
+              opFlipped={colOpFlipped}
               variant={formatVariants[col] || 1}
               labelColor={color}
               valueColors={badgeColors}
@@ -1687,6 +1691,7 @@ function ItemCard({
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
   const badgeDisplayMode = cardConfig?.badgeDisplayMode || 'inline';
   const columnOpEnabled: Record<string, boolean> = (detailConfig?.columnOpEnabled as Record<string, boolean>) || {};
+  const columnOpFlipped: Record<string, boolean> = (detailConfig?.columnOpFlipped as Record<string, boolean>) || {};
   const opEnabled = cardConfig?.opEnabled !== false;
   const hoverEffect = cardConfig?.hoverEffect || 'scale';
   const hoverEffectClass = hoverEffect === 'none' ? '' :
@@ -1999,6 +2004,7 @@ function ItemCard({
           useSuffix={useSuffix}
           opEnabled={opEnabled}
           columnOpEnabled={columnOpEnabled}
+          columnOpFlipped={columnOpFlipped}
           onCompareStatClick={onCompareStatClick}
           variationKey={variationKey}
         />
