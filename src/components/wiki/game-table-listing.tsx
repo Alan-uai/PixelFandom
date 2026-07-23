@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   FileText, Database, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight,
-  BarChart3,
+  BarChart3, Info,
   Search, X, Eye, Loader2,
 } from 'lucide-react';
 import { isCustomIcon } from '@/lib/table-icons';
@@ -1841,12 +1841,28 @@ function ItemCard({
 
     // Popover column: render badge as an interactive Popover trigger
     if (columnTypes?.[col] === 'popover') {
-      let items: string[] = [];
-      if (Array.isArray(val)) {
-        items = val.map(v => typeof v === 'string' ? v : String(v));
+      let popoverTitle = '';
+      let popoverContent = '';
+      let popoverTriggerText = '';
+      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        const p = val as Record<string, string>;
+        popoverTitle = p.title || '';
+        popoverContent = p.content || '';
+        popoverTriggerText = p.triggerText || '';
       } else if (typeof val === 'string') {
-        try { const p = JSON.parse(val); if (Array.isArray(p)) items = p.map(v => String(v)); } catch { items = [val]; }
+        try {
+          const p = JSON.parse(val);
+          if (p && typeof p === 'object' && !Array.isArray(p)) {
+            popoverTitle = p.title || '';
+            popoverContent = p.content || '';
+            popoverTriggerText = p.triggerText || '';
+          } else {
+            popoverContent = val;
+          }
+        } catch { popoverContent = val; }
       }
+      const badgeLabel = (bc as any).label || col;
+      const displayLabel = popoverTriggerText || badgeLabel;
       const rawColor = badgeColors[col] || '';
       const isColor = isColorString(rawColor);
       const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
@@ -1860,15 +1876,17 @@ function ItemCard({
         <Popover key={col}>
           <PopoverTrigger asChild>
             <button type="button" className={`${baseClass} ${colorClass} cursor-pointer`} style={style}>
-              {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
-              {items.length > 0 ? `${items[0]}${items.length > 1 ? ` +${items.length - 1}` : ''}` : 'Popover'}
+              <Info className="h-3 w-3 shrink-0" />
+              {displayLabel}
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-3 text-xs space-y-1" side="top" align="center">
-            <p className="font-medium text-foreground mb-1">{(bc as any).label || col}</p>
-            {items.map((item, i) => (
-              <div key={i} className="text-muted-foreground">• {item}</div>
-            ))}
+          <PopoverContent className="w-72 p-3 text-xs space-y-1" side="top" align="center">
+            {popoverTitle && (
+              <p className="font-medium text-foreground mb-1">{popoverTitle}</p>
+            )}
+            <div className="text-muted-foreground whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+              {popoverContent || '—'}
+            </div>
           </PopoverContent>
         </Popover>
       );

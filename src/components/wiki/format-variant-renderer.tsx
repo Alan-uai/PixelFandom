@@ -125,31 +125,120 @@ function renderText(v: number, str: string, label: string, labelColor?: string, 
 function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, rawValue?: string) {
   const color = valueColors?.[str] ?? (rawValue != null ? valueColors?.[rawValue] : undefined) ?? labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
+  const accent = color || 'hsl(var(--primary))';
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <code className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono text-foreground" style={valStyle}>{str}</code>
+        <motion.div
+          className="relative font-mono text-xs font-bold text-foreground px-2 py-1 rounded-md"
+          style={{
+            ...valStyle,
+            background: `linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)/0.4))`,
+            boxShadow: `0 2px 8px -4px ${accent}44, inset 0 1px 0 rgba(255,255,255,0.06)`,
+            perspective: '400px',
+            transformStyle: 'preserve-3d',
+          }}
+          whileHover={{ rotateX: 8, rotateY: -6, translateZ: 12, scale: 1.04 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+        >
+          <span className="relative z-10">{str}</span>
+          <span className="absolute inset-0 rounded-md bg-gradient-to-br from-transparent via-white/[0.02] to-transparent pointer-events-none" />
+        </motion.div>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs font-mono font-semibold text-foreground" style={valStyle}>{str}</span>
+        <motion.span
+          className="relative inline-block font-mono text-sm font-extrabold px-3 py-1 rounded-lg backdrop-blur-sm"
+          style={{
+            ...valStyle,
+            color: accent,
+            textShadow: `0 0 12px ${accent}88, 0 0 30px ${accent}44`,
+            background: `linear-gradient(135deg, ${accent}15, ${accent}05)`,
+            border: `1px solid ${accent}30`,
+            boxShadow: `0 0 20px -4px ${accent}44, inset 0 0 20px -8px ${accent}22`,
+          }}
+          animate={{
+            textShadow: [
+              `0 0 12px ${accent}88, 0 0 30px ${accent}44`,
+              `0 0 18px ${accent}aa, 0 0 40px ${accent}66`,
+              `0 0 12px ${accent}88, 0 0 30px ${accent}44`,
+            ],
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          whileHover={{ scale: 1.06 }}
+        >
+          {str}
+        </motion.span>
       </Row>
     );
   }
   if (v === 4) {
+    const num = parseFloat(rawValue || str.replace(/[^0-9.,]/g, '').replace(',', '.'));
+    const isValid = isFinite(num);
+    const r = 30;
+    const circumference = 2 * Math.PI * r;
+    const fraction = isValid ? Math.min(1, num / 100) : 0;
+    const dashOffset = circumference * (1 - fraction);
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs border-l-2 border-primary pl-2 font-mono text-foreground" style={valStyle}>{str}</span>
+        <div className="relative inline-flex items-center justify-center w-16 h-16">
+          <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" opacity="0.3" />
+            {isValid && (
+              <motion.circle
+                cx="36" cy="36" r={r} fill="none"
+                stroke={accent} strokeWidth="4" strokeLinecap="round"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset: dashOffset }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            )}
+          </svg>
+          <motion.span
+            className="relative z-10 font-mono text-xs font-bold"
+            style={{ color: accent }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.4, ease: 'backOut' }}
+          >
+            {str}
+          </motion.span>
+        </div>
       </Row>
     );
   }
   if (v === 5) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs font-bold font-mono text-primary" style={valStyle}>{str}</span>
+        <motion.div
+          className="relative font-mono text-xs font-extrabold px-3 py-1.5 rounded-xl"
+          style={{
+            ...valStyle,
+            color: accent,
+            background: `linear-gradient(135deg, ${accent}18, hsl(var(--card)), ${accent}10)`,
+            border: `1px solid ${accent}30`,
+            boxShadow: `0 4px 16px -6px ${accent}66, 0 0 30px -8px ${accent}33, inset 0 1px 0 rgba(255,255,255,0.08)`,
+            perspective: '500px',
+            transformStyle: 'preserve-3d',
+          }}
+          animate={{
+            y: [0, -3, 0],
+            boxShadow: [
+              `0 4px 16px -6px ${accent}66, 0 0 30px -8px ${accent}33`,
+              `0 8px 24px -8px ${accent}88, 0 0 40px -10px ${accent}44`,
+              `0 4px 16px -6px ${accent}66, 0 0 30px -8px ${accent}33`,
+            ],
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          whileHover={{ rotateX: 6, rotateY: 10, scale: 1.05, translateZ: 16 }}
+        >
+          <span className="relative z-10 bg-gradient-to-r from-current via-current to-current/70 bg-clip-text">{str}</span>
+          <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/[0.04] via-transparent to-black/[0.04] pointer-events-none" />
+        </motion.div>
       </Row>
     );
   }
@@ -1442,71 +1531,268 @@ function renderToggleGroup(v: number, str: string, label: string, labelColor?: s
 }
 
 // ── popover ────────────────────────────────────────────────
-function RenderPopover({ v, title, content, labelColor, triggerMode, position, triggerText }: {
+function RenderPopover({ v, title, content, label, labelColor, triggerMode, position, triggerText }: {
   v: number;
   title: string;
   content: string;
+  label?: string;
   labelColor?: string;
   triggerMode?: 'hover' | 'click';
   position?: 'top' | 'bottom' | 'left' | 'right';
   triggerText?: string;
 }) {
-  const triggerSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl font-semibold'];
-  const triggerStyles = [
-    'underline decoration-dotted underline-offset-4',
-    'rounded-md bg-secondary/50 px-2 py-0.5 border border-border/30',
-    'rounded-full bg-primary/10 px-3 py-1 border border-primary/20 text-primary',
-    'rounded-lg bg-card border shadow-sm px-3 py-1.5 hover:shadow-md transition-shadow',
-    'rounded-xl bg-gradient-to-br from-primary/10 to-secondary/20 px-4 py-2 border shadow-sm hover:shadow-lg transition-all',
-  ];
-  const icons = [Info, Info, Info, Info, Info];
-  const Icon = icons[Math.min(v - 1, 4)];
   const [open, setOpen] = useState(false);
   const showEvent = triggerMode === 'click'
     ? { onClick: () => setOpen(!open) }
     : { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false) };
   const side = position === 'bottom' ? 'bottom' : position === 'left' ? 'left' : position === 'right' ? 'right' : 'top';
-  const sideOffset = position === 'top' ? 6 : position === 'bottom' ? -6 : position === 'left' ? 6 : position === 'right' ? -6 : 6;
+  const sideOffset = 6;
+  const displayLabel = triggerText || label || title || content;
+
+  const renderTrigger = () => {
+    if (v === 2) {
+      return (
+        <motion.button
+          type="button"
+          className="inline-flex items-center gap-1.5 cursor-pointer rounded-xl bg-gradient-to-br from-card/90 to-card/60 border border-border/40 px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur-sm shadow-md"
+          style={labelColor ? { borderColor: labelColor } : {}}
+          whileHover={{ scale: 1.03, rotateX: 4, rotateY: -4, boxShadow: '0 12px 28px -8px rgba(0,0,0,0.25)' }}
+          whileTap={{ scale: 0.97 }}
+          {...showEvent}
+        >
+          <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] text-primary shrink-0">
+            <Info className="h-3 w-3" />
+          </span>
+          <span className="truncate max-w-[180px]">{displayLabel}</span>
+        </motion.button>
+      );
+    }
+    if (v === 3) {
+      return (
+        <motion.button
+          type="button"
+          className="inline-flex items-center gap-1.5 cursor-pointer rounded-full bg-gradient-to-r from-primary/15 via-primary/5 to-primary/15 border border-primary/25 px-4 py-1 text-xs font-semibold text-primary shadow-[0_0_14px_-4px_currentColor] backdrop-blur-sm"
+          whileHover={{ scale: 1.06, boxShadow: '0 0 22px -2px currentColor' }}
+          whileTap={{ scale: 0.95 }}
+          animate={{ boxShadow: ['0 0 10px -4px currentColor', '0 0 18px -4px currentColor', '0 0 10px -4px currentColor'] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          {...showEvent}
+        >
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate max-w-[180px]">{displayLabel}</span>
+        </motion.button>
+      );
+    }
+    if (v === 4) {
+      return (
+        <motion.button
+          type="button"
+          className="inline-flex items-center gap-2 cursor-pointer rounded-2xl bg-card border border-border/40 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur-sm"
+          style={labelColor ? { borderColor: labelColor } : {}}
+          whileHover={{ scale: 1.04, boxShadow: '0 16px 32px -12px rgba(0,0,0,0.3)' }}
+          whileTap={{ scale: 0.96 }}
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          {...showEvent}
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-white text-[10px] shadow-md">
+            <Info className="h-3 w-3" />
+          </span>
+          <span className="truncate max-w-[180px]">{displayLabel}</span>
+        </motion.button>
+      );
+    }
+    if (v === 5) {
+      return (
+        <motion.button
+          type="button"
+          className="inline-flex items-center gap-2 cursor-pointer rounded-xl bg-gradient-to-br from-primary/20 via-card to-secondary/20 border border-primary/20 px-4 py-2 text-sm font-bold text-foreground shadow-xl backdrop-blur-sm"
+          whileHover={{ scale: 1.05, rotateZ: 1, boxShadow: '0 20px 40px -16px rgba(0,0,0,0.35)' }}
+          whileTap={{ scale: 0.95 }}
+          animate={{ backgroundImage: [
+            'linear-gradient(135deg, hsl(var(--primary)/0.2), hsl(var(--card)), hsl(var(--secondary)/0.2))',
+            'linear-gradient(135deg, hsl(var(--secondary)/0.2), hsl(var(--card)), hsl(var(--primary)/0.2))',
+            'linear-gradient(135deg, hsl(var(--primary)/0.2), hsl(var(--card)), hsl(var(--secondary)/0.2))',
+          ]}}
+          transition={{ duration: 6, repeat: Infinity }}
+          {...showEvent}
+        >
+          <span className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary shadow-inner">
+            <Info className="h-3.5 w-3.5" />
+            <span className="absolute inset-0 rounded-lg bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
+          </span>
+          <span className="truncate max-w-[170px]">{displayLabel}</span>
+        </motion.button>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 cursor-pointer underline decoration-dotted underline-offset-4 text-xs transition-all hover:decoration-primary"
+        style={labelColor ? { color: labelColor } : {}}
+        {...showEvent}
+      >
+        <Info className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate max-w-[200px]">{displayLabel}</span>
+      </button>
+    );
+  };
+
+  const renderContent = () => {
+    const baseClass = 'w-80 p-0 overflow-hidden rounded-xl border bg-popover shadow-xl';
+
+    if (v === 2) {
+      return (
+        <PopoverContent
+          className={`${baseClass} backdrop-blur-xl`}
+          style={{ borderColor: labelColor || undefined, boxShadow: labelColor ? `0 20px 48px -16px ${labelColor}` : undefined }}
+          side={side}
+          sideOffset={sideOffset}
+          align="start"
+          forceMount
+        >
+          <motion.div
+            initial={{ opacity: 0, rotateX: -8, scale: 0.92, y: -6 }}
+            animate={{ opacity: 1, rotateX: 0, scale: 1, y: 0 }}
+            exit={{ opacity: 0, rotateX: -8, scale: 0.92, y: -6 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            style={{ perspective: '600px', transformStyle: 'preserve-3d' }}
+          >
+            {title && (
+              <div className="px-4 pt-4 pb-2 border-b border-border/30">
+                <p className="text-sm font-bold text-foreground drop-shadow-sm">{title}</p>
+              </div>
+            )}
+            <div className="px-4 py-3 text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+              {content || '—'}
+            </div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-transparent via-transparent to-black/[0.02] pointer-events-none" />
+          </motion.div>
+        </PopoverContent>
+      );
+    }
+    if (v === 3) {
+      return (
+        <PopoverContent
+          className={`${baseClass} border-primary/20 bg-popover/95 backdrop-blur-lg`}
+          side={side}
+          sideOffset={sideOffset}
+          align="start"
+          forceMount
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 8 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            <span className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+            <span className="absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+            {title && (
+              <div className="relative px-4 pt-4 pb-2 border-b border-primary/10">
+                <p className="text-sm font-bold text-primary drop-shadow-[0_0_8px_currentColor]">{title}</p>
+              </div>
+            )}
+            <div className="relative px-4 py-3 text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+              {content || '—'}
+            </div>
+          </motion.div>
+        </PopoverContent>
+      );
+    }
+    if (v === 4) {
+      return (
+        <PopoverContent
+          className={`${baseClass} bg-card/95 backdrop-blur-xl`}
+          side={side}
+          sideOffset={sideOffset}
+          align="start"
+          forceMount
+        >
+          <motion.div
+            initial={{ opacity: 0, rotateY: -12, scale: 0.9 }}
+            animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+            exit={{ opacity: 0, rotateY: -12, scale: 0.9 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            style={{ perspective: '700px', transformStyle: 'preserve-3d' }}
+          >
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/[0.03] to-secondary/[0.03] pointer-events-none" />
+            {title && (
+              <div className="relative px-4 pt-4 pb-2 border-b border-border/30">
+                <p className="text-sm font-bold text-foreground">{title}</p>
+              </div>
+            )}
+            <div className="relative px-4 py-3 text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+              {content || '—'}
+            </div>
+          </motion.div>
+        </PopoverContent>
+      );
+    }
+    if (v === 5) {
+      return (
+        <PopoverContent
+          className={`${baseClass} bg-gradient-to-br from-popover via-popover to-primary/[0.04] border-primary/20 backdrop-blur-xl`}
+          side={side}
+          sideOffset={sideOffset}
+          align="start"
+          forceMount
+        >
+          <motion.div
+            initial={{ opacity: 0, rotateX: 10, rotateZ: -2, scale: 0.85, y: 10 }}
+            animate={{ opacity: 1, rotateX: 0, rotateZ: 0, scale: 1, y: 0 }}
+            exit={{ opacity: 0, rotateX: 10, rotateZ: -2, scale: 0.85, y: 10 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            style={{ perspective: '800px', transformStyle: 'preserve-3d' }}
+          >
+            <span className="absolute -top-6 -left-6 h-16 w-16 rounded-full bg-primary/8 blur-2xl pointer-events-none" />
+            <span className="absolute -bottom-6 -right-6 h-16 w-16 rounded-full bg-secondary/8 blur-2xl pointer-events-none" />
+            {title && (
+              <div className="relative px-4 pt-4 pb-2 border-b border-primary/10">
+                <p className="text-sm font-bold text-foreground bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">{title}</p>
+              </div>
+            )}
+            <div className="relative px-4 py-3 text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+              {content || '—'}
+            </div>
+          </motion.div>
+        </PopoverContent>
+      );
+    }
+    return (
+      <PopoverContent
+        className="w-80 p-0 overflow-hidden rounded-xl border bg-popover shadow-xl backdrop-blur-sm"
+        side={side}
+        sideOffset={sideOffset}
+        align="start"
+        forceMount
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
+          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {title && (
+            <div className="px-3 pt-3 pb-1.5 border-b border-border/40">
+              <p className="text-sm font-semibold text-foreground">{title}</p>
+            </div>
+          )}
+          <div className="px-3 py-2.5 text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+            {content || '—'}
+          </div>
+        </motion.div>
+      </PopoverContent>
+    );
+  };
 
   return (
     <Popover open={triggerMode === 'click' ? open : undefined} onOpenChange={triggerMode === 'click' ? setOpen : undefined}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`inline-flex items-center gap-1.5 cursor-pointer transition-all ${triggerSizes[Math.min(v - 1, 4)]} ${triggerStyles[Math.min(v - 1, 4)]}`}
-          style={labelColor ? { color: labelColor } : {}}
-          {...showEvent}
-        >
-          <Icon className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate max-w-[200px]">{triggerText || title || content}</span>
-        </button>
+        {renderTrigger()}
       </PopoverTrigger>
       <AnimatePresence>
-        {(triggerMode !== 'click' || open) && (
-          <PopoverContent
-            className="w-80 p-0 overflow-hidden rounded-xl border bg-popover shadow-xl backdrop-blur-sm"
-            side={side as 'top' | 'bottom' | 'left' | 'right'}
-            sideOffset={sideOffset}
-            align="start"
-            forceMount
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: position === 'top' ? 4 : position === 'bottom' ? -4 : 0 }}
-              transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {title && (
-                <div className="px-3 pt-3 pb-1.5 border-b border-border/40">
-                  <p className="text-sm font-semibold text-foreground">{title}</p>
-                </div>
-              )}
-              <div className="px-3 py-2.5 text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
-                {content || '—'}
-              </div>
-            </motion.div>
-          </PopoverContent>
-        )}
+        {(triggerMode !== 'click' || open) && renderContent()}
       </AnimatePresence>
     </Popover>
   );
@@ -2242,19 +2528,26 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         let popoverTriggerMode: 'hover' | 'click' = 'hover';
         let popoverPosition: 'top' | 'bottom' | 'left' | 'right' = 'top';
         let popoverTriggerText = '';
-        if (typeof value === 'string') {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          const p = value as Record<string, string>;
+          popoverTitle = p.title || '';
+          popoverContent = p.content || str;
+          popoverTriggerMode = p.trigger === 'click' ? 'click' : 'hover';
+          popoverPosition = (p.position as 'top' | 'bottom' | 'left' | 'right') || 'top';
+          popoverTriggerText = p.triggerText || '';
+        } else if (typeof value === 'string') {
           try {
             const parsed = JSON.parse(value);
-            if (parsed && typeof parsed === 'object') {
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               popoverTitle = parsed.title || '';
               popoverContent = parsed.content || str;
               popoverTriggerMode = parsed.trigger === 'click' ? 'click' : 'hover';
-              popoverPosition = parsed.position || 'top';
+              popoverPosition = (parsed.position as 'top' | 'bottom' | 'left' | 'right') || 'top';
               popoverTriggerText = parsed.triggerText || '';
             }
           } catch { /* not JSON, use raw string */ }
         }
-        return <RenderPopover v={n} title={popoverTitle} content={popoverContent} labelColor={labelColor} triggerMode={popoverTriggerMode} position={popoverPosition} triggerText={popoverTriggerText} />;
+        return <RenderPopover v={n} title={popoverTitle} content={popoverContent} label={label || column} labelColor={labelColor} triggerMode={popoverTriggerMode} position={popoverPosition} triggerText={popoverTriggerText} />;
       }
       case 'jsonb':
       case 'jsonb-structured': {
