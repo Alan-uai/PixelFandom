@@ -1531,7 +1531,7 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
 }
 
 /** Format a single mini-card value node, respecting suffix/scientific notation and OP symbols. */
-function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: boolean): React.ReactNode {
+function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean): React.ReactNode {
   if (typeof val === 'number') {
     return <span className="font-mono">{formatNumber(val, !!useSuffix)}</span>;
   }
@@ -1546,8 +1546,11 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
         const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
         return (
           <span className="font-mono">
-            <span className="font-bold text-primary">{op.symbol}</span>
-            {displayNum}
+            {opFlipped ? (
+              <><span className="font-bold text-primary">{displayNum}</span>{op.symbol}</>
+            ) : (
+              <><span className="font-bold text-primary">{op.symbol}</span>{displayNum}</>
+            )}
           </span>
         );
       }
@@ -1562,7 +1565,7 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
     return (
       <div className="flex flex-col gap-0.5">
         {val.map((item, i) => (
-          <span key={i}>{renderMiniCardValueNode(item, useSuffix, opEnabled)}</span>
+          <span key={i}>{renderMiniCardValueNode(item, useSuffix, opEnabled, opFlipped)}</span>
         ))}
       </div>
     );
@@ -1579,7 +1582,7 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
               {humanizeLabel(k)}
             </span>
             <span className="text-sm font-medium text-foreground">
-              {renderMiniCardValueNode(v, useSuffix, opEnabled)}
+              {renderMiniCardValueNode(v, useSuffix, opEnabled, opFlipped)}
             </span>
           </div>
         ))}
@@ -1606,13 +1609,13 @@ function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<stri
         );
         const valueEl = (
           <span className="text-sm font-medium text-foreground">
-            {renderMiniCardValueNode(val, useSuffix, opEnabled)}
+            {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
           </span>
         );
         if (opEnabled) {
           return (
             <span key={k} className="inline-flex items-center gap-1">
-              {opFlipped ? <>{valueEl}{labelEl}</> : <>{labelEl}{valueEl}</>}
+              {labelEl}{valueEl}
             </span>
           );
         }
@@ -1711,25 +1714,12 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
                   tabIndex={onCompareClick ? 0 : undefined}
                   className={`inline-flex items-center gap-1.5 text-xs ${onCompareClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
                 >
-                  {opFlipped ? (
-                    <>
-                      <span className="font-medium text-foreground">
-                        {renderMiniCardValueNode(val, useSuffix, opEnabled)}
-                      </span>
-                      <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
-                        {humanizeLabel(k)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
-                        {humanizeLabel(k)}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {renderMiniCardValueNode(val, useSuffix, opEnabled)}
-                      </span>
-                    </>
-                  )}
+                  <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
+                    {humanizeLabel(k)}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
+                  </span>
                 </span>
               );
             })}
@@ -1955,7 +1945,7 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
     const displayNum = useSuffix && isFinite(n) ? formatNumber(n, true) : op.number;
     return (
       <span className="text-sm font-bold font-mono" style={valStyle}>
-        <span className="text-primary">{op.symbol}</span>{displayNum}
+        {_opFlipped ? <><span className="text-primary">{displayNum}</span>{op.symbol}</> : <><span className="text-primary">{op.symbol}</span>{displayNum}</>}
       </span>
     );
   })() : null;
@@ -2115,16 +2105,6 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       )
       : rawContent;
     const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
-    if (opFlipped && opEnabled) {
-      const opNodeForFlip = opEnabled ? parseOperatorPrefix(str) : null;
-      if (opNodeForFlip) {
-        const displayNum = displayOpNum(opNodeForFlip.number, useSuffix);
-        const flippedLabel = <span><span className="text-primary font-bold">{opNodeForFlip.symbol}</span>{displayNum}</span>;
-        return (
-          <MiniCard3D label={flippedLabel} color={accent} icon={icon} value={labelNode ?? label} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
-        );
-      }
-    }
     return (
       <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={animatedContent} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
     );
@@ -2138,15 +2118,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         const displayNum = displayOpNum(op.number, useSuffix);
         const opValue = <span className="font-bold text-primary">{op.symbol}</span>;
         const opNum = <span className={n > 1 ? 'text-sm font-mono' : 'text-xs font-mono'}>{displayNum}</span>;
-        const opContent = <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>{opValue}{opNum}</span>;
-        if (opFlipped) {
-          return (
-            <div className="flex items-center gap-2">
-              {opContent}
-              <span className="text-xs font-medium text-muted-foreground" style={labelColor ? { color: labelColor } : {}}>{label}</span>
-            </div>
-          );
-        }
+        const opContent = <span className={`inline-flex items-center gap-1 ${n > 1 ? 'text-sm font-bold' : 'text-xs font-medium'}`}>{opFlipped ? <>{opNum}{opValue}</> : <>{opValue}{opNum}</>}</span>;
         return (
           <Row label={label} labelColor={labelColor}>
             {opContent}

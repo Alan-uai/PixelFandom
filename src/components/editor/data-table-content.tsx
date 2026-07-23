@@ -1204,9 +1204,10 @@ export default function DataTableContent({
           {!isSystemColumn(col) && !isMediaColumn(col) && (
             <LabelIconBox
               icon={columnConfigMap[col]?.labelIcon}
-              onChange={(iconId) =>
-                handleColumnConfigChange(col, { labelIcon: iconId })
-              }
+              onChange={(iconId) => {
+                handleColumnConfigChange(col, { labelIcon: iconId });
+                if (col === 'name' && iconId) onChange('icon', iconId);
+              }}
               slug={slug}
               tenantId={tenantId ?? undefined}
             />

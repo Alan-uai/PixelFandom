@@ -225,6 +225,24 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
     );
   }
 
+  // Popover/tooltip has its own dedicated renderer — skip JSON auto-detect.
+  if (renderType === 'popover') {
+    const dl = hideLabel ? '' : column;
+    return (
+      <FormatVariantRenderer
+        format="popover"
+        variant={tv}
+        value={prepared}
+        label={dl}
+        labelNode={withLabelIcon(dl)}
+        useSuffix={useSuffix}
+        labelColor={labelColor}
+        valueColors={resolvedValueColors}
+        maxValue={maxValue}
+      />
+    );
+  }
+
   // All other types: direct delegation
   const dl = hideLabel ? '' : column;
 

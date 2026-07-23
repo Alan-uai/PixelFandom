@@ -18,6 +18,7 @@ import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyz
 export function CategorizationConfig({
   config,
   columns = [],
+  columnConfig = {},
   onChange,
   slug,
   items,
@@ -28,6 +29,7 @@ export function CategorizationConfig({
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
   columns?: string[];
+  columnConfig?: Record<string, { labelIcon?: string; labelColor?: string }>;
   slug?: string;
   items?: Record<string, unknown>[];
   itemsLoading?: boolean;
@@ -361,7 +363,7 @@ export function CategorizationConfig({
               {categoryValues.length > 0 ? (
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {categoryValues.map((cat) => {
-                    const currentIcon = categoryIcons[cat];
+                    const currentIcon = categoryIcons[cat] || columnConfig?.[detectedColumn]?.labelIcon || '';
                     const isImg = currentIcon ? isUrl(currentIcon) : false;
 
                     return (

@@ -55,6 +55,7 @@ export function CardConfig({
   config,
   columns = [],
   columnTypes = {},
+  columnConfig = {},
   onChange,
   slug,
   tenantId,
@@ -63,6 +64,7 @@ export function CardConfig({
   onChange: (v: Record<string, unknown>) => void;
   columns?: string[];
   columnTypes?: Record<string, string>;
+  columnConfig?: Record<string, { labelIcon?: string; labelColor?: string }>;
   slug?: string;
   tenantId?: string;
 }) {
@@ -337,16 +339,19 @@ export function CardConfig({
                             className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium${!isColorString(badgeColors[col] || '') ? ` ${badgeColors[col] || DEFAULT_BADGE_COLORS[col] || 'bg-background/80 backdrop-blur-sm border-border'}` : ''}`}
                             style={isColorString(badgeColors[col] || '') ? hexToStyle(badgeColors[col]) || {} : undefined}
                           >
-                            {bc.icon && <IconRenderer icon={bc.icon} size={labelSize} />}
+                            {(() => {
+                              const badgeIcon = bc.icon || columnConfig?.[col]?.labelIcon;
+                              return badgeIcon ? <IconRenderer icon={badgeIcon} size={labelSize} /> : null;
+                            })()}
                             {col}
                           </span>
                           <TableIconPicker
-                            value={bc.icon || ''}
-                            onChange={(icon) => updateBadgeConfig(col, 'icon', icon)}
-                            slug={slug || ''}
-                            tenantId={tenantId}
-                            size="sm"
-                          />
+                                value={bc.icon || columnConfig?.[col]?.labelIcon || ''}
+                                onChange={(icon) => updateBadgeConfig(col, 'icon', icon)}
+                                slug={slug || ''}
+                                tenantId={tenantId}
+                                size="sm"
+                              />
                         </div>
                       </div>
 

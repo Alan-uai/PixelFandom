@@ -797,7 +797,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             {activeIcon}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-white leading-tight">{activeName}</h1>
+            <h1 className="text-2xl font-bold leading-tight" style={detailConfig?.columnConfig?.name?.labelColor ? { color: detailConfig.columnConfig.name.labelColor } : {}}>{activeName}</h1>
             {activeDescription && <p className="text-sm text-white/80 mt-1.5 leading-relaxed">{activeDescription}</p>}
           </div>
           <div className="max-w-[200px]">

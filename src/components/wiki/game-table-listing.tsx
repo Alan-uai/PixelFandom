@@ -768,7 +768,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   }
 
   const renderCatIcon = (cat: string, iconSize = 16) => {
-    const icon = viewerConfig?.categorization?.categoryIcons?.[cat];
+    const catIcon = viewerConfig?.categorization?.categoryIcons?.[cat];
+    const colIcon = viewerConfig?.columnConfig?.[columnAnalysis?.categoryColumn || '']?.labelIcon;
+    const icon = catIcon || colIcon;
     if (!icon) return <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />;
     if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:')) {
       return <div className="relative shrink-0" style={{ width: iconSize, height: iconSize }}><Image src={icon} alt="" fill className="object-contain" /></div>;

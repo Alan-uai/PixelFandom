@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Code2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { TreeEditor, jsonToTreeEntries, treeEntriesToJson } from './tree-editor';
 import type { TreeEntry } from './tree-editor';
 
@@ -102,75 +103,88 @@ export function JsonbEditor({
     [onChange],
   );
 
-  if (rawMode) {
-    return (
-      <div className="space-y-1.5">
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
-        />
-        <button
-          type="button"
-          onClick={() => setRawMode(false)}
-          className="text-xs text-primary hover:text-primary/80 transition-colors"
-        >
-          Voltar ao editor visual
-        </button>
-      </div>
-    );
-  }
-
-  if (parsed.kind === 'invalid' || parsed.kind === 'scalar') {
-    return (
-      <div className="space-y-1.5">
-        {parsed.kind === 'invalid' && (
-          <p className="text-xs text-red-400">JSON inválido</p>
-        )}
-        <textarea
-          value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
-          onChange={(e) => {
-            try {
-              onChange(JSON.stringify(e.target.value));
-            } catch { onChange(e.target.value); }
-          }}
-          rows={3}
-          className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
-        />
-        <button
-          type="button"
-          onClick={() => setRawMode(true)}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-        >
-          <Code2 className="h-3 w-3" /> Editar como JSON
-        </button>
-      </div>
-    );
-  }
-
   const treeData = parsed.kind === 'empty'
     ? { rootKind: 'object' as const, entries: [] as TreeEntry[] }
     : jsonToTreeEntries(parsed.data);
 
+  const modeKey = rawMode ? 'raw'
+    : (parsed.kind === 'invalid' || parsed.kind === 'scalar') ? 'fallback'
+    : 'tree';
+
   return (
-    <div className="space-y-2">
-      <TreeEditor
-        entries={treeData.entries}
-        onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
-        keyTypes={keyTypes}
-        onKeyTypesChange={handleKeyTypesChange}
-        jsonbKeyColors={keyColors}
-        onKeyColorsChange={handleKeyColorsChange}
-        depth={0}
-      />
-      <button
-        type="button"
-        onClick={() => setRawMode(true)}
-        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={modeKey}
+        initial={{ opacity: 0, rotateX: -15, scale: 0.97 }}
+        animate={{ opacity: 1, rotateX: 0, scale: 1 }}
+        exit={{ opacity: 0, rotateX: 15, scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
       >
-        <Code2 className="h-3 w-3" /> Editar como JSON
-      </button>
-    </div>
+        {modeKey === 'raw' && (
+          <div className="space-y-1.5">
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => setRawMode(false)}
+              className="text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              Voltar ao editor visual
+            </button>
+          </div>
+        )}
+
+        {modeKey === 'fallback' && (
+          <div className="space-y-1.5">
+            {parsed.kind === 'invalid' && (
+              <p className="text-xs text-red-400">JSON inválido</p>
+            )}
+            <textarea
+              value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
+              onChange={(e) => {
+                try {
+                  onChange(JSON.stringify(e.target.value));
+                } catch { onChange(e.target.value); }
+              }}
+              rows={3}
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => setRawMode(true)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <Code2 className="h-3 w-3" /> Editar como JSON
+            </button>
+          </div>
+        )}
+
+        {modeKey === 'tree' && (
+          <div className="space-y-2">
+            <TreeEditor
+              entries={treeData.entries}
+              onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
+              keyTypes={keyTypes}
+              onKeyTypesChange={handleKeyTypesChange}
+              jsonbKeyColors={keyColors}
+              onKeyColorsChange={handleKeyColorsChange}
+              depth={0}
+            />
+            <button
+              type="button"
+              onClick={() => setRawMode(true)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <Code2 className="h-3 w-3" /> Editar como JSON
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
   );
 }

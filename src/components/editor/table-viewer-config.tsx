@@ -337,6 +337,7 @@ export default function TableViewerConfig({
               config={(config as any)[s.id]}
               columns={columns}
               columnTypes={(config as any)?.columnTypes || {}}
+              columnConfig={(config as any)?.columnConfig || {}}
               slug={slug}
               tableIcon={s.id === 'header' ? tableIcon : undefined}
               tenantId={tenantId ?? undefined}
