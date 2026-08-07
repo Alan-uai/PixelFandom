@@ -7,7 +7,7 @@ export async function POST() {
   }
 
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1alpha/api_key_tokens:create',
+    'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
     {
       method: 'POST',
       headers: {
@@ -16,8 +16,8 @@ export async function POST() {
       },
       body: JSON.stringify({
         uses: 1,
-        expire_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        new_session_expire_time: new Date(Date.now() + 60 * 1000).toISOString(),
+        expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        newSessionExpireTime: new Date(Date.now() + 60 * 1000).toISOString(),
       }),
     },
   );
@@ -29,5 +29,8 @@ export async function POST() {
   }
 
   const data = await response.json();
-  return NextResponse.json({ token: data.name, expires_at: data.expire_time });
+  return NextResponse.json({
+    token: data.name,
+    expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  });
 }
