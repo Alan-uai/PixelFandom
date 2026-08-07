@@ -344,7 +344,21 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   // Mapa itemId -> nome da variante ativa (usado p/ refletir variantes na categoria quando catColumn === 'name')
   const [activeVariantNames, setActiveVariantNames] = useState<Record<string, string>>({});
-  const handleVariantNameChange = useCallback((itemId: string, name: string | null) => {
+  // Variante ativa (linha completa + slug) persistida no pai, keyed por itemId.
+  // Quando a categorização por 'name' move o card entre grupos (remontando o
+  // ItemCard), essa seleção é restaurada — evita o card "piscar" e voltar ao item base.
+  const [activeVariants, setActiveVariants] = useState<Record<string, { item: any; variantSlug: string | null }>>({});
+  const handleVariantChange = useCallback((
+    itemId: string,
+    selection: { item: any; variantSlug: string | null } | null,
+    name: string | null,
+  ) => {
+    setActiveVariants(prev => {
+      const next = { ...prev };
+      if (selection) next[itemId] = selection;
+      else delete next[itemId];
+      return next;
+    });
     setActiveVariantNames(prev => {
       const next = { ...prev };
       if (name == null) delete next[itemId];
@@ -676,7 +690,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       cardConfig,
       detailConfig,
       columnTypes,
-      onVariantNameChange: handleVariantNameChange,
+      onVariantChange: handleVariantChange,
     };
 
     const rowSelectionProps = {
@@ -725,6 +739,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           key={item.id}
           item={item}
           {...baseItemCardProps}
+          persistedVariant={activeVariants[item.id]?.item ?? null}
+          persistedVariantSlug={activeVariants[item.id]?.variantSlug ?? null}
           onCompareStatClick={(sk: string) => { setCompareStat(sk); setCompareItemId(item.id); }}
         />
       );
@@ -1682,7 +1698,9 @@ function ItemCard({
   cardConfig,
   detailConfig,
   columnTypes,
-  onVariantNameChange,
+  onVariantChange,
+  persistedVariant,
+  persistedVariantSlug,
 }: {
   item: any;
   tableName: string;
@@ -1694,7 +1712,9 @@ function ItemCard({
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   columnTypes?: Record<string, string>;
-  onVariantNameChange?: (itemId: string, name: string | null) => void;
+  onVariantChange?: (itemId: string, selection: { item: any; variantSlug: string | null } | null, name: string | null) => void;
+  persistedVariant?: any;
+  persistedVariantSlug?: string | null;
 }) {
   ensureVariant3dKeyframes();
 
@@ -1724,9 +1744,20 @@ function ItemCard({
   // Track the base item id so the variant state only resets when the BASE
   // item changes — not when a variant is selected or the parent re-renders.
   const baseIdRef = useRef<string | undefined>(item.id as string | undefined);
-  const [activeItem, setActiveItem] = useState<any>(item);
-  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(null);
+  // Se o pai persistiu uma variante para este item (sobrevive a remontagens por
+  // re-agrupamento de categoria), inicializa a partir dela para não "piscar".
+  const [activeItem, setActiveItem] = useState<any>(persistedVariant ?? item);
+  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(persistedVariantSlug ?? null);
   const [loadingVariant, setLoadingVariant] = useState(false);
+
+  // Restaura a seleção persistida caso ela mude enquanto o card está montado.
+  useEffect(() => {
+    if (persistedVariant) setActiveItem(persistedVariant);
+  }, [persistedVariant]);
+
+  useEffect(() => {
+    if (persistedVariantSlug != null) setActiveVariantSlug(persistedVariantSlug);
+  }, [persistedVariantSlug]);
   // 3D content transition bookkeeping
   const [variationKey, setVariationKey] = useState(0);
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
@@ -1755,7 +1786,7 @@ function ItemCard({
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveItem(item);
-      onVariantNameChange?.(item.id, item.name ?? item.title ?? item.item_name ?? item.code ?? null);
+      onVariantChange?.(item.id, null, item.name ?? item.title ?? item.item_name ?? item.code ?? null);
       triggerTransition('ltr');
       return;
     }
@@ -1801,9 +1832,11 @@ function ItemCard({
       }
 
       if (fetched) {
-        setActiveVariantSlug(variant.item_slug ?? null);
-        setActiveItem({ ...fetched, _source_table: tableName });
-        onVariantNameChange?.(item.id, fetched.name ?? fetched.title ?? fetched.item_name ?? fetched.code ?? null);
+        const nextItem = { ...fetched, _source_table: tableName };
+        const slug = variant.item_slug ?? null;
+        setActiveVariantSlug(slug);
+        setActiveItem(nextItem);
+        onVariantChange?.(item.id, { item: nextItem, variantSlug: slug }, fetched.name ?? fetched.title ?? fetched.item_name ?? fetched.code ?? null);
         triggerTransition(meta?.direction ?? 'ltr');
       }
     } catch {
@@ -1811,7 +1844,7 @@ function ItemCard({
     } finally {
       setLoadingVariant(false);
     }
-  }, [item, tableName, tenantId, tenantSlug, triggerTransition, onVariantNameChange]);
+  }, [item, tableName, tenantId, tenantSlug, triggerTransition, onVariantChange]);
 
   useEffect(() => {
     if (baseIdRef.current === baseItemId) return;
@@ -1819,7 +1852,7 @@ function ItemCard({
     setActiveItem(item);
     setActiveVariantSlug(null);
     setVariationKey((k) => k + 1);
-    onVariantNameChange?.(item.id, null);
+    onVariantChange?.(item.id, null, null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseItemId]);
 

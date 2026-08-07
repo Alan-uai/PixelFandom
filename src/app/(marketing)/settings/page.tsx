@@ -74,6 +74,18 @@ export default function GlobalSettingsPage() {
     updatePreference('animations', { ...preferences.animations, [key]: value });
   };
 
+  // Ligar o master "Animações" é a intenção clara do usuário de ter animações.
+  // Se as superfícies estavam desligadas por causdo do padrão de
+  // prefers-reduced-motion, liga as duas também — senão o usuário ativaria o
+  // master e ainda assim nada animaria dentro dos cards.
+  const handleAnimationsMaster = (checked: boolean) => {
+    if (checked && prefersReducedMotion) {
+      updatePreference('animations', { enabled: true, dashboard: true, wiki: true });
+      return;
+    }
+    updateAnimations('enabled', checked);
+  };
+
   const [deleteStep, setDeleteStep] = useState<'hidden' | 'warning' | 'successors' | 'confirm'>('hidden');
   const [ownedTenants, setOwnedTenants] = useState<{ id: string; name: string; admins: { id: string; display_name: string }[] }[]>([]);
   const [successors, setSuccessors] = useState<Record<string, string>>({});
@@ -527,7 +539,7 @@ export default function GlobalSettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.animations.enabled}
-                  onCheckedChange={(checked) => updateAnimations('enabled', checked)}
+                  onCheckedChange={handleAnimationsMaster}
                 />
               </div>
 

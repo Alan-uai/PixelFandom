@@ -24,6 +24,8 @@ export class AudioStreamer {
   private voiceProfile: VoiceProfile | null = null;
   private voiceFilterEnabled = false;
   private voiceFilterThreshold = 0.78;
+  private scriptNode: ScriptProcessorNode | null = null;
+  private lastPublicSensitivity = 5;
 
   async start(
     opts?: {
@@ -39,6 +41,9 @@ export class AudioStreamer {
     const c = opts?.constraints || {};
     const publicMode = opts?.publicMode || false;
     this.publicMode = publicMode;
+    if (opts?.publicModeSensitivity != null) {
+      this.lastPublicSensitivity = opts.publicModeSensitivity;
+    }
 
     // Use non-constraining "ideal" values so the browser picks the closest
     // sample rate instead of throwing OverconstrainedError on unsupported mics.
@@ -76,56 +81,81 @@ export class AudioStreamer {
       // Some browsers throw on a non-default sample rate; fall back to default.
       this.context = new AudioContext();
     }
-    await this.context.audioWorklet.addModule(
-      '/audio-processors/capture.worklet.js'
-    );
 
-    this.source = this.context.createMediaStreamSource(this.stream);
-    this.workletNode = new AudioWorkletNode(
-      this.context,
-      'audio-capture-processor'
-    );
-
-    if (this.publicMode) {
-      this.startCalibration(opts?.publicModeSensitivity ?? 5);
+    // Load the capture worklet if possible; fall back to ScriptProcessor so a
+    // missing/blocked worklet file does not take down the whole mic session.
+    let workletLoaded = false;
+    if (this.context.audioWorklet && 'addModule' in this.context.audioWorklet) {
+      try {
+        await this.context.audioWorklet.addModule(
+          '/audio-processors/capture.worklet.js'
+        );
+        workletLoaded = true;
+      } catch {
+        console.warn('[AudioStreamer] worklet load failed; using fallback capture');
+      }
     }
 
-    this.workletNode.port.onmessage = (e) => {
-      if (!this.isActive) return;
-      const float32 = e.data.data as Float32Array;
+    this.source = this.context.createMediaStreamSource(this.stream);
 
-      if (this.publicMode) {
-        const rms = this.calculateRMS(float32);
-        if (this.isCalibrating) {
-          this.calibrationSamples.push(rms);
-          return;
-        }
-        if (this.energyThreshold > 0 && rms < this.energyThreshold) {
-          return;
-        }
+    if (workletLoaded) {
+      try {
+        this.workletNode = new AudioWorkletNode(this.context, 'audio-capture-processor');
+        this.workletNode.port.onmessage = (e) => this.handleCaptureData(e.data?.data);
+        this.source.connect(this.workletNode);
+        this.wireUp();
+        return;
+      } catch {
+        this.workletNode = null;
       }
+    }
 
-      if (
-        this.voiceFilterEnabled &&
-        this.voiceProfile?.isEnrolled &&
-        this.context
-      ) {
-        const analyser = this.context.createAnalyser();
-        analyser.fftSize = 2048;
-        const freqData = new Float32Array(analyser.frequencyBinCount);
-        analyser.getFloatFrequencyData(freqData);
-        const similarity = this.voiceProfile.getSimilarity(freqData);
-        if (similarity < this.voiceFilterThreshold) {
-          return;
-        }
+    // Fallback: ScriptProcessor-based capture (widely supported).
+    this.scriptNode = this.context.createScriptProcessor(4096, 1, 1);
+    this.scriptNode.onaudioprocess = (e) => this.handleCaptureData(e.inputBuffer.getChannelData(0));
+    this.source.connect(this.scriptNode);
+    this.scriptNode.connect(this.context.destination);
+    this.wireUp();
+  }
+
+  private handleCaptureData(float32: Float32Array) {
+    if (!this.isActive) return;
+
+    if (this.publicMode) {
+      const rms = this.calculateRMS(float32);
+      if (this.isCalibrating) {
+        this.calibrationSamples.push(rms);
+        return;
       }
+      if (this.energyThreshold > 0 && rms < this.energyThreshold) {
+        return;
+      }
+    }
 
-      const pcm16 = float32ToPcm16(float32);
-      const base64 = arrayBufferToBase64(pcm16.buffer);
-      this.onAudio?.(base64);
-    };
+    if (
+      this.voiceFilterEnabled &&
+      this.voiceProfile?.isEnrolled &&
+      this.context
+    ) {
+      const analyser = this.context.createAnalyser();
+      analyser.fftSize = 2048;
+      const freqData = new Float32Array(analyser.frequencyBinCount);
+      analyser.getFloatFrequencyData(freqData);
+      const similarity = this.voiceProfile.getSimilarity(freqData);
+      if (similarity < this.voiceFilterThreshold) {
+        return;
+      }
+    }
 
-    this.source.connect(this.workletNode);
+    const pcm16 = float32ToPcm16(float32);
+    const base64 = arrayBufferToBase64(pcm16.buffer);
+    this.onAudio?.(base64);
+  }
+
+  private wireUp() {
+    if (this.publicMode) {
+      this.startCalibration(this.lastPublicSensitivity ?? 5);
+    }
   }
 
   setPublicMode(enabled: boolean, sensitivity?: number) {
@@ -212,10 +242,12 @@ export class AudioStreamer {
     this.isActive = false;
     this.cancelCalibration();
     this.workletNode?.disconnect();
+    this.scriptNode?.disconnect();
     this.source?.disconnect();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.context?.close();
     this.workletNode = null;
+    this.scriptNode = null;
     this.source = null;
     this.stream = null;
     this.context = null;

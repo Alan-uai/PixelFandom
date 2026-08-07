@@ -1984,8 +1984,6 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
     ? <div className="text-xs font-medium text-muted-foreground mb-1" style={labelColor ? { color: labelColor } : {}}>{label}</div>
     : null;
 
-  const wrapperClass = 'flex flex-wrap gap-2';
-
   // Array → one independent mini card per element (object or scalar).
   if (Array.isArray(value)) {
     if (opEnabled && detectOpArray(value)) {
@@ -1994,7 +1992,12 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
     return (
       <div>
         {header}
-        <div className={wrapperClass} style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+        <BentoGrid
+          mode="masonry"
+          columnWidth={180}
+          gap={8}
+          style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+        >
           {value.map((el: unknown, i: number) => {
             if (typeof el === 'object' && el !== null) {
               const obj = el as Record<string, unknown>;
@@ -2021,7 +2024,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
               />
             );
           })}
-        </div>
+        </BentoGrid>
       </div>
     );
   }
@@ -2066,7 +2069,12 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
     return (
       <div>
         {header}
-        <div className={wrapperClass} style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
+        <BentoGrid
+          mode="masonry"
+          columnWidth={180}
+          gap={8}
+          style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+        >
           {Object.entries(obj).map(([k, val]) => (
             <MiniCard3D
               key={k}
@@ -2077,7 +2085,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
               className="min-w-[100px] flex-1"
             />
           ))}
-        </div>
+        </BentoGrid>
       </div>
     );
   }

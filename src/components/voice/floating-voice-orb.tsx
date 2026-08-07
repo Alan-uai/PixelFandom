@@ -143,8 +143,13 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         setIsMicOn(true)
         setStatus('listening')
       }
-    } catch {
-      setErrorMessage('Microfone não disponível.')
+    } catch (err) {
+      console.error('[Voice] Erro ao iniciar microfone:', err)
+      setErrorMessage(
+        'Microfone não disponível.' +
+          (err instanceof DOMException ? ` (${err.name})` : '')
+      )
+      throw err
     }
   }, [])
 

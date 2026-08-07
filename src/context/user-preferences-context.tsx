@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase, useUser } from '@/supabase';
 import { applyThemePreset } from '@/lib/theme-presets';
 import type { Theme } from '@/lib/types';
@@ -83,9 +83,22 @@ function loadLocal(): UserPreferences {
   return base;
 }
 
-function saveLocal(prefs: UserPreferences) {
+/** Houve uma escolha explícita de animações salva localmente? (Se não houver,
+ *  o padrão de animações é reavaliado a cada carga a partir de
+ *  prefers-reduced-motion — não vira uma "escolha" persistida por engano.) */
+function storedAnimationsLocally(): boolean {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    return (JSON.parse(raw) as Partial<UserPreferences>)?.animations != null;
+  } catch {/* noop */}
+  return false;
+}
+
+function saveLocal(prefs: UserPreferences, includeAnimations: boolean) {
+  try {
+    const toSave = includeAnimations ? prefs : { ...prefs, animations: undefined };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {/* noop */}
 }
 
@@ -129,6 +142,10 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [synced, setSynced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => systemUsesReducedMotion());
+  // Só passam a ser persistidos como "escolha do usuário" depois que ele
+  // mexe nas animações explicitamente (ou já tinha salvo antes).
+  const [animationsCustomized] = useState<boolean>(() => storedAnimationsLocally());
+  const animationsCustomizedRef = useRef(animationsCustomized);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -140,7 +157,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    saveLocal(preferences);
+    saveLocal(preferences, animationsCustomizedRef.current);
   }, [preferences]);
 
   useEffect(() => {
@@ -162,7 +179,8 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
         const cloud = data.preferences as Partial<UserPreferences>;
         setPreferences((prev) => {
           const merged = { ...prev, ...cloud };
-          saveLocal(merged);
+          if (cloud.animations) animationsCustomizedRef.current = true;
+          saveLocal(merged, animationsCustomizedRef.current);
           return merged;
         });
       }
@@ -173,10 +191,14 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const syncToCloud = useCallback(async (prefs: UserPreferences) => {
     if (!user) return;
     setSaving(true);
+    // Só envia animações ao cloud se forem uma escolha explícita do usuário —
+    // o padrão de prefers-reduced-motion não deve virar uma preferência salva.
+    const payload = { ...prefs } as Record<string, unknown>;
+    if (!animationsCustomizedRef.current) delete payload.animations;
     await supabase
       .from('user_preferences')
       .upsert(
-        { user_id: user.id, preferences: prefs, updated_at: new Date().toISOString() },
+        { user_id: user.id, preferences: payload, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       );
     setSaving(false);
@@ -185,7 +207,8 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const updatePreference = useCallback(<K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
     setPreferences((prev) => {
       const next = { ...prev, [key]: value };
-      saveLocal(next);
+      if (key === 'animations') animationsCustomizedRef.current = true;
+      saveLocal(next, animationsCustomizedRef.current);
       syncToCloud(next);
       return next;
     });
@@ -194,7 +217,8 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const updatePreferences = useCallback((partial: Partial<UserPreferences>) => {
     setPreferences((prev) => {
       const next = { ...prev, ...partial };
-      saveLocal(next);
+      if (partial.animations) animationsCustomizedRef.current = true;
+      saveLocal(next, animationsCustomizedRef.current);
       syncToCloud(next);
       return next;
     });
