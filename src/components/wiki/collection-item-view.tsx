@@ -382,7 +382,7 @@ function RenderTypeFields({
   if (numCols.length > 0) {
     numCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
-      <BentoGrid key="dyn-stats" mode="grid" columnWidth={180} gap={12} className="mb-6" count={numCols.length}>
+      <BentoGrid key="dyn-stats" mode="grid" columnWidth={180} gap={12} className="mb-6" count={numCols.length} trigger={variantTrigger}>
         {numCols.map((c) => {
           return (
             <StatCard

@@ -121,6 +121,8 @@ export function MiniCardGrid(props: {
   columnWidth?: number;
   /** Vertical + horizontal gap between cards, in px. */
   gap?: number;
+  /** Increment to re-run the staggered reveal animation. */
+  trigger?: number;
 }) {
   return <BentoGrid mode="masonry" {...props} />;
 }

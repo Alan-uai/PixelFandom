@@ -564,9 +564,11 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const manualGroups = viewerConfig?.categorization?.manualGroups || [];
 
     for (const item of filteredItems) {
-      const raw = catCol === 'name'
-        ? (activeVariantNames[item.id as string] ?? item[catCol] ?? item.name)
-        : item[catCol];
+      // Chave de grupo ESTÁVEL (base da linha), não a variante ativa. Se a chave
+      // mudasse com a variante, o card seria movido entre grupos → remontava,
+      // cancelando o pre-cache de variantes e resetando a animação. O título do
+      // grupo exibe a variante ativa (via activeVariantNames em renderCategory).
+      const raw = item[catCol];
       let cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
 
       // Apply manual group mapping
@@ -645,7 +647,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     return entries;
-  }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig, activeVariantNames]);
+  }, [filteredItems, columnAnalysis.categoryColumn, viewerConfig]);
 
   useEffect(() => {
     if (!activeTab && groupedItems && groupedItems.length > 0) {
@@ -826,6 +828,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const labelSize = vc?.categorization?.labelSize ?? 12;
     const isExpanded = expanded.has(category) || (vc?.categorization?.defaultExpanded !== false && expanded.size === 0);
 
+    // Título dinâmico: quando agrupamos por 'name' (chave estável = base), a label
+    // exibida é a variante ativa — sem mover o card entre grupos.
+    const isNameGroup = columnAnalysis?.categoryColumn === 'name';
+    const primaryItem = catItems[0];
+    const displayLabel = isNameGroup && primaryItem
+      ? (activeVariantNames[primaryItem.id as string] ?? category)
+      : category;
+
     // Compute secondary groups
     let secondaryGroups: [string, any[]][] = [];
     if (secondaryColumn) {
@@ -879,7 +889,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const heading = hideCategoryTitle ? null : (
       <div className="flex items-center gap-3 mb-3">
         {renderCatIcon(category, iconSize)}
-        <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{category}</span>
+        <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{displayLabel}</span>
         <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
       </div>
     );
@@ -1142,22 +1152,28 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               return (
                 <>
                   <div className="flex gap-1 border-b pb-1 overflow-x-auto mb-4">
-                    {groupedItems.map(([category]) => (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => setActiveTab(category)}
-                        className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition-colors inline-flex items-center gap-1.5 ${
-                          currentTab === category
-                            ? 'bg-primary/10 text-primary border border-primary/30'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
-                        }`}
-                        style={{ fontSize: tabLabelSize }}
-                      >
-                        {tabLabelDisplay !== 'name' && renderCatIcon(category, tabIconSize)}
-                        {tabLabelDisplay !== 'icon' && <span className="capitalize">{category}</span>}
-                      </button>
-                    ))}
+                    {groupedItems.map(([category, tabItems]) => {
+                      const tabPrimary = tabItems[0];
+                      const tabLabel = columnAnalysis?.categoryColumn === 'name' && tabPrimary
+                        ? (activeVariantNames[tabPrimary.id as string] ?? category)
+                        : category;
+                      return (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => setActiveTab(category)}
+                          className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition-colors inline-flex items-center gap-1.5 ${
+                            currentTab === category
+                              ? 'bg-primary/10 text-primary border border-primary/30'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                          }`}
+                          style={{ fontSize: tabLabelSize }}
+                        >
+                          {tabLabelDisplay !== 'name' && renderCatIcon(category, tabIconSize)}
+                          {tabLabelDisplay !== 'icon' && <span className="capitalize">{tabLabel}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                   {groupedItems
                     .filter(([category]) => category === currentTab)
@@ -1649,7 +1665,7 @@ function MiniCardsSection({
   const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, any>;
 
   return (
-    <MiniCardGrid className="mb-3" count={visible.length}>
+    <MiniCardGrid className="mb-3" count={visible.length} trigger={variationKey}>
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
         const colConfig = columnConfig?.[col];

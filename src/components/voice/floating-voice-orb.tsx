@@ -377,12 +377,16 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   }, [connect])
   useEffect(() => { disconnectRef.current = disconnect; }, [disconnect])
 
+  // DO NOT auto-start the wake word detector on mount. The Web Speech API
+  // requests microphone permission and, if triggered without a user gesture
+  // (transient activation), browsers auto-deny it and cache that denial for the
+  // origin — so a later orb click never shows a prompt. The detector is only
+  // started after the user has granted mic permission via a real click.
   useEffect(() => {
-    startWakeWordDetector()
     return () => {
       stopWakeWordDetector()
     }
-  }, [startWakeWordDetector, stopWakeWordDetector])
+  }, [stopWakeWordDetector])
 
   const handleClick = useCallback(() => {
     if (apiRef.current || isMicOn || isConnectingRef.current) {
