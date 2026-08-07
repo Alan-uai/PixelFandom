@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, AlertCircle, BookOpen } from 'lucide-react';
+import { AlertCircle, BookOpen } from 'lucide-react';
 import { playHoverSound } from '@/lib/feedback-sounds';
 import { WikiCard } from '@/components/wiki/wiki-card';
 import type { Tenant } from '@/supabase/client';
@@ -93,13 +93,28 @@ export default function WikisCarousel({ wikis, loading, error, voteData, activeC
 
           </div>
         {loading ? (
-          <div className="flex justify-center py-24">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            >
-              <Loader2 className="h-8 w-8 text-primary" />
-            </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 py-4" role="status" aria-label="Carregando wikis">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-xl border border-border/40 bg-card/60 p-5 space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 rounded bg-muted" />
+                    <div className="h-3 w-1/2 rounded bg-muted/70" />
+                  </div>
+                </div>
+                <div className="h-3 w-full rounded bg-muted/60" />
+                <div className="h-3 w-5/6 rounded bg-muted/60" />
+                <div className="h-3 w-2/3 rounded bg-muted/60" />
+                <div className="pt-2 flex items-center justify-between">
+                  <div className="h-6 w-20 rounded-full bg-muted/80" />
+                  <div className="h-6 w-24 rounded-md bg-muted/80" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="flex items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-8 text-destructive">

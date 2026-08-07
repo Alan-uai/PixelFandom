@@ -5,9 +5,7 @@ import { createContext, useCallback, useContext, useState, useEffect } from 'rea
 import type { Message, SavedAnswer, WikiArticle } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGameDataVersion, getAllGameData } from '@/supabase/game-data';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAdmin } from '@/hooks/use-admin';
-import { Loader2 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { allGameData as staticGameData } from '@/lib/game-data-context';
 import { supabase, SupabaseProvider, useUser } from '@/supabase';
 import { UserPreferencesProvider } from '@/context/user-preferences-context';
@@ -34,14 +32,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const WIKI_CACHE_STORAGE_KEY = 'eternal-guide-wiki-cache';
 const GAME_DATA_CACHE_KEY = 'eternal-guide-game-data-cache';
-const LAST_VISITED_ROUTE_KEY = 'eternal-guide-last-route';
 
 function AppStateProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
-  const { isAdmin, isLoading: isAdminLoading } = useAdmin();
   const { toast } = useToast();
-  const router = useRouter();
   const pathname = usePathname();
+
+  const isDashboard = pathname?.startsWith('/dashboard');
   
   const [wikiArticles, setWikiArticles] = useState<WikiArticle[]>([]);
   const [allGameData, setAllGameData] = useState<any[]>([]);
@@ -50,28 +47,11 @@ function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeSidePanel, setActiveSidePanel] = useState<ActiveSidePanel>(null);
   const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([]);
   const [areSavedAnswersLoading, setAreSavedAnswersLoading] = useState(true);
-  
-  const [isInitialAppLoad, setIsInitialAppLoad] = useState(true);
-
-  useEffect(() => {
-    if (pathname && !pathname.startsWith('/admin')) {
-      localStorage.setItem(LAST_VISITED_ROUTE_KEY, pathname);
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!isAdminLoading && isInitialAppLoad) {
-      const lastRoute = localStorage.getItem(LAST_VISITED_ROUTE_KEY);
-      if (lastRoute && pathname !== lastRoute && !pathname.startsWith('/admin')) {
-        router.replace(lastRoute);
-      }
-      setIsInitialAppLoad(false);
-    }
-  }, [isAdmin, isAdminLoading, isInitialAppLoad, router, pathname]);
 
   const [gameDataVersion, setGameDataVersion] = useState('1.0.0');
 
   useEffect(() => {
+    if (!isDashboard) return;
     async function fetchVersion() {
       try {
         const version = await getGameDataVersion();
@@ -82,9 +62,10 @@ function AppStateProvider({ children }: { children: ReactNode }) {
       }
     }
     fetchVersion();
-  }, []);
+  }, [isDashboard]);
 
   useEffect(() => {
+    if (!isDashboard) return;
     const loadGameData = async () => {
         setIsGameDataLoading(true);
         try {
@@ -127,9 +108,10 @@ function AppStateProvider({ children }: { children: ReactNode }) {
       loadGameData();
     }
 
-  }, [gameDataVersion]);
+  }, [gameDataVersion, isDashboard]);
 
   useEffect(() => {
+    if (!isDashboard) return;
     try {
       const wikiCacheItem = window.localStorage.getItem(WIKI_CACHE_STORAGE_KEY);
       if (wikiCacheItem) {
@@ -138,9 +120,10 @@ function AppStateProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Falha ao carregar wiki do armazenamento local", error);
     }
-  }, []);
+  }, [isDashboard]);
   
   useEffect(() => {
+    if (!isDashboard) return;
     const fetchWikiArticles = async () => {
       const { data } = await supabase.from('wiki_articles').select('*');
       if (data && data.length > 0) {
@@ -156,10 +139,10 @@ function AppStateProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchWikiArticles();
-  }, [wikiArticles]);
+  }, [wikiArticles, isDashboard]);
 
   useEffect(() => {
-    if (!user || user.is_anonymous) {
+    if (!isDashboard || !user || user.is_anonymous) {
       setSavedAnswers([]);
       setAreSavedAnswersLoading(false);
       return;
@@ -178,7 +161,7 @@ function AppStateProvider({ children }: { children: ReactNode }) {
     };
 
     fetchSavedAnswers();
-  }, [user]);
+  }, [user, isDashboard]);
 
   const isAnswerSaved = useCallback((answerId: string) => {
     return !!savedAnswers && savedAnswers.some((saved) => saved.id === answerId);
@@ -246,14 +229,6 @@ function AppStateProvider({ children }: { children: ReactNode }) {
     activeSidePanel,
     setActiveSidePanel,
   };
-  
-  if (isInitialAppLoad || isAdminLoading || (isGameDataLoading && allGameData.length === 0)) {
-      return (
-          <div className="flex h-screen w-screen items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-      );
-  }
 
   return (
     <AppContext.Provider value={value}>
