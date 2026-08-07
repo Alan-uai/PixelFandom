@@ -42,7 +42,7 @@ function addSecurityHeaders(response: NextResponse): void {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), interest-cohort=(), display-capture=(), clipboard-read=(), clipboard-write=(), fullscreen=()',
+    'camera=(), geolocation=(), interest-cohort=(), display-capture=(), clipboard-read=(), clipboard-write=(), fullscreen=()',
   );
   response.headers.set(
     'Content-Security-Policy',

@@ -9,6 +9,11 @@
  *   NO hardcoded column count — it adapts to the wrapping card automatically.
  *   Each tile keeps its natural height (short cards take less space than tall
  *   ones) and the flow re-packs around it.
+ * - `dense`/`bento`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
+ *   `grid-auto-flow: dense`. Tiles keep their natural height but get pushed
+ *   into every free gap, so short cards fill holes left by taller neighbours.
+ *   The column count is derived from the container, so tiles of varying sizes
+ *   pack tightly — no persistent column division and no leftover slots.
  * - `grid`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))`. Tiles get
  *   equal width and pack row-wise, ideal for uniform stat cells.
  *
@@ -21,14 +26,14 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
-export type BentoMode = 'masonry' | 'grid';
+export type BentoMode = 'masonry' | 'dense' | 'grid';
 
 export type BentoGridProps = {
   children: React.ReactNode;
   className?: string;
   /** Extra inline styles applied to the grid container (inherit/preserve-3d/perspective…). */
   style?: React.CSSProperties;
-  /** How tiles are laid out. `masonry` keeps natural per-tile heights; `grid` uses uniform auto-fit cells. */
+  /** How tiles are laid out. `masonry` keeps natural per-tile heights; `dense`/`bento` packs tiles into free gaps; `grid` uses uniform auto-fit cells. */
   mode?: BentoMode;
   /** Optional explicit count of tiles — collapses to one column for a single tile. */
   count?: number;
@@ -134,6 +139,8 @@ export function BentoGrid({
   const kids = count ?? arr.length;
   const solo = singleFullWidth && kids === 1 && kids > 0;
 
+  const isDense = mode === 'dense';
+
   const gridStyle: React.CSSProperties = {
     columnWidth: mode === 'masonry' ? `${columnWidth}px` : undefined,
     columnGap: gap,
@@ -143,7 +150,16 @@ export function BentoGrid({
           gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
           gap,
         }
-      : {}),
+      : isDense
+        ? {
+            display: 'grid',
+            gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
+            gridAutoFlow: 'dense',
+            gridAutoRows: 'min-content',
+            alignItems: 'start',
+            gap,
+          }
+        : {}),
     ...style,
   };
 
@@ -156,6 +172,7 @@ export function BentoGrid({
             index={i}
             animsOn={animsOn}
             staggerDelay={staggerDelay}
+            className="min-w-0"
             style={single ? { flex: '1 1 auto' } : undefined}
           >
             {child}

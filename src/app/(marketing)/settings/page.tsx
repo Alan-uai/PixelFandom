@@ -70,20 +70,30 @@ export default function GlobalSettingsPage() {
     updatePreference('voice_settings', { ...preferences.voice_settings, [key]: value });
   };
 
-  const updateAnimations = (key: keyof AnimationSettings, value: boolean) => {
-    updatePreference('animations', { ...preferences.animations, [key]: value });
+  // Regra master/child (semântica de desativação):
+  //  - Desligar uma superfície também desliga o master (animações pausam em tudo).
+  //  - Reativar o master liga todas as superfícies de novo (handleAnimationsMaster).
+  //  - As superfícies ficam bloqueadas enquanto o master estiver desligado.
+  const handleSurfaceToggle = (surface: 'dashboard' | 'wiki', checked: boolean) => {
+    // checked === true significa "desativar essa superfície".
+    const next: AnimationSettings = { ...preferences.animations, [surface]: !checked };
+    if (checked) next.enabled = false;
+    updatePreference('animations', next);
   };
 
-  // Ligar o master "Animações" é a intenção clara do usuário de ter animações.
-  // Se as superfícies estavam desligadas por causdo do padrão de
-  // prefers-reduced-motion, liga as duas também — senão o usuário ativaria o
-  // master e ainda assim nada animaria dentro dos cards.
+  // Os toggles de animação são de DESATIVAÇÃO: ligado = "animação desativada".
+  // Portanto quando o sistema nativo pede menos movimento a chave fica ligada
+  // (animações desligadas). Ligar a chave desativa tudo; desligar a chave é a
+  // intenção clara de ter animações — liga todas as superfícies também, senão
+  // o usuário desligaria a chave e ainda assim nada animaria dentro dos cards.
   const handleAnimationsMaster = (checked: boolean) => {
-    if (checked && prefersReducedMotion) {
-      updatePreference('animations', { enabled: true, dashboard: true, wiki: true });
+    // Ligou a chave => desativar animações (todas as superfícies).
+    if (checked) {
+      updatePreference('animations', { enabled: false, dashboard: false, wiki: false });
       return;
     }
-    updateAnimations('enabled', checked);
+    // Desligou a chave => ativar animações em todas as superfícies.
+    updatePreference('animations', { enabled: true, dashboard: true, wiki: true });
   };
 
   const [deleteStep, setDeleteStep] = useState<'hidden' | 'warning' | 'successors' | 'confirm'>('hidden');
@@ -518,8 +528,10 @@ export default function GlobalSettingsPage() {
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p className="text-muted-foreground">
                 Seu sistema solicitou <strong className="text-foreground">menos movimento</strong>. Para respeitar
-                essa preferência, as animações ficam desligadas por padrão aqui. Você pode ligá-las manualmente
-                e personalizar cada superfície se preferir.
+                essa preferência, as animações ficam <strong className="text-foreground">desativadas</strong> por
+                padrão — o toggle abaixo vem ligado, indicando que a animação está desligada. Para ativar as
+                animações, é só <strong className="text-foreground">desligar</strong> o toggle e personalizar cada
+                superfície se preferir.
               </p>
             </div>
           )}
@@ -527,18 +539,19 @@ export default function GlobalSettingsPage() {
             <CardHeader>
               <CardTitle>Animações</CardTitle>
               <CardDescription>
-                Controle as animações da plataforma. Você pode desligar todas de uma vez ou escolher por superfície.
-                Por padrão, respeitamos a preferência de reduzir movimento do seu sistema.
+                Os interruptores servem para <strong>desativar</strong> a animação: ligados = animação desligada,
+                desligados = animação ligada. Quando o seu sistema pede menos movimento, eles vêm ligados por
+                padrão.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">Animações</p>
-                  <p className="text-xs text-muted-foreground">Desliga todas as animações, em todas as superfícies</p>
+                  <p className="font-medium text-sm">Desativar todas as animações</p>
+                  <p className="text-xs text-muted-foreground">Ligado = todas as animações desligadas, em todas as superfícies</p>
                 </div>
                 <Switch
-                  checked={preferences.animations.enabled}
+                  checked={!preferences.animations.enabled}
                   onCheckedChange={handleAnimationsMaster}
                 />
               </div>
@@ -547,25 +560,25 @@ export default function GlobalSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">No Dashboard</p>
-                  <p className="text-xs text-muted-foreground">Animações nas páginas do painel</p>
+                  <p className="font-medium text-sm">Desativar animações no Dashboard</p>
+                  <p className="text-xs text-muted-foreground">Ligado = animações desligadas nas páginas do painel</p>
                 </div>
                 <Switch
-                  checked={preferences.animations.enabled && preferences.animations.dashboard}
+                  checked={!preferences.animations.dashboard}
                   disabled={!preferences.animations.enabled}
-                  onCheckedChange={(checked) => updateAnimations('dashboard', checked)}
+                  onCheckedChange={(checked) => handleSurfaceToggle('dashboard', checked)}
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">Na Wiki</p>
-                  <p className="text-xs text-muted-foreground">Animações nas páginas da wiki (troca de variantes, contadores, efeitos 3D)</p>
+                  <p className="font-medium text-sm">Desativar animações na Wiki</p>
+                  <p className="text-xs text-muted-foreground">Ligado = animações desligadas nas páginas da wiki (troca de variantes, contadores, efeitos 3D)</p>
                 </div>
-                <Switch
-                  checked={preferences.animations.enabled && preferences.animations.wiki}
+<Switch
+                  checked={!preferences.animations.wiki}
                   disabled={!preferences.animations.enabled}
-                  onCheckedChange={(checked) => updateAnimations('wiki', checked)}
+                  onCheckedChange={(checked) => handleSurfaceToggle('wiki', checked)}
                 />
               </div>
             </CardContent>

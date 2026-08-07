@@ -95,14 +95,17 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
 /**
  * Bento-box layout wrapper used to lay mini cards inside an item card.
  *
- * True masonry/bento behaviour (no fixed column count):
- *  - Rendered as CSS multi-column masonry. The number of columns is deduced
- *    entirely from the container width and the chosen `columnWidth`, so the
- *    grid adapts to the size of the wrapping item/card automatically — no
- *    hardcoded 2-column track and no pre-defined column limit.
+ * True bento-box behaviour (no fixed column count):
+ *  - Rendered as CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
+ *    `grid-auto-flow: dense`. The number of columns is deduced entirely from
+ *    the container width and the chosen `columnWidth`, so the grid adapts to
+ *    the size of the wrapping item/card automatically — no hardcoded 2-column
+ *    track and no pre-defined column limit.
  *  - Each card keeps its NATURAL height and is never stretched to match a
- *    taller neighbour. This lets the v1–v5 visual variants of a column type
- *    express their different sizes and the bento column simply re-flows.
+ *    taller neighbour. `dense` packing pushes short cards into the gaps left
+ *    by taller ones, so every free slot in the container gets filled instead
+ *    of staying empty — the v1–v5 visual variants express their different
+ *    sizes and the bento simply re-flows.
  *  - With a single card the whole bento collapses to a single full-width
  *    column (no leftover half-width slot). When `singleFullWidth` is false
  *    the lone card sits in a single column as-is.
@@ -124,5 +127,5 @@ export function MiniCardGrid(props: {
   /** Increment to re-run the staggered reveal animation. */
   trigger?: number;
 }) {
-  return <BentoGrid mode="masonry" {...props} />;
+  return <BentoGrid mode="dense" {...props} />;
 }
