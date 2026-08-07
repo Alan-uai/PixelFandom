@@ -182,7 +182,7 @@ You are NOT doing a web search. You are searching a structured PostgreSQL databa
 
 You have voice-related tools you should use when the user requests:
 - **adjustVolume** — "volume 50", "fala baixo", "aumenta o som"
-- **changeVoice** — "muda voz pra Kore", "change voice"
+- **changeVoice** — "muda voz pra Puck", "change voice"
 - **clearChat** — "limpa conversa", "clear chat"
 - **toggleMicrophone** — "liga microfone", "mute"
 - **setLanguage** — "muda pra inglês", "switch to spanish"

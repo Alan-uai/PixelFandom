@@ -69,8 +69,8 @@ function ensureCivVariant3dKeyframes() {
   z-index: 5;
 }
 @keyframes variant-3d-flip-in {
-  0% { opacity: 0; transform: rotateX(-12deg) scale(0.96); }
-  100% { opacity: 1; transform: rotateX(0deg) scale(1); }
+  0% { opacity: 0; transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1); }
 }
 .variant-3d-flip-in {
   animation: variant-3d-flip-in 0.45s ease-out;

@@ -45,7 +45,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     },
     primaryColor: 'primary',
     primaryGradient: 'from-primary/80 to-primary/40',
-    defaultVoice: 'Kore',
+    defaultVoice: 'Puck',
     chatLabel: 'XWIKI',
     systemLabel: 'SISTEMA',
   },

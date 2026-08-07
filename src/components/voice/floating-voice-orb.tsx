@@ -269,7 +269,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         discordUrl,
         gameUrl,
         volume: settingsRef.current.volume ?? 80,
-        voiceName: (settingsRef.current.voice as VoiceName) || 'Kore',
+        voiceName: (settingsRef.current.voice as VoiceName) || 'Puck',
         language: settingsRef.current.userLang || 'pt',
         setVolume: () => {},
         setVoiceName: () => {},

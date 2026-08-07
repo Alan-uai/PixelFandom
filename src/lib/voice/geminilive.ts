@@ -123,7 +123,7 @@ export class GeminiLiveAPI {
   systemInstructions = ""
   baseSystemInstructions = ""
   googleGrounding = false
-  voiceName: VoiceName = 'Kore'
+  voiceName: VoiceName = 'Puck'
   temperature = 1.0
   isThinkingMode = false
   inputAudioTranscription = false

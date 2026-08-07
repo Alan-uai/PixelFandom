@@ -71,13 +71,14 @@ export default function GlobalSettingsPage() {
   };
 
   // Regra master/child (semântica de desativação):
-  //  - Desligar uma superfície também desliga o master (animações pausam em tudo).
+  //  - As superfícies são a fonte da verdade; o master é derivado.
+  //  - Desligar uma superfície desliga o master automaticamente, mas a outra
+  //    superfície permanece ligada.
   //  - Reativar o master liga todas as superfícies de novo (handleAnimationsMaster).
-  //  - As superfícies ficam bloqueadas enquanto o master estiver desligado.
   const handleSurfaceToggle = (surface: 'dashboard' | 'wiki', checked: boolean) => {
     // checked === true significa "desativar essa superfície".
     const next: AnimationSettings = { ...preferences.animations, [surface]: !checked };
-    if (checked) next.enabled = false;
+    next.enabled = next.dashboard && next.wiki;
     updatePreference('animations', next);
   };
 
@@ -551,7 +552,7 @@ export default function GlobalSettingsPage() {
                   <p className="text-xs text-muted-foreground">Ligado = todas as animações desligadas, em todas as superfícies</p>
                 </div>
                 <Switch
-                  checked={!preferences.animations.enabled}
+                  checked={!(preferences.animations.dashboard && preferences.animations.wiki)}
                   onCheckedChange={handleAnimationsMaster}
                 />
               </div>
@@ -565,7 +566,6 @@ export default function GlobalSettingsPage() {
                 </div>
                 <Switch
                   checked={!preferences.animations.dashboard}
-                  disabled={!preferences.animations.enabled}
                   onCheckedChange={(checked) => handleSurfaceToggle('dashboard', checked)}
                 />
               </div>
@@ -577,7 +577,6 @@ export default function GlobalSettingsPage() {
                 </div>
 <Switch
                   checked={!preferences.animations.wiki}
-                  disabled={!preferences.animations.enabled}
                   onCheckedChange={(checked) => handleSurfaceToggle('wiki', checked)}
                 />
               </div>

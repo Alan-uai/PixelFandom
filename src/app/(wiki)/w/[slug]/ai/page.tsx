@@ -41,7 +41,7 @@ const VOICE_STORAGE_KEY = 'pixelfandom:voice-settings'
 
 const defaultVoice: VoiceSettings = {
   userName: '',
-  voice: 'Kore' as VoiceName,
+  voice: 'Puck' as VoiceName,
   temperature: 0.7,
   volume: 80,
   userLang: 'pt',

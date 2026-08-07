@@ -20,13 +20,16 @@ export function AnimationSurfaceProvider({
 }
 
 /** Retorna se animações estão habilitadas para a superfície atual (ou para a
- *  superfície explicitamente informada). Obedece à preferência do usuário:
- *  `animations.enabled` (master) e o toggle por superfície. */
+ *  superfície explicitamente informada). Obedece à preferência do usuário: a
+ *  superfície anima quando o seu próprio toggle está ligado. O master é apenas
+ *  um atalho que liga/desliga todas as superfícies juntas — se uma superfície
+ *  ficou ligada e o master caiu (por outra superfície ter sido desligada), essa
+ *  superfície continua animando. */
 export function useAnimationsEnabled(surface?: AnimationSurface): boolean {
   const providerSurface = useContext(AnimationSurfaceContext);
   const target = surface ?? providerSurface;
   const { preferences } = useUserPreferences();
   const anims = preferences?.animations;
-  if (!anims?.enabled) return false;
+  if (!anims) return false;
   return anims[target] !== false;
 }
