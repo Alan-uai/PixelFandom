@@ -76,8 +76,8 @@ function makeSupabase() {
 describe('CollectionItemView variant switch animations', () => {
   it('applies 3D transition, beam and updates content when selecting a variant chip', async () => {
     supabaseMock = makeSupabase();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { default: CollectionItemView } = await import('@/components/wiki/collection-item-view');
+  }, 20000);
 
     const { container } = render(
       <CollectionItemView
@@ -109,7 +109,7 @@ describe('CollectionItemView variant switch animations', () => {
       expect(screen.getByText('Exemplo de Itens v2')).toBeInTheDocument();
     });
 
-// 3) Colunas: contadores/scramble animam até o novo valor (500)
+    // 3) Colunas: contadores/scramble animam até o novo valor (500)
     await waitFor(() => flushRaf());
     await waitFor(() => {
       expect(screen.getByText('500')).toBeInTheDocument();

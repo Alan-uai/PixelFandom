@@ -15,7 +15,7 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { LabelIconBox, LabelColorCircle, ValueColorLine, InputGlow } from '@/components/ui/column-icon-color';
 import { getDefaultColumnColor } from '@/lib/column-types/registry';
-import { cacheSubscribe, notifyItemsChange } from '@/lib/data-access';
+import { cacheSubscribe, notifyItemsChange, notifyCatalogChange } from '@/lib/data-access';
 import { Switch } from '@/components/ui/switch';
 import { DateTimePicker3D } from '@/components/ui/date-time-picker-3d';
 
@@ -699,6 +699,7 @@ export default function DataTableContent({
       setTimeout(() => setSavedFeedback(false), 2000);
       setEditingId(null);
       setRemovedFields(new Set());
+      notifyItemsChange(slug, table);
       fetchRows();
     }
     setSaving(false);
@@ -712,6 +713,7 @@ export default function DataTableContent({
     } else {
       setRows((prev) => prev.filter((r) => r.id !== rowId));
       notifyItemsChange(slug, table);
+      notifyCatalogChange(slug);
       toast({ title: 'Registro excluído.' });
     }
   };
@@ -751,6 +753,8 @@ export default function DataTableContent({
     const linkOk = (linkResult as { ok?: boolean })?.ok;
     if (linkOk) {
       toast({ title: `Variante "${variantName}" criada!` });
+      notifyItemsChange(slug, table);
+      notifyCatalogChange(slug);
       fetchRows();
     } else {
       const errMsg = (linkResult as { error?: string })?.error || 'Não foi possível vincular a variante.';
@@ -812,6 +816,8 @@ export default function DataTableContent({
       setNewForm({});
       setSavedFeedback(true);
       setTimeout(() => setSavedFeedback(false), 2000);
+      notifyItemsChange(slug, table);
+      notifyCatalogChange(slug);
       fetchRows();
     }
     setSaving(false);

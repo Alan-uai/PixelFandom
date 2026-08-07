@@ -93,11 +93,30 @@ export function cacheRemoveCatalogEntry(
 }
 
 export function notifyCatalogChange(tenantSlug: string): void {
-  cacheNotify(`catalog:${tenantSlug}:counts`);
+  invalidateCachePrefix(`catalog:${tenantSlug}:`);
+  const cacheKey = `catalog:${tenantSlug}:counts`;
+  cacheNotify(cacheKey);
 }
 
 export function notifyItemsChange(tenantSlug: string, tableName: string): void {
-  cacheNotify(`items:${tenantSlug}:${tableName}`);
+  const cacheKey = `items:${tenantSlug}:${tableName}`;
+  // Invalida também todos os `item:<slug>` individuais desta tabela, para que
+  // a collection-item-view / variantes refaçam a busca e mostrem dados novos.
+  invalidateCachePrefix(`item:${tenantSlug}:${tableName}:`);
+  cache.delete(cacheKey);
+  cacheNotify(cacheKey);
+}
+
+// Remove do cache global qualquer entrada cuja chave comece com `prefix`.
+export function invalidateCachePrefix(prefix: string): void {
+  for (const key of Array.from(cache.keys())) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
+  bumpVersion();
+}
+
+export function cacheDelete(key: string): void {
+  cache.delete(key);
 }
 
 // ── Schema mutation helpers (update cache in-place, no invalidation) ──

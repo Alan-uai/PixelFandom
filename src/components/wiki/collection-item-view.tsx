@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
   Skull, Globe, Gem,
@@ -582,6 +582,51 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
 
+  // ── Persistência da variante ativa (ex.: v3) entre visitas ──
+  // Guarda o slug da variante escolhida no localStorage e restaura ao
+  // remontar o componente, em vez de sempre voltar à variante padrão (v1/base).
+  const storageKey = useMemo(() => {
+    if (!tenantId || !baseItemId) return null;
+    return `pf:variant:${tenantId}:${table}:${baseItemId}`;
+  }, [tenantId, table, baseItemId]);
+
+  const persistActiveVariant = (slug: string | null) => {
+    if (!storageKey) return;
+    try {
+      if (!slug) localStorage.removeItem(storageKey);
+      else localStorage.setItem(storageKey, slug);
+    } catch {
+      /* localStorage indisponível — segue sem persistir */
+    }
+  };
+
+  // Restaura a última variante selecionada ao voltar para a página.
+  useEffect(() => {
+    if (!storageKey || !tenantSlug) return;
+    const stored = (() => {
+      try { return localStorage.getItem(storageKey); } catch { return null; }
+    })();
+    if (!stored || stored === baseItemSlug) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getTableItem } = await import('@/lib/data-access');
+        const fetched = await getTableItem(tenantSlug, table, stored);
+        if (cancelled || !fetched || !fetched.id) return;
+        const row = { ...fetched, _source_table: sourceTable };
+        const { setCachedVariantRow } = await import('@/components/wiki/variant-selector');
+        setCachedVariantRow(tenantId as string, table, fetched.id as string, row);
+        if (fetched.slug) setCachedVariantRow(tenantId as string, table, fetched.slug as string, row);
+        setActiveVariantSlug(fetched.slug as string ?? null);
+        setActiveData(row);
+      } catch {
+        /* se falhar, mantém a variante padrão */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, baseItemSlug]);
+
   // Track the base item id so we only reset when the BASE item changes,
   // never when the user is merely viewing one of its variants.
   const baseIdRef = useRef<string | undefined>(data.id as string | undefined);
@@ -613,6 +658,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     if (variant === null) {
       setActiveVariantSlug(null);
       setActiveData(data);
+      persistActiveVariant(null);
       triggerTransition(meta?.direction ?? 'ltr');
       return;
     }
@@ -623,6 +669,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     if (variant.fullRow) {
       setActiveVariantSlug(variant.item_slug ?? null);
       setActiveData({ ...variant.fullRow, _source_table: sourceTable });
+      persistActiveVariant(variant.item_slug ?? null);
       triggerTransition(meta?.direction ?? 'ltr');
       return;
     }
@@ -664,6 +711,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
         setActiveData({ ...fetched, _source_table: sourceTable });
+        persistActiveVariant(variant.item_slug ?? null);
         triggerTransition(dir);
       }
     } catch {

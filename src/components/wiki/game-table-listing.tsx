@@ -13,6 +13,8 @@ import { isCustomIcon } from '@/lib/table-icons';
 import Link from 'next/link';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { useTableItems } from '@/hooks/use-data-access';
+import { notifyItemsChange, notifyCatalogChange } from '@/lib/data-access';
+import { supabase } from '@/supabase';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
@@ -265,6 +267,24 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const router = useRouter();
   const { data, loading } = useTableItems(tenantSlug, tableName);
   const items: any[] = useMemo(() => data?.items ?? [], [data?.items]);
+
+  // Realtime: quando a tabela muda (gora no editor, outra aba, outro editor),
+  // invalida o cache e o hook re-busca automaticamente — sem refresh manual.
+  useEffect(() => {
+    if (!tenantId) return;
+    const channel = supabase
+      .channel(`wiki-listing:${tenantId}:${tableName}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: tableName, filter: `tenant_id=eq.${tenantId}` },
+        () => {
+          notifyItemsChange(tenantSlug, tableName);
+          notifyCatalogChange(tenantSlug);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tenantId, tenantSlug, tableName]);
 
   const { homePath } = useWikiPath(tenantSlug);
 
