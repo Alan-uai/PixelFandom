@@ -77,7 +77,6 @@ describe('CollectionItemView variant switch animations', () => {
   it('applies 3D transition, beam and updates content when selecting a variant chip', async () => {
     supabaseMock = makeSupabase();
     const { default: CollectionItemView } = await import('@/components/wiki/collection-item-view');
-  }, 20000);
 
     const { container } = render(
       <CollectionItemView
@@ -118,5 +117,5 @@ describe('CollectionItemView variant switch animations', () => {
     // 4) Componentes animados das colunas presentes (classe de animação do VariantAnimatedValue)
     const animated = container.querySelectorAll('[class*="animate-"]');
     expect(animated.length).toBeGreaterThan(0);
-  });
+  }, 20000);
 });
