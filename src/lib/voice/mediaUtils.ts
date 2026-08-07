@@ -1,4 +1,5 @@
 import { VoiceProfile } from './voiceProfile';
+import { audioLevels } from './audioLevels';
 
 export type AudioConstraints = {
   noiseSuppression?: boolean;
@@ -26,6 +27,7 @@ export class AudioStreamer {
   private voiceFilterThreshold = 0.78;
   private scriptNode: ScriptProcessorNode | null = null;
   private lastPublicSensitivity = 5;
+  private levelSource: MediaStreamAudioSourceNode | null = null;
 
   async start(
     opts?: {
@@ -97,6 +99,8 @@ export class AudioStreamer {
     }
 
     this.source = this.context.createMediaStreamSource(this.stream);
+    this.levelSource = this.source;
+    audioLevels.register('input', this.source);
 
     if (workletLoaded) {
       try {
@@ -244,6 +248,10 @@ export class AudioStreamer {
     this.workletNode?.disconnect();
     this.scriptNode?.disconnect();
     this.source?.disconnect();
+    if (this.levelSource) {
+      audioLevels.unregister(this.levelSource);
+      this.levelSource = null;
+    }
     this.stream?.getTracks().forEach((t) => t.stop());
     this.context?.close();
     this.workletNode = null;
@@ -263,6 +271,7 @@ export class AudioPlayer {
   private gainNode: GainNode | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private isReady = false;
+  private levelGain: GainNode | null = null;
 
   constructor() {
     try {
@@ -288,7 +297,13 @@ export class AudioPlayer {
 
     this.gainNode = this.context.createGain();
     this.gainNode.gain.value = 1;
-    this.gainNode.connect(this.context.destination);
+    this.levelGain = this.gainNode;
+
+    // Tap the output for the audio-reactive orb: gain -> analyser -> speakers.
+    // register() connects gain->analyser; we only need to close the chain to
+    // the destination so audio keeps flowing.
+    const analyser = audioLevels.register('output', this.gainNode);
+    analyser.connect(this.context.destination);
 
     this.workletNode = new AudioWorkletNode(
       this.context,
@@ -339,6 +354,10 @@ export class AudioPlayer {
 
   close() {
     this.isReady = false;
+    if (this.levelGain) {
+      audioLevels.unregister(this.levelGain);
+      this.levelGain = null;
+    }
     this.workletNode?.disconnect();
     this.gainNode?.disconnect();
     this.context?.close();

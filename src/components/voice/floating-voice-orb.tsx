@@ -10,8 +10,7 @@ import { WakeWordDetector } from '@/lib/voice/wakeWord'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/supabase'
 import type { WidgetVoiceConfig } from '@/components/page-builder/types'
-
-type OrbStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'
+import FerrofluidOrb, { type OrbVisualStatus } from '@/components/voice/ferrofluid-orb'
 
 type Props = {
   tenantSlug: string
@@ -34,9 +33,8 @@ function loadSettings() {
 export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl, widgetConfig }: Props) {
   const router = useRouter()
 
-  const [status, setStatus] = useState<OrbStatus>('idle')
+  const [status, setStatus] = useState<OrbVisualStatus>('idle')
   const [isMicOn, setIsMicOn] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const apiRef = useRef<GeminiLiveAPI | null>(null)
@@ -189,7 +187,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     stopWakeWordDetector()
     isConnectingRef.current = true
     semaphoreRef.current = true
-    setIsConnecting(true)
     setStatus('connecting')
     setErrorMessage(null)
 
@@ -226,7 +223,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
               title: `Conversa de voz - ${new Date().toLocaleString('pt-BR')}`,
               provider: 'voice',
               model: 'gemini-3.1-flash-live-preview',
-              voice_name: settingsRef.current.voice || 'Kore',
+              voice_name: settingsRef.current.voice || 'Puck',
             }),
           }).then((res) => {
             if (semaphoreRef.current && res.ok) {
@@ -259,7 +256,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       client.inputAudioTranscription = true
       client.outputAudioTranscription = true
       client.responseModalities = ['AUDIO']
-      client.voiceName = (settingsRef.current.voice as VoiceName) || 'Kore'
+      client.voiceName = (settingsRef.current.voice as VoiceName) || 'Puck'
       client.temperature = settingsRef.current.temperature ?? 0.7
 
       if (settingsRef.current.publicMode) client.setPublicMode(true)
@@ -300,7 +297,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         setStatus('error')
         setErrorMessage('Erro: ' + err)
         isConnectingRef.current = false
-        setIsConnecting(false)
       }
       client.onClose = () => {
         setStatus('idle')
@@ -308,7 +304,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         streamerRef.current = null
         apiRef.current = null
         isConnectingRef.current = false
-        setIsConnecting(false)
 
         // Archive voice session
         const sid = voiceSessionIdRef.current
@@ -327,7 +322,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       }
       client.onOpen = async () => {
         setStatus('connected')
-        setIsConnecting(false)
         isConnectingRef.current = false
       }
 
@@ -344,7 +338,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       setStatus('error')
       setErrorMessage('Falha: ' + error.message)
       isConnectingRef.current = false
-      setIsConnecting(false)
       streamerRef.current?.stop()
       streamerRef.current = null
       setIsMicOn(false)
@@ -361,7 +354,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     playerRef.current = null
     setIsMicOn(false)
     setStatus('idle')
-    setIsConnecting(false)
     isConnectingRef.current = false
     semaphoreRef.current = false
   }, [])
@@ -396,6 +388,12 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     }
   }, [connect, disconnect, isMicOn])
 
+  // The 3D orb detects live speaking/listening from the audio taps; elevate the
+  // UI state (size/glow) without clobbering lifecycle states.
+  const handleOrbStatus = useCallback((next: OrbVisualStatus) => {
+    setStatus((prev) => (prev === 'connecting' || prev === 'error' ? prev : next))
+  }, [])
+
   if (widgetConfig?.enabled === false) return null
 
   const baseIdleSize = widgetConfig?.size === 'sm' ? 'h-14 w-14' : widgetConfig?.size === 'lg' ? 'h-20 w-20' : 'h-16 w-16'
@@ -418,7 +416,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     ? 'animate-glow'
     : ''
 
-  const orbColors: Record<OrbStatus, string> = {
+  const orbColors: Record<OrbVisualStatus, string> = {
     idle: 'bg-primary/60 shadow-primary/20',
     connecting: 'bg-amber-500/60 shadow-amber-500/20',
     connected: 'bg-emerald-500/60 shadow-emerald-500/20',
@@ -431,19 +429,18 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     <>
       <button
         onClick={handleClick}
-        className={`fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]} flex items-center justify-center hover:scale-110 hover:shadow-3xl ${animationClass}`}
+        className={`fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]} flex items-center justify-center hover:scale-105 hover:shadow-3xl ${animationClass}`}
         title={isMicOn ? 'Desconectar' : 'Assistente de Voz'}
+        aria-label={isMicOn ? 'Desconectar assistente de voz' : 'Ativar assistente de voz'}
       >
-        <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
-        <div className="relative flex items-center justify-center">
-          {isConnecting || status === 'connecting' ? (
-            <div className="h-6 w-6 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Mic className={`h-7 w-7 text-white ${status === 'speaking' ? 'animate-bounce' : ''}`} />
-          )}
-        </div>
+        <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+        <FerrofluidOrb
+          className="absolute inset-0 z-10"
+          status={status}
+          onStatusChange={handleOrbStatus}
+        />
         {(status === 'listening' || status === 'speaking') && (
-          <div className={`absolute -inset-4 rounded-full border-2 animate-ping ${
+          <div className={`absolute -inset-5 rounded-full border-2 animate-ping pointer-events-none ${
             status === 'listening' ? 'border-cyan-400/40' : 'border-violet-400/40'
           }`} />
         )}
@@ -461,15 +458,5 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         </div>
       )}
     </>
-  )
-}
-
-function Mic({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" x2="12" y1="19" y2="22" />
-    </svg>
   )
 }
