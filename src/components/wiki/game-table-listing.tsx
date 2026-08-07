@@ -344,9 +344,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   // Mapa itemId -> nome da variante ativa (usado p/ refletir variantes na categoria quando catColumn === 'name')
   const [activeVariantNames, setActiveVariantNames] = useState<Record<string, string>>({});
-  // Variante ativa (linha completa + slug) persistida no pai, keyed por itemId.
-  // Quando a categorização por 'name' move o card entre grupos (remontando o
-  // ItemCard), essa seleção é restaurada — evita o card "piscar" e voltar ao item base.
   const [activeVariants, setActiveVariants] = useState<Record<string, { item: any; variantSlug: string | null }>>({});
   const handleVariantChange = useCallback((
     itemId: string,
@@ -564,10 +561,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const manualGroups = viewerConfig?.categorization?.manualGroups || [];
 
     for (const item of filteredItems) {
-      // Chave de grupo ESTÁVEL (base da linha), não a variante ativa. Se a chave
-      // mudasse com a variante, o card seria movido entre grupos → remontava,
-      // cancelando o pre-cache de variantes e resetando a animação. O título do
-      // grupo exibe a variante ativa (via activeVariantNames em renderCategory).
       const raw = item[catCol];
       let cat = raw != null && raw !== '' ? formatCategoryValue(catCol, raw) : 'Outros';
 
@@ -828,8 +821,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const labelSize = vc?.categorization?.labelSize ?? 12;
     const isExpanded = expanded.has(category) || (vc?.categorization?.defaultExpanded !== false && expanded.size === 0);
 
-    // Título dinâmico: quando agrupamos por 'name' (chave estável = base), a label
-    // exibida é a variante ativa — sem mover o card entre grupos.
     const isNameGroup = columnAnalysis?.categoryColumn === 'name';
     const primaryItem = catItems[0];
     const displayLabel = isNameGroup && primaryItem
@@ -1760,13 +1751,10 @@ function ItemCard({
   // Track the base item id so the variant state only resets when the BASE
   // item changes — not when a variant is selected or the parent re-renders.
   const baseIdRef = useRef<string | undefined>(item.id as string | undefined);
-  // Se o pai persistiu uma variante para este item (sobrevive a remontagens por
-  // re-agrupamento de categoria), inicializa a partir dela para não "piscar".
   const [activeItem, setActiveItem] = useState<any>(persistedVariant ?? item);
   const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(persistedVariantSlug ?? null);
   const [loadingVariant, setLoadingVariant] = useState(false);
 
-  // Restaura a seleção persistida caso ela mude enquanto o card está montado.
   useEffect(() => {
     if (persistedVariant) setActiveItem(persistedVariant);
   }, [persistedVariant]);
