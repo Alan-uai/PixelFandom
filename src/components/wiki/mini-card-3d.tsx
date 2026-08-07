@@ -93,34 +93,39 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
 
 /**
  * Bento-box layout wrapper used to lay mini cards inside an item card.
- * Uses CSS multi-column so each card keeps its natural height and the
- * shorter cards do not stretch to match taller neighbours — unlike a
- * fixed 2-column grid. Cards break inside of themselves are avoided.
- */
-/**
- * Bento-box layout wrapper used to lay mini cards inside an item card.
  *
- * Flexible bento behaviour (1–2 columns ONLY):
- *  - With a single card it spans the FULL column width (no forced 2-column
- *    track that would leave the card squished in the left half).
- *  - With 2+ cards it lays them out in at most 2 columns. We use a flex
- *    wrap with each card taking 1/2 width, so an uneven count still fills
- *    the row (e.g. 3 cards → 2 on top, 1 full-width below) and a lone card
- *    in a row stretches to full width.
- *  - When `singleFullWidth` is false (e.g. explicit 2-column grids) the old
- *    balanced `columns-2` behaviour is kept.
+ * True masonry/bento behaviour (no fixed column count):
+ *  - Rendered as CSS multi-column masonry. The number of columns is deduced
+ *    entirely from the container width and the chosen `columnWidth`, so the
+ *    grid adapts to the size of the wrapping item/card automatically — no
+ *    hardcoded 2-column track and no pre-defined column limit.
+ *  - Each card flows top-to-bottom, keeps its NATURAL height and is never
+ *    stretched to match a taller neighbour. This is what lets the v1–v5
+ *    visual variants of a column type express their different sizes: a short
+ *    card (e.g. a compact badge variant) takes less vertical space than a
+ *    tall card (e.g. a big image/grid variant) and the bento column simply
+ *    re-flows around it.
+ *  - With a single card the whole bento collapses to a single full-width
+ *    column (no leftover half-width slot). When `singleFullWidth` is false
+ *    the lone card sits in a single column as-is.
  */
 export function MiniCardGrid({
   children,
   className = '',
   singleFullWidth = true,
   count,
+  columnWidth = 168,
+  gap = 8,
 }: {
   children: React.ReactNode;
   className?: string;
   singleFullWidth?: boolean;
-  /** Optional explicit count of cards; used to skip the 2-col track for a single card. */
+  /** Optional explicit count of cards; used to collapse to one column for a single card. */
   count?: number;
+  /** Target column width in px — the browser derives the column count from it + container width. */
+  columnWidth?: number;
+  /** Vertical + horizontal gap between cards, in px. */
+  gap?: number;
 }) {
   const kids = count ?? (Array.isArray(children) ? children.length : children ? 1 : 0);
   const solo = singleFullWidth && kids === 1;
@@ -128,8 +133,8 @@ export function MiniCardGrid({
   if (solo) {
     return (
       <div
-        className={`flex flex-col gap-2 ${className}`}
-        style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+        className={`flex flex-col ${className}`}
+        style={{ perspective: '1000px', transformStyle: 'preserve-3d', rowGap: gap }}
       >
         {children}
       </div>
@@ -138,24 +143,35 @@ export function MiniCardGrid({
 
   return (
     <div
-      className={`flex flex-wrap gap-2 ${className}`}
-      style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+      className={className}
+      style={{
+        perspective: '1000px',
+        transformStyle: 'preserve-3d',
+        columnWidth: `${columnWidth}px`,
+        columnGap: gap,
+      }}
     >
-      {wrapChildren(children)}
+      {wrapChildren(children, gap)}
     </div>
   );
 }
 
 /**
- * Each direct child is wrapped so it takes 1/2 width on wider screens but
- * stretches to full width when it is the only item on its row. The
- * `min-w-0` keeps long content from overflowing the flex item.
+ * Each direct child becomes a tile in the masonry flow. `break-inside-avoid`
+ * keeps a card intact instead of splitting it across columns, and `inline-block`
+ * is required by the CSS multi-column spec so the tile is treated as a column
+ * cell that packs on its own natural height. `mb-[gap]` restores vertical
+ * spacing between tiles within a column.
  */
-function wrapChildren(children: React.ReactNode) {
+function wrapChildren(children: React.ReactNode, gap = 8) {
   const arr = Array.isArray(children) ? children : [children];
   return arr.map((child, i) =>
     child == null ? null : (
-      <div key={i} className="min-w-0 flex-[1_1_48%] max-w-full">
+      <div
+        key={i}
+        className="mb-0 w-full break-inside-avoid"
+        style={{ marginBottom: gap, display: 'inline-block', width: '100%' }}
+      >
         {child}
       </div>
     ),
