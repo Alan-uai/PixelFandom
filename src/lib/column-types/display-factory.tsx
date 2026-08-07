@@ -81,7 +81,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   opEnabled?: boolean;
   opFlipped?: boolean;
   maxValue?: number;
-  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[]; labelIcon?: string };
+  columnConfig?: { jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[]; labelIcon?: string; displayName?: string };
   variant?: number;
   labelColor?: string;
   valueColors?: Record<string, string>;
@@ -99,6 +99,9 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   const resolvedValueColors = valueColors ?? columnConfig?.valueColors;
   const allowedValues = columnConfig?.allowedValues;
 
+  /** Label shown on the render — prefers the user-given display name, falls back to the internal column key. */
+  const columnLabel = columnConfig?.displayName || column;
+
   /** Build the label ReactNode: icon + text when labelIcon is present. */
   function withLabelIcon(text: string): ReactNode {
     if (!columnConfig?.labelIcon) return text;
@@ -113,7 +116,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   // jsonb: data extraction first (parse + key formatting), then delegate
   if (renderType === 'jsonb') {
     const parsed = parseIfJson(prepared);
-    const dl = hideLabel ? '' : column;
+    const dl = hideLabel ? '' : columnLabel;
     if (Array.isArray(parsed)) {
       return (
         <FormatVariantRenderer
@@ -162,7 +165,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
   // auto: data extraction with type detection, then delegate
   if (renderType === 'auto') {
-    const displayLabel = hideLabel ? '' : column;
+    const displayLabel = hideLabel ? '' : columnLabel;
     if (typeof prepared === 'object' && prepared !== null) {
       return (
         <FormatVariantRenderer
@@ -208,7 +211,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   // icon-set / color-palette / multi-select / tags: parse JSON arrays
   if (['icon-set', 'color-palette', 'multi-select', 'tags', 'select', 'toggle-group'].includes(renderType)) {
     const arr = parseIfJson(prepared);
-    const dl = hideLabel ? '' : column;
+    const dl = hideLabel ? '' : columnLabel;
     return (
       <FormatVariantRenderer
         format={renderTypeToFormat(renderType)}
@@ -227,7 +230,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
 
   // Popover/tooltip has its own dedicated renderer — skip JSON auto-detect.
   if (renderType === 'popover') {
-    const dl = hideLabel ? '' : column;
+    const dl = hideLabel ? '' : columnLabel;
     return (
       <FormatVariantRenderer
         format="popover"
@@ -244,7 +247,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   }
 
   // All other types: direct delegation
-  const dl = hideLabel ? '' : column;
+  const dl = hideLabel ? '' : columnLabel;
 
   // Auto-detect JSON array/object stored as text string (e.g. popover_config
   // with empty/missing columnTypes). Parse and route as jsonb-structured to

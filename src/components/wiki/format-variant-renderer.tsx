@@ -1550,6 +1550,29 @@ function RenderPopover({ v, title, content, label, labelColor, triggerMode, posi
   const displayLabel = triggerText || label || title || content;
 
   const renderTrigger = () => {
+    if (v === 1) {
+      const accent = labelColor || 'hsl(var(--primary))';
+      return (
+        <motion.button
+          type="button"
+          className="relative w-full overflow-hidden rounded-xl border bg-card/70 p-2.5 text-xs shadow-sm backdrop-blur-md cursor-pointer"
+          style={{ borderColor: `${accent}55`, perspective: '700px', transformStyle: 'preserve-3d' }}
+          whileHover={{ scale: 1.02, rotateX: 3, rotateY: -3, boxShadow: `0 12px 24px -12px ${accent}` }}
+          whileTap={{ scale: 0.98 }}
+          {...showEvent}
+        >
+          {label && (
+            <span className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>
+              {label}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 font-medium text-foreground" style={{ transform: 'translateZ(18px)' }}>
+            <Info className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+            <span className="truncate max-w-full">{displayLabel}</span>
+          </span>
+        </motion.button>
+      );
+    }
     if (v === 2) {
       return (
         <motion.button
@@ -2456,7 +2479,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
 
-  if (n === 1 && format !== 'badge' && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
+  if (n === 1 && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured' && !plain) {
     const rawContent = format === 'icon' && icon
       ? null
       : renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled, opFlipped);

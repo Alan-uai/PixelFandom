@@ -1,6 +1,6 @@
 'use client';
 
-import { Icon } from '@iconify/react';
+import { IconifyIcon } from './iconify-icon';
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 import { type CSSProperties } from 'react';
@@ -93,9 +93,9 @@ export function IconRenderer({ icon, animation: animProp, size = 'md', style, cl
   if (isUrlIcon(iconId)) {
     iconEl = <Image src={iconId} alt="" width={dim} height={dim} className={className} style={style as CSSProperties} />;
   } else if (isIconifyIcon(iconId)) {
-    iconEl = <Icon icon={iconId} width={dim} height={dim} style={style as CSSProperties} className={className} />;
+    iconEl = <IconifyIcon icon={iconId} width={dim} height={dim} style={style} className={className} />;
   } else {
-    iconEl = <Icon icon={`lucide:${pascalToKebab(iconId)}`} width={dim} height={dim} style={style as CSSProperties} className={className} />;
+    iconEl = <IconifyIcon icon={`lucide:${pascalToKebab(iconId)}`} width={dim} height={dim} style={style} className={className} />;
   }
 
   if (anim === 'none' || !anim) return iconEl;

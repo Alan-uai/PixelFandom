@@ -12,7 +12,7 @@ import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { Plus, Trash2, Loader2, Tag, ArrowUpDown, ArrowDownUp, Palette } from 'lucide-react';
-import { Icon } from '@iconify/react';
+import { IconifyIcon } from '@/components/ui/iconify-icon';
 import { getCategorizableColumns, getSortableColumns, getColumnSortLabel, analyzeColumnValues, getHexHue } from '@/lib/categorizable-columns';
 
 export function CategorizationConfig({
@@ -376,7 +376,7 @@ export function CategorizationConfig({
                               <IconRenderer icon={currentIcon} size="sm" />
                             )
                           ) : (
-                            <Icon icon="lucide:help-circle" width={14} height={14} className="text-muted-foreground/50" />
+                            <IconifyIcon icon="lucide:help-circle" width={14} height={14} className="text-muted-foreground/50" />
                           )}
                         </div>
 
@@ -596,7 +596,7 @@ export function CategorizationConfig({
                             <IconRenderer icon={currentIcon} size="sm" />
                           )
                         ) : (
-                          <Icon icon="lucide:help-circle" width={10} height={10} className="text-muted-foreground/50" />
+                          <IconifyIcon icon="lucide:help-circle" width={10} height={10} className="text-muted-foreground/50" />
                         )}
                       </div>
                       <span className="text-[10px]">{sub}</span>

@@ -53,7 +53,7 @@ function addSecurityHeaders(response: NextResponse): void {
       "style-src 'self' 'unsafe-inline' https://*.supabase.co https://fonts.googleapis.com",
       "img-src 'self' data: blob: http://*.supabase.co https://*.supabase.co https://*.googleusercontent.com https://cdn.discordapp.com https://placehold.co https://images.unsplash.com https://picsum.photos",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://openrouter.ai https://generativelanguage.googleapis.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://openrouter.ai https://generativelanguage.googleapis.com https://api.iconify.design https://*.iconify.design",
       "frame-src 'self' https://accounts.google.com https://*.youtube.com https://*.youtu.be",
       "media-src 'self' https://*.supabase.co",
       "object-src 'none'",

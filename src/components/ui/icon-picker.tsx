@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Icon } from '@iconify/react';
+import { IconifyIcon } from './iconify-icon';
 import { Search, X, ChevronLeft, Grid3X3 } from 'lucide-react';
 import { ICON_CATEGORIES, searchIcons } from '@/data/icons';
 import { IconRenderer, type AnimationStyle } from './icon-renderer';
@@ -118,13 +118,13 @@ export function IconPicker({ value: currentValue, animation: currentAnim, onChan
                     currentValue === iconId ? 'ring-2 ring-primary bg-primary/10' : ''
                   }`}
                 >
-                  <Icon icon={iconId} width={18} height={18} />
+                  <IconifyIcon icon={iconId} width={18} height={18} />
                 </button>
               ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Icon icon="mdi:search-off" width={40} height={40} className="mb-2 opacity-40" />
+              <IconifyIcon icon="mdi:search-off" width={40} height={40} className="mb-2 opacity-40" />
               <p className="text-xs">Nenhum ícone encontrado</p>
               <p className="text-[10px] mt-1">Tente outros termos de busca</p>
             </div>
@@ -182,7 +182,7 @@ export function IconPickerTrigger({ value, animation, onChange, size = 'md' }: I
         {value ? (
           <IconRenderer icon={value} animation={animation} size="sm" />
         ) : (
-          <Icon icon="lucide:star" width={16} height={16} className="text-muted-foreground" />
+          <IconifyIcon icon="lucide:star" width={16} height={16} className="text-muted-foreground" />
         )}
         <span className="text-muted-foreground text-xs truncate max-w-[100px]">
           {value ? value.split(':').pop() : 'Ícone'}

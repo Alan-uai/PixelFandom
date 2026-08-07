@@ -1,6 +1,6 @@
 'use client';
 
-import { Icon } from '@iconify/react';
+import { IconifyIcon } from '@/components/ui/iconify-icon';
 import Image from 'next/image';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { resolveTableIcon, isCustomIcon, TABLE_ICONS } from '@/lib/table-icons';
@@ -25,17 +25,13 @@ function isIconify(value: string): boolean {
   return !!value && value.includes(':') && !value.startsWith('http');
 }
 
-function IconifyIcon({ icon, className, size = 16 }: { icon: string; className?: string; size?: number }) {
-  return <Icon icon={icon} width={size} height={size} className={className} />;
-}
-
 function IconRender({ name, className }: { name?: string | null; className?: string }) {
   if (!name) return null;
   if (isCustomIcon(name)) {
     return <Image src={name} alt="" width={14} height={14} className={`shrink-0 rounded object-cover ${className || ''}`} />;
   }
   if (isIconify(name)) {
-    return <IconifyIcon icon={name} className={className} size={14} />;
+    return <IconifyIcon icon={name} className={className} width={14} height={14} />;
   }
   return React.createElement(resolveTableIcon(name), { className } as React.Attributes);
 }
@@ -236,7 +232,7 @@ export function TableIconPicker({ value, onChange, slug, tenantId, size = 'md' }
                         selected ? 'ring-2 ring-primary bg-primary/10 text-primary' : ''
                       }`}
                     >
-                      <IconifyIcon icon={iconId} size={16} />
+                      <IconifyIcon icon={iconId} width={16} height={16} />
                     </button>
                   );
                 })}

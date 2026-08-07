@@ -60,7 +60,7 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
       style={{
         rotateX,
         rotateY,
-        perspective: '700px',
+        transformPerspective: 700,
         transformStyle: 'preserve-3d',
         borderColor: `${accent}55`,
       }}
@@ -134,7 +134,7 @@ export function MiniCardGrid({
     return (
       <div
         className={`flex flex-col ${className}`}
-        style={{ perspective: '1000px', transformStyle: 'preserve-3d', rowGap: gap }}
+        style={{ rowGap: gap }}
       >
         {children}
       </div>
@@ -145,8 +145,6 @@ export function MiniCardGrid({
     <div
       className={className}
       style={{
-        perspective: '1000px',
-        transformStyle: 'preserve-3d',
         columnWidth: `${columnWidth}px`,
         columnGap: gap,
       }}
