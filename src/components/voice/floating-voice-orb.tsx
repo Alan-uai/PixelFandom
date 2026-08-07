@@ -127,10 +127,8 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       if (!streamerRef.current) {
         streamerRef.current = new AudioStreamer()
       }
-      if (apiRef.current) {
-        streamerRef.current.onAudio = (base64) => {
-          apiRef.current?.sendAudioMessage(base64)
-        }
+      streamerRef.current.onAudio = (base64) => {
+        apiRef.current?.sendAudioMessage(base64)
       }
       if (streamerRef.current) {
         await streamerRef.current.start({
@@ -191,6 +189,12 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     setErrorMessage(null)
 
     try {
+      // Request the microphone now, inside the user's click gesture. Some
+      // browsers require a transient user activation for getUserMedia; waiting
+      // until onSetupComplete would make the gesture expire and fail with a
+      // misleading "Microfone não disponível" plus a connection error.
+      await startAudioStreaming()
+
       const response = await fetch('/api/token', { method: 'POST' })
       if (!response.ok) throw new Error(`Falha ao obter token: ${response.statusText}`)
       const { token } = await response.json()
@@ -336,6 +340,9 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       setErrorMessage('Falha: ' + error.message)
       isConnectingRef.current = false
       setIsConnecting(false)
+      streamerRef.current?.stop()
+      streamerRef.current = null
+      setIsMicOn(false)
     }
   }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector])
 

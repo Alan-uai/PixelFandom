@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { BentoGrid } from '@/components/wiki/bento-grid';
 
 export interface MiniCard3DProps {
   label?: React.ReactNode;
@@ -99,24 +100,18 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
  *    entirely from the container width and the chosen `columnWidth`, so the
  *    grid adapts to the size of the wrapping item/card automatically — no
  *    hardcoded 2-column track and no pre-defined column limit.
- *  - Each card flows top-to-bottom, keeps its NATURAL height and is never
- *    stretched to match a taller neighbour. This is what lets the v1–v5
- *    visual variants of a column type express their different sizes: a short
- *    card (e.g. a compact badge variant) takes less vertical space than a
- *    tall card (e.g. a big image/grid variant) and the bento column simply
- *    re-flows around it.
+ *  - Each card keeps its NATURAL height and is never stretched to match a
+ *    taller neighbour. This lets the v1–v5 visual variants of a column type
+ *    express their different sizes and the bento column simply re-flows.
  *  - With a single card the whole bento collapses to a single full-width
  *    column (no leftover half-width slot). When `singleFullWidth` is false
  *    the lone card sits in a single column as-is.
+ *
+ * This is a thin wrapper over the unified `BentoGrid` so every item-card grid
+ * (mini cards, stat cells, holo/neon panels…) shares the same reusable bento
+ * layout implementation.
  */
-export function MiniCardGrid({
-  children,
-  className = '',
-  singleFullWidth = true,
-  count,
-  columnWidth = 168,
-  gap = 8,
-}: {
+export function MiniCardGrid(props: {
   children: React.ReactNode;
   className?: string;
   singleFullWidth?: boolean;
@@ -127,51 +122,5 @@ export function MiniCardGrid({
   /** Vertical + horizontal gap between cards, in px. */
   gap?: number;
 }) {
-  const kids = count ?? (Array.isArray(children) ? children.length : children ? 1 : 0);
-  const solo = singleFullWidth && kids === 1;
-
-  if (solo) {
-    return (
-      <div
-        className={`flex flex-col ${className}`}
-        style={{ rowGap: gap }}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={className}
-      style={{
-        columnWidth: `${columnWidth}px`,
-        columnGap: gap,
-      }}
-    >
-      {wrapChildren(children, gap)}
-    </div>
-  );
-}
-
-/**
- * Each direct child becomes a tile in the masonry flow. `break-inside-avoid`
- * keeps a card intact instead of splitting it across columns, and `inline-block`
- * is required by the CSS multi-column spec so the tile is treated as a column
- * cell that packs on its own natural height. `mb-[gap]` restores vertical
- * spacing between tiles within a column.
- */
-function wrapChildren(children: React.ReactNode, gap = 8) {
-  const arr = Array.isArray(children) ? children : [children];
-  return arr.map((child, i) =>
-    child == null ? null : (
-      <div
-        key={i}
-        className="mb-0 w-full break-inside-avoid"
-        style={{ marginBottom: gap, display: 'inline-block', width: '100%' }}
-      >
-        {child}
-      </div>
-    ),
-  );
+  return <BentoGrid mode="masonry" {...props} />;
 }

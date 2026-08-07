@@ -40,9 +40,11 @@ export class AudioStreamer {
     const publicMode = opts?.publicMode || false;
     this.publicMode = publicMode;
 
+    // Use non-constraining "ideal" values so the browser picks the closest
+    // sample rate instead of throwing OverconstrainedError on unsupported mics.
     const audioConstraints: MediaTrackConstraints = {
-      sampleRate: c.sampleRate || this.sampleRate,
-      channelCount: 1,
+      channelCount: { ideal: 1 },
+      sampleRate: { ideal: c.sampleRate || this.sampleRate },
       echoCancellation: publicMode ? true : c.echoCancellation ?? true,
       noiseSuppression: publicMode ? true : c.noiseSuppression ?? true,
       autoGainControl: publicMode ? true : c.autoGainControl ?? true,
@@ -51,11 +53,29 @@ export class AudioStreamer {
       audioConstraints.deviceId = { exact: opts.deviceId };
     }
 
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: audioConstraints,
-    });
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+      });
+    } catch {
+      // Fallback: retry with minimal constraints (some browsers/devices reject
+      // composite "ideal" constraints).
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        this.isActive = false;
+        throw err;
+      }
+    }
+    this.stream = stream;
 
-    this.context = new AudioContext({ sampleRate: this.sampleRate });
+    try {
+      this.context = new AudioContext({ sampleRate: this.sampleRate });
+    } catch {
+      // Some browsers throw on a non-default sample rate; fall back to default.
+      this.context = new AudioContext();
+    }
     await this.context.audioWorklet.addModule(
       '/audio-processors/capture.worklet.js'
     );

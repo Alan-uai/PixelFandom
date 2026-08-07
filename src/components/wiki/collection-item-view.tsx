@@ -16,6 +16,7 @@ import type { ColumnInfo } from '@/lib/game-schema';
 import { ColumnDisplay, type AllowedValue } from '@/lib/column-types/display-factory';
 import { getTypeDef } from '@/lib/column-types/registry';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
+import { BentoGrid } from '@/components/wiki/bento-grid';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
@@ -381,7 +382,7 @@ function RenderTypeFields({
   if (numCols.length > 0) {
     numCols.forEach((c) => rendered.add(c.column_name));
     sections.push(
-      <div key="dyn-stats" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+      <BentoGrid key="dyn-stats" mode="grid" columnWidth={180} gap={12} className="mb-6" count={numCols.length}>
         {numCols.map((c) => {
           return (
             <StatCard
@@ -401,7 +402,7 @@ function RenderTypeFields({
             />
           );
         })}
-      </div>,
+      </BentoGrid>,
     );
   }
 

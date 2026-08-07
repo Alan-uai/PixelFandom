@@ -8,6 +8,7 @@ import {
   FileIcon, Video, Music, CalendarIcon,
 } from 'lucide-react';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { BentoGrid } from '@/components/wiki/bento-grid';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
@@ -2141,8 +2142,11 @@ function ComplexRow3D({ k, val, color, useSuffix, depth = 0, opEnabled, opFlippe
 function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean): React.ReactNode {
   const entries = complexEntries(value);
   return (
-    <div
-      className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1"
+    <BentoGrid
+      mode="masonry"
+      columnWidth={200}
+      gap={8}
+      className="p-1"
       style={{ perspective: '900px', transformStyle: 'preserve-3d' }}
     >
       {entries.map(([k, val], i) => {
@@ -2164,7 +2168,7 @@ function renderHoloPanels(value: unknown, _label: string, useSuffix?: boolean, j
           </div>
         );
       })}
-    </div>
+    </BentoGrid>
   );
 }
 
@@ -2173,9 +2177,11 @@ function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jso
   const entries = complexEntries(value);
   return (
     <div className="p-1" style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}>
-      <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', transform: 'rotateX(12deg)', transformStyle: 'preserve-3d' }}
+      <BentoGrid
+        mode="grid"
+        columnWidth={120}
+        gap={8}
+        style={{ transform: 'rotateX(12deg)', transformStyle: 'preserve-3d' }}
       >
         {entries.map(([k, val], i) => {
           const isComplex = typeof val === 'object' && val !== null;
@@ -2213,7 +2219,7 @@ function renderNeonGrid(value: unknown, _label: string, useSuffix?: boolean, jso
             </div>
           );
         })}
-      </div>
+      </BentoGrid>
     </div>
   );
 }
