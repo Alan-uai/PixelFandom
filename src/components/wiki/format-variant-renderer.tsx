@@ -874,10 +874,19 @@ function renderDate(v: number, val: unknown, label: string, labelColor?: string)
 function renderDuration(v: number, val: unknown, label: string, labelColor?: string) {
   const str = String(val ?? '');
   let display = str;
-  if (/^\d+:\d{2}(:\d{2})?$/.test(str)) {
+  if (/^\d{1,4}(:\d{2}){0,3}$/.test(str)) {
     const parts = str.split(':').map(Number);
-    if (parts.length === 3) display = `${parts[0]}h ${parts[1]}m${parts[2] > 0 ? ` ${parts[2]}s` : ''}`;
-    else if (parts.length === 2) display = `${parts[0]}m ${parts[1]}s`;
+    let d = 0, h = 0, m = 0, s = 0;
+    if (parts.length === 4) { d = parts[0]; h = parts[1]; m = parts[2]; s = parts[3]; }
+    else if (parts.length === 3) { h = parts[0]; m = parts[1]; s = parts[2]; }
+    else if (parts.length === 2) { m = parts[0]; s = parts[1]; }
+    else { s = parts[0]; }
+    const partsLabel: string[] = [];
+    if (d > 0) partsLabel.push(`${d}d`);
+    if (h > 0) partsLabel.push(`${h}h`);
+    if (m > 0) partsLabel.push(`${m}m`);
+    if (s > 0 || partsLabel.length === 0) partsLabel.push(`${s}s`);
+    display = partsLabel.join(' ');
   }
 
   if (v === 2) {
@@ -1561,14 +1570,14 @@ function RenderPopover({ v, title, content, label, labelColor, triggerMode, posi
           whileTap={{ scale: 0.98 }}
           {...showEvent}
         >
-          {label && (
-            <span className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>
-              {label}
+          {title && (
+            <span className="block text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: accent }}>
+              {title}
             </span>
           )}
-          <span className="inline-flex items-center gap-1.5 font-medium text-foreground" style={{ transform: 'translateZ(18px)' }}>
+          <span className="inline-flex items-center gap-1.5 font-medium text-foreground max-w-full" style={{ transform: 'translateZ(18px)' }}>
             <Info className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
-            <span className="truncate max-w-full">{displayLabel}</span>
+            <span className="truncate min-w-0">{content || '—'}</span>
           </span>
         </motion.button>
       );

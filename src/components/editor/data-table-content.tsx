@@ -197,6 +197,7 @@ export default function DataTableContent({
   const [editFieldCol, setEditFieldCol] = useState<string | null>(null);
   const [editFieldName, setEditFieldName] = useState('');
   const [editFieldType, setEditFieldType] = useState<string>('text');
+  const [editFieldMaxValue, setEditFieldMaxValue] = useState('5');
   const [editFieldSlug, setEditFieldSlug] = useState<string | null>(null);
   const [editFieldConflict, setEditFieldConflict] = useState<string | null>(null);
   const [editFieldChecking, setEditFieldChecking] = useState(false);
@@ -252,9 +253,16 @@ export default function DataTableContent({
       }
     }
 
+    const isLimited = newType === 'slider' || newType === 'rating';
+    const newMax = isLimited ? Math.max(1, parseInt(editFieldMaxValue, 10) || (newType === 'rating' ? 5 : 100)) : undefined;
+
     setColumnConfigMap((prev) => ({
       ...prev,
-      [col]: { ...(prev[col] || {}), displayName: rawName },
+      [col]: {
+        ...(prev[col] || {}),
+        displayName: rawName,
+        ...(isLimited && newMax ? { maxValue: newMax } : {}),
+      },
     }));
 
     if (newType !== oldRenderType) {
@@ -264,7 +272,9 @@ export default function DataTableContent({
     await updateViewerConfigField({ tenantId, table, slug }, (config) => {
       const next: Record<string, unknown> = { ...config };
       const prevColCfg = ((next.columnConfig as Record<string, unknown>) || {})[col];
-      next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), [col]: { ...(prevColCfg as Record<string, unknown> || {}), displayName: rawName } };
+      const colCfgPatch: Record<string, unknown> = { displayName: rawName };
+      if (isLimited && newMax) colCfgPatch.maxValue = newMax;
+      next.columnConfig = { ...((next.columnConfig as Record<string, unknown>) || {}), [col]: { ...(prevColCfg as Record<string, unknown> || {}), ...colCfgPatch } };
       const existingTypes = (next.columnTypes as Record<string, string>) || {};
       next.columnTypes = { ...existingTypes, [col]: newType };
       return next;
@@ -274,13 +284,16 @@ export default function DataTableContent({
     setEditFieldCol(null);
     setEditFieldName('');
     setEditFieldType('text');
+    setEditFieldMaxValue('5');
     setSchemaBusy(false);
   };
 
   const handleOpenEditFieldDialog = (col: string) => {
     setEditFieldCol(col);
     setEditFieldName(columnConfigMap[col]?.displayName || col.replace(/_/g, ' '));
-    setEditFieldType(columnRenderTypes[col] || getTypeDef(col)?.id || 'text');
+    const rt = columnRenderTypes[col] || getTypeDef(col)?.id || 'text';
+    setEditFieldType(rt);
+    setEditFieldMaxValue(String(columnConfigMap[col]?.maxValue ?? (rt === 'rating' ? 5 : 100)));
     setEditFieldSlug(null);
     setEditFieldConflict(null);
     setEditFieldChecking(false);
@@ -1953,7 +1966,7 @@ export default function DataTableContent({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editFieldCol !== null} onOpenChange={(open) => { if (!open) { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); } }}>
+      <Dialog open={editFieldCol !== null} onOpenChange={(open) => { if (!open) { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldMaxValue('5'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar campo</DialogTitle>
@@ -1986,13 +1999,33 @@ export default function DataTableContent({
               <Label className="text-xs text-muted-foreground">Tipo</Label>
               <FieldTypeSelect3D
                 value={editFieldType}
-                onChange={setEditFieldType}
+                onChange={(t) => {
+                  setEditFieldType(t);
+                  if (t === 'slider' || t === 'rating') {
+                    setEditFieldMaxValue(String(columnConfigMap[editFieldCol!]?.maxValue ?? (t === 'rating' ? 5 : 100)));
+                  }
+                }}
                 options={newFieldTypes}
               />
             </div>
+            {(editFieldType === 'slider' || editFieldType === 'rating') && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Valor máximo</Label>
+                <input
+                  type="number"
+                  min={1}
+                  value={editFieldMaxValue}
+                  onChange={(e) => setEditFieldMaxValue(e.target.value)}
+                  className="h-8 w-24 rounded-lg border bg-background px-2 text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Limite exibido para este campo (ex.: estrelas ou escala do slider).
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); }} disabled={schemaBusy}>
+            <Button variant="outline" size="sm" onClick={() => { setEditFieldCol(null); setEditFieldName(''); setEditFieldType('text'); setEditFieldMaxValue('5'); setEditFieldSlug(null); setEditFieldConflict(null); setEditFieldChecking(false); }} disabled={schemaBusy}>
               Cancelar
             </Button>
             <Button size="sm" onClick={handleEditFieldDisplayName} disabled={schemaBusy || !!editFieldConflict || !editFieldName.trim()}>

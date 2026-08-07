@@ -234,9 +234,9 @@ export const COLUMN_TYPES: Record<RenderType, ColumnTypeDefinition> = {
     valueSchema: textOrEmpty,
     validateValue: (v) => {
       if (!v) return null;
-      return /^\d{1,4}:\d{2}(:\d{2})?$/.test(v) ? null : 'Formato: mm:ss ou hh:mm:ss';
+      return /^\d{1,4}(:\d{2}){1,3}$/.test(v) ? null : 'Formato: mm:ss, hh:mm:ss ou dd:hh:mm:ss';
     },
-    sanitize: (v) => v.replace(/[^0-9:]/g, '').slice(0, 9),
+    sanitize: (v) => v.replace(/[^0-9:]/g, '').slice(0, 13),
   },
   boolean: {
     id: 'boolean', label: 'Sim/Não', category: 'numeric', dbType: 'boolean',

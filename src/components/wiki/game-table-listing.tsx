@@ -203,7 +203,7 @@ function renderBadgeItem(
 
   const renderType = columnTypes?.[col] || 'text';
   let displayValue: React.ReactNode;
-  displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} plain columnConfig={columnConfig?.[col]} />;
+  displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} plain columnConfig={columnConfig?.[col]} maxValue={columnConfig?.[col]?.maxValue} />;
 
   const rawColor = badgeColors[col] || '';
   const isColor = isColorString(rawColor);
@@ -1645,6 +1645,7 @@ function MiniCardsSection({
               labelColor={color}
               valueColors={badgeColors}
               columnConfig={colConfig}
+              maxValue={colConfig?.maxValue}
               onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
             />
           </VariantAnimatedValue>

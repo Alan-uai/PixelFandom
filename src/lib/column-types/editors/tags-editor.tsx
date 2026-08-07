@@ -75,7 +75,10 @@ export function TagsEditor({
 
   const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      // Enter must add the tag and keep focus in this same column, never move
+      // down to the next input.
       e.preventDefault();
+      e.stopPropagation();
       if (input.trim()) {
         if (restrictToValues) {
           const match = allowedValues?.find(
@@ -86,6 +89,8 @@ export function TagsEditor({
           addTag(input);
         }
       }
+      inputRef.current?.focus();
+      return;
     }
     if (e.key === 'Backspace' && !input && tags.length > 0) removeTag(tags[tags.length - 1]);
     if (e.key === 'Escape') setShowSuggestions(false);

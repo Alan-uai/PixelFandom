@@ -198,6 +198,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         value={prepared}
         label={displayLabel}
         labelNode={withLabelIcon(displayLabel)}
+        animTrigger={animTrigger}
         useSuffix={useSuffix}
         opEnabled={opEnabled}
         opFlipped={opFlipped}
@@ -219,6 +220,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         value={Array.isArray(arr) ? arr : prepared}
         label={dl}
         labelNode={withLabelIcon(dl)}
+        animTrigger={animTrigger}
         useSuffix={useSuffix}
         labelColor={labelColor}
         valueColors={resolvedValueColors}
@@ -281,6 +283,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       value={prepared}
       label={dl}
       labelNode={withLabelIcon(dl)}
+      animTrigger={animTrigger}
       useSuffix={useSuffix}
       opEnabled={opEnabled}
       opFlipped={opFlipped}
