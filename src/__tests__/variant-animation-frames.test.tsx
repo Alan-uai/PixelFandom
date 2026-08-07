@@ -121,6 +121,7 @@ describe('VariantAnimatedValue transition frames', () => {
       updatePreferences: () => {},
       synced: true,
       saving: false,
+      prefersReducedMotion: false,
     };
 
     const { rerender } = render(

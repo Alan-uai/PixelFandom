@@ -81,6 +81,7 @@ export default function VariantSelector({
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
   const loadedFor = useRef<string>('');
+  const reduced = !useAnimationsEnabled();
 
   useEffect(() => {
     if (!tenantId || !tableName || !currentItemId) {
@@ -146,8 +147,6 @@ export default function VariantSelector({
   ];
 
   const ordered = allChips;
-
-  const reduced = !useAnimationsEnabled();
 
   const handleSelect = (slug: string | null, variant?: Variant, index?: number) => {
     const idx = index ?? 0;

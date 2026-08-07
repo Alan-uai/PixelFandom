@@ -50,7 +50,7 @@ const LANGUAGES = [
 export default function GlobalSettingsPage() {
   const { user, isLoading } = useUser();
   const router = useRouter();
-  const { preferences, updatePreference, saving } = useUserPreferences();
+  const { preferences, updatePreference, saving, prefersReducedMotion } = useUserPreferences();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -501,11 +501,22 @@ export default function GlobalSettingsPage() {
 
         {/* ── Animações ── */}
         <TabsContent value="animations" className="space-y-6 mt-6">
+          {prefersReducedMotion && (
+            <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4 text-sm">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p className="text-muted-foreground">
+                Seu sistema solicitou <strong className="text-foreground">menos movimento</strong>. Para respeitar
+                essa preferência, as animações ficam desligadas por padrão aqui. Você pode ligá-las manualmente
+                e personalizar cada superfície se preferir.
+              </p>
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Animações</CardTitle>
               <CardDescription>
                 Controle as animações da plataforma. Você pode desligar todas de uma vez ou escolher por superfície.
+                Por padrão, respeitamos a preferência de reduzir movimento do seu sistema.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -65,11 +65,22 @@ const DEFAULTS: UserPreferences = {
 };
 
 function loadLocal(): UserPreferences {
+  const base: UserPreferences = { ...DEFAULTS, animations: systemAnimationDefaults() };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) {
+      const stored = JSON.parse(raw) as Partial<UserPreferences>;
+      // Animações: se o usuário já personalizou (salvou `animations`), usa a
+      // escolha dele; caso contrário, aplica o padrão do sistema
+      // (prefers-reduced-motion) para respeitar o usuário por padrão.
+      return {
+        ...base,
+        ...stored,
+        animations: stored.animations ?? base.animations,
+      };
+    }
   } catch {/* noop */}
-  return { ...DEFAULTS };
+  return base;
 }
 
 function saveLocal(prefs: UserPreferences) {
@@ -78,12 +89,29 @@ function saveLocal(prefs: UserPreferences) {
   } catch {/* noop */}
 }
 
+function systemUsesReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Padrão de animações em função da preferência de movimento do sistema.
+ *  Se o usuário solicitar movimento reduzido, as animações ficam desligadas
+ *  em todas as superfícies (dashboard e wiki) por padrão, respeitando-o.
+ *  O usuário pode re-personalizar depois via UserPreferencesProvider. */
+export function systemAnimationDefaults(reduced: boolean = systemUsesReducedMotion()): AnimationSettings {
+  return reduced
+    ? { enabled: false, dashboard: false, wiki: false }
+    : { enabled: true, dashboard: true, wiki: true };
+}
+
 interface UserPreferencesContextValue {
   preferences: UserPreferences;
   updatePreference: <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => void;
   updatePreferences: (partial: Partial<UserPreferences>) => void;
   synced: boolean;
   saving: boolean;
+  /** Indica se o sistema operacional solicitou movimento reduzido. */
+  prefersReducedMotion: boolean;
 }
 
 export const UserPreferencesContext = createContext<UserPreferencesContextValue>({
@@ -92,6 +120,7 @@ export const UserPreferencesContext = createContext<UserPreferencesContextValue>
   updatePreferences: () => {},
   synced: false,
   saving: false,
+  prefersReducedMotion: false,
 });
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
@@ -99,6 +128,16 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences>(loadLocal);
   const [synced, setSynced] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => systemUsesReducedMotion());
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    return () => mq.removeEventListener?.('change', update);
+  }, []);
 
   useEffect(() => {
     saveLocal(preferences);
@@ -162,7 +201,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   }, [syncToCloud]);
 
   return (
-    <UserPreferencesContext.Provider value={{ preferences, updatePreference, updatePreferences, synced, saving }}>
+    <UserPreferencesContext.Provider value={{ preferences, updatePreference, updatePreferences, synced, saving, prefersReducedMotion }}>
       {children}
     </UserPreferencesContext.Provider>
   );
