@@ -23,6 +23,7 @@ import {
 import { SliderTabs, SliderTabsList, SliderTabsTrigger } from '@/components/ui/slider-tabs';
 import { UnsavedChangesProvider } from '@/components/unsaved-changes';
 import BrandIcon from '@/components/brand-icon';
+import { AnimationSurfaceProvider } from '@/lib/animation-prefs';
 
 export default function DashboardLayoutClient({
   children,
@@ -114,8 +115,9 @@ export default function DashboardLayoutClient({
   }
 
   return (
-    <UnsavedChangesProvider>
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <AnimationSurfaceProvider surface="dashboard">
+      <UnsavedChangesProvider>
+      <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
         <Link
           href="/"
@@ -178,5 +180,6 @@ export default function DashboardLayoutClient({
       </main>
     </div>
     </UnsavedChangesProvider>
+    </AnimationSurfaceProvider>
   );
 }

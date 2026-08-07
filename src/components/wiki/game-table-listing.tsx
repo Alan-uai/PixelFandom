@@ -18,6 +18,7 @@ import { supabase } from '@/supabase';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import InfiniteCarousel from '@/components/ui/infinite-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { slugify } from '@/lib/slugify';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import VariantSelector from '@/components/wiki/variant-selector';
 import CollectionItemView from '@/components/wiki/collection-item-view';
@@ -36,6 +37,7 @@ import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
 import { humanizeLabel } from '@/lib/operator-symbols';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
+import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
 // 3D transition keyframes (beam + tilt + reflection) for variant switches.
 let variant3dKfInjected = false;
@@ -81,12 +83,6 @@ function ensureVariant3dKeyframes() {
   background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
   animation: variant-reflection 0.8s ease-out;
   z-index: 5;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .variant-beam-ltr, .variant-beam-rtl, .variant-content-tilt, .variant-3d-transition::after {
-    animation: none !important;
-  }
 }
 `;
   document.head.appendChild(el);
@@ -141,7 +137,7 @@ function formatCategoryValue(col: string, val: unknown): string {
 }
 
 function toSlug(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return slugify(text, { keepCJK: true });
 }
 
 // Natural/ordenação numérica: "2" < "10" < "100" (útil p/ categorias numéricas)
@@ -1737,9 +1733,8 @@ function ItemCard({
   const [transitioning, setTransitioning] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const prefersReduced = () =>
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  const animsOn = useAnimationsEnabled();
+  const prefersReduced = () => !animsOn;
 
   const triggerTransition = useCallback((direction: 'ltr' | 'rtl') => {
     if (prefersReduced()) {

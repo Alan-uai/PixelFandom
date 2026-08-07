@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { slugify } from '@/lib/slugify';
 
 export async function POST(request: NextRequest) {
   let rawText = '';
@@ -24,11 +25,11 @@ export async function POST(request: NextRequest) {
     const translated = data?.[0]?.[0]?.[0];
 
     if (translated) {
-      const slug = translated.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      const slug = slugify(translated, { separator: '_' });
       return NextResponse.json({ translated, slug });
     }
   } catch {/* noop */}
 
-  const slug = rawText.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  const slug = slugify(rawText, { separator: '_' });
   return NextResponse.json({ translated: rawText, slug });
 }

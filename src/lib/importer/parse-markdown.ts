@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import type { ImportArticle } from './types';
+import { slugify } from '@/lib/slugify';
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
 
@@ -41,7 +42,7 @@ export function parseMarkdownFile(content: string, fileName?: string): ImportArt
 
   const slug = frontmatter.slug
     ? String(frontmatter.slug)
-    : title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    : slugify(title);
 
   const htmlBody = markdownToHtmlBasic(body);
 

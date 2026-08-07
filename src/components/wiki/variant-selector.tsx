@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/supabase';
 import { cn } from '@/lib/utils';
 import { IconRenderer } from '@/components/ui/icon-renderer';
+import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
 interface Variant {
   id: string;
@@ -37,11 +38,6 @@ interface Props {
 
 function buildHref(tenantSlug: string, tableName: string, slug: string) {
   return `/w/${tenantSlug}/${tableName}?item=${slug}`;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
 // Module-level cache of full variant rows keyed by `${tenantId}:${tableName}:${itemId}`
@@ -151,7 +147,7 @@ export default function VariantSelector({
 
   const ordered = allChips;
 
-  const reduced = prefersReducedMotion();
+  const reduced = !useAnimationsEnabled();
 
   const handleSelect = (slug: string | null, variant?: Variant, index?: number) => {
     const idx = index ?? 0;
@@ -277,9 +273,6 @@ function ChipKeyframes() {
   0% { transform: translateZ(0) scale(1); }
   45% { transform: translateZ(10px) scale(1.18); }
   100% { transform: translateZ(6px) scale(1.1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-\\[chip-pop_0\\.4s_ease-out\\] { animation: none !important; }
 }
 `;
   document.head.appendChild(el);

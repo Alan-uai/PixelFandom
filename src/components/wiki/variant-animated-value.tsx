@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { parseOperatorPrefix } from '@/lib/operator-symbols';
+import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
 /* -------------------------------------------------------------------------- */
 /*  VariantAnimatedValue                                                       */
@@ -17,11 +18,6 @@ import { parseOperatorPrefix } from '@/lib/operator-symbols';
 
 const GLYPHS = '!<>-_\\/[]{}—=+*^?#@░▒▓█01ABCDEFXYZ$%&';
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 function toStringValue(v: unknown): string {
   if (v === null || v === undefined) return '';
   if (typeof v === 'object') {
@@ -35,7 +31,17 @@ function toStringValue(v: unknown): string {
 }
 
 function isNumericRenderType(rt: string): boolean {
-  return rt === 'number' || rt === 'numeric' || rt === 'slider' || rt === 'duration' || rt === 'progress';
+  return (
+    rt === 'number' ||
+    rt === 'numeric' ||
+    rt === 'integer' ||
+    rt === 'bigint' ||
+    rt === 'real' ||
+    rt === 'double' ||
+    rt === 'slider' ||
+    rt === 'duration' ||
+    rt === 'progress'
+  );
 }
 
 function isTextishRenderType(rt: string): boolean {
@@ -109,7 +115,7 @@ function useScramble(text: string, trigger: number, enabled: boolean): string {
 
   useEffect(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
-    if (!enabled || prefersReducedMotion()) {
+    if (!enabled) {
       setDisplay(text);
       return;
     }
@@ -156,7 +162,7 @@ function useCounter(value: number, trigger: number, enabled: boolean): number {
 
   useEffect(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
-    if (!enabled || prefersReducedMotion()) {
+    if (!enabled) {
       setDisplay(value);
       return;
     }
@@ -193,7 +199,7 @@ function useCounter(value: number, trigger: number, enabled: boolean): number {
 /* ------------------------- 3D flip fallback ------------------------------ */
 
 function ThreeDFlip({ children, trigger }: { children: React.ReactNode; trigger: number }) {
-  const reduced = prefersReducedMotion();
+  const reduced = !useAnimationsEnabled();
   const [animating, setAnimating] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -241,17 +247,18 @@ export function VariantAnimatedValue({
   useSuffix,
   children,
 }: VariantAnimatedValueProps) {
-  const reduced = prefersReducedMotion();
+  const animsOn = useAnimationsEnabled();
+  const reduced = !animsOn;
   const strVal = toStringValue(value);
 
   // Scramble for textish
-  const scrambled = useScramble(strVal, trigger, isTextishRenderType(renderType));
+  const scrambled = useScramble(strVal, trigger, animsOn && isTextishRenderType(renderType));
   // Counter for numeric
   const numericVal = typeof value === 'number' ? value : Number(value);
   // When a suffix/scientific notation is requested we keep the rich ColumnDisplay
   // rendering (with the abbreviate formatter) instead of a bare counter.
   const isNum = !Number.isNaN(numericVal) && isNumericRenderType(renderType) && !hasRichNumericValue(value, renderType) && !useSuffix;
-  const counted = useCounter(isNum ? numericVal : 0, trigger, isNum);
+  const counted = useCounter(isNum ? numericVal : 0, trigger, animsOn && isNum);
 
   // Boolean pulse
   const isBool = isBooleanRenderType(renderType);
@@ -358,11 +365,6 @@ if (typeof document !== 'undefined' && !injected) {
   0% { transform: rotateY(0deg); }
   50% { transform: rotateY(90deg); }
   100% { transform: rotateY(0deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-\\[vscramble_0\\.4s_ease-out\\], .animate-\\[vcount_0\\.4s_ease-out\\], .animate-\\[vpulse_0\\.45s_ease-out\\], .animate-\\[vflip_0\\.5s_ease-in-out\\] {
-    animation: none !important;
-  }
 }
 `;
     document.head.appendChild(el);

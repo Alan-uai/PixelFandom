@@ -18,6 +18,15 @@ export interface ChatSettings {
   language: string;
 }
 
+export interface AnimationSettings {
+  /** Master — desliga animações em todas as superfícies. */
+  enabled: boolean;
+  /** Animações no Dashboard. */
+  dashboard: boolean;
+  /** Animações na Wiki. */
+  wiki: boolean;
+}
+
 export interface UserPreferences {
   theme_mode: Theme;
   font_size: FontSize;
@@ -28,6 +37,7 @@ export interface UserPreferences {
   chat_settings: ChatSettings;
   wiki_preferences: Record<string, Partial<ChatSettings>>;
   theme_preset: string;
+  animations: AnimationSettings;
 }
 
 const STORAGE_KEY = 'pixelfandom:user-preferences';
@@ -51,6 +61,7 @@ const DEFAULTS: UserPreferences = {
   chat_settings: { ...CHAT_DEFAULTS },
   wiki_preferences: {},
   theme_preset: 'ciano',
+  animations: { enabled: true, dashboard: true, wiki: true },
 };
 
 function loadLocal(): UserPreferences {
@@ -75,7 +86,7 @@ interface UserPreferencesContextValue {
   saving: boolean;
 }
 
-const UserPreferencesContext = createContext<UserPreferencesContextValue>({
+export const UserPreferencesContext = createContext<UserPreferencesContextValue>({
   preferences: DEFAULTS,
   updatePreference: () => {},
   updatePreferences: () => {},

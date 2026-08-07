@@ -1,16 +1,11 @@
 import { supabase } from '@/supabase';
+import { slugify } from '@/lib/slugify';
 
 // Intelligent slug generation for game-table items, mirroring the tenant slug
 // logic in /dashboard/new: slugify the name, then deduplicate against existing
 // rows in the same tenant-scoped table.
 export function slugifyItemName(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9一-鿿\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+  return slugify(text, { keepCJK: true });
 }
 
 // Consult the table to find a unique slug for the given base, appending

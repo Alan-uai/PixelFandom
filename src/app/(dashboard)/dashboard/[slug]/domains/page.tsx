@@ -22,6 +22,7 @@ import {
   Copy,
 } from 'lucide-react';
 import type { Tenant } from '@/supabase/client';
+import { slugify } from '@/lib/slugify';
 
 type DomainInfo = {
   verified: boolean;
@@ -142,13 +143,13 @@ export default function WikiDomainsPage() {
         body: JSON.stringify({
           action: 'auto',
           tenantSlug: slug,
-          prefix: vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+          prefix: slugify(vercelPrefix),
         }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const fullDomain = `${vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '')}.vercel.app`;
+      const fullDomain = `${slugify(vercelPrefix)}.vercel.app`;
       setTenant({ ...tenant, vercel_domain: fullDomain } as Tenant);
       setDomainInfo({
         verified: true,
@@ -169,7 +170,7 @@ export default function WikiDomainsPage() {
     if (!tenant || !vercelPrefix) return;
     setSavingVercel(true);
     try {
-      const newDomain = `${vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '')}.vercel.app`;
+      const newDomain = `${slugify(vercelPrefix)}.vercel.app`;
 
       if (tenant.vercel_domain) {
         const removeRes = await fetch('/api/domains', {
@@ -187,7 +188,7 @@ export default function WikiDomainsPage() {
         body: JSON.stringify({
           action: 'auto',
           tenantSlug: slug,
-          prefix: vercelPrefix.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+          prefix: slugify(vercelPrefix),
         }),
       });
       const data = await res.json();

@@ -34,6 +34,7 @@ import { cacheAddCatalogEntry, cacheRemoveCatalogEntry, updateCachedCatalogEntry
 import { TableIconDisplay } from '@/lib/table-icons';
 import { TableIconPicker } from '@/components/ui/table-icon-picker';
 import { renderMarkdown } from '@/lib/content-utils';
+import { slugify } from '@/lib/slugify';
 
 interface Article {
   id: string;
@@ -342,7 +343,7 @@ export default function EditorArticlesPage() {
     setCreatingArticle(true);
 
     const articleId = crypto.randomUUID();
-    const articleSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const articleSlug = slugify(title);
     const { data: { user } } = await supabase.auth.getUser();
     const now = new Date().toISOString();
 

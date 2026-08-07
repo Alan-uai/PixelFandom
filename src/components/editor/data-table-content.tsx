@@ -42,6 +42,7 @@ import { translateGameTerm } from '@/lib/translate';
 import { suggestJsonFormat } from '@/lib/json-format-suggestion';
 import { sanitizeUrl } from '@/lib/content-utils';
 import { slugifyItemName, generateUniqueItemSlug } from '@/lib/item-slug';
+import { slugify } from '@/lib/slugify';
 
 function slugifyName(text: string): string {
   return slugifyItemName(text);
@@ -504,7 +505,7 @@ export default function DataTableContent({
 
   useEffect(() => {
     if (!newFieldName.trim()) { setNewFieldNameError(null); return; }
-    const slug = newFieldName.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    const slug = slugify(newFieldName, { separator: '_' });
     const existing = availableColumns.find((c) => c.column_name === slug);
     if (existing || tableColumns?.some((c) => c.column_name === slug)) {
       setNewFieldNameError('Já existe um campo com esse nome.');

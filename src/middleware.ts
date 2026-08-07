@@ -53,7 +53,7 @@ function addSecurityHeaders(response: NextResponse): void {
       "style-src 'self' 'unsafe-inline' https://*.supabase.co https://fonts.googleapis.com",
       "img-src 'self' data: blob: http://*.supabase.co https://*.supabase.co https://*.googleusercontent.com https://cdn.discordapp.com https://placehold.co https://images.unsplash.com https://picsum.photos",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://openrouter.ai https://generativelanguage.googleapis.com https://api.iconify.design https://*.iconify.design",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://openrouter.ai https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.iconify.design https://*.iconify.design",
       "frame-src 'self' https://accounts.google.com https://*.youtube.com https://*.youtu.be",
       "media-src 'self' https://*.supabase.co",
       "object-src 'none'",
@@ -83,6 +83,33 @@ function getPathGroup(pathname: string): string {
   if (pathname.startsWith('/api/')) return '/api';
   if (pathname.startsWith('/dashboard')) return '/dashboard';
   return '/wiki';
+}
+
+function handleTenantPath(request: NextRequest, slug: string, id: string): NextResponse {
+  const { pathname } = request.nextUrl;
+  const url = request.nextUrl.clone();
+  url.searchParams.set('__tenant_slug', slug);
+  url.searchParams.set('__tenant_id', id);
+
+  if (pathname === `/w/${slug}` || pathname.startsWith(`/w/${slug}/`)) {
+    url.pathname = pathname;
+  } else if (pathname.startsWith('/w/')) {
+    // A stray `/w/{...}` path on a custom/vercel domain (e.g. a link built with
+    // the main-domain prefix but without the tenant slug, or a legacy URL).
+    // Rewriting it as-is would nest it under the tenant and 404, so redirect
+    // to the clean custom-domain URL instead.
+    const cleanUrl = request.nextUrl.clone();
+    cleanUrl.pathname = `/${pathname.slice(3)}`;
+    const redirect = NextResponse.redirect(cleanUrl, 301);
+    addSecurityHeaders(redirect);
+    return redirect;
+  } else {
+    url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
+  }
+
+  const rewriteResponse = NextResponse.rewrite(url);
+  addSecurityHeaders(rewriteResponse);
+  return rewriteResponse;
 }
 
 export async function middleware(request: NextRequest) {
@@ -183,19 +210,7 @@ export async function middleware(request: NextRequest) {
     const cached = await parseTenantCache(request.cookies.get('x-tenant-cache')?.value);
 
     if (cached) {
-      const url = request.nextUrl.clone();
-      url.searchParams.set('__tenant_slug', cached.slug);
-      url.searchParams.set('__tenant_id', cached.id);
-
-      if (pathname.startsWith(`/w/${cached.slug}/`) || pathname === `/w/${cached.slug}`) {
-        url.pathname = pathname;
-      } else {
-        url.pathname = `/w/${cached.slug}${pathname === '/' ? '' : pathname}`;
-      }
-
-      const rewriteResponse = NextResponse.rewrite(url);
-      addSecurityHeaders(rewriteResponse);
-      return rewriteResponse;
+      return handleTenantPath(request, cached.slug, cached.id);
     }
 
     try {
@@ -222,23 +237,10 @@ export async function middleware(request: NextRequest) {
       }
 
       if (tenantData && tenantData.length > 0) {
-        const url = request.nextUrl.clone();
-        const slug = tenantData[0].slug;
-
-        url.searchParams.set('__tenant_slug', slug);
-        url.searchParams.set('__tenant_id', tenantData[0].id);
-
-        if (pathname.startsWith(`/w/${slug}/`) || pathname === `/w/${slug}`) {
-          url.pathname = pathname;
-        } else {
-          url.pathname = `/w/${slug}${pathname === '/' ? '' : pathname}`;
-        }
-
-        const rewriteResponse = NextResponse.rewrite(url);
-        addSecurityHeaders(rewriteResponse);
-        setTenantSlugCookie(rewriteResponse, slug);
-        await setCachedTenant(rewriteResponse, slug, tenantData[0].id);
-        return rewriteResponse;
+        const response = handleTenantPath(request, tenantData[0].slug, tenantData[0].id);
+        setTenantSlugCookie(response, tenantData[0].slug);
+        await setCachedTenant(response, tenantData[0].slug, tenantData[0].id);
+        return response;
       }
     } catch {
       // Tenant lookup failed — pass through

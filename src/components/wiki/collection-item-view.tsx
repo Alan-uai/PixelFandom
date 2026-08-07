@@ -23,6 +23,7 @@ import {
 } from '@/lib/game-ui';
 import { ScalingContext, type ScalingInfo } from '@/lib/scaling-context';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
 // 3D transition keyframes (beam + reflection) for variant switches in this view.
 let civ3dKfInjected = false;
@@ -81,9 +82,6 @@ function ensureCivVariant3dKeyframes() {
 .variant-content-expand {
   animation: variant-content-expand 0.35s ease-out 0.05s both;
   transform-origin: top;
-}
-@media (prefers-reduced-motion: reduce) {
-  .variant-beam-ltr, .variant-beam-rtl, .variant-3d-transition::after, .variant-3d-flip-in, .variant-content-expand { animation: none !important; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .variant-beam-ltr, .variant-beam-rtl { will-change: left, opacity; }
@@ -639,9 +637,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.id]);
 
-  const prefersReduced = () =>
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  const animsOn = useAnimationsEnabled();
+  const prefersReduced = () => !animsOn;
 
   const triggerTransition = (dir?: 'ltr' | 'rtl') => {
     if (dir) setBeamDir(dir);

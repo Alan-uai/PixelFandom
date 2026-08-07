@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/supabase';
-import { useUserPreferences, type ChatSettings } from '@/context/user-preferences-context';
+import { useUserPreferences, type ChatSettings, type AnimationSettings } from '@/context/user-preferences-context';
 import { AI_PERSONALITIES } from '@/lib/ai-personalities';
 import { personas } from '@/lib/personas';
 import { officialLanguages } from '@/lib/official-languages';
@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   Trash2,
   Bell,
+  Sparkles,
 } from 'lucide-react';
 
 const VOICES = [
@@ -67,6 +68,10 @@ export default function GlobalSettingsPage() {
 
   const updateVoice = (key: string, value: unknown) => {
     updatePreference('voice_settings', { ...preferences.voice_settings, [key]: value });
+  };
+
+  const updateAnimations = (key: keyof AnimationSettings, value: boolean) => {
+    updatePreference('animations', { ...preferences.animations, [key]: value });
   };
 
   const [deleteStep, setDeleteStep] = useState<'hidden' | 'warning' | 'successors' | 'confirm'>('hidden');
@@ -145,7 +150,7 @@ export default function GlobalSettingsPage() {
       </div>
 
       <Tabs defaultValue="chat" className="w-full">
-        <TabsList className="w-full grid grid-cols-5">
+        <TabsList className="w-full grid grid-cols-6">
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Chat</span>
@@ -157,6 +162,10 @@ export default function GlobalSettingsPage() {
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notif.</span>
+          </TabsTrigger>
+          <TabsTrigger value="animations" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Animações</span>
           </TabsTrigger>
           <TabsTrigger value="theme" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -486,6 +495,56 @@ export default function GlobalSettingsPage() {
                   />
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Animações ── */}
+        <TabsContent value="animations" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Animações</CardTitle>
+              <CardDescription>
+                Controle as animações da plataforma. Você pode desligar todas de uma vez ou escolher por superfície.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Animações</p>
+                  <p className="text-xs text-muted-foreground">Desliga todas as animações, em todas as superfícies</p>
+                </div>
+                <Switch
+                  checked={preferences.animations.enabled}
+                  onCheckedChange={(checked) => updateAnimations('enabled', checked)}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">No Dashboard</p>
+                  <p className="text-xs text-muted-foreground">Animações nas páginas do painel</p>
+                </div>
+                <Switch
+                  checked={preferences.animations.enabled && preferences.animations.dashboard}
+                  disabled={!preferences.animations.enabled}
+                  onCheckedChange={(checked) => updateAnimations('dashboard', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Na Wiki</p>
+                  <p className="text-xs text-muted-foreground">Animações nas páginas da wiki (troca de variantes, contadores, efeitos 3D)</p>
+                </div>
+                <Switch
+                  checked={preferences.animations.enabled && preferences.animations.wiki}
+                  disabled={!preferences.animations.enabled}
+                  onCheckedChange={(checked) => updateAnimations('wiki', checked)}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

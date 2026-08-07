@@ -31,7 +31,12 @@ function renderTypeToFormat(rt: string): DisplayFormat {
     case 'audio':       return 'audio';
     case 'slider':      return 'progress';
     case 'duration':     return 'duration';
-    case 'number':       return 'number';
+    case 'number':
+    case 'integer':
+    case 'bigint':
+    case 'real':
+    case 'double':
+    case 'numeric':      return 'number';
     case 'emoji':        return 'emoji';
     case 'date':
     case 'time':        return 'date';

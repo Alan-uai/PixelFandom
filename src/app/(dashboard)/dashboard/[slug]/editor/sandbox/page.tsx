@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRegisterUnsavedChanges } from '@/components/unsaved-changes';
 import { Loader2, Save, Trash2, Send, FlaskConical, Eye } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { slugify } from '@/lib/slugify';
 
 export default function EditorSandboxPage() {
   const params = useParams();
@@ -77,7 +78,7 @@ export default function EditorSandboxPage() {
       const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
       if (!tenant) throw new Error('Tenant not found');
 
-      const articleSlug = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const articleSlug = slugify(title);
       const { data: article } = await supabase.from('wiki_articles').insert({
         tenant_id: tenant.id,
         title: title.trim(),

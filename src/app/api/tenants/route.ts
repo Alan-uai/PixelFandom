@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { supabase } from '@/supabase';
 import { createClient } from '@/supabase/server';
+import { slugify } from '@/lib/slugify';
 import { getTenantBySlug } from '@/lib/tenant';
 import { listDomains } from '@/lib/vercel-domains';
 
@@ -105,9 +106,9 @@ export async function POST(request: NextRequest) {
 
   let slug: string;
   if (clientSlug && typeof clientSlug === 'string' && clientSlug.trim()) {
-    slug = clientSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    slug = slugify(clientSlug);
   } else {
-    slug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    slug = slugify(name);
   }
   if (!slug) {
     return NextResponse.json({ error: 'Slug inválido' }, { status: 400 });
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: memberError.message }, { status: 500 });
   }
 
-  const effectiveDomainPrefix = domainPrefix?.trim() ? domainPrefix.trim().toLowerCase().replace(/[^a-z0-9-]/g, '') : slug;
+  const effectiveDomainPrefix = domainPrefix?.trim() ? slugify(domainPrefix) : slug;
   if (effectiveDomainPrefix) {
     const vercelDomain = `${effectiveDomainPrefix}.vercel.app`;
     await adminClient.from('tenants').update({ vercel_domain: vercelDomain }).eq('id', tenant.id);

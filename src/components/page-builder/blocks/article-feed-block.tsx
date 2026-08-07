@@ -167,7 +167,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
     : articles;
 
   const renderArticleCard = (article: ArticleWithStats, index: number) => {
-    const href = basePath ? `${basePath}/${article.slug}` : `/w/${article.slug}`;
+    const href = basePath ? `${basePath}/${article.slug}` : `/${article.slug}`;
     return (
       <Link
         key={article.id || index}
@@ -247,7 +247,7 @@ export function ArticleFeedBlock({ config, tenantId, basePath }: { config: Artic
         </div>
         <div className="space-y-2">
           {articles.map((article, i) => {
-            const href = basePath ? `${basePath}/${article.slug}` : `/w/${article.slug}`;
+    const href = basePath ? `${basePath}/${article.slug}` : `/${article.slug}`;
             return (
               <Link
                 key={article.id || i}

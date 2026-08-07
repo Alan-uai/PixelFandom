@@ -3,6 +3,7 @@ import { supabase } from '@/supabase';
 import { getTenantFromRequest } from '@/lib/get-tenant-from-request';
 import { parseMarkdownFile, extractTagsFromArticles } from '@/lib/importer/parse-markdown';
 import { rewriteLinks } from '@/lib/importer/link-rewriter';
+import { slugify } from '@/lib/slugify';
 import type { ImportArticle, ImportPreview, MappingConfig } from '@/lib/importer/types';
 
 export async function POST(request: NextRequest) {
@@ -118,7 +119,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const now = new Date().toISOString();
-        const articleSlug = article.slug || article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const articleSlug = article.slug || slugify(article.title);
 
         const { data: existing } = await supabase
           .from('wiki_articles')

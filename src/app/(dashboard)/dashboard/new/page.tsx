@@ -12,10 +12,7 @@ import { WeldingCard } from '@/components/ui/welding-card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, X, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-}
+import { slugify } from '@/lib/slugify';
 
 export default function NewWikiPage() {
   const t = useTranslations('wiki_new');
@@ -94,15 +91,13 @@ export default function NewWikiPage() {
   };
 
   const handleSlugChange = (value: string) => {
-    const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    setSlug(clean);
+    setSlug(slugify(value));
     setSlugManuallyEdited(true);
     setSlugStatus('idle');
   };
 
   const handleDomainChange = (value: string) => {
-    const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    setDomainPrefix(clean);
+    setDomainPrefix(slugify(value));
     setDomainManuallyEdited(true);
     setDomainStatus('idle');
   };

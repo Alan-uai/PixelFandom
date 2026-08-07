@@ -22,6 +22,7 @@ import type { TenantTheme } from '@/context/theme-context';
 import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig, SlotFlowId, ClipStyleId } from '@/components/page-builder/types';
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
 import { getTableCatalog } from '@/lib/data-access';
+import { AnimationSurfaceProvider } from '@/lib/animation-prefs';
 
 export default function WikiLayout({
   children,
@@ -34,11 +35,13 @@ export default function WikiLayout({
   if (!slug) return <>{children}</>;
 
   return (
-    <WikiDataProvider slug={slug}>
-      <WikiSearchProvider>
-        <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
-      </WikiSearchProvider>
-    </WikiDataProvider>
+    <AnimationSurfaceProvider surface="wiki">
+      <WikiDataProvider slug={slug}>
+        <WikiSearchProvider>
+          <WikiLayoutContent slug={slug}>{children}</WikiLayoutContent>
+        </WikiSearchProvider>
+      </WikiDataProvider>
+    </AnimationSurfaceProvider>
   );
 }
 

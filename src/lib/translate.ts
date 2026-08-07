@@ -1,5 +1,7 @@
 const cache = new Map<string, { translated: string; slug: string }>();
 
+import { slugify } from '@/lib/slugify';
+
 export async function translateGameTerm(text: string): Promise<{ translated: string; slug: string }> {
   const trimmed = text.trim();
   if (!trimmed) return { translated: '', slug: '' };
@@ -21,7 +23,7 @@ export async function translateGameTerm(text: string): Promise<{ translated: str
     }
   } catch {/* noop */}
 
-  const slug = trimmed.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  const slug = slugify(trimmed, { separator: '_' });
   const result = { translated: trimmed, slug };
   cache.set(key, result);
   return result;
