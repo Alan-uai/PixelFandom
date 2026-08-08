@@ -16,6 +16,7 @@ import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, re
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
+import { Variant3D } from '@/components/wiki/variant-3d';
 import { hasBaseMaxShape } from '@/lib/scaling-engine';
 import { ScaledValue } from '@/lib/scaling-context';
 
@@ -2497,7 +2498,11 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   // Popover, jsonb and jsonb-structured have their own dedicated format handlers.
   if (isComplexValue(value) && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured') {
     const normalized = normalizeValue(value, useSuffix, opEnabled);
-    return renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
+    return (
+      <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
+        {renderComplexValue(n, normalized, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode)}
+      </Variant3D>
+    );
   }
 
   const str = opEnabled ? normalizeOperatorText(String(value ?? ''), useSuffix) : String(value ?? '');
@@ -2515,7 +2520,9 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       : rawContent;
     const accent = labelColor || valueColors?.[str] || 'hsl(var(--primary))';
     return (
-      <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={animatedContent} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
+      <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
+        <MiniCard3D label={labelNode ?? label} color={accent} icon={icon} value={animatedContent} onClick={column && onCompareClick ? () => onCompareClick(column) : onCompareClick} className="group" />
+      </Variant3D>
     );
   }
 
@@ -2623,8 +2630,10 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   const animRenderType = format === 'jsonb' || format === 'jsonb-structured' ? 'jsonb' : format;
   return (
-    <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
-      {rendered}
-    </VariantAnimatedValue>
+    <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
+      <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
+        {rendered}
+      </VariantAnimatedValue>
+    </Variant3D>
   );
 }

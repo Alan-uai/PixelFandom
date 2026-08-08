@@ -108,7 +108,7 @@ float snoise(vec3 v){
 float fbm(vec3 p){
   float s = 0.0;
   float a = 0.5;
-  for (int i = 0; i < 4; i++){
+  for (int i = 0; i < 3; i++){
     s += a * snoise(p);
     p = p * 2.02 + vec3(1.7, 9.2, 3.1);
     a *= 0.5;
@@ -298,11 +298,12 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
   const hoverTarget = useRef(0)
   const hoverCur = useRef(0)
   const visualStatus = useRef<OrbVisualStatus>('idle')
+  const lastFrameAt = useRef(-1)
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { pointer, camera } = useThree()
-  const raycaster = useMemo(() => new THREE.Raycaster(), [])
+  const { invalidate } = useThree()
   const scratchColor = useMemo(() => new THREE.Color(), [])
-  const geometry = useMemo(() => new THREE.SphereGeometry(1, 180, 120), [])
+  const geometry = useMemo(() => new THREE.SphereGeometry(1, 120, 72), [])
   const glowGeometry = useMemo(() => new THREE.SphereGeometry(1.45, 48, 32), [])
 
   const fluidMat = useMemo(
@@ -361,7 +362,13 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     }
   }, [fluidMat, glowMat, geometry, glowGeometry])
 
-  // Attach GPU resources via refs (R3F: avoids JSX prop typing/lint issues).
+  useEffect(() => () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    idleTimer.current = null
+  }, [])
+
+  // Attach GPU resources via refs (R3F convention — keeps JSX clean and
+  // avoids react/no-unknown-property on `geometry`/`material` props).
   useEffect(() => {
     if (meshRef.current) {
       meshRef.current.geometry = geometry
@@ -375,25 +382,41 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
-    const t = state.clock.elapsedTime
+    const now = state.clock.elapsedTime
+
+    // Throttle the idle loop (30 fps) — full 60 fps only while the orb is
+    // being interacted with or the voice agent is live.
+    const active =
+      hoverTarget.current > 0.02 || drag.current.active || visualStatus.current !== 'idle'
+    if (!active) {
+      if (now - lastFrameAt.current < 1 / 30) {
+        if (!idleTimer.current) {
+          idleTimer.current = setTimeout(() => {
+            idleTimer.current = null
+            invalidate()
+          }, 33)
+        }
+        return
+      }
+    } else if (idleTimer.current) {
+      clearTimeout(idleTimer.current)
+      idleTimer.current = null
+    }
+    lastFrameAt.current = now
+
     const lv: AudioLevelsSnapshot = audioLevels.sample()
     const u = fluidMat.uniforms
 
-    u.uTime.value = t
+    u.uTime.value = now
     u.uVolume.value = damp(u.uVolume.value, lv.volume, 11, dt)
     u.uBass.value = damp(u.uBass.value, lv.bass, 11, dt)
     u.uTreble.value = damp(u.uTreble.value, lv.treble, 11, dt)
     u.uPitch.value = damp(u.uPitch.value, lv.pitch, 5, dt)
     u.uCalm.value = damp(u.uCalm.value, REDUCED_MOTION ? 0.5 : 1 - Math.min(1, lv.volume * 3.2), 6, dt)
 
-    // Hover → magnetic direction on the surface.
-    if (hoverTarget.current > 0.02) {
-      raycaster.setFromCamera(pointer, camera)
-      const hit = raycaster.intersectObject(meshRef.current!, false)[0]
-      if (hit) {
-        pointerTarget.current.copy(hit.point).normalize()
-      }
-    } else {
+    // Magnetic pointer direction (updated directly from R3F events — no
+    // per-frame raycaster on the CPU). Reset when the pointer leaves.
+    if (hoverTarget.current <= 0.02) {
       pointerTarget.current.set(0, 0, 1)
     }
     pointerCur.current.lerp(pointerTarget.current, 1 - Math.exp(-10 * dt))
@@ -413,7 +436,7 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     u.uRimStrength.value = damp(u.uRimStrength.value, theme.rimStrength, 6, dt)
     glowMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
     glowMat.uniforms.uVolume.value = u.uVolume.value
-    glowMat.uniforms.uTime.value = t
+    glowMat.uniforms.uTime.value = now
 
     // Rotation: idle drift + drag inertia, energised by the voice.
     const r = rot.current
@@ -428,8 +451,9 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     if (groupRef.current) {
       groupRef.current.rotation.y = r.yaw
       groupRef.current.rotation.x = r.pitch
-      groupRef.current.position.y = REDUCED_MOTION ? 0 : Math.sin(t * 0.8) * 0.06
+      groupRef.current.position.y = REDUCED_MOTION ? 0 : Math.sin(now * 0.8) * 0.06
     }
+    invalidate()
   })
 
   // Throttled status derivation → notify the parent.
@@ -463,10 +487,12 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
         onPointerOver={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation()
           hoverTarget.current = 1
+          invalidate()
         }}
         onPointerOut={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation()
           hoverTarget.current = 0
+          invalidate()
         }}
         onPointerDown={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation()
@@ -475,6 +501,7 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
           drag.current.lastX = e.nativeEvent.clientX
           drag.current.lastY = e.nativeEvent.clientY
           onDragState(true)
+          invalidate()
           try {
             ;(e.nativeEvent.currentTarget as Element | null)?.setPointerCapture?.(e.pointerId)
           } catch { /* noop */ }
@@ -496,13 +523,21 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
             }
             d.lastX = nx
             d.lastY = ny
+          } else if (e.point) {
+            // Magnetic pull toward the hovered surface point (R3F already
+            // computed the intersection — no raycaster needed here).
+            pointerTarget.current.copy(e.point).normalize()
           }
+          invalidate()
         }}
         onPointerUp={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation()
           const wasDrag = drag.current.moved
           drag.current.active = false
-          onDragState(wasDrag)
+          drag.current.moved = false
+          // Only a real drag must swallow the following click. A plain tap
+          // (no movement) must propagate so the orb button toggles the agent.
+          if (wasDrag) onDragState(false)
         }}
       />
       <mesh ref={glowRef} />
@@ -572,25 +607,24 @@ export default function FerrofluidOrb({ className, status, onStatusChange }: Fer
       }}
     >
       <WebGLBoundary fallback={<OrbFallback />}>
-        {mounted ? (
-          <Canvas
-            dpr={[1, 2]}
-            camera={{ position: [0, 0, 2.8], fov: 42 }}
-            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-            frameloop="always"
-            resize={{ scroll: false }}
-            style={{ width: '100%', height: '100%', touchAction: 'none', cursor: 'grab', outline: 'none' }}
-          >
+        <Canvas
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 2.8], fov: 42 }}
+          gl={{ antialias: true, alpha: true }}
+          frameloop="demand"
+          resize={{ scroll: false }}
+          style={{ width: '100%', height: '100%', touchAction: 'none', cursor: 'grab', outline: 'none' }}
+        >
+          {mounted && (
             <FluidMesh
               statusRef={statusRef}
               onStatusChange={(s) => statusChangeRef.current?.(s)}
               onDragState={onDragState}
             />
-          </Canvas>
-        ) : (
-          <OrbFallback />
-        )}
+          )}
+        </Canvas>
       </WebGLBoundary>
+      {mounted ? null : <OrbFallback />}
     </div>
   )
 }
