@@ -33,6 +33,7 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
+import { Variant3D } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
 import { humanizeLabel } from '@/lib/operator-symbols';
@@ -1665,29 +1666,35 @@ function MiniCardsSection({
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
         const colOpFlipped = columnOpFlipped?.[col] === true;
         return (
-          <VariantAnimatedValue
+          <Variant3D
             key={col}
-            value={item[col]}
-            renderType={renderType}
+            format={renderType as any}
+            variant={formatVariants[col] || 1}
             trigger={variationKey}
-            useSuffix={useSuffix}
-            formatNumber={(n) => formatNumber(n, !!useSuffix)}
           >
-            <ColumnDisplay
+            <VariantAnimatedValue
               value={item[col]}
-              column={col}
               renderType={renderType}
+              trigger={variationKey}
               useSuffix={useSuffix}
-              opEnabled={colOpEnabled}
-              opFlipped={colOpFlipped}
-              variant={formatVariants[col] || 1}
-              labelColor={color}
-              valueColors={badgeColors}
-              columnConfig={colConfig}
-              maxValue={colConfig?.maxValue}
-              onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
-            />
-          </VariantAnimatedValue>
+              formatNumber={(n) => formatNumber(n, !!useSuffix)}
+            >
+              <ColumnDisplay
+                value={item[col]}
+                column={col}
+                renderType={renderType}
+                useSuffix={useSuffix}
+                opEnabled={colOpEnabled}
+                opFlipped={colOpFlipped}
+                variant={formatVariants[col] || 1}
+                labelColor={color}
+                valueColors={badgeColors}
+                columnConfig={colConfig}
+                maxValue={colConfig?.maxValue}
+                onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
+              />
+            </VariantAnimatedValue>
+          </Variant3D>
         );
       })}
     </MiniCardGrid>

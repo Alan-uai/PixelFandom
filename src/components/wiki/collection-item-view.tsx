@@ -77,8 +77,8 @@ function ensureCivVariant3dKeyframes() {
   transform-style: preserve-3d;
 }
 @keyframes variant-content-expand {
-  0% { opacity: 0; transform: translateY(-8px) scaleY(0.96); }
-  100% { opacity: 1; transform: translateY(0) scaleY(1); }
+  0% { transform: translateY(-8px) scaleY(0.96); }
+  100% { transform: translateY(0) scaleY(1); }
 }
 .variant-content-expand {
   animation: variant-content-expand 0.35s ease-out 0.05s both;

@@ -207,7 +207,7 @@ export const VARIANT_3D_PRESETS: Variant3DRegistry = {
 };
 
 export function getVariant3DPreset(format: DisplayFormat, variant: number): Variant3DPreset {
-  const list = VARIANT_3D_PRESETS[format];
+  const list = VARIANT_3D_PRESETS[format] ?? VARIANT_3D_PRESETS.text;
   const idx = Math.max(0, Math.min(4, variant - 1));
   return list[idx];
 }

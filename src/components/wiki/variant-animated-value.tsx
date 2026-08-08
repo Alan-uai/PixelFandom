@@ -347,14 +347,14 @@ if (typeof document !== 'undefined' && !injected) {
     el.id = styleId;
     el.textContent = `
 @keyframes vscramble {
-  0% { transform: translateZ(0) scale(0.96); filter: blur(0.5px); opacity: 0.65; }
-  50% { transform: translateZ(14px) scale(1.04); filter: blur(0); opacity: 1; }
-  100% { transform: translateZ(0) scale(1); opacity: 1; }
+  0% { transform: translateZ(0) scale(0.96); filter: blur(0.5px); }
+  50% { transform: translateZ(14px) scale(1.04); filter: blur(0); }
+  100% { transform: translateZ(0) scale(1); }
 }
 @keyframes vcount {
-  0% { transform: translateZ(0) rotateX(0); }
-  35% { transform: translateZ(20px) rotateX(22deg) scale(1.12); }
-  100% { transform: translateZ(0) rotateX(0) scale(1); }
+  0% { transform: translateZ(0) scale(0.96); }
+  35% { transform: translateZ(20px) scale(1.12); }
+  100% { transform: translateZ(0) scale(1); }
 }
 @keyframes vpulse {
   0% { transform: translateZ(0) scale(0.9); }

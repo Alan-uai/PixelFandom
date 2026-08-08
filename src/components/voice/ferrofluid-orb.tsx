@@ -284,7 +284,8 @@ const REDUCED_MOTION =
 type FluidMeshProps = {
   statusRef: React.RefObject<OrbVisualStatus>
   onStatusChange: (s: OrbVisualStatus) => void
-  onDragState: (dragging: boolean) => void
+  /** Second arg = whether the pointer-up should swallow the following click (real drag). */
+  onDragState: (dragging: boolean, suppressClick?: boolean) => void
 }
 
 function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
@@ -535,9 +536,17 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
           const wasDrag = drag.current.moved
           drag.current.active = false
           drag.current.moved = false
-          // Only a real drag must swallow the following click. A plain tap
-          // (no movement) must propagate so the orb button toggles the agent.
-          if (wasDrag) onDragState(false)
+          // Always end the drag state; only a real drag swallows the
+          // following click. A plain tap must reach the orb button.
+          onDragState(false, wasDrag)
+          invalidate()
+        }}
+        onPointerCancel={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation()
+          drag.current.active = false
+          drag.current.moved = false
+          onDragState(false, false)
+          invalidate()
         }}
       />
       <mesh ref={glowRef} />
@@ -586,13 +595,14 @@ export default function FerrofluidOrb({ className, status, onStatusChange }: Fer
     statusChangeRef.current = onStatusChange
   }, [onStatusChange])
 
-  // Suppress the wrapper button's onClick right after a drag ends so a shake
-  // doesn't toggle the connection. Real taps still bubble normally.
+  // Suppress the wrapper button's onClick right after a real drag ends so a
+  // shake doesn't toggle the connection. Plain taps never suppress: the
+  // `moving` flag is cleared on every pointerup so clicks always propagate.
   const dragState = useRef({ moving: false, suppressUntil: 0 })
-  const onDragState = (dragging: boolean) => {
+  const onDragState = (dragging: boolean, suppressClick = false) => {
     dragState.current.moving = dragging
     if (dragging) dragState.current.suppressUntil = 0
-    else dragState.current.suppressUntil = performance.now() + 100
+    else if (suppressClick) dragState.current.suppressUntil = performance.now() + 100
   }
 
   return (
