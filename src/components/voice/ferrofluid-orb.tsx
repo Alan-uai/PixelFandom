@@ -11,6 +11,8 @@ type FerrofluidOrbProps = {
   className?: string
   /** Base status owned by the parent (connection lifecycle). */
   status: OrbVisualStatus
+  /** True while the agent is searching/navigating — ring turns pink + spins. */
+  searching?: boolean
   /** Emits the derived live status (speaking/listening…) for the parent UI. */
   onStatusChange?: (status: OrbVisualStatus) => void
 }
@@ -36,6 +38,15 @@ const STATUS_THEMES: Record<OrbVisualStatus, OrbTheme> = {
   error:      { idle: [0.11, 0.02, 0.02], active: [1.0, 0.22, 0.16], mixTarget: 0.95, rim: [1.0, 0.30, 0.20], rimStrength: 0.9 },
 }
 
+// PINK — overrides the status theme while the agent is searching.
+const SEARCH_THEME: OrbTheme = {
+  idle: [0.18, 0.04, 0.11],
+  active: [1.0, 0.42, 0.72],
+  mixTarget: 1.0,
+  rim: [1.0, 0.52, 0.80],
+  rimStrength: 1.0,
+}
+
 /* -------------------------------------------------------------------------
    GLSL — ferrofluid orbs.
    ------------------------------------------------------------------------- */
@@ -48,6 +59,7 @@ uniform float uTreble;
 uniform float uPitch;
 uniform float uHover;
 uniform float uCalm;
+uniform float uMorph;
 uniform vec3 uPointerDir;
 
 varying vec3 vNormalW;
@@ -118,10 +130,36 @@ float fbm(vec3 p){
 }
 
 // Parametrisation matching THREE.SphereGeometry (u,v in [0,1]).
-vec3 dirAt(float u, float v){
+// The base shape morphs between an orb and a ferrofluid ring — the spine
+// animation stays identical, it just wraps around whichever liquid body.
+const float RING_R = 0.40; // ring major radius (axis of the hoop)
+const float TUBE_R = 0.26; // ring tube radius (thickness of the hoop)
+
+vec3 spherePosAt(float u, float v){
   float th = u * PI * 2.0;
   float ph = v * PI;
   return vec3(-cos(th) * sin(ph), cos(ph), sin(th) * sin(ph));
+}
+
+vec3 ringPosAt(float u, float v){
+  float th = u * PI * 2.0;
+  float ph = v * PI * 2.0;
+  vec3 center = vec3(cos(th) * RING_R, 0.0, sin(th) * RING_R);
+  vec3 tube = vec3(cos(th) * cos(ph), sin(ph), sin(th) * cos(ph));
+  return center + tube * TUBE_R;
+}
+
+vec3 baseAt(float u, float v){
+  return mix(spherePosAt(u, v), ringPosAt(u, v), uMorph);
+}
+
+// Direction the fluid sprouts along: radial for the orb, tube-normal for the
+// ring — blended during the morph so spines always stick out of the liquid.
+vec3 spineDir(float u, float v){
+  float th = u * PI * 2.0;
+  float ph = v * PI * 2.0;
+  vec3 td = vec3(cos(th) * cos(ph), sin(ph), sin(th) * cos(ph));
+  return normalize(mix(spherePosAt(u, v), td, uMorph));
 }
 
 float field(vec3 d, float t){
@@ -131,8 +169,9 @@ float field(vec3 d, float t){
   return n1 * 0.62 + n2 * 0.38;
 }
 
-vec3 calc(vec3 d, float t){
-  vec3 dir = normalize(d);
+vec3 calc(float u, float v, float t){
+  vec3 base = baseAt(u, v);
+  vec3 dir = spineDir(u, v);
   float f = field(dir, t);
 
   // ── Voice-reactive ferrofluid spines ────────────────────────────────────
@@ -165,37 +204,38 @@ vec3 calc(vec3 d, float t){
   float amp = 0.030 + 0.40 * growth + 0.10 * bass * growth;
 
   // The whole body swells with the utterance (slow voice envelope).
-  float swell = voice * (0.030 + 0.022 * sin(t * 2.2 + d.y * 5.0));
+  float swell = voice * (0.030 + 0.022 * sin(t * 2.2 + base.y * 5.0));
 
   // Liquid sheets — slow mid-frequency undulation, only while at rest.
   float sheet = (1.0 - growth) * 0.035 *
-    (sin(d.x * 6.0 + t * 0.8) * sin(d.y * 5.0 - t * 0.6));
+    (sin(base.x * 6.0 + t * 0.8) * sin(base.y * 5.0 - t * 0.6));
 
   // Idle breathing (respects reduced-motion via uCalm).
-  float idle = uCalm * (0.028 + 0.026 * sin(t * 0.65 + d.y * 8.0));
+  float idle = uCalm * (0.028 + 0.026 * sin(t * 0.65 + base.y * 8.0));
 
   // Magnetic pull: spines lean toward the hovered surface point.
   float pd = max(dot(dir, uPointerDir), 0.0);
   float mag = uHover * (0.12 * pow(pd, 3.0) + 0.05 * (f * 0.5 + 0.5) * pd);
 
   float h = idle + swell + sheet + amp * spike + mag;
-  return dir * (1.0 + h);
+  return base + dir * h;
 }
 
 void main(){
   float t = uTime;
-  vec3 np = calc(dirAt(uv.x, uv.y), t);
+  vec3 np = calc(uv.x, uv.y, t);
   float inc = 0.012;
-  vec3 tg = calc(dirAt(uv.x + inc, uv.y), t) - np;
-  vec3 bt = calc(dirAt(uv.x, uv.y + inc), t) - np;
+  vec3 tg = calc(uv.x + inc, uv.y, t) - np;
+  vec3 bt = calc(uv.x, uv.y + inc, t) - np;
   vec3 objectNormal = normalize(cross(bt, tg));
 
   vNormalW = normalize(mat3(modelMatrix) * objectNormal);
   vec4 worldPos = modelMatrix * vec4(np, 1.0);
   vec4 mvPosition = viewMatrix * worldPos;
   vViewDir = normalize(-mvPosition.xyz);
-  vNoise01 = field(normalize(position), t) * 0.5 + 0.5;
-  vHeight = length(np) - 1.0;
+  vNoise01 = field(spineDir(uv.x, uv.y), t) * 0.5 + 0.5;
+  float baseR = length(baseAt(uv.x, uv.y));
+  vHeight = max(length(np) - baseR, 0.0);
 
   gl_Position = projectionMatrix * mvPosition;
 }
@@ -308,12 +348,13 @@ const REDUCED_MOTION =
 
 type FluidMeshProps = {
   statusRef: React.RefObject<OrbVisualStatus>
+  searching: boolean
   onStatusChange: (s: OrbVisualStatus) => void
   /** Second arg = whether the pointer-up should swallow the following click (real drag). */
   onDragState: (dragging: boolean, suppressClick?: boolean) => void
 }
 
-function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
+function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidMeshProps) {
   const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
@@ -330,7 +371,9 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
   const { invalidate } = useThree()
   const scratchColor = useMemo(() => new THREE.Color(), [])
   const geometry = useMemo(() => new THREE.SphereGeometry(1, 120, 72), [])
-  const glowGeometry = useMemo(() => new THREE.SphereGeometry(1.45, 48, 32), [])
+  const glowSphereGeometry = useMemo(() => new THREE.SphereGeometry(1.45, 48, 32), [])
+  const glowRingGeometry = useMemo(() => new THREE.TorusGeometry(0.42, 0.34, 24, 64), [])
+  const glowShape = useRef<'sphere' | 'ring'>('sphere')
 
   const fluidMat = useMemo(
     () =>
@@ -345,6 +388,7 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
           uPitch: { value: 0.35 },
           uHover: { value: 0 },
           uCalm: { value: 1 },
+          uMorph: { value: 0 },
           uPointerDir: { value: new THREE.Vector3(0, 0, 1) },
           uColorIdle: { value: themeColor(STATUS_THEMES.idle.idle) },
           uColorActive: { value: themeColor(STATUS_THEMES.idle.active) },
@@ -378,14 +422,16 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     const m = fluidMat
     const g = glowMat
     const g1 = geometry
-    const g2 = glowGeometry
+    const g2 = glowSphereGeometry
+    const g3 = glowRingGeometry
     return () => {
       m.dispose()
       g.dispose()
       g1.dispose()
       g2.dispose()
+      g3.dispose()
     }
-  }, [fluidMat, glowMat, geometry, glowGeometry])
+  }, [fluidMat, glowMat, geometry, glowSphereGeometry, glowRingGeometry])
 
   useEffect(() => () => {
     if (idleTimer.current) clearTimeout(idleTimer.current)
@@ -400,10 +446,10 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
       meshRef.current.material = fluidMat
     }
     if (glowRef.current) {
-      glowRef.current.geometry = glowGeometry
+      glowRef.current.geometry = glowSphereGeometry
       glowRef.current.material = glowMat
     }
-  }, [geometry, glowGeometry, fluidMat, glowMat])
+  }, [geometry, glowSphereGeometry, fluidMat, glowMat])
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
@@ -436,6 +482,11 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
 
     const u = fluidMat.uniforms
 
+    // Orb ↔ ring morph: any live/active status opens the orb into the ring.
+    const live = visualStatus.current !== 'idle' && visualStatus.current !== 'error'
+    const ringTarget = searching || live ? 1 : 0
+    u.uMorph.value = damp(u.uMorph.value, ringTarget, 4.5, dt)
+
     u.uTime.value = now
     u.uVolume.value = damp(u.uVolume.value, lv.volume, 11, dt)
     u.uBass.value = damp(u.uBass.value, lv.bass, 11, dt)
@@ -453,8 +504,8 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     hoverCur.current = damp(hoverCur.current, hoverTarget.current, 10, dt)
     u.uHover.value = hoverCur.current
 
-    // Theming by derived status.
-    const theme = STATUS_THEMES[visualStatus.current]
+    // Theming: pink while the agent is searching, otherwise the status theme.
+    const theme = searching ? SEARCH_THEME : STATUS_THEMES[visualStatus.current]
     scratchColor.setRGB(theme.idle[0], theme.idle[1], theme.idle[2])
     u.uColorIdle.value.lerp(scratchColor, 1 - Math.exp(-6 * dt))
     scratchColor.setRGB(theme.active[0], theme.active[1], theme.active[2])
@@ -466,15 +517,31 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     glowMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
     glowMat.uniforms.uVolume.value = u.uVolume.value
 
+    // Glow halo follows the liquid body shape (sphere ↔ ring).
+    if (glowRef.current) {
+      const wantRing = u.uMorph.value > 0.5
+      if (glowShape.current !== (wantRing ? 'ring' : 'sphere')) {
+        glowShape.current = wantRing ? 'ring' : 'sphere'
+        glowRef.current.geometry = wantRing ? glowRingGeometry : glowSphereGeometry
+      }
+    }
+
     // Rotation: idle drift + drag inertia, energised by the voice.
     const r = rot.current
     if (!drag.current.active) {
       r.yawV *= Math.exp(-dt * 3.2)
       r.pitchV *= Math.exp(-dt * 3.2)
-      if (!REDUCED_MOTION) {
+      if (searching && !REDUCED_MOTION) {
+        // Searching: full 360° spin around the ring's own axis.
+        r.yaw += dt * ((Math.PI * 2.0) / 1.6)
+      } else if (!REDUCED_MOTION) {
         r.yaw += dt * (0.38 + lv.volume * 1.4) * 0.45 + r.yawV
       }
-      r.pitch = THREE.MathUtils.clamp(r.pitch + r.pitchV * dt, -0.5, 0.5)
+      // Slight tilt in ring mode so the spin reads clearly from the front.
+      const tilt = ringTarget * 0.34
+      if (!REDUCED_MOTION) {
+        r.pitch += (tilt - r.pitch) * (1 - Math.exp(-2.2 * dt))
+      }
     }
     if (groupRef.current) {
       groupRef.current.rotation.y = r.yaw
@@ -608,7 +675,7 @@ function OrbFallback() {
   )
 }
 
-export default function FerrofluidOrb({ className, status, onStatusChange }: FerrofluidOrbProps) {
+export default function FerrofluidOrb({ className, status, searching = false, onStatusChange }: FerrofluidOrbProps) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -655,6 +722,7 @@ export default function FerrofluidOrb({ className, status, onStatusChange }: Fer
           {mounted && (
             <FluidMesh
               statusRef={statusRef}
+              searching={searching}
               onStatusChange={(s) => statusChangeRef.current?.(s)}
               onDragState={onDragState}
             />

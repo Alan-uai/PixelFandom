@@ -36,6 +36,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const [status, setStatus] = useState<OrbVisualStatus>('idle')
   const [isMicOn, setIsMicOn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
 
   const apiRef = useRef<GeminiLiveAPI | null>(null)
   const streamerRef = useRef<AudioStreamer | null>(null)
@@ -44,6 +45,17 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const settingsRef = useRef<any>({})
   const wakeWordDetectorRef = useRef<WakeWordDetector | null>(null)
   const disconnectIntentionalRef = useRef(false)
+  const searchCountRef = useRef(0)
+
+  const beginSearch = useCallback(() => {
+    searchCountRef.current += 1
+    setSearching(true)
+  }, [])
+
+  const endSearch = useCallback(() => {
+    searchCountRef.current = Math.max(0, searchCountRef.current - 1)
+    if (searchCountRef.current === 0) setSearching(false)
+  }, [])
 
   const voiceSessionIdRef = useRef<string | null>(null)
   const sessionCleanupRef = useRef<(() => void) | null>(null)
@@ -272,22 +284,32 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         setVoiceName: () => {},
         setLanguage: () => {},
         clearTranscripts: () => {},
-        navigate: (path) => router.push(path),
+        navigate: (path) => {
+          // Navigation counts as "the agent is doing something" — pink spin.
+          beginSearch()
+          setTimeout(endSearch, 1400)
+          router.push(path)
+        },
         playerInterrupt: () => playerRef.current?.interrupt(),
         startMic: () => startAudioStreaming(),
         stopMic: () => streamerRef.current?.stop(),
         addTranscript: () => {},
         onEndSession: () => disconnectRef.current(),
         fetchWithSlug: async (path, params) => {
-          const url = new URL(path, window.location.origin)
-          Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
-          url.searchParams.set('slug', tenantSlug)
-          const res = await fetch(url.toString())
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => ({error: res.statusText}))
-            throw new Error(errBody.error || `HTTP ${res.status}`)
+          beginSearch()
+          try {
+            const url = new URL(path, window.location.origin)
+            Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
+            url.searchParams.set('slug', tenantSlug)
+            const res = await fetch(url.toString())
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({error: res.statusText}))
+              throw new Error(errBody.error || `HTTP ${res.status}`)
+            }
+            return res.json()
+          } finally {
+            endSearch()
           }
-          return res.json()
         },
       })
       tools.forEach((t) => client.addFunction(t))
@@ -342,7 +364,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       streamerRef.current = null
       setIsMicOn(false)
     }
-  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector])
+  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector, beginSearch, endSearch])
 
   const disconnect = useCallback(() => {
     disconnectIntentionalRef.current = true
@@ -437,6 +459,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         <FerrofluidOrb
           className="absolute inset-0 z-10"
           status={status}
+          searching={searching}
           onStatusChange={handleOrbStatus}
         />
       </button>
