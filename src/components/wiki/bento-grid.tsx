@@ -9,11 +9,12 @@
  *   NO hardcoded column count — it adapts to the wrapping card automatically.
  *   Each tile keeps its natural height (short cards take less space than tall
  *   ones) and the flow re-packs around it.
- * - `dense`/`bento`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
- *   `grid-auto-flow: dense` and `justify-items: center`. Each tile keeps its
- *   content size (cards hug their label/value instead of stretching across the
- *   column) and is centered in its track; rows are `minmax(min-content, auto)`
- *   so heights follow content, while `dense` still packs short cards into gaps.
+ * - `dense`/`bento`: pure content-driven grid — no fixed column template. `grid-auto-flow: dense`
+ *   packs tiles left-to-right in editor order while filling holes, and implicit tracks
+ *   (`grid-auto-columns: max-content`, `grid-auto-rows: auto`) let each column size itself to
+ *   what it holds, so narrow cards sit side by side and tall/wide content stretches across
+ *   neighbouring space. The column count adapts to the container and content instead of
+ *   locking into 2 fixed columns.
  * - `grid`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))`. Tiles get
  *   equal width and pack row-wise, ideal for uniform stat cells.
  *
@@ -161,16 +162,16 @@ export function BentoGrid({
           gridAutoRows: 'minmax(min-content, 1fr)',
           gap,
         }
-      : isDense
-        ? {
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
-            gridAutoFlow: 'dense',
-            gridAutoRows: 'minmax(min-content, auto)',
-            justifyItems: 'center',
-            gap,
-          }
-        : {}),
+: isDense
+          ? {
+              display: 'grid',
+              gridAutoFlow: 'dense',
+              gridAutoColumns: 'max-content',
+              gridAutoRows: 'auto',
+              justifyItems: 'start',
+              gap,
+            }
+          : {}),
     ...style,
   };
 

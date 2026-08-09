@@ -79,6 +79,21 @@ function ensureVariant3dKeyframes() {
   animation: variant-reflection 0.8s ease-out;
   z-index: 5;
 }
+
+/* nome da variante / do heading (reutilizado p/ categoria) */
+@keyframes variant-head-in {
+  0% { opacity: 0; transform: translateY(12px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.variant-head-in { animation: variant-head-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ícone da variante (reutilizado p/ ícone da categoria) */
+@keyframes variant-icon-pop {
+  0% { opacity: 0; transform: scale(0.4) rotate(-18deg); }
+  60% { transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.variant-icon-pop { animation: variant-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 `;
   document.head.appendChild(el);
 }
@@ -340,6 +355,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   // Mapa itemId -> nome da variante ativa (usado p/ refletir variantes na categoria quando catColumn === 'name')
   const [activeVariantNames, setActiveVariantNames] = useState<Record<string, string>>({});
   const [activeVariants, setActiveVariants] = useState<Record<string, { item: any; variantSlug: string | null }>>({});
+  // Contador p/ replay das animações de heading das categorias na troca de variante
+  const [variantPulse, setVariantPulse] = useState(0);
   const handleVariantChange = useCallback((
     itemId: string,
     selection: { item: any; variantSlug: string | null } | null,
@@ -357,6 +374,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       else next[itemId] = name;
       return next;
     });
+    setVariantPulse((p) => p + 1);
   }, []);
   
   useEffect(() => {
@@ -874,9 +892,26 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
     const heading = hideCategoryTitle ? null : (
       <div className="flex items-center gap-3 mb-3">
-        {renderCatIcon(category, iconSize)}
-        <span className="font-semibold text-muted-foreground uppercase tracking-wider capitalize" style={{ fontSize: labelSize }}>{displayLabel}</span>
-        <span className="text-xs text-muted-foreground/60 font-normal">{catItems.length}</span>
+        <span
+          key={`catic-${category}-${variantPulse}`}
+          className={`inline-flex shrink-0 ${variantPulse > 0 ? 'variant-icon-pop' : ''}`}
+        >
+          {renderCatIcon(category, iconSize)}
+        </span>
+        <span
+          key={`catnm-${category}-${variantPulse}`}
+          className={`font-semibold text-muted-foreground uppercase tracking-wider capitalize ${variantPulse > 0 ? 'variant-head-in' : ''}`}
+          style={{ fontSize: labelSize, animationDelay: '60ms' }}
+        >
+          {displayLabel}
+        </span>
+        <span
+          key={`catct-${category}-${variantPulse}`}
+          className={`text-xs text-muted-foreground/60 font-normal ${variantPulse > 0 ? 'variant-head-in' : ''}`}
+          style={{ animationDelay: '120ms' }}
+        >
+          {catItems.length}
+        </span>
       </div>
     );
 
@@ -2005,7 +2040,7 @@ function ItemCard({
   return (
 <div
         ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
-        className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
+        className={`relative rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
         data-beam={transitioning ? beamDir : undefined}
       >
       <div
@@ -2030,26 +2065,49 @@ function ItemCard({
         )}
         <div className={`relative ${cardPadding} flex items-start gap-3`}>
           {showCardIcon && (
-          <div className={`relative ${iconSize} flex items-center justify-center shrink-0`}>
+          <div
+            key={`ic-${variationKey}`}
+            className={`relative ${iconSize} flex items-center justify-center shrink-0 ${transitioning ? 'variant-icon-pop' : ''}`}
+          >
             {icon || collIcon}
           </div>
           )}
           {showCardLabel && (
           <div className="flex-1 min-w-0 self-center">
-            <h3 className={`${titleSize} leading-tight text-white`}>
+            <h3
+              key={`nm-${variationKey}`}
+              className={`${titleSize} leading-tight text-white ${transitioning ? 'variant-head-in' : ''}`}
+              style={{ animationDelay: '70ms' }}
+            >
               {activeLabel}
             </h3>
           </div>
           )}
           {activeBadges.length > 0 && badgeDisplayMode !== 'footer-heading' && (
           <div className={`flex ${badgeDisplayMode === 'lista' ? 'flex-col items-end gap-1' : 'items-center gap-1.5 flex-wrap'} shrink-0 max-w-[180px] self-center`}>
-            {activeBadges.map(col => renderBadge(col))}
+            {activeBadges.map((col, i) => (
+              <span
+                key={`bg-${col}-${variationKey}`}
+                className={`inline-flex ${transitioning ? 'variant-head-in' : ''}`}
+                style={{ animationDelay: `${120 + i * 70}ms` }}
+              >
+                {renderBadge(col)}
+              </span>
+            ))}
           </div>
           )}
         </div>
         {activeBadges.length > 0 && badgeDisplayMode === 'footer-heading' && (
           <div className="relative px-3 pb-3 flex items-center justify-around gap-2 flex-wrap">
-            {activeBadges.map(col => renderBadge(col))}
+            {activeBadges.map((col, i) => (
+              <span
+                key={`bg-${col}-${variationKey}`}
+                className={`inline-flex ${transitioning ? 'variant-head-in' : ''}`}
+                style={{ animationDelay: `${120 + i * 70}ms` }}
+              >
+                {renderBadge(col)}
+              </span>
+            ))}
           </div>
         )}
       </div>
