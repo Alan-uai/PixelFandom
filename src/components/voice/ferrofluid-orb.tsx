@@ -195,13 +195,14 @@ vec3 calc(float u, float v, float t){
   float gate   = smoothstep(ridgeFloor, ridgeCeil, f);
   float sharp  = 1.30 + growth * 2.6 + bass * 1.2;
   float spike  = pow(gate, sharp);
+  spike = clamp(spike, 0.0, 1.35);
 
   // Fine sibilance tremor — only while speech is present (never at rest).
   float flutter = treb * growth * (0.18 + 0.28 * voice);
   spike *= 1.0 + flutter * (snoise(dir * 16.0 + vec3(t * 6.5)) * 0.5 + 0.5);
 
   // Amplitude: thin resting film vs erupting needles.
-  float amp = 0.030 + 0.40 * growth + 0.10 * bass * growth;
+  float amp = 0.028 + 0.34 * growth + 0.08 * bass * growth;
 
   // The whole body swells with the utterance (slow voice envelope).
   float swell = voice * (0.030 + 0.022 * sin(t * 2.2 + base.y * 5.0));
@@ -218,6 +219,8 @@ vec3 calc(float u, float v, float t){
   float mag = uHover * (0.12 * pow(pd, 3.0) + 0.05 * (f * 0.5 + 0.5) * pd);
 
   float h = idle + swell + sheet + amp * spike + mag;
+  // Keep the silhouette inside the expanded camera frustum (no clipping).
+  h = min(h, 0.42);
   return base + dir * h;
 }
 
@@ -713,7 +716,7 @@ export default function FerrofluidOrb({ className, status, searching = false, on
       <WebGLBoundary fallback={<OrbFallback />}>
         <Canvas
           dpr={[1, 2]}
-          camera={{ position: [0, 0, 2.8], fov: 42 }}
+          camera={{ position: [0, 0, 4.4], fov: 42 }}
           gl={{ antialias: true, alpha: true }}
           frameloop="demand"
           resize={{ scroll: false }}

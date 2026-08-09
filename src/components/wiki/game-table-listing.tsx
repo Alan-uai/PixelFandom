@@ -40,14 +40,16 @@ import { humanizeLabel } from '@/lib/operator-symbols';
 import { SYSTEM_COLS } from '@/lib/categorizable-columns';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
-// 3D transition keyframes (beam + tilt + reflection) for variant switches.
-let variant3dKfInjected = false;
+// Feixe dourado que varre o heading do card durante a troca de variante.
+// id próprio de style — NÃO reutilizar `variant-3d-kf` (variant-3d/keyframes.ts):
+// sob o mesmo id, o primeiro injector venceria e o outro jamais entraria no DOM.
+let gtlKfInjected = false;
 function ensureVariant3dKeyframes() {
-  if (typeof document === 'undefined' || variant3dKfInjected) return;
-  variant3dKfInjected = true;
-  if (document.getElementById('variant-3d-kf')) return;
+  if (typeof document === 'undefined' || gtlKfInjected) return;
+  gtlKfInjected = true;
+  if (document.getElementById('variant-3d-kf-gtl')) return;
   const el = document.createElement('style');
-  el.id = 'variant-3d-kf';
+  el.id = 'variant-3d-kf-gtl';
   el.textContent = `
 @keyframes variant-beam-ltr {
   0% { left: -35%; opacity: 0; }
@@ -62,15 +64,7 @@ function ensureVariant3dKeyframes() {
 .variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
 .variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
 
-@keyframes variant-content-tilt {
-  0% { transform: perspective(1100px) rotateY(0deg) scale(1); }
-  30% { transform: perspective(1100px) rotateY(-9deg) scale(1.015); }
-  60% { transform: perspective(1100px) rotateY(6deg) scale(1.01); }
-  100% { transform: perspective(1100px) rotateY(0deg) scale(1); }
-}
-.variant-content-tilt { animation: variant-content-tilt 0.7s ease-in-out; transform-origin: center bottom; }
-
-/* glossy reflection sweep that settles after the update */
+/* reflexo brilhante que atravessa o card e assenta após a troca */
 @keyframes variant-reflection {
   0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
   40% { opacity: 0.6; }
@@ -2009,12 +2003,11 @@ function ItemCard({
   const titleSize = cardSize === 'sm' ? 'text-sm' : cardSize === 'lg' ? 'text-lg' : 'font-semibold';
 
   return (
-    <div
-      ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
-      className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
-      style={{ perspective: transitioning ? '1100px' : undefined, transformStyle: 'preserve-3d' }}
-      data-beam={transitioning ? beamDir : undefined}
-    >
+<div
+        ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
+        className={`rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
+        data-beam={transitioning ? beamDir : undefined}
+      >
       <div
         className="relative overflow-hidden"
         style={imageUrl ? {
@@ -2075,7 +2068,7 @@ function ItemCard({
         />
       )}
 
-      <div className={`px-4 pb-4 pt-3 border-t border-border/50 ${transitioning ? 'variant-content-tilt' : ''}`}>
+      <div className="px-4 pb-4 pt-3 border-t border-border/50">
         <MiniCardsSection
           item={activeItem}
           columnTypes={columnTypes}

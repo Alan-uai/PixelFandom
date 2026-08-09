@@ -457,7 +457,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       >
         <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
         <FerrofluidOrb
-          className="absolute inset-0 z-10"
+          className="absolute -inset-4 z-10"
           status={status}
           searching={searching}
           onStatusChange={handleOrbStatus}

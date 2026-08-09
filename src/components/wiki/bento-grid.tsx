@@ -10,10 +10,10 @@
  *   Each tile keeps its natural height (short cards take less space than tall
  *   ones) and the flow re-packs around it.
  * - `dense`/`bento`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
- *   `grid-auto-flow: dense`. Tiles stretch to fill every free slot: rows are
- *   `minmax(min-content, 1fr)` (equal heights, no holes) and each tile is
- *   `h-full`, so short cards fill the horizontal AND vertical space of the
- *   container instead of leaving gaps.
+ *   `grid-auto-flow: dense` and `justify-items: center`. Each tile keeps its
+ *   content size (cards hug their label/value instead of stretching across the
+ *   column) and is centered in its track; rows are `minmax(min-content, auto)`
+ *   so heights follow content, while `dense` still packs short cards into gaps.
  * - `grid`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))`. Tiles get
  *   equal width and pack row-wise, ideal for uniform stat cells.
  *
@@ -166,7 +166,8 @@ export function BentoGrid({
             display: 'grid',
             gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
             gridAutoFlow: 'dense',
-            gridAutoRows: 'minmax(min-content, 1fr)',
+            gridAutoRows: 'minmax(min-content, auto)',
+            justifyItems: 'center',
             gap,
           }
         : {}),

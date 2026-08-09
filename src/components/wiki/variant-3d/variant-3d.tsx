@@ -89,12 +89,18 @@ export function Variant3D({ format, variant, trigger = 0, className, children }:
   const initialTarget = { ...entry.initial, ...tune } as Target;
   const animateTarget = { ...entry.animate } as Target;
 
+  // Bounce (overshoot) na entrada por transform para não "atropelar" quando o
+  // usuário alterna variantes rapidamente; entradas com opacity mantêm tween.
+  const transition = 'opacity' in initialTarget
+    ? { duration: duration ?? 0.4, ease: 'easeOut' as const }
+    : { type: 'spring' as const, duration: duration ?? 0.5, bounce: 0.3 };
+
   return (
     <motion.div
       key={trigger}
       initial={disabled ? undefined : initialTarget}
       animate={disabled ? undefined : animateTarget}
-      transition={{ duration: duration ?? 0.4, ease: 'easeOut' }}
+      transition={transition}
       whileHover={disabled ? undefined : hover.whileHover}
       className={cn('h-full', hover.className, preset.className, className)}
       style={preset.depth ? { transformStyle: 'preserve-3d', perspective: 600 } : undefined}

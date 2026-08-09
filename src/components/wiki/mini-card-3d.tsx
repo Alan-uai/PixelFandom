@@ -65,7 +65,7 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
         transformStyle: 'preserve-3d',
         borderColor: `${accent}55`,
       }}
-      className={`relative h-full w-full overflow-hidden rounded-xl border bg-card/70 p-2.5 text-xs shadow-sm backdrop-blur-md transition-shadow ${
+      className={`relative w-full overflow-hidden rounded-xl border bg-card/70 p-2.5 text-xs shadow-sm backdrop-blur-md transition-shadow ${
         onClick ? 'cursor-pointer hover:shadow-lg hover:shadow-primary/20' : 'cursor-default'
       } ${className}`}
     >
@@ -74,7 +74,7 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
         className="pointer-events-none absolute inset-0"
         style={{ background: glow }}
       />
-      <div className="relative flex h-full flex-col justify-center gap-0.5" style={{ transform: 'translateZ(18px)' }}>
+      <div className="relative flex flex-col items-center justify-center gap-0.5 text-center" style={{ transform: 'translateZ(18px)' }}>
         {label && (
           <span
             className="text-[10px] font-semibold uppercase tracking-wider"
@@ -83,7 +83,7 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
             {label}
           </span>
         )}
-        <span className="flex items-center gap-1 font-medium text-foreground">
+        <span className="flex items-center justify-center gap-1 font-medium text-foreground">
           {icon}
           {value}
         </span>
