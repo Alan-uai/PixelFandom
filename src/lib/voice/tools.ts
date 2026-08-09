@@ -498,6 +498,39 @@ NEVER hallucinate — read actual numbers from raw_data.`,
         days: { type: 'number', description: 'Days back (default 30). 0 = all time.' },
       }),
 
+    q('getRecentItems',
+      'Recently added game items across all tables. Use for "what new items exist?" or "quais itens foram adicionados?". Returns the freshest items with name, table, and added date.',
+      {
+        limit: { type: 'number', description: 'Max items (default 20)' },
+        days: { type: 'number', description: 'Days back (default 30). 0 = all time.' },
+      }),
+
+    q('getRelatedItems',
+      'Find where an item is referenced across other tables. For "which enemies drop the steel sword?" or "o que dropa dark shards?". Scans every text column of all tables for the item name.',
+      {
+        itemName: { type: 'string', description: 'Item name to search references for' },
+        table: { type: 'string', description: 'Optional source table hint (e.g. "enemies")' },
+        limit: { type: 'number', description: 'Max references (default 10)' },
+      },
+      ['itemName']),
+
+    q('multiTableQuery',
+      'Apply the same filters across MULTIPLE tables in one call. For "all legendary weapons, armors and rings" — pass tables as a comma-separated list. Returns combined results keyed by table.',
+      {
+        tables: { type: 'string', description: 'Comma-separated table names (e.g. "weapons,armors,rings")' },
+        filters: { type: 'string', description: 'JSON object of column filters. Example: {"rarity":"legendary","element":"fire"}' },
+        limit: { type: 'number', description: 'Max items per table (default 20)' },
+      },
+      ['tables', 'filters']),
+
+    q('batchGetItems',
+      'Fetch MULTIPLE items by name from the same table in ONE call. For "give me stats for steel sword, iron sword and battle axe" or "mostre Espada de Ferro e Espada Noturna".',
+      {
+        table: { type: 'string', description: 'Table name' },
+        names: { type: 'string', description: 'Comma-separated item names (case-insensitive, partial match)' },
+      },
+      ['table', 'names']),
+
     // ── Voice control tools ──
 
     new FunctionCallTool(

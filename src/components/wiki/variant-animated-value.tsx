@@ -196,33 +196,6 @@ function useCounter(value: number, trigger: number, enabled: boolean): number {
   return display;
 }
 
-/* ------------------------- 3D flip fallback ------------------------------ */
-
-function ThreeDFlip({ children, trigger }: { children: React.ReactNode; trigger: number }) {
-  const reduced = !useAnimationsEnabled();
-  const [animating, setAnimating] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    if (reduced) return;
-    setAnimating(true);
-    timer.current = setTimeout(() => setAnimating(false), 520);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [trigger, reduced]);
-
-  return (
-    <span
-      className={cn('inline-block transition-transform', animating && 'animate-[vflip_0.5s_ease-in-out]')}
-      style={{ transformStyle: 'preserve-3d', perspective: '500px' }}
-    >
-      {children}
-    </span>
-  );
-}
-
 /* --------------------------- Main component ------------------------------ */
 
 export interface VariantAnimatedValueProps {
@@ -265,13 +238,12 @@ export function VariantAnimatedValue({
   const boolVal = typeof value === 'boolean' ? value : String(value).toLowerCase() === 'true';
 
   // Rich visual render types (icon, color, OP, badge, rating, progress, link,
-  // image, tags, …) keep their already-rendered `children` and only get a 3D
-  // flip — this preserves icons, colors, OP symbols and suffixes.
+  // image, tags, …) keep their already-rendered `children` untouched — the
+  // per-format × per-variant entry animation is owned by the outer Variant3D
+  // wrapper, so no generic flip is applied here (it would override the preset).
   if (isRichVisualRenderType(renderType)) {
     return (
-      <ThreeDFlip trigger={trigger}>
-        <span className={className}>{children ?? strVal}</span>
-      </ThreeDFlip>
+      <span className={className}>{children ?? strVal}</span>
     );
   }
 
@@ -326,11 +298,9 @@ export function VariantAnimatedValue({
     );
   }
 
-  // Fallback: 3D flip of the children
+  // Fallback: children render as-is (outer Variant3D owns the entry motion)
   return (
-    <ThreeDFlip trigger={trigger}>
-      <span className={className}>{children ?? strVal}</span>
-    </ThreeDFlip>
+    <span className={className}>{children ?? strVal}</span>
   );
 }
 
@@ -360,11 +330,6 @@ if (typeof document !== 'undefined' && !injected) {
   0% { transform: translateZ(0) scale(0.9); }
   45% { transform: translateZ(16px) scale(1.18); }
   100% { transform: translateZ(0) scale(1); }
-}
-@keyframes vflip {
-  0% { transform: rotateY(0deg); }
-  50% { transform: rotateY(90deg); }
-  100% { transform: rotateY(0deg); }
 }
 `;
     document.head.appendChild(el);

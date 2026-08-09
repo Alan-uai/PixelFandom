@@ -10,19 +10,21 @@
  *   Each tile keeps its natural height (short cards take less space than tall
  *   ones) and the flow re-packs around it.
  * - `dense`/`bento`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
- *   `grid-auto-flow: dense`. Tiles keep their natural height but get pushed
- *   into every free gap, so short cards fill holes left by taller neighbours.
- *   The column count is derived from the container, so tiles of varying sizes
- *   pack tightly — no persistent column division and no leftover slots.
+ *   `grid-auto-flow: dense`. Tiles stretch to fill every free slot: rows are
+ *   `minmax(min-content, 1fr)` (equal heights, no holes) and each tile is
+ *   `h-full`, so short cards fill the horizontal AND vertical space of the
+ *   container instead of leaving gaps.
  * - `grid`: CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))`. Tiles get
  *   equal width and pack row-wise, ideal for uniform stat cells.
  *
  * With a single child the bento collapses to a single full-width column.
  *
- * Tiles animate in with a staggered reveal whenever the grid mounts (or when
- * `trigger` changes), respecting the user's animation preferences.
+ * Tiles animate in with a staggered reveal only on the FIRST mount of the
+ * grid. On later `trigger` re-runs the tiles render statically — the entry
+ * animation during a variant swap is owned by the per-tile wrapper (Variant3D),
+ * so a generic fade/rise on the whole grid would mask it.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 
@@ -50,25 +52,27 @@ export type BentoGridProps = {
 };
 
 /**
- * Animates a single tile into place. When animations are disabled (or reduced
- * motion is requested) the tile renders statically — no opacity/transform.
+ * Animates a single tile into place. Only the first mount of the grid runs the
+ * staggered reveal; later `trigger` re-runs render statically so the per-tile
+ * wrapper (Variant3D) owns the transition. When animations are disabled (or
+ * reduced motion is requested) the tile renders statically too.
  */
 function BentoTile({
   index,
-  animsOn,
+  animated,
   staggerDelay,
   children,
   className,
   style,
 }: {
   index: number;
-  animsOn: boolean;
+  animated: boolean;
   staggerDelay: number;
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }) {
-  if (!animsOn) {
+  if (!animated) {
     return (
       <div className={className} style={style}>
         {children}
@@ -101,7 +105,7 @@ function BentoTile({
 function masonryChildren(
   children: React.ReactNode,
   gap: number,
-  animsOn: boolean,
+  animated: boolean,
   staggerDelay: number,
   trigger: number,
 ) {
@@ -111,7 +115,7 @@ function masonryChildren(
       <BentoTile
         key={`${trigger}-${i}`}
         index={i}
-        animsOn={animsOn}
+        animated={animated}
         staggerDelay={staggerDelay}
         className="w-full break-inside-avoid"
         style={{ marginBottom: gap, display: 'inline-block', width: '100%' }}
@@ -141,6 +145,12 @@ export function BentoGrid({
 
   const isDense = mode === 'dense';
 
+  // Staggered reveal only while the grid has never been re-triggered (trigger
+  // still at its initial value). Every subsequent re-trigger renders the tiles
+  // statically so the per-tile wrapper (Variant3D) owns the variant entry.
+  const [baseTrigger] = useState(trigger);
+  const animated = animsOn && trigger === baseTrigger;
+
   const gridStyle: React.CSSProperties = {
     columnWidth: mode === 'masonry' ? `${columnWidth}px` : undefined,
     columnGap: gap,
@@ -148,6 +158,7 @@ export function BentoGrid({
       ? {
           display: 'grid',
           gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
+          gridAutoRows: 'minmax(min-content, 1fr)',
           gap,
         }
       : isDense
@@ -155,8 +166,7 @@ export function BentoGrid({
             display: 'grid',
             gridTemplateColumns: `repeat(auto-fit, minmax(${columnWidth}px, 1fr))`,
             gridAutoFlow: 'dense',
-            gridAutoRows: 'min-content',
-            alignItems: 'start',
+            gridAutoRows: 'minmax(min-content, 1fr)',
             gap,
           }
         : {}),
@@ -170,9 +180,9 @@ export function BentoGrid({
           <BentoTile
             key={`${trigger}-${i}`}
             index={i}
-            animsOn={animsOn}
+            animated={animated}
             staggerDelay={staggerDelay}
-            className="min-w-0"
+            className="min-w-0 h-full"
             style={single ? { flex: '1 1 auto' } : undefined}
           >
             {child}
@@ -193,7 +203,7 @@ export function BentoGrid({
     <AnimatePresence>
       <div className={className} style={gridStyle}>
         {mode === 'masonry'
-          ? masonryChildren(children, gap, animsOn, staggerDelay, trigger)
+          ? masonryChildren(children, gap, animated, staggerDelay, trigger)
           : tiles(false)}
       </div>
     </AnimatePresence>

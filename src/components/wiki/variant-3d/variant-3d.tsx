@@ -96,10 +96,10 @@ export function Variant3D({ format, variant, trigger = 0, className, children }:
       animate={disabled ? undefined : animateTarget}
       transition={{ duration: duration ?? 0.4, ease: 'easeOut' }}
       whileHover={disabled ? undefined : hover.whileHover}
-      className={cn(hover.className, preset.className, className)}
+      className={cn('h-full', hover.className, preset.className, className)}
       style={preset.depth ? { transformStyle: 'preserve-3d', perspective: 600 } : undefined}
     >
-      <span className={cn('block', ambient && ambientCls)}>{children}</span>
+      <span className={cn('block h-full', ambient && ambientCls)}>{children}</span>
     </motion.div>
   );
 }

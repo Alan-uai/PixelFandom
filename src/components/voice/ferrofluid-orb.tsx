@@ -44,6 +44,7 @@ const FERROFLUID_VERTEX = /* glsl */ `
 uniform float uTime;
 uniform float uVolume;
 uniform float uBass;
+uniform float uTreble;
 uniform float uPitch;
 uniform float uHover;
 uniform float uCalm;
@@ -134,25 +135,50 @@ vec3 calc(vec3 d, float t){
   vec3 dir = normalize(d);
   float f = field(dir, t);
 
-  // Timbre shifts the spatial frequency of the fine detail noise.
-  float freq = 3.0 + uPitch * 5.0;
-  float detail = snoise(dir * freq + vec3(t * 0.4)) * 0.5 + 0.5;
+  // ── Voice-reactive ferrofluid spines ────────────────────────────────────
+  // The voice taps (user input + agent output) drive three channels:
+  //   uVolume → eruption amplitude (how far the silhouette extends)
+  //   uBass   → heavy needle length (low-timbre rumble)
+  //   uTreble → micro-tremor over every ridge (sibilance / breathiness)
+  // While quiet, the fluid relaxes back into a smooth liquid-metal pool.
 
-  float energy = 0.25 + 0.75 * uVolume;
-  float bassLift = 0.55 + 0.45 * uBass;
+  float voice = clamp(uVolume, 0.0, 1.0);
+  float bass  = clamp(uBass, 0.0, 1.0);
+  float treb  = clamp(uTreble, 0.0, 1.0);
 
-  // Ferrofluid: low field values stay smooth, peaks sharpen into spines.
-  float spike = pow(max(f, 0.0), 1.3 + uVolume * 2.4 + uBass * 1.6);
-  float amp = 0.05 + 0.36 * energy * bassLift;
+  // 0 = resting pool, 1 = fully erected spine field.
+  float growth = smoothstep(0.02, 0.38, voice + bass * 0.6);
 
-  // Idle breathing.
-  float idle = uCalm * (0.035 + 0.04 * sin(t * 0.7 + d.y * 6.0));
+  // As the voice grows, the ridge threshold drops — more of the noise field
+  // sharpens into needles, exactly like a ferrofluid under a rising magnet.
+  float ridgeFloor = mix(0.42, 0.10, growth);
+  float ridgeCeil  = mix(0.66, 0.98, growth);
+  float gate   = smoothstep(ridgeFloor, ridgeCeil, f);
+  float sharp  = 1.30 + growth * 2.6 + bass * 1.2;
+  float spike  = pow(gate, sharp);
 
-  // Magnetic pull toward the hovered direction.
-  float pd = max(dot(d, uPointerDir), 0.0);
-  float mag = uHover * (0.11 * pow(pd, 3.0) + 0.05 * detail * pd);
+  // Fine sibilance tremor — only while speech is present (never at rest).
+  float flutter = treb * growth * (0.18 + 0.28 * voice);
+  spike *= 1.0 + flutter * (snoise(dir * 16.0 + vec3(t * 6.5)) * 0.5 + 0.5);
 
-  float h = idle + amp * spike + mag;
+  // Amplitude: thin resting film vs erupting needles.
+  float amp = 0.030 + 0.40 * growth + 0.10 * bass * growth;
+
+  // The whole body swells with the utterance (slow voice envelope).
+  float swell = voice * (0.030 + 0.022 * sin(t * 2.2 + d.y * 5.0));
+
+  // Liquid sheets — slow mid-frequency undulation, only while at rest.
+  float sheet = (1.0 - growth) * 0.035 *
+    (sin(d.x * 6.0 + t * 0.8) * sin(d.y * 5.0 - t * 0.6));
+
+  // Idle breathing (respects reduced-motion via uCalm).
+  float idle = uCalm * (0.028 + 0.026 * sin(t * 0.65 + d.y * 8.0));
+
+  // Magnetic pull: spines lean toward the hovered surface point.
+  float pd = max(dot(dir, uPointerDir), 0.0);
+  float mag = uHover * (0.12 * pow(pd, 3.0) + 0.05 * (f * 0.5 + 0.5) * pd);
+
+  float h = idle + swell + sheet + amp * spike + mag;
   return dir * (1.0 + h);
 }
 
@@ -224,9 +250,10 @@ void main(){
   energyMask *= 0.45 + 0.55 * pow(max(vHeight * 9.0, 0.0), 1.3);
   vec3 energy = status * energyMask * (0.9 + 0.7 * uBass);
 
-  // Ferrofluid spine apexes ignite.
-  float apex = smoothstep(0.52, 0.96, vNoise01) * uVolume;
-  vec3 apexGlow = status * apex * 0.6;
+  // Ferrofluid spine apexes ignite — taller needles burn brighter.
+  float apex = smoothstep(0.50, 0.95, vNoise01) * uVolume;
+  apex *= 0.35 + 0.65 * smoothstep(0.02, 0.30, vHeight);
+  vec3 apexGlow = status * apex * 0.9;
 
   vec3 col = chrome + energy + apexGlow;
   col += uRimColor * fres * (uRimStrength * (0.4 + uVolume));
@@ -250,7 +277,6 @@ void main(){
 
 const GLOW_FRAGMENT = /* glsl */ `
 precision highp float;
-uniform float uTime;
 uniform float uVolume;
 uniform vec3 uRimColor;
 uniform float uStrength;
@@ -260,9 +286,8 @@ void main(){
   vec3 n = normalize(vNormalW);
   vec3 view = normalize(vViewDir);
   float fres = pow(1.0 - abs(dot(n, view)), 2.2);
-  float pulse = 0.75 + 0.25 * sin(uTime * 2.0);
-  float a = fres * uStrength * (0.30 + uVolume * 1.3) * (0.5 + 0.5 * pulse);
-  vec3 c = uRimColor * fres * uStrength * (0.5 + uVolume * 1.1) * pulse;
+  float a = fres * uStrength * (0.28 + uVolume * 1.6);
+  vec3 c = uRimColor * fres * uStrength * (0.55 + uVolume * 1.3);
   gl_FragColor = vec4(c, a);
 }
 `
@@ -337,7 +362,6 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
         vertexShader: GLOW_VERTEX,
         fragmentShader: GLOW_FRAGMENT,
         uniforms: {
-          uTime: { value: 0 },
           uVolume: { value: 0 },
           uRimColor: { value: themeColor(STATUS_THEMES.idle.rim) },
           uStrength: { value: 0.6 },
@@ -385,10 +409,15 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     const dt = Math.min(delta, 0.05)
     const now = state.clock.elapsedTime
 
+    const lv: AudioLevelsSnapshot = audioLevels.sample()
+
     // Throttle the idle loop (30 fps) — full 60 fps only while the orb is
-    // being interacted with or the voice agent is live.
+    // being interacted with, the voice agent is live, or audio is flowing.
     const active =
-      hoverTarget.current > 0.02 || drag.current.active || visualStatus.current !== 'idle'
+      hoverTarget.current > 0.02 ||
+      drag.current.active ||
+      visualStatus.current !== 'idle' ||
+      lv.volume > 0.06
     if (!active) {
       if (now - lastFrameAt.current < 1 / 30) {
         if (!idleTimer.current) {
@@ -405,7 +434,6 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     }
     lastFrameAt.current = now
 
-    const lv: AudioLevelsSnapshot = audioLevels.sample()
     const u = fluidMat.uniforms
 
     u.uTime.value = now
@@ -437,7 +465,6 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
     u.uRimStrength.value = damp(u.uRimStrength.value, theme.rimStrength, 6, dt)
     glowMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
     glowMat.uniforms.uVolume.value = u.uVolume.value
-    glowMat.uniforms.uTime.value = now
 
     // Rotation: idle drift + drag inertia, energised by the voice.
     const r = rot.current
@@ -445,7 +472,7 @@ function FluidMesh({ statusRef, onStatusChange, onDragState }: FluidMeshProps) {
       r.yawV *= Math.exp(-dt * 3.2)
       r.pitchV *= Math.exp(-dt * 3.2)
       if (!REDUCED_MOTION) {
-        r.yaw += dt * (0.5 + lv.volume) * 0.5 + r.yawV
+        r.yaw += dt * (0.38 + lv.volume * 1.4) * 0.45 + r.yawV
       }
       r.pitch = THREE.MathUtils.clamp(r.pitch + r.pitchV * dt, -0.5, 0.5)
     }

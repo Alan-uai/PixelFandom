@@ -439,11 +439,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
           status={status}
           onStatusChange={handleOrbStatus}
         />
-        {(status === 'listening' || status === 'speaking') && (
-          <div className={`absolute -inset-5 rounded-full border-2 animate-ping pointer-events-none ${
-            status === 'listening' ? 'border-cyan-400/40' : 'border-violet-400/40'
-          }`} />
-        )}
       </button>
 
       {errorMessage && (
