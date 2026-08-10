@@ -10,6 +10,33 @@ export const WIKI_MGMT_COLS = new Set([
   'thumbnail', 'avatar', 'banner', 'cover',
 ]);
 
+/** Column names that typically contain long text (used by listing & filter UIs). */
+export const LONG_TEXT_COLS = new Set([
+  'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
+  'content', 'details', 'items_dropped', 'notable_loot',
+]);
+
+/** Portuguese-friendly labels for known category columns. */
+export const CATEGORY_LABELS: Record<string, string> = {
+  world: 'Mundo',
+  tier: 'Tier',
+  rarity: 'Raridade',
+  mark: 'Marca',
+  weapon: 'Arma',
+  enemy: 'Inimigo',
+  boss: 'Chefe',
+  element: 'Elemento',
+  difficulty: 'Dificuldade',
+  type: 'Tipo',
+  category: 'Categoria',
+};
+
+/** Derive a human-readable label for a column name. */
+export function deriveLabel(col: string): string {
+  const base = col.replace(/^(is_|has_)/, '').replace(/_type$/, '');
+  return CATEGORY_LABELS[base] ?? CATEGORY_LABELS[col] ?? col.replace(/_/g, ' ');
+}
+
 const NON_CAT_RENDER_TYPES = new Set([
   'image', 'file', 'video', 'audio',
   'popover', 'color-palette', 'icon-set',

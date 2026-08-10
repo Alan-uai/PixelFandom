@@ -5,22 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select3D } from '@/components/ui/select3d';
 import { Loader2, Filter } from 'lucide-react';
-import { SYSTEM_COLS } from '@/lib/categorizable-columns';
-const LONG_TEXT_COLS = new Set([
-  'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
-  'content', 'details', 'items_dropped', 'notable_loot',
-]);
-
-const CATEGORY_LABELS: Record<string, string> = {
-  world: 'Mundo', tier: 'Tier', rarity: 'Raridade', mark: 'Marca',
-  weapon: 'Arma', enemy: 'Inimigo', boss: 'Chefe', element: 'Elemento',
-  difficulty: 'Dificuldade', type: 'Tipo', category: 'Categoria',
-};
-
-function deriveLabel(col: string): string {
-  const base = col.replace(/^(is_|has_)/, '').replace(/_type$/, '');
-  return CATEGORY_LABELS[base] ?? CATEGORY_LABELS[col] ?? col.replace(/_/g, ' ');
-}
+import { SYSTEM_COLS, LONG_TEXT_COLS, deriveLabel } from '@/lib/categorizable-columns';
 
 export function FilterConfig({
   config,

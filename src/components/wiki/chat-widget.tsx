@@ -72,9 +72,10 @@ type ChatWidgetProps = {
   tenantSlug: string;
   isChatPage?: boolean;
   widgetConfig?: WidgetChatConfig;
+  hideWidget?: boolean;
 };
 
-export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: ChatWidgetProps) {
+export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig, hideWidget }: ChatWidgetProps) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(loadVisible);
   const [dragging, setDragging] = useState(false);
@@ -102,6 +103,8 @@ export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: Cha
   const dragStart = useRef({ x: 0, y: 0 });
   const dragOffset = useRef({ x: 0, y: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const swipeStartX = useRef(0);
+  const [swiping, setSwiping] = useState(false);
 
   useEffect(() => {
     saveVisible(visible);
@@ -212,6 +215,44 @@ export default function ChatWidget({ tenantSlug, isChatPage, widgetConfig }: Cha
   const buttonColor = widgetConfig?.color;
 
   const ChatIcon = (widgetConfig?.icon && CHAT_ICON_MAP[widgetConfig.icon]) || MessageCircle;
+
+  // ── Compact mode: thin horizontal line with swipe to open ──
+  if (hideWidget) {
+    return (
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none"
+        onTouchStart={(e) => {
+          swipeStartX.current = e.touches[0].clientX;
+          setSwiping(true);
+        }}
+        onTouchMove={(e) => {
+          if (!swiping) return;
+          const dx = e.touches[0].clientX - swipeStartX.current;
+          if (dx < -60) {
+            setSwiping(false);
+            setOpen(true);
+          }
+        }}
+        onTouchEnd={() => setSwiping(false)}
+        onMouseDown={(e) => {
+          swipeStartX.current = e.clientX;
+          setSwiping(true);
+        }}
+        onMouseMove={(e) => {
+          if (!swiping) return;
+          const dx = e.clientX - swipeStartX.current;
+          if (dx < -60) {
+            setSwiping(false);
+            setOpen(true);
+          }
+        }}
+        onMouseUp={() => setSwiping(false)}
+        onMouseLeave={() => setSwiping(false)}
+      >
+        <div className="pointer-events-auto w-40 h-1 rounded-full bg-gradient-to-r from-primary/40 via-primary/70 to-primary/40 cursor-pointer hover:h-1.5 transition-all duration-300 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div style={style} className="flex flex-col items-end">

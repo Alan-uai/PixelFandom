@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronDown, ChevronRight, Star, Sword, Shield, Zap,
@@ -25,71 +24,8 @@ import {
 import { ScalingContext, type ScalingInfo } from '@/lib/scaling-context';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
-
-// 3D transition keyframes (beam + reflection) for variant switches in this view.
-let civ3dKfInjected = false;
-function ensureCivVariant3dKeyframes() {
-  if (typeof document === 'undefined' || civ3dKfInjected) return;
-  civ3dKfInjected = true;
-  if (document.getElementById('variant-3d-kf-civ')) return;
-  const el = document.createElement('style');
-  el.id = 'variant-3d-kf-civ';
-  el.textContent = `
-@keyframes variant-beam-ltr {
-  0% { left: -35%; opacity: 0; }
-  12% { opacity: 1; }
-  100% { left: 110%; opacity: 0; }
-}
-@keyframes variant-beam-rtl {
-  0% { left: 110%; opacity: 0; }
-  12% { opacity: 1; }
-  100% { left: -35%; opacity: 0; }
-}
-.variant-beam-ltr { animation: variant-beam-ltr 0.7s ease-in-out; }
-.variant-beam-rtl { animation: variant-beam-rtl 0.7s ease-in-out; }
-@keyframes variant-reflection {
-  0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
-  30% { opacity: 0.7; }
-  100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
-}
-.variant-3d-transition::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    105deg,
-    transparent 25%,
-    rgba(255,255,255,0.18) 45%,
-    rgba(255,215,0,0.12) 50%,
-    rgba(255,255,255,0.22) 55%,
-    transparent 75%
-  );
-  animation: variant-reflection 0.9s ease-out 0.3s both;
-  z-index: 5;
-}
-@keyframes variant-3d-flip-in {
-  0% { transform: scale(0.97); }
-  100% { transform: scale(1); }
-}
-.variant-3d-flip-in {
-  animation: variant-3d-flip-in 0.45s ease-out;
-  transform-style: preserve-3d;
-}
-@keyframes variant-content-expand {
-  0% { transform: translateY(-8px) scaleY(0.96); }
-  100% { transform: translateY(0) scaleY(1); }
-}
-.variant-content-expand {
-  animation: variant-content-expand 0.35s ease-out 0.05s both;
-  transform-origin: top;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .variant-beam-ltr, .variant-beam-rtl { will-change: left, opacity; }
-}
-`;
-  document.head.appendChild(el);
-}
+import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
+import { getItemName, getItemIcon } from '@/lib/item-helpers';
 
 function Tag({ children, className = '', icon, title }: { children: React.ReactNode; className?: string; icon?: React.ReactNode; title?: string }) {
   return (
@@ -568,7 +504,7 @@ type Props = {
 export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
   const table = sourceTable || 'generic';
 
-  ensureCivVariant3dKeyframes();
+  ensureVariant3DKeyframes();
 
   // ── Variantes: troca in-place dos dados do card ──
   const [activeData, setActiveData] = useState<Record<string, any>>(data);
@@ -760,24 +696,14 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   const rendered = new Set<string>();
 
-  const activeName = (activeData.name || activeData.title || activeData.item_name || activeData.code || '') as string;
+  const activeName = getItemName(activeData);
   const activeDescription = activeData.description as string | undefined;
   const activeImageUrl = (activeData.image_url || activeData.image) as string | undefined;
   const activeRarity = activeData.rarity != null ? String(activeData.rarity) : undefined;
   const activeTier = activeData.tier != null ? String(activeData.tier) : undefined;
   const activeElement = activeData.element != null ? String(activeData.element) : undefined;
   const activeGrad = activeRarity ? (RARITY_GRAD[activeRarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
-  const activeIcon = activeData.icon_url ? (
-    <Image src={activeData.icon_url} alt="" fill className="object-contain" />
-  ) : activeData.icon && activeData.icon.includes(':') ? (
-    <IconRenderer icon={activeData.icon} size="lg" />
-  ) : activeData.icon && activeData.icon.startsWith('http') ? (
-    <Image src={activeData.icon} alt="" fill className="object-contain" />
-  ) : activeData.icon ? (
-    <span className="text-lg">{activeData.icon}</span>
-  ) : (
-    COLL_ICON[collectionType || ''] || <Sword className="h-5 w-5" />
-  );
+  const activeIcon = getItemIcon(activeData, 'lg') || COLL_ICON[collectionType || ''] || <Sword className="h-5 w-5" />;
 
   return (
       <ScalingContext.Provider value={scalingInfo}>
@@ -790,7 +716,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             currentItemSlug={baseItemSlug}
             tenantId={tenantId}
             activeVariantSlug={activeVariantSlug}
-            baseItemLabel={data.name || data.title || data.item_name || data.code || ''}
+            baseItemLabel={getItemName(data)}
             onSelectVariant={handleSelectVariant}
             loadingVariant={loadingVariant}
           />
@@ -839,29 +765,44 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           />
         )}
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
-          <div className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden">
+          <div
+            key={`detail-icon-${variantTrigger}`}
+            className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden variant-icon-3d"
+          >
             {activeIcon}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold leading-tight" style={detailConfig?.columnConfig?.name?.labelColor ? { color: detailConfig.columnConfig.name.labelColor } : {}}>{activeName}</h1>
+            <h1
+              key={`detail-name-${variantTrigger}`}
+              className="text-2xl font-bold leading-tight variant-text-scramble"
+              style={detailConfig?.columnConfig?.name?.labelColor ? { color: detailConfig.columnConfig.name.labelColor } : {}}
+            >
+              {activeName}
+            </h1>
             {activeDescription && <p className="text-sm text-white/80 mt-1.5 leading-relaxed">{activeDescription}</p>}
           </div>
           <div className="max-w-[200px]">
             <ChipCarousel>
               {activeRarity && (
-                <Tag className={`${RARITY_COLORS[activeRarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
-                  {activeRarity}
-                </Tag>
+                <span key={`tag-rarity-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '0ms' }}>
+                  <Tag className={`${RARITY_COLORS[activeRarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
+                    {activeRarity}
+                  </Tag>
+                </span>
               )}
               {activeTier && (
-                <Tag className={`${TIER_COL[activeTier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
-                  {TIER_LABEL[activeTier.toLowerCase()] || activeTier}
-                </Tag>
+                <span key={`tag-tier-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '80ms' }}>
+                  <Tag className={`${TIER_COL[activeTier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
+                    {TIER_LABEL[activeTier.toLowerCase()] || activeTier}
+                  </Tag>
+                </span>
               )}
               {activeElement && activeElement !== 'none' && (
-                <Tag className={`${elementClass(activeElement)} bg-background/80 backdrop-blur-sm`} icon={elIcon(activeElement)}>
-                  {activeElement}
-                </Tag>
+                <span key={`tag-element-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '160ms' }}>
+                  <Tag className={`${elementClass(activeElement)} bg-background/80 backdrop-blur-sm`} icon={elIcon(activeElement)}>
+                    {activeElement}
+                  </Tag>
+                </span>
               )}
             </ChipCarousel>
           </div>

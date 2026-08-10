@@ -33,97 +33,19 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
-import { Variant3D } from '@/components/wiki/variant-3d';
+import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
 import { formatNumber } from '@/lib/format-number';
 import { humanizeLabel } from '@/lib/operator-symbols';
-import { SYSTEM_COLS } from '@/lib/categorizable-columns';
+import { SYSTEM_COLS, LONG_TEXT_COLS, deriveLabel } from '@/lib/categorizable-columns';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
+import { getItemName, getItemIcon, getGridColsClass } from '@/lib/item-helpers';
 
 // Feixe dourado que varre o heading do card durante a troca de variante.
-// id próprio de style — NÃO reutilizar `variant-3d-kf` (variant-3d/keyframes.ts):
-// sob o mesmo id, o primeiro injector venceria e o outro jamais entraria no DOM.
-let gtlKfInjected = false;
-function ensureVariant3dKeyframes() {
-  if (typeof document === 'undefined' || gtlKfInjected) return;
-  gtlKfInjected = true;
-  if (document.getElementById('variant-3d-kf-gtl')) return;
-  const el = document.createElement('style');
-  el.id = 'variant-3d-kf-gtl';
-  el.textContent = `
-@keyframes variant-beam-ltr {
-  0% { left: -35%; opacity: 0; }
-  15% { opacity: 1; }
-  100% { left: 110%; opacity: 0; }
-}
-@keyframes variant-beam-rtl {
-  0% { right: -35%; left: auto; opacity: 0; }
-  15% { opacity: 1; }
-  100% { right: 110%; opacity: 0; }
-}
-.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
-.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
-
-/* reflexo brilhante que atravessa o card e assenta após a troca */
-@keyframes variant-reflection {
-  0% { transform: translateX(-60%) skewX(-18deg); opacity: 0; }
-  40% { opacity: 0.6; }
-  100% { transform: translateX(160%) skewX(-18deg); opacity: 0; }
-}
-.variant-3d-transition::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
-  animation: variant-reflection 0.8s ease-out;
-  z-index: 5;
-}
-
-/* nome da variante / do heading (reutilizado p/ categoria) */
-@keyframes variant-head-in {
-  0% { opacity: 0; transform: translateY(12px) scale(0.96); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.variant-head-in { animation: variant-head-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* ícone da variante (reutilizado p/ ícone da categoria) */
-@keyframes variant-icon-pop {
-  0% { opacity: 0; transform: scale(0.4) rotate(-18deg); }
-  60% { transform: scale(1.12) rotate(3deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-.variant-icon-pop { animation: variant-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-`;
-  document.head.appendChild(el);
-}
-
-const LONG_TEXT_COLS = new Set([
-  'description', 'effects', 'weakness', 'notes', 'strategy', 'tips',
-  'content', 'details', 'items_dropped', 'notable_loot',
-]);
-
-const CATEGORY_LABELS: Record<string, string> = {
-  world: 'Mundo',
-  tier: 'Tier',
-  rarity: 'Raridade',
-  mark: 'Marca',
-  weapon: 'Arma',
-  enemy: 'Inimigo',
-  boss: 'Chefe',
-  element: 'Elemento',
-  difficulty: 'Dificuldade',
-  type: 'Tipo',
-  category: 'Categoria',
-};
+// Keyframes consolidados em variant-3d/keyframes.ts (única fonte de verdade).
 
 function isTypeLike(col: string): boolean {
   return col === 'type' || col === 'category' || col.endsWith('_type');
-}
-
-function deriveLabel(col: string): string {
-  const base = col.replace(/^(is_|has_)/, '').replace(/_type$/, '');
-  return CATEGORY_LABELS[base] ?? CATEGORY_LABELS[col] ?? col.replace(/_/g, ' ');
 }
 
 function formatCategoryValue(col: string, val: unknown): string {
@@ -150,48 +72,6 @@ function toSlug(text: string): string {
   return slugify(text, { keepCJK: true });
 }
 
-// Natural/ordenação numérica: "2" < "10" < "100" (útil p/ categorias numéricas)
-function naturalCompare(a: string, b: string): number {
-  const ax: (string | number)[] = [];
-  const bx: (string | number)[] = [];
-  a.replace(/(\d+)|(\D+)/g, (_m, num, str) => {
-    ax.push(num != null ? Number(num) : str);
-    return '';
-  });
-  b.replace(/(\d+)|(\D+)/g, (_m, num, str) => {
-    bx.push(num != null ? Number(num) : str);
-    return '';
-  });
-  while (ax.length && bx.length) {
-    const an = ax.shift()!;
-    const bn = bx.shift()!;
-    if (typeof an === 'number' && typeof bn === 'number') {
-      if (an !== bn) return an - bn;
-    } else if (an < bn) return -1;
-    else if (an > bn) return 1;
-  }
-  return ax.length - bx.length;
-}
-
-const iconColumnNames = ['icon_url', 'icon_id', 'icon'];
-const imageColumnNames = ['image_url', 'image', 'cover_url', 'logo_url'];
-
-function getIcon(item: Record<string, any>) {
-  for (const col of iconColumnNames) {
-    const v = item[col];
-    if (v) {
-      if (typeof v === 'string' && v.includes(':')) return <IconRenderer icon={v} size="md" />;
-      if (typeof v === 'string' && v.startsWith('http')) return <Image src={v} alt="" fill className="object-contain" />;
-      if (typeof v === 'string') return <span className="text-lg">{v}</span>;
-    }
-  }
-  for (const col of imageColumnNames) {
-    const v = item[col];
-    if (v && typeof v === 'string') return <Image src={v} alt="" fill className="object-cover" />;
-  }
-  return null;
-}
-
 function renderBadgeItem(
   col: string,
   item: Record<string, any>,
@@ -209,9 +89,82 @@ function renderBadgeItem(
   const iconSize = bc.iconSize ?? 10;
   const labelSize = bc.labelSize ?? 10;
 
-  const renderType = columnTypes?.[col] || 'text';
-  let displayValue: React.ReactNode;
-  displayValue = <ColumnDisplay value={val} column={col} renderType={renderType} useSuffix={useSuffix} plain columnConfig={columnConfig?.[col]} maxValue={columnConfig?.[col]?.maxValue} />;
+  // Popover column: render badge as an interactive Popover trigger
+  if (columnTypes?.[col] === 'popover') {
+    let popoverTitle = '';
+    let popoverContent = '';
+    let popoverTriggerText = '';
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      const p = val as Record<string, string>;
+      popoverTitle = p.title || '';
+      popoverContent = p.content || '';
+      popoverTriggerText = p.triggerText || '';
+    } else if (typeof val === 'string') {
+      try {
+        const p = JSON.parse(val);
+        if (p && typeof p === 'object' && !Array.isArray(p)) {
+          popoverTitle = p.title || '';
+          popoverContent = p.content || '';
+          popoverTriggerText = p.triggerText || '';
+        } else {
+          popoverContent = val;
+        }
+      } catch { popoverContent = val; }
+    }
+    const badgeLabel = (bc as any).label || col;
+    const displayLabel = popoverTriggerText || badgeLabel;
+    const rawColor = badgeColors[col] || '';
+    const isColor = isColorString(rawColor);
+    const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
+    const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
+    const style: React.CSSProperties = {
+      ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
+      fontSize: `${labelSize}px`,
+      padding: '2px 6px',
+    };
+    return (
+      <Popover key={col}>
+        <PopoverTrigger asChild>
+          <button type="button" className={`${baseClass} ${colorClass} cursor-pointer`} style={style}>
+            <Info className="h-3 w-3 shrink-0" />
+            {displayLabel}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-3 text-xs space-y-1" side="top" align="center">
+          {popoverTitle && (
+            <p className="font-medium text-foreground mb-1">{popoverTitle}</p>
+          )}
+          <div className="text-muted-foreground whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+            {popoverContent || '\u2014'}
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // Badges ALWAYS render as plain text in a Badge pill \u2014 never minicards,
+  // regardless of the column data type (numeric, text, jsonb, etc).
+  let displayValue: string;
+  if (typeof val === 'number') {
+    displayValue = formatNumber(val, useSuffix ?? true);
+  } else if (typeof val === 'boolean') {
+    displayValue = val ? 'Sim' : 'N\u00e3o';
+  } else if (Array.isArray(val)) {
+    displayValue = val.map((v) => {
+      if (typeof v === 'object' && v !== null) {
+        return Object.entries(v as Record<string, unknown>)
+          .map(([k, v2]) => `${v2} ${humanizeLabel(k)}`)
+          .join(', ');
+      }
+      return String(v);
+    }).join(' | ');
+  } else if (typeof val === 'object' && val !== null) {
+    displayValue = Object.entries(val as Record<string, unknown>)
+      .map(([k, v]) => `${v} ${humanizeLabel(k)}`)
+      .join(' \u00b7 ');
+  } else {
+    displayValue = String(val);
+  }
 
   const rawColor = badgeColors[col] || '';
   const isColor = isColorString(rawColor);
@@ -225,14 +178,6 @@ function renderBadgeItem(
     fontSize: `${labelSize}px`,
     padding: '2px 6px',
   };
-
-  const content = (
-    <>
-      {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
-      {displayValue}
-    </>
-  );
-
   if (hasAction) {
     return (
       <button key={col} type="button" onClick={(e) => {
@@ -247,13 +192,15 @@ function renderBadgeItem(
           }
         }
       }} className={classes} style={style}>
-        {content}
+        {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
+        {displayValue}
       </button>
     );
   }
   return (
     <span key={col} className={classes} style={style}>
-      {content}
+      {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
+      {displayValue}
     </span>
   );
 }
@@ -320,13 +267,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     cols = Math.max(2, Math.min(5, effectiveColumnsCount));
   }
   const scaleFactor = Math.max(0.5, 1 - (cols - 1) * 0.125);
-  const gridColsClass = ({
-    1: 'grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-1',
-    2: 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
-    3: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
-    4: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
-    5: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
-  } as Record<number, string>)[cols] || 'grid grid-cols-2';
+  const gridColsClass = getGridColsClass(cols);
 
   const searchDebounceMs = viewerConfig?.search?.debounceMs ?? 300;
   const searchMinChars = viewerConfig?.search?.minChars ?? 1;
@@ -601,7 +542,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (ai != null && bi != null) return sortDir === 'desc' ? bi - ai : ai - bi;
         if (ai != null) return -1;
         if (bi != null) return 1;
-        return sortDir === 'desc' ? naturalCompare(b, a) : naturalCompare(a, b);
+        return sortDir === 'desc' ? smartCompare(b, a) : smartCompare(a, b);
       });
     } else if (categorySortCol) {
       const catSortValMap = new Map<string, string>();
@@ -612,10 +553,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       entries.sort(([a], [b]) => {
         const va = catSortValMap.get(a) || '';
         const vb = catSortValMap.get(b) || '';
-        return sortDir === 'desc' ? naturalCompare(vb, va) : naturalCompare(va, vb);
+        return sortDir === 'desc' ? smartCompare(vb, va) : smartCompare(va, vb);
       });
     } else {
-      entries.sort(([a], [b]) => sortDir === 'desc' ? naturalCompare(b, a) : naturalCompare(a, b));
+      entries.sort(([a], [b]) => sortDir === 'desc' ? smartCompare(b, a) : smartCompare(a, b));
     }
 
     // Sort items within each category
@@ -1386,7 +1327,7 @@ function ItemListRow({
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
 
-  const icon = getIcon(item);
+  const icon = getItemIcon(item);
 
   return (
     <div
@@ -1560,7 +1501,7 @@ function ItemAccordionBox({
   const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
 
-  const icon = getIcon(item);
+  const icon = getItemIcon(item);
 
   return (
     <div
@@ -1759,9 +1700,9 @@ function ItemCard({
   persistedVariant?: any;
   persistedVariantSlug?: string | null;
 }) {
-  ensureVariant3dKeyframes();
+  ensureVariant3DKeyframes();
 
-  const label = item.name || item.title || item.item_name || item.code || '';
+  const label = getItemName(item);
   const itemSlug = item.slug || toSlug(String(label));
 
   const showCardIcon = cardConfig?.showIcon !== false;
@@ -1897,141 +1838,16 @@ function ItemCard({
   }, [baseItemId]);
 
   // Heading + badges refletem a variante ativa
-  const icon = getIcon(activeItem);
+  const icon = getItemIcon(activeItem);
   const collIcon = COLL_ICON[tableName] || <Eye className="h-5 w-5" />;
   const imageUrl = (showCardImage ? activeItem.image_url || activeItem.image || activeItem.icon_url || activeItem.icon : undefined);
 
   const rarity = activeItem.rarity != null ? String(activeItem.rarity) : undefined;
   const grad = rarity ? (RARITY_GRAD[rarity.toLowerCase()] || 'from-black/60 to-black/40') : 'from-black/60 to-black/40';
 
-  const activeLabel = activeItem.name || activeItem.title || activeItem.item_name || activeItem.code || label;
+  const activeLabel = getItemName(activeItem) || label;
 
-  const handleBadgeClick = (col: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const bc = badgeConfig[col] || {};
-    const action = bc.clickAction || 'none';
-    if (action === 'comparison') {
-      onCompareStatClick?.(col);
-    } else if (action === 'external-link') {
-      const url = bc.clickUrl || '';
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    }
-  };
 
-  function renderBadge(col: string): React.ReactNode {
-    const val = activeItem[col];
-    if (val == null || val === '' || val === 'none') return null;
-
-    const bc = badgeConfig[col] || {};
-    const iconSize = bc.iconSize ?? 10;
-    const labelSize = bc.labelSize ?? 10;
-
-    // Popover column: render badge as an interactive Popover trigger
-    if (columnTypes?.[col] === 'popover') {
-      let popoverTitle = '';
-      let popoverContent = '';
-      let popoverTriggerText = '';
-      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-        const p = val as Record<string, string>;
-        popoverTitle = p.title || '';
-        popoverContent = p.content || '';
-        popoverTriggerText = p.triggerText || '';
-      } else if (typeof val === 'string') {
-        try {
-          const p = JSON.parse(val);
-          if (p && typeof p === 'object' && !Array.isArray(p)) {
-            popoverTitle = p.title || '';
-            popoverContent = p.content || '';
-            popoverTriggerText = p.triggerText || '';
-          } else {
-            popoverContent = val;
-          }
-        } catch { popoverContent = val; }
-      }
-      const badgeLabel = (bc as any).label || col;
-      const displayLabel = popoverTriggerText || badgeLabel;
-      const rawColor = badgeColors[col] || '';
-      const isColor = isColorString(rawColor);
-      const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
-      const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
-      const style: React.CSSProperties = {
-        ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
-        fontSize: `${labelSize}px`,
-        padding: '2px 6px',
-      };
-      return (
-        <Popover key={col}>
-          <PopoverTrigger asChild>
-            <button type="button" className={`${baseClass} ${colorClass} cursor-pointer`} style={style}>
-              <Info className="h-3 w-3 shrink-0" />
-              {displayLabel}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-3 text-xs space-y-1" side="top" align="center">
-            {popoverTitle && (
-              <p className="font-medium text-foreground mb-1">{popoverTitle}</p>
-            )}
-            <div className="text-muted-foreground whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-              {popoverContent || '—'}
-            </div>
-          </PopoverContent>
-        </Popover>
-      );
-    }
-
-    // Badges ALWAYS render as plain text in a Badge pill — never minicards,
-    // regardless of the column data type (numeric, text, jsonb, etc).
-    let displayValue: string;
-    if (typeof val === 'number') {
-      displayValue = formatNumber(val, useSuffix ?? true);
-    } else if (typeof val === 'boolean') {
-      displayValue = val ? 'Sim' : 'Não';
-    } else if (Array.isArray(val)) {
-      displayValue = val.map((v) => {
-        if (typeof v === 'object' && v !== null) {
-          return Object.entries(v as Record<string, unknown>)
-            .map(([k, v2]) => `${v2} ${humanizeLabel(k)}`)
-            .join(', ');
-        }
-        return String(v);
-      }).join(' | ');
-    } else if (typeof val === 'object' && val !== null) {
-      displayValue = Object.entries(val as Record<string, unknown>)
-        .map(([k, v]) => `${v} ${humanizeLabel(k)}`)
-        .join(' · ');
-    } else {
-      displayValue = String(val);
-    }
-
-    const rawColor = badgeColors[col] || '';
-    const isColor = isColorString(rawColor);
-    const hasHover = bc.hover === true;
-    const hasAction = (bc.clickAction || 'none') !== 'none';
-    const baseClass = 'inline-flex items-center gap-0.5 rounded-full border font-medium';
-    const colorClass = isColor ? 'bg-background/80 backdrop-blur-sm border-border/50' : (rawColor || 'bg-background/80 backdrop-blur-sm border-border/50');
-    const classes = `${baseClass} ${colorClass} ${hasHover ? 'hover:scale-110 transition-transform' : ''} ${hasAction ? 'cursor-pointer' : ''}`;
-    const style: React.CSSProperties = {
-      ...(isColor ? (hexToStyle(rawColor) || {}) : {}),
-      fontSize: `${labelSize}px`,
-      padding: '2px 6px',
-    };
-    if (hasAction) {
-      return (
-        <button key={col} type="button" onClick={(e) => handleBadgeClick(col, e)} className={classes} style={style}>
-          {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
-          {displayValue}
-        </button>
-      );
-    }
-    return (
-      <span key={col} className={classes} style={style}>
-        {bc.icon && <IconRenderer icon={bc.icon} size={iconSize} />}
-        {displayValue}
-      </span>
-    );
-  }
 
   const cardPadding = 'p-3';
   const iconSize = cardSize === 'sm' ? 'h-8 w-8' : cardSize === 'lg' ? 'h-16 w-16' : 'h-12 w-12';
@@ -2067,7 +1883,7 @@ function ItemCard({
           {showCardIcon && (
           <div
             key={`ic-${variationKey}`}
-            className={`relative ${iconSize} flex items-center justify-center shrink-0 ${transitioning ? 'variant-icon-pop' : ''}`}
+            className={`relative ${iconSize} flex items-center justify-center shrink-0 ${transitioning ? 'variant-icon-3d' : ''}`}
           >
             {icon || collIcon}
           </div>
@@ -2076,7 +1892,7 @@ function ItemCard({
           <div className="flex-1 min-w-0 self-center">
             <h3
               key={`nm-${variationKey}`}
-              className={`${titleSize} leading-tight text-white ${transitioning ? 'variant-head-in' : ''}`}
+              className={`${titleSize} leading-tight text-white ${transitioning ? 'variant-text-scramble' : ''}`}
               style={{ animationDelay: '70ms' }}
             >
               {activeLabel}
@@ -2088,10 +1904,10 @@ function ItemCard({
             {activeBadges.map((col, i) => (
               <span
                 key={`bg-${col}-${variationKey}`}
-                className={`inline-flex ${transitioning ? 'variant-head-in' : ''}`}
-                style={{ animationDelay: `${120 + i * 70}ms` }}
+                className={`inline-flex ${transitioning ? 'variant-badge-draw' : ''}`}
+                style={{ animationDelay: `${120 + i * 80}ms` }}
               >
-                {renderBadge(col)}
+                {renderBadgeItem(col, activeItem, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix, detailConfig?.columnConfig)}
               </span>
             ))}
           </div>
@@ -2102,10 +1918,10 @@ function ItemCard({
             {activeBadges.map((col, i) => (
               <span
                 key={`bg-${col}-${variationKey}`}
-                className={`inline-flex ${transitioning ? 'variant-head-in' : ''}`}
-                style={{ animationDelay: `${120 + i * 70}ms` }}
+                className={`inline-flex ${transitioning ? 'variant-badge-draw' : ''}`}
+                style={{ animationDelay: `${120 + i * 80}ms` }}
               >
-                {renderBadge(col)}
+                {renderBadgeItem(col, activeItem, badgeConfig, badgeColors, onCompareStatClick, columnTypes, useSuffix, detailConfig?.columnConfig)}
               </span>
             ))}
           </div>

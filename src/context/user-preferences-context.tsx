@@ -16,6 +16,7 @@ export interface ChatSettings {
   response_style: string;
   display_mode: string;
   language: string;
+  hideWidget: boolean;
 }
 
 export interface AnimationSettings {
@@ -49,6 +50,7 @@ const CHAT_DEFAULTS: ChatSettings = {
   response_style: 'detailed',
   display_mode: 'acordeao',
   language: 'pt_br',
+  hideWidget: false,
 };
 
 const DEFAULTS: UserPreferences = {

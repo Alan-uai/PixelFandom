@@ -331,9 +331,9 @@ function WikiLayoutContent({
             </div>
           </footer>
         )}
-        {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} widgetConfig={chatWidgetConfig} />}
+        {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} widgetConfig={chatWidgetConfig} hideWidget={preferences.chat_settings.hideWidget ?? false} />}
 
-        <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} widgetConfig={voiceWidgetConfig} />
+        <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} widgetConfig={voiceWidgetConfig} hideWidget={(preferences.voice_settings.hideWidget as boolean) ?? false} />
       </div>
     </ThemeProvider>
   );

@@ -326,6 +326,25 @@ export default function GlobalSettingsPage() {
               />
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Modo Compacto</CardTitle>
+              <CardDescription>Esconde o widget flutuante e usa uma linha sutil no rodapé.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Esconder Widget</p>
+                  <p className="text-xs text-muted-foreground">Substitui o balão por uma linha horizontal com swipe para abrir</p>
+                </div>
+                <Switch
+                  checked={preferences.chat_settings.hideWidget ?? false}
+                  onCheckedChange={(checked) => updateChat('hideWidget', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ── Chat de Voz ── */}
@@ -443,6 +462,25 @@ export default function GlobalSettingsPage() {
                 <Switch
                   checked={(preferences.voice_settings.wakeWordEnabled as boolean) ?? false}
                   onCheckedChange={(checked) => updateVoice('wakeWordEnabled', checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Modo Compacto</CardTitle>
+              <CardDescription>Esconde a orb e ativa apenas por wake-word com animação de ferrofluído.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Esconder Widget</p>
+                  <p className="text-xs text-muted-foreground">A orb aparece apenas com wake-word, subindo do rodapé</p>
+                </div>
+                <Switch
+                  checked={(preferences.voice_settings.hideWidget as boolean) ?? false}
+                  onCheckedChange={(checked) => updateVoice('hideWidget', checked)}
                 />
               </div>
             </CardContent>

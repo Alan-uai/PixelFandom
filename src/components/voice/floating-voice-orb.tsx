@@ -18,6 +18,7 @@ type Props = {
   discordUrl?: string
   gameUrl?: string
   widgetConfig?: WidgetVoiceConfig
+  hideWidget?: boolean
 }
 
 const STORAGE_KEY = 'pixelfandom:voice-settings'
@@ -30,13 +31,14 @@ function loadSettings() {
   return {}
 }
 
-export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl, widgetConfig }: Props) {
+export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gameUrl, widgetConfig, hideWidget }: Props) {
   const router = useRouter()
 
   const [status, setStatus] = useState<OrbVisualStatus>('idle')
   const [isMicOn, setIsMicOn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [ferrofluidPhase, setFerrofluidPhase] = useState<'hidden' | 'rising' | 'visible' | 'falling' | 'dissolving'>('hidden')
 
   const apiRef = useRef<GeminiLiveAPI | null>(null)
   const streamerRef = useRef<AudioStreamer | null>(null)
@@ -183,6 +185,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
 
       detector.onWakeDetected(() => {
         if (!apiRef.current && !isConnectingRef.current) {
+          if (hideWidget) {
+            setFerrofluidPhase('rising')
+            setTimeout(() => setFerrofluidPhase('visible'), 1200)
+          }
           connectRef.current()
         }
       })
@@ -192,7 +198,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     } catch {
       console.warn('WakeWordDetector: failed to start')
     }
-  }, [aiConfig])
+  }, [aiConfig, hideWidget])
 
   const connect = useCallback(async () => {
     if (apiRef.current || isConnectingRef.current) return
@@ -203,12 +209,6 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     setErrorMessage(null)
 
     try {
-      // Request the microphone now, inside the user's click gesture. Some
-      // browsers require a transient user activation for getUserMedia; waiting
-      // until onSetupComplete would make the gesture expire and fail with a
-      // misleading "Microfone não disponível" plus a connection error.
-      await startAudioStreaming()
-
       const response = await fetch('/api/token', { method: 'POST' })
       if (!response.ok) throw new Error(`Falha ao obter token: ${response.statusText}`)
       const { token } = await response.json()
@@ -338,6 +338,11 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         }
 
         if (!disconnectIntentionalRef.current) {
+          if (hideWidget) {
+            setFerrofluidPhase('falling')
+            setTimeout(() => setFerrofluidPhase('dissolving'), 800)
+            setTimeout(() => setFerrofluidPhase('hidden'), 1600)
+          }
           startWakeWordDetector()
         }
         disconnectIntentionalRef.current = false
@@ -347,8 +352,14 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         isConnectingRef.current = false
       }
 
-      client.onSetupComplete = () => {
-        startAudioStreaming()
+      client.onSetupComplete = async () => {
+        try {
+          await startAudioStreaming()
+        } catch (err) {
+          console.error('[Voice] onSetupComplete: mic failed', err)
+          setErrorMessage('Microfone não disponível.')
+          setStatus('error')
+        }
       }
 
       apiRef.current = client
@@ -364,7 +375,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       streamerRef.current = null
       setIsMicOn(false)
     }
-  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector, beginSearch, endSearch])
+  }, [tenantSlug, aiConfig, router, handleMessage, startAudioStreaming, stopWakeWordDetector, discordUrl, gameUrl, startWakeWordDetector, beginSearch, endSearch, hideWidget])
 
   const disconnect = useCallback(() => {
     disconnectIntentionalRef.current = true
@@ -378,7 +389,12 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     setStatus('idle')
     isConnectingRef.current = false
     semaphoreRef.current = false
-  }, [])
+    if (hideWidget) {
+      setFerrofluidPhase('falling')
+      setTimeout(() => setFerrofluidPhase('dissolving'), 800)
+      setTimeout(() => setFerrofluidPhase('hidden'), 1600)
+    }
+  }, [hideWidget])
 
   useEffect(() => {
     connectRef.current = connect
@@ -401,6 +417,22 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
       stopWakeWordDetector()
     }
   }, [stopWakeWordDetector])
+
+  // In hide-widget mode, auto-start wake-word detector after first user gesture.
+  useEffect(() => {
+    if (!hideWidget) return
+    const enableOnGesture = () => {
+      startWakeWordDetector()
+      window.removeEventListener('click', enableOnGesture)
+      window.removeEventListener('touchstart', enableOnGesture)
+    }
+    window.addEventListener('click', enableOnGesture, { once: true })
+    window.addEventListener('touchstart', enableOnGesture, { once: true })
+    return () => {
+      window.removeEventListener('click', enableOnGesture)
+      window.removeEventListener('touchstart', enableOnGesture)
+    }
+  }, [hideWidget, startWakeWordDetector])
 
   const handleClick = useCallback(() => {
     if (apiRef.current || isMicOn || isConnectingRef.current) {
@@ -447,6 +479,64 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     error: 'bg-destructive/60 shadow-destructive/20',
   }
 
+  // ── Hide-widget mode: ferrofluid rise/fall animations ──
+  if (hideWidget) {
+    if (ferrofluidPhase === 'hidden') return null
+
+    const phaseStyles: Record<string, string> = {
+      rising: 'fixed bottom-0 left-1/2 -translate-x-1/2 z-50 animate-[ferrofluid-rise_1.2s_ease-out_forwards]',
+      visible: `fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl transition-all duration-500 ${orbColors[status]}`,
+      falling: `fixed ${positionClass} z-50 ${orbSize} rounded-full shadow-2xl animate-[ferrofluid-fall_0.8s_ease-in_forwards] ${orbColors[status]}`,
+      dissolving: `fixed bottom-0 left-1/2 -translate-x-1/2 z-50 ${orbSize} rounded-full shadow-2xl animate-[ferrofluid-dissolve_0.8s_ease-in_forwards] ${orbColors[status]}`,
+    }
+
+    return (
+      <>
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes ferrofluid-rise {
+            0% { transform: translateX(-50%) translateY(100%) scale(0.3); opacity: 0; filter: blur(8px); }
+            40% { transform: translateX(-50%) translateY(40%) scale(0.6); opacity: 0.6; filter: blur(4px); }
+            70% { transform: translateX(-50%) translateY(10%) scale(0.9); opacity: 0.9; filter: blur(1px); }
+            100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; filter: blur(0); }
+          }
+          @keyframes ferrofluid-fall {
+            0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; filter: blur(0); }
+            100% { transform: translateX(-50%) translateY(100%) scale(0.3); opacity: 0; filter: blur(8px); }
+          }
+          @keyframes ferrofluid-dissolve {
+            0% { transform: translateX(-50%) translateY(0) scale(1); opacity: 0.8; }
+            30% { transform: translateX(-50%) translateY(-20%) scale(1.4); opacity: 0.6; }
+            100% { transform: translateX(-50%) translateY(100%) scale(0.1); opacity: 0; filter: blur(12px); }
+          }
+        ` }} />
+
+        <button
+          onClick={handleClick}
+          className={`${phaseStyles[ferrofluidPhase]} flex items-center justify-center`}
+          style={ferrofluidPhase === 'rising' ? { width: '5rem', height: '5rem' } : undefined}
+          title={isMicOn ? 'Desconectar' : 'Assistente de Voz'}
+          aria-label={isMicOn ? 'Desconectar assistente de voz' : 'Ativar assistente de voz'}
+        >
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+          <FerrofluidOrb
+            className="absolute -inset-4 z-10"
+            status={status}
+            searching={searching}
+            onStatusChange={handleOrbStatus}
+          />
+        </button>
+
+        {errorMessage && (
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-destructive/90 text-destructive-foreground text-xs px-4 py-2 rounded-full shadow-lg">
+            {errorMessage}
+            <button onClick={() => setErrorMessage(null)} className="ml-2 hover:opacity-70">✕</button>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  // ── Normal mode ──
   return (
     <>
       <button

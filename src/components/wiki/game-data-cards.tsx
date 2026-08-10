@@ -11,6 +11,7 @@ import {
   Database,
   Search, X, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { getGridColsClass } from '@/lib/item-helpers';
 
 const TABLE_CATEGORY: Record<string, string> = {
   weapons: 'Armas',
@@ -67,12 +68,7 @@ export default function GameDataCards({ slug, tenantId: _tenantId, displayFormat
 
   const fmt = tabsEnabled ? tabsSubFormat : displayFormat;
   const cols = Math.max(2, Math.min(5, columnsCount));
-  const gridColsClass = ({
-    2: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2',
-    3: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3',
-    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4',
-    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
-  } as Record<number, string>)[cols];
+  const gridColsClass = getGridColsClass(cols);
 
   const allEntries = useMemo(() => (catalog ?? []).filter(e => !e.is_hidden && e.count > 0), [catalog]);
 

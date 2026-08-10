@@ -446,3 +446,21 @@
   box-shadow: none !important;
   outline: none !important;
 }
+
+/* ── Badge draw animation ── */
+@keyframes badgeFillIn {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+    opacity: 0;
+    transform: scale(0.6) translateZ(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1) translateZ(5px);
+  }
+  100% {
+    clip-path: circle(50% at 50% 50%);
+    opacity: 1;
+    transform: scale(1) translateZ(0px);
+  }
+}

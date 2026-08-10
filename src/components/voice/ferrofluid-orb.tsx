@@ -11,7 +11,7 @@ type FerrofluidOrbProps = {
   className?: string
   /** Base status owned by the parent (connection lifecycle). */
   status: OrbVisualStatus
-  /** True while the agent is searching/navigating — ring turns pink + spins. */
+  /** True while the agent is searching/navigating — arc turns pink + spins. */
   searching?: boolean
   /** Emits the derived live status (speaking/listening…) for the parent UI. */
   onStatusChange?: (status: OrbVisualStatus) => void
@@ -130,10 +130,13 @@ float fbm(vec3 p){
 }
 
 // Parametrisation matching THREE.SphereGeometry (u,v in [0,1]).
-// The base shape morphs between an orb and a ferrofluid ring — the spine
+// The base shape morphs between an orb and a ferrofluid semi-arc — the spine
 // animation stays identical, it just wraps around whichever liquid body.
 const float RING_R = 0.40; // ring major radius (axis of the hoop)
 const float TUBE_R = 0.26; // ring tube radius (thickness of the hoop)
+// Semi-arc: almost closed (300°), vertical (rotated 90° around X).
+const float ARC_SPAN = 5.236; // ~300° in radians (6π/3.6)
+const float ARC_OFFSET = -2.618; // center the arc: -ARC_SPAN/2
 
 vec3 spherePosAt(float u, float v){
   float th = u * PI * 2.0;
@@ -141,20 +144,24 @@ vec3 spherePosAt(float u, float v){
   return vec3(-cos(th) * sin(ph), cos(ph), sin(th) * sin(ph));
 }
 
-vec3 ringPosAt(float u, float v){
-  float th = u * PI * 2.0;
-  float ph = v * PI * 2.0;
+vec3 arcPosAt(float u, float v){
+  float th = ARC_OFFSET + u * ARC_SPAN; // partial arc along major axis
+  float ph = v * PI * 2.0; // full tube circumference
+  // Center of the tube at angle th
   vec3 center = vec3(cos(th) * RING_R, 0.0, sin(th) * RING_R);
+  // Tube cross-section
   vec3 tube = vec3(cos(th) * cos(ph), sin(ph), sin(th) * cos(ph));
-  return center + tube * TUBE_R;
+  vec3 pos = center + tube * TUBE_R;
+  // Rotate 90° around X to make the arc vertical
+  return vec3(pos.x, -pos.z, pos.y);
 }
 
 vec3 baseAt(float u, float v){
-  return mix(spherePosAt(u, v), ringPosAt(u, v), uMorph);
+  return mix(spherePosAt(u, v), arcPosAt(u, v), uMorph);
 }
 
 // Direction the fluid sprouts along: radial for the orb, tube-normal for the
-// ring — blended during the morph so spines always stick out of the liquid.
+// arc — blended during the morph so spines always stick out of the liquid.
 vec3 spineDir(float u, float v){
   float th = u * PI * 2.0;
   float ph = v * PI * 2.0;
@@ -375,8 +382,8 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
   const scratchColor = useMemo(() => new THREE.Color(), [])
   const geometry = useMemo(() => new THREE.SphereGeometry(1, 120, 72), [])
   const glowSphereGeometry = useMemo(() => new THREE.SphereGeometry(1.45, 48, 32), [])
-  const glowRingGeometry = useMemo(() => new THREE.TorusGeometry(0.42, 0.34, 24, 64), [])
-  const glowShape = useRef<'sphere' | 'ring'>('sphere')
+  const glowArcGeometry = useMemo(() => new THREE.TorusGeometry(0.42, 0.34, 24, 64, Math.PI * 5.236 / (Math.PI * 2)), [])
+  const glowShape = useRef<'sphere' | 'arc'>('sphere')
 
   const fluidMat = useMemo(
     () =>
@@ -426,7 +433,7 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     const g = glowMat
     const g1 = geometry
     const g2 = glowSphereGeometry
-    const g3 = glowRingGeometry
+    const g3 = glowArcGeometry
     return () => {
       m.dispose()
       g.dispose()
@@ -434,7 +441,7 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
       g2.dispose()
       g3.dispose()
     }
-  }, [fluidMat, glowMat, geometry, glowSphereGeometry, glowRingGeometry])
+  }, [fluidMat, glowMat, geometry, glowSphereGeometry, glowArcGeometry])
 
   useEffect(() => () => {
     if (idleTimer.current) clearTimeout(idleTimer.current)
@@ -520,27 +527,26 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     glowMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
     glowMat.uniforms.uVolume.value = u.uVolume.value
 
-    // Glow halo follows the liquid body shape (sphere ↔ ring).
+    // Glow halo follows the liquid body shape (sphere ↔ arc).
     if (glowRef.current) {
-      const wantRing = u.uMorph.value > 0.5
-      if (glowShape.current !== (wantRing ? 'ring' : 'sphere')) {
-        glowShape.current = wantRing ? 'ring' : 'sphere'
-        glowRef.current.geometry = wantRing ? glowRingGeometry : glowSphereGeometry
+      const wantArc = u.uMorph.value > 0.5
+      if (glowShape.current !== (wantArc ? 'arc' : 'sphere')) {
+        glowShape.current = wantArc ? 'arc' : 'sphere'
+        glowRef.current.geometry = wantArc ? glowArcGeometry : glowSphereGeometry
       }
     }
 
-    // Rotation: idle drift + drag inertia, energised by the voice.
+    // Rotation: idle drift + drag inertia. The semi-arc only spins during
+    // search/navigation — otherwise it stays still and reacts to voice via spines.
     const r = rot.current
     if (!drag.current.active) {
       r.yawV *= Math.exp(-dt * 3.2)
       r.pitchV *= Math.exp(-dt * 3.2)
       if (searching && !REDUCED_MOTION) {
-        // Searching: full 360° spin around the ring's own axis.
+        // Searching: full 360° spin around the arc's own axis.
         r.yaw += dt * ((Math.PI * 2.0) / 1.6)
-      } else if (!REDUCED_MOTION) {
-        r.yaw += dt * (0.38 + lv.volume * 1.4) * 0.45 + r.yawV
       }
-      // Slight tilt in ring mode so the spin reads clearly from the front.
+      // Slight tilt in arc mode so the shape reads clearly from the front.
       const tilt = ringTarget * 0.34
       if (!REDUCED_MOTION) {
         r.pitch += (tilt - r.pitch) * (1 - Math.exp(-2.2 * dt))

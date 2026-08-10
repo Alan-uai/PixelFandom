@@ -13,6 +13,45 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications } from '@/hooks/use-notifications';
 import GravitationalWave, { generateStarConfig } from './gravitational-wave';
 
+const SCRAMBLE_GLYPHS = '!<>-_\\/[]{}—=+*^?#@░▒▓█01ABCDEFXYZ$%&';
+
+function useNavScramble(text: string, trigger: number, enabled: boolean): string {
+  const [display, setDisplay] = useState(text);
+  const frame = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+    if (!enabled) { setDisplay(text); return; }
+    const newText = text;
+    const len = Math.max(newText.length, 6);
+    const duration = 500;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const reveal = Math.floor(t * len);
+      let out = '';
+      for (let i = 0; i < len; i++) {
+        if (i < reveal) {
+          out += newText[i] ?? '';
+        } else {
+          out += SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+        }
+      }
+      setDisplay(out.slice(0, newText.length || 1));
+      if (t < 1) {
+        frame.current = requestAnimationFrame(tick);
+      } else {
+        setDisplay(newText);
+      }
+    };
+    frame.current = requestAnimationFrame(tick);
+    return () => { if (frame.current) cancelAnimationFrame(frame.current); };
+  }, [trigger, text, enabled]);
+
+  return display;
+}
+
 interface NavItemDef {
   href?: string;
   icon: React.ReactNode;
@@ -59,6 +98,17 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
   const itemRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const soundRef = useRef(false);
+  const [labelTrigger, setLabelTrigger] = useState(0);
+  const prevCompact = useRef(compact);
+
+  useEffect(() => {
+    if (prevCompact.current && !compact) {
+      setLabelTrigger(t => t + 1);
+    }
+    prevCompact.current = compact;
+  }, [compact]);
+
+  const scrambledLabel = useNavScramble(label, labelTrigger, !compact && labelTrigger > 0);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (compact) return;
@@ -68,7 +118,7 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: -y * 8, y: x * 8 });
+    setTilt({ x: -y * 15, y: x * 15 });
   };
 
   const clickHandler = (e: React.MouseEvent) => {
@@ -88,7 +138,11 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
       style={{ perspective: 600, transformStyle: 'preserve-3d' }}
     >
       <motion.div
-        animate={{ rotateX: compact ? 0 : tilt.x, rotateY: compact ? 0 : tilt.y }}
+        animate={{
+          rotateX: compact ? 0 : tilt.x,
+          rotateY: compact ? 0 : tilt.y,
+          rotateZ: compact ? 0 : (hovered ? 2 : 0),
+        }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         className={`relative flex items-center gap-2 rounded-xl transition-all duration-500 ease-in-out ${
           compact ? '' : 'px-3 py-2'
@@ -99,19 +153,24 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
               ? 'bg-white/[0.06]'
               : 'bg-transparent'
         }`}
+        style={{ transformStyle: 'preserve-3d' }}
       >
-        <div className="relative">
+        <div className="relative" style={{ perspective: 400, transformStyle: 'preserve-3d' }}>
           <motion.div
-            animate={{ scale: compact ? (waveGlow ? 1.25 : 1) : (hovered ? 1.15 : 1) }}
+            animate={{
+              scale: compact ? (waveGlow ? 1.25 : 1) : (hovered ? 1.15 : 1),
+              rotateX: compact ? 0 : (hovered ? 10 : 0),
+              rotateY: compact ? 0 : (hovered ? -10 : 0),
+              z: compact ? 0 : (hovered ? 20 : 0),
+            }}
             transition={compact ? { duration: 0.35 } : { type: 'spring', stiffness: 400, damping: 15 }}
             className="relative z-10"
-            style={
-              compact && waveGlow
-                ? {
-                    filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 20px ${glowColor})`,
-                  }
-                : {}
-            }
+            style={{
+              transformStyle: 'preserve-3d',
+              ...(compact && waveGlow
+                ? { filter: `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` }
+                : {}),
+            }}
           >
             {icon}
           </motion.div>
@@ -127,18 +186,21 @@ function OrbitalNavItem({ href, icon, label, glowColor, onClick, isButton, compa
           )}
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {!compact && hovered && (
             <motion.span
               key="label"
-              initial={{ opacity: 0, x: -6, width: 0 }}
-              animate={{ opacity: 1, x: 0, width: 'auto' }}
-              exit={{ opacity: 0, x: -6, width: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, x: -8, width: 0, rotateY: -30 }}
+              animate={{ opacity: 1, x: 0, width: 'auto', rotateY: 0 }}
+              exit={{ opacity: 0, x: -8, width: 0, rotateY: -30 }}
+              transition={{ duration: 0.25, type: 'spring', stiffness: 300, damping: 20 }}
               className="text-xs font-medium overflow-hidden whitespace-nowrap"
-              style={{ color: isButton ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+              style={{
+                color: isButton ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                transformStyle: 'preserve-3d',
+              }}
             >
-              {label}
+              {scrambledLabel}
             </motion.span>
           )}
         </AnimatePresence>
@@ -505,23 +567,70 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                   </div>
                 </motion.div>
               </div>
-            {/* ── Badge — only visible in expanded state ── */}
+            {/* ── Badges — draw animation, staggered one-by-one ── */}
             <AnimatePresence>
               {isExpanded && user && (() => {
-                const badgeItem = items.find(i => i.isBadge);
-                if (!badgeItem) return null;
-                return (
+                const badgeItems = items.filter(i => i.isBadge);
+                if (badgeItems.length === 0) return null;
+                return badgeItems.map((badgeItem, idx) => (
                   <motion.div
-                    key="expanded-badge"
+                    key={`badge-${idx}`}
                     className="absolute z-20 pointer-events-auto"
-                    style={{ left: '50%', top: 'calc(50% + 28px)', transform: 'translateX(-50%) translateZ(30px)' }}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 12 }}
-                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                    style={{
+                      left: '50%',
+                      top: `calc(50% + 28px + ${idx * 44}px)`,
+                      transform: `translateX(-50%) translateZ(30px)`,
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3, delay: idx * 0.15 }}
                   >
-                    <Link href="/notifications" className="block">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group relative">
+                    <Link href={badgeItem.href || '#'} className="block relative">
+                      <svg
+                        className="absolute inset-0 pointer-events-none"
+                        width="36"
+                        height="36"
+                        viewBox="0 0 36 36"
+                        style={{ transform: 'translate(-2px, -2px)' }}
+                      >
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke="url(#badge-draw-grad)"
+                          strokeWidth="2"
+                          strokeDasharray="100.53"
+                          strokeDashoffset="100.53"
+                          strokeLinecap="round"
+                        >
+                          <animate
+                            attributeName="stroke-dashoffset"
+                            from="100.53"
+                            to="0"
+                            dur="0.6s"
+                            begin={`${idx * 0.15}s`}
+                            fill="freeze"
+                            calcMode="spline"
+                            keySplines="0.25 0.1 0.25 1"
+                            keyTimes="0;1"
+                          />
+                        </circle>
+                        <defs>
+                          <linearGradient id="badge-draw-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="hsl(45,100%,60%)" />
+                            <stop offset="100%" stopColor="hsl(25,95%,55%)" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div
+                        className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 p-[2px] shadow-[0_0_20px_rgba(250,204,21,0.3)] group relative"
+                        style={{
+                          clipPath: 'circle(50% at 50% 50%)',
+                          animation: `badgeFillIn 0.4s ease-out ${idx * 0.15 + 0.3}s both`,
+                        }}
+                      >
                         <div className="w-full h-full rounded-full bg-background flex items-center justify-center group-hover:bg-background/80 transition-colors">
                           <Bell className="h-4 w-4 text-yellow-400" />
                         </div>
@@ -533,7 +642,7 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
                       </div>
                     </Link>
                   </motion.div>
-                );
+                ));
               })()}
             </AnimatePresence>
             </div>
