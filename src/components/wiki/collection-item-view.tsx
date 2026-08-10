@@ -767,14 +767,15 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         <div className="relative p-6 flex items-start gap-4 flex-wrap">
           <div
             key={`detail-icon-${variantTrigger}`}
-            className="relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 overflow-hidden variant-icon-3d"
+            className={`relative h-14 w-14 rounded-xl bg-background/20 backdrop-blur-sm flex items-center justify-center shrink-0 ${transitioning && !prefersReduced() ? 'variant-icon-3d' : ''}`}
+            style={{ perspective: 400, transformStyle: 'preserve-3d' }}
           >
             {activeIcon}
           </div>
           <div className="flex-1 min-w-0">
             <h1
               key={`detail-name-${variantTrigger}`}
-              className="text-2xl font-bold leading-tight variant-text-scramble"
+              className={`text-2xl font-bold leading-tight ${transitioning && !prefersReduced() ? 'variant-text-scramble' : ''}`}
               style={detailConfig?.columnConfig?.name?.labelColor ? { color: detailConfig.columnConfig.name.labelColor } : {}}
             >
               {activeName}
@@ -784,21 +785,21 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           <div className="max-w-[200px]">
             <ChipCarousel>
               {activeRarity && (
-                <span key={`tag-rarity-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '0ms' }}>
+                <span key={`tag-rarity-${variantTrigger}`} className={transitioning && !prefersReduced() ? 'variant-badge-draw' : ''} style={{ animationDelay: '0ms' }}>
                   <Tag className={`${RARITY_COLORS[activeRarity.toLowerCase()] || RARITY_COLORS.common} bg-background/80 backdrop-blur-sm uppercase`} icon={<Star className="h-3 w-3" />}>
                     {activeRarity}
                   </Tag>
                 </span>
               )}
               {activeTier && (
-                <span key={`tag-tier-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '80ms' }}>
+                <span key={`tag-tier-${variantTrigger}`} className={transitioning && !prefersReduced() ? 'variant-badge-draw' : ''} style={{ animationDelay: '80ms' }}>
                   <Tag className={`${TIER_COL[activeTier.toLowerCase()] || TIER_COL.d} bg-background/80 backdrop-blur-sm font-bold`}>
                     {TIER_LABEL[activeTier.toLowerCase()] || activeTier}
                   </Tag>
                 </span>
               )}
               {activeElement && activeElement !== 'none' && (
-                <span key={`tag-element-${variantTrigger}`} className="variant-badge-draw" style={{ animationDelay: '160ms' }}>
+                <span key={`tag-element-${variantTrigger}`} className={transitioning && !prefersReduced() ? 'variant-badge-draw' : ''} style={{ animationDelay: '160ms' }}>
                   <Tag className={`${elementClass(activeElement)} bg-background/80 backdrop-blur-sm`} icon={elIcon(activeElement)}>
                     {activeElement}
                   </Tag>

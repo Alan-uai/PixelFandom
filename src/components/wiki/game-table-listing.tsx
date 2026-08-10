@@ -835,20 +835,21 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       <div className="flex items-center gap-3 mb-3">
         <span
           key={`catic-${category}-${variantPulse}`}
-          className={`inline-flex shrink-0 ${variantPulse > 0 ? 'variant-icon-pop' : ''}`}
+          className={`inline-flex shrink-0 ${variantPulse > 0 ? 'variant-icon-3d' : ''}`}
+          style={{ perspective: 400, transformStyle: 'preserve-3d' }}
         >
           {renderCatIcon(category, iconSize)}
         </span>
         <span
           key={`catnm-${category}-${variantPulse}`}
-          className={`font-semibold text-muted-foreground uppercase tracking-wider capitalize ${variantPulse > 0 ? 'variant-head-in' : ''}`}
-          style={{ fontSize: labelSize, animationDelay: '60ms' }}
+          className={`font-semibold text-muted-foreground uppercase tracking-wider capitalize ${variantPulse > 0 ? 'variant-text-scramble' : ''}`}
+          style={{ fontSize: labelSize, animationDelay: '60ms', transformStyle: 'preserve-3d' }}
         >
           {displayLabel}
         </span>
         <span
           key={`catct-${category}-${variantPulse}`}
-          className={`text-xs text-muted-foreground/60 font-normal ${variantPulse > 0 ? 'variant-head-in' : ''}`}
+          className={`text-xs text-muted-foreground/60 font-normal ${variantPulse > 0 ? 'variant-badge-draw' : ''}`}
           style={{ animationDelay: '120ms' }}
         >
           {catItems.length}

@@ -166,9 +166,9 @@ export function BentoGrid({
           ? {
               display: 'grid',
               gridAutoFlow: 'dense',
-              gridAutoColumns: 'max-content',
+              gridTemplateColumns: `repeat(auto-fill, minmax(${columnWidth}px, 1fr))`,
               gridAutoRows: 'auto',
-              justifyItems: 'start',
+              justifyItems: 'stretch',
               gap,
             }
           : {}),

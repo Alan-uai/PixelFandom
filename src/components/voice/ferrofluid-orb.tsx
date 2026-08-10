@@ -134,7 +134,7 @@ float fbm(vec3 p){
 // animation stays identical, it just wraps around whichever liquid body.
 const float RING_R = 0.40; // ring major radius (axis of the hoop)
 const float TUBE_R = 0.26; // ring tube radius (thickness of the hoop)
-// Semi-arc: almost closed (300°), vertical (rotated 90° around X).
+// Semi-arc: almost closed (300°), vertical (gap at bottom).
 const float ARC_SPAN = 5.236; // ~300° in radians (6π/3.6)
 const float ARC_OFFSET = -2.618; // center the arc: -ARC_SPAN/2
 
@@ -152,8 +152,11 @@ vec3 arcPosAt(float u, float v){
   // Tube cross-section
   vec3 tube = vec3(cos(th) * cos(ph), sin(ph), sin(th) * cos(ph));
   vec3 pos = center + tube * TUBE_R;
-  // Rotate 90° around X to make the arc vertical
-  return vec3(pos.x, -pos.z, pos.y);
+  // Rotate 90° around X (vertical) then -90° around Z (gap → bottom)
+  // X-rotation: (x, y, z) → (x, -z, y)
+  // Z-rotation: (x, y, z) → (y, -x, z)
+  // Combined:   (x, y, z) → (-z, -x, y)
+  return vec3(-pos.z, -pos.x, pos.y);
 }
 
 vec3 baseAt(float u, float v){
@@ -166,6 +169,16 @@ vec3 spineDir(float u, float v){
   float th = u * PI * 2.0;
   float ph = v * PI * 2.0;
   vec3 td = vec3(cos(th) * cos(ph), sin(ph), sin(th) * cos(ph));
+  if (uMorph > 0.01) {
+    // Arc tube normal: tangent × binormal, rotated with the arc.
+    float ath = ARC_OFFSET + u * ARC_SPAN;
+    vec3 tang = vec3(-sin(ath) * RING_R, 0.0, cos(ath) * RING_R);
+    vec3 norm = vec3(cos(ath), 0.0, sin(ath));
+    vec3 tubeN = normalize(cross(tang, norm));
+    // Apply the same rotation as arcPosAt: (x,y,z) → (-z,-x,y)
+    vec3 arcN = vec3(-tubeN.z, -tubeN.x, tubeN.y);
+    td = arcN;
+  }
   return normalize(mix(spherePosAt(u, v), td, uMorph));
 }
 
@@ -467,13 +480,20 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
 
     const lv: AudioLevelsSnapshot = audioLevels.sample()
 
+    // Amplify the raw audio snapshot so the ferrofluid spines are visible
+    // even at moderate speaking volume.  The shader's smoothstep gate
+    // (growth = smoothstep(0.02, 0.38, voice)) needs voice ≳ 0.05 to fire.
+    const boostedVolume = Math.min(lv.volume * 2.8, 1)
+    const boostedBass   = Math.min(lv.bass   * 2.4, 1)
+    const boostedTreble = Math.min(lv.treble * 2.6, 1)
+
     // Throttle the idle loop (30 fps) — full 60 fps only while the orb is
     // being interacted with, the voice agent is live, or audio is flowing.
     const active =
       hoverTarget.current > 0.02 ||
       drag.current.active ||
       visualStatus.current !== 'idle' ||
-      lv.volume > 0.06
+      boostedVolume > 0.04
     if (!active) {
       if (now - lastFrameAt.current < 1 / 30) {
         if (!idleTimer.current) {
@@ -498,11 +518,11 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     u.uMorph.value = damp(u.uMorph.value, ringTarget, 4.5, dt)
 
     u.uTime.value = now
-    u.uVolume.value = damp(u.uVolume.value, lv.volume, 11, dt)
-    u.uBass.value = damp(u.uBass.value, lv.bass, 11, dt)
-    u.uTreble.value = damp(u.uTreble.value, lv.treble, 11, dt)
+    u.uVolume.value = damp(u.uVolume.value, boostedVolume, 11, dt)
+    u.uBass.value = damp(u.uBass.value, boostedBass, 11, dt)
+    u.uTreble.value = damp(u.uTreble.value, boostedTreble, 11, dt)
     u.uPitch.value = damp(u.uPitch.value, lv.pitch, 5, dt)
-    u.uCalm.value = damp(u.uCalm.value, REDUCED_MOTION ? 0.5 : 1 - Math.min(1, lv.volume * 3.2), 6, dt)
+    u.uCalm.value = damp(u.uCalm.value, REDUCED_MOTION ? 0.5 : 1 - Math.min(1, boostedVolume * 3.2), 6, dt)
 
     // Magnetic pointer direction (updated directly from R3F events — no
     // per-frame raycaster on the CPU). Reset when the pointer leaves.
