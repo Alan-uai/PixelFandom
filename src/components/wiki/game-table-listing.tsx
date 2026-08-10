@@ -1569,6 +1569,38 @@ const MINI_CARD_SKIP_COLS = new Set([
 ]);
 
 /**
+ * Estimates bento grid size (cols × rows) for a mini card based on its content.
+ * The bento packer uses these hints to arrange items like Tetris.
+ *
+ * Sizing heuristic:
+ * - Tiny numeric (≤3 chars): 1×1
+ * - Short numeric (≤6 chars): 1×1
+ * - Medium numeric (≤10 chars): 2×1
+ * - Large numeric (>10 chars): 2×1
+ * - Short text (≤4 chars): 1×1
+ * - Medium text (≤8 chars): 1×1
+ * - Long text (≤14 chars): 2×1
+ * - Very long text (>14 chars): 2×2
+ */
+function estimateBentoSize(value: unknown): { cols: number; rows: number } {
+  if (value == null) return { cols: 1, rows: 1 };
+
+  const str = String(value);
+  const len = str.length;
+  const isNumeric = typeof value === 'number' || /^\d[\d,.\-+/]*$/.test(str);
+
+  if (isNumeric) {
+    if (len <= 6) return { cols: 1, rows: 1 };
+    return { cols: 2, rows: 1 };
+  }
+
+  if (len <= 4) return { cols: 1, rows: 1 };
+  if (len <= 10) return { cols: 1, rows: 1 };
+  if (len <= 16) return { cols: 2, rows: 1 };
+  return { cols: 2, rows: 2 };
+}
+
+/**
  * Variant 1 section: every column value of the item is rendered as a 3D
  * mini card, distributed in a 2-column grid inside the item card.
  */
@@ -1628,7 +1660,7 @@ function MiniCardsSection({
   const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, any>;
 
   return (
-    <MiniCardGrid className="mb-3" count={visible.length} trigger={variationKey}>
+    <MiniCardGrid className="mb-3" count={visible.length} trigger={variationKey} columns={4}>
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
         const colConfig = columnConfig?.[col];
@@ -1636,12 +1668,15 @@ function MiniCardsSection({
         const color = detailColor || badgeColors[col] || 'hsl(var(--primary))';
         const colOpEnabled = columnOpEnabled?.[col] !== false && (opEnabled ?? true);
         const colOpFlipped = columnOpFlipped?.[col] === true;
+        const bentoSize = estimateBentoSize(item[col]);
         return (
           <Variant3D
             key={col}
             format={renderType as any}
             variant={formatVariants[col] || 1}
             trigger={variationKey}
+            data-bento-cols={bentoSize.cols}
+            data-bento-rows={bentoSize.rows}
           >
             <VariantAnimatedValue
               value={item[col]}

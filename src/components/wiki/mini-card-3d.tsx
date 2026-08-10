@@ -126,6 +126,8 @@ export function MiniCardGrid(props: {
   gap?: number;
   /** Increment to re-run the staggered reveal animation. */
   trigger?: number;
+  /** Number of columns for bento packing. */
+  columns?: number;
 }) {
-  return <BentoGrid mode="dense" {...props} />;
+  return <BentoGrid mode="bento" {...props} />;
 }

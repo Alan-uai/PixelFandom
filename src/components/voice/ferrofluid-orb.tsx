@@ -206,41 +206,42 @@ vec3 calc(float u, float v, float t){
   float treb  = clamp(uTreble, 0.0, 1.0);
 
   // 0 = resting pool, 1 = fully erected spine field.
-  float growth = smoothstep(0.02, 0.38, voice + bass * 0.6);
+  // Lower threshold so spines appear at normal speaking volume.
+  float growth = smoothstep(0.01, 0.18, voice + bass * 0.5);
 
   // As the voice grows, the ridge threshold drops — more of the noise field
   // sharpens into needles, exactly like a ferrofluid under a rising magnet.
-  float ridgeFloor = mix(0.42, 0.10, growth);
-  float ridgeCeil  = mix(0.66, 0.98, growth);
+  float ridgeFloor = mix(0.44, 0.06, growth);
+  float ridgeCeil  = mix(0.62, 0.98, growth);
   float gate   = smoothstep(ridgeFloor, ridgeCeil, f);
-  float sharp  = 1.30 + growth * 2.6 + bass * 1.2;
+  float sharp  = 1.10 + growth * 3.2 + bass * 1.6;
   float spike  = pow(gate, sharp);
-  spike = clamp(spike, 0.0, 1.35);
+  spike = clamp(spike, 0.0, 2.0);
 
   // Fine sibilance tremor — only while speech is present (never at rest).
-  float flutter = treb * growth * (0.18 + 0.28 * voice);
+  float flutter = treb * growth * (0.35 + 0.55 * voice);
   spike *= 1.0 + flutter * (snoise(dir * 16.0 + vec3(t * 6.5)) * 0.5 + 0.5);
 
-  // Amplitude: thin resting film vs erupting needles.
-  float amp = 0.028 + 0.34 * growth + 0.08 * bass * growth;
+  // Amplitude: thin resting film vs MASSIVE erupting needles.
+  float amp = 0.04 + 0.90 * growth + 0.25 * bass * growth;
 
   // The whole body swells with the utterance (slow voice envelope).
-  float swell = voice * (0.030 + 0.022 * sin(t * 2.2 + base.y * 5.0));
+  float swell = voice * (0.08 + 0.06 * sin(t * 2.2 + base.y * 5.0));
 
   // Liquid sheets — slow mid-frequency undulation, only while at rest.
-  float sheet = (1.0 - growth) * 0.035 *
+  float sheet = (1.0 - growth) * 0.05 *
     (sin(base.x * 6.0 + t * 0.8) * sin(base.y * 5.0 - t * 0.6));
 
   // Idle breathing (respects reduced-motion via uCalm).
-  float idle = uCalm * (0.028 + 0.026 * sin(t * 0.65 + base.y * 8.0));
+  float idle = uCalm * (0.035 + 0.030 * sin(t * 0.65 + base.y * 8.0));
 
   // Magnetic pull: spines lean toward the hovered surface point.
   float pd = max(dot(dir, uPointerDir), 0.0);
-  float mag = uHover * (0.12 * pow(pd, 3.0) + 0.05 * (f * 0.5 + 0.5) * pd);
+  float mag = uHover * (0.18 * pow(pd, 3.0) + 0.08 * (f * 0.5 + 0.5) * pd);
 
   float h = idle + swell + sheet + amp * spike + mag;
   // Keep the silhouette inside the expanded camera frustum (no clipping).
-  h = min(h, 0.42);
+  h = min(h, 0.85);
   return base + dir * h;
 }
 
@@ -343,13 +344,14 @@ precision highp float;
 uniform float uVolume;
 uniform vec3 uRimColor;
 uniform float uStrength;
+uniform float uAlpha;
 varying vec3 vNormalW;
 varying vec3 vViewDir;
 void main(){
   vec3 n = normalize(vNormalW);
   vec3 view = normalize(vViewDir);
   float fres = pow(1.0 - abs(dot(n, view)), 2.2);
-  float a = fres * uStrength * (0.28 + uVolume * 1.6);
+  float a = fres * uStrength * (0.28 + uVolume * 1.6) * uAlpha;
   vec3 c = uRimColor * fres * uStrength * (0.55 + uVolume * 1.3);
   gl_FragColor = vec4(c, a);
 }
@@ -381,6 +383,7 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
   const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
+  const glowArcRef = useRef<THREE.Mesh>(null)
   const drag = useRef({ active: false, moved: false, lastX: 0, lastY: 0 })
   const rot = useRef({ yaw: 0.3, pitch: 0.12, yawV: 0, pitchV: 0 })
   const pointerTarget = useRef(new THREE.Vector3(0, 0, 1))
@@ -396,7 +399,6 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
   const geometry = useMemo(() => new THREE.SphereGeometry(1, 120, 72), [])
   const glowSphereGeometry = useMemo(() => new THREE.SphereGeometry(1.45, 48, 32), [])
   const glowArcGeometry = useMemo(() => new THREE.TorusGeometry(0.42, 0.34, 24, 64, Math.PI * 5.236 / (Math.PI * 2)), [])
-  const glowShape = useRef<'sphere' | 'arc'>('sphere')
 
   const fluidMat = useMemo(
     () =>
@@ -432,6 +434,7 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
           uVolume: { value: 0 },
           uRimColor: { value: themeColor(STATUS_THEMES.idle.rim) },
           uStrength: { value: 0.6 },
+          uAlpha: { value: 1 },
         },
         transparent: true,
         depthWrite: false,
@@ -441,20 +444,24 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     []
   )
 
+  const glowArcMat = useMemo(() => glowMat.clone(), [glowMat])
+
   useEffect(() => {
     const m = fluidMat
     const g = glowMat
+    const ga = glowArcMat
     const g1 = geometry
     const g2 = glowSphereGeometry
     const g3 = glowArcGeometry
     return () => {
       m.dispose()
       g.dispose()
+      ga.dispose()
       g1.dispose()
       g2.dispose()
       g3.dispose()
     }
-  }, [fluidMat, glowMat, geometry, glowSphereGeometry, glowArcGeometry])
+  }, [fluidMat, glowMat, glowArcMat, geometry, glowSphereGeometry, glowArcGeometry])
 
   useEffect(() => () => {
     if (idleTimer.current) clearTimeout(idleTimer.current)
@@ -472,7 +479,11 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
       glowRef.current.geometry = glowSphereGeometry
       glowRef.current.material = glowMat
     }
-  }, [geometry, glowSphereGeometry, fluidMat, glowMat])
+    if (glowArcRef.current) {
+      glowArcRef.current.geometry = glowArcGeometry
+      glowArcRef.current.material = glowArcMat
+    }
+  }, [geometry, glowSphereGeometry, glowArcGeometry, fluidMat, glowMat, glowArcMat])
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
@@ -480,12 +491,11 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
 
     const lv: AudioLevelsSnapshot = audioLevels.sample()
 
-    // Amplify the raw audio snapshot so the ferrofluid spines are visible
-    // even at moderate speaking volume.  The shader's smoothstep gate
-    // (growth = smoothstep(0.02, 0.38, voice)) needs voice ≳ 0.05 to fire.
-    const boostedVolume = Math.min(lv.volume * 2.8, 1)
-    const boostedBass   = Math.min(lv.bass   * 2.4, 1)
-    const boostedTreble = Math.min(lv.treble * 2.6, 1)
+    // Amplify the raw audio snapshot so the ferrofluid spines are dramatically
+    // visible even at normal speaking volume.
+    const boostedVolume = Math.min(lv.volume * 4.5, 1)
+    const boostedBass   = Math.min(lv.bass   * 3.8, 1)
+    const boostedTreble = Math.min(lv.treble * 4.0, 1)
 
     // Throttle the idle loop (30 fps) — full 60 fps only while the orb is
     // being interacted with, the voice agent is live, or audio is flowing.
@@ -546,15 +556,13 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     u.uRimStrength.value = damp(u.uRimStrength.value, theme.rimStrength, 6, dt)
     glowMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
     glowMat.uniforms.uVolume.value = u.uVolume.value
+    glowArcMat.uniforms.uRimColor.value.copy(u.uRimColor.value)
+    glowArcMat.uniforms.uVolume.value = u.uVolume.value
 
-    // Glow halo follows the liquid body shape (sphere ↔ arc).
-    if (glowRef.current) {
-      const wantArc = u.uMorph.value > 0.5
-      if (glowShape.current !== (wantArc ? 'arc' : 'sphere')) {
-        glowShape.current = wantArc ? 'arc' : 'sphere'
-        glowRef.current.geometry = wantArc ? glowArcGeometry : glowSphereGeometry
-      }
-    }
+    // Glow halo cross-fades between sphere and arc shapes based on morph.
+    const morph = u.uMorph.value
+    glowMat.uniforms.uAlpha.value = 1 - morph
+    glowArcMat.uniforms.uAlpha.value = morph
 
     // Rotation: idle drift + drag inertia. The semi-arc only spins during
     // search/navigation — otherwise it stays still and reacts to voice via spines.
@@ -563,8 +571,8 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
       r.yawV *= Math.exp(-dt * 3.2)
       r.pitchV *= Math.exp(-dt * 3.2)
       if (searching && !REDUCED_MOTION) {
-        // Searching: full 360° spin around the arc's own axis.
-        r.yaw += dt * ((Math.PI * 2.0) / 1.6)
+        // Searching: full 360° spin around the arc's own axis (counter-clockwise).
+        r.yaw -= dt * ((Math.PI * 2.0) / 1.6)
       }
       // Slight tilt in arc mode so the shape reads clearly from the front.
       const tilt = ringTarget * 0.34
@@ -673,6 +681,7 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
         }}
       />
       <mesh ref={glowRef} />
+      <mesh ref={glowArcRef} />
     </group>
   )
 }

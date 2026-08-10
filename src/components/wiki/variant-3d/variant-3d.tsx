@@ -64,9 +64,13 @@ export interface Variant3DProps {
   trigger?: number;
   className?: string;
   children: React.ReactNode;
+  /** Bento grid: number of columns this tile spans. */
+  'data-bento-cols'?: number;
+  /** Bento grid: number of rows this tile spans. */
+  'data-bento-rows'?: number;
 }
 
-export function Variant3D({ format, variant, trigger = 0, className, children }: Variant3DProps) {
+export function Variant3D({ format, variant, trigger = 0, className, children, 'data-bento-cols': bentoCols, 'data-bento-rows': bentoRows }: Variant3DProps) {
   const animsOn = useAnimationsEnabled();
   const prefersReduced = useReducedMotion();
   const preset = useMemo(() => getVariant3DPreset(format, variant), [format, variant]);
@@ -104,6 +108,8 @@ export function Variant3D({ format, variant, trigger = 0, className, children }:
       whileHover={disabled ? undefined : hover.whileHover}
       className={cn('h-full', hover.className, preset.className, className)}
       style={preset.depth ? { transformStyle: 'preserve-3d', perspective: 600 } : undefined}
+      {...(bentoCols != null ? { 'data-bento-cols': bentoCols } : {})}
+      {...(bentoRows != null ? { 'data-bento-rows': bentoRows } : {})}
     >
       <span className={cn('block h-full', ambient && ambientCls)}>{children}</span>
     </motion.div>
