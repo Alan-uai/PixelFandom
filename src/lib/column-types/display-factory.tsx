@@ -210,6 +210,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         labelColor={labelColor}
         valueColors={resolvedValueColors}
         maxValue={maxValue}
+        onCompareClick={onCompareClick}
+        column={column}
       />
     );
   }
@@ -231,6 +233,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         valueColors={resolvedValueColors}
         maxValue={maxValue}
         allowedValues={allowedValues}
+        onCompareClick={onCompareClick}
+        column={column}
       />
     );
   }
@@ -249,6 +253,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         labelColor={labelColor}
         valueColors={resolvedValueColors}
         maxValue={maxValue}
+        onCompareClick={onCompareClick}
+        column={column}
       />
     );
   }

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { X, Loader2, ArrowUpDown, Type } from 'lucide-react';
+import { X, Loader2, ArrowUpDown, Type, Image as ImageIcon, Link as LinkIcon, Video, Music, Star, Palette, Smile, Hash, Tag, Layers } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { getTableSchema, type ColumnInfo } from '@/lib/game-schema';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
@@ -25,7 +25,10 @@ type CompareColumnConfig = {
   useSuffix: boolean;
 };
 
-type CompareFormat = 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration';
+type CompareFormat = 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration'
+  | 'image' | 'icon' | 'link' | 'video' | 'audio' | 'rating' | 'color' | 'emoji'
+  | 'icon-set' | 'color-palette' | 'select' | 'multi-select' | 'tags' | 'toggle-group'
+  | 'progress' | 'file' | 'badge' | 'popover';
 
 type CompareInfo = {
   key: string;
@@ -79,6 +82,23 @@ const STAT_LABELS: Record<string, string> = {
   xp_drop: 'XP',
 };
 
+function formatIcon(fmt: CompareFormat): React.ReactNode {
+  switch (fmt) {
+    case 'image': return <ImageIcon className="h-3 w-3" />;
+    case 'icon': return <Hash className="h-3 w-3" />;
+    case 'link': return <LinkIcon className="h-3 w-3" />;
+    case 'video': return <Video className="h-3 w-3" />;
+    case 'audio': return <Music className="h-3 w-3" />;
+    case 'rating': return <Star className="h-3 w-3" />;
+    case 'color': return <Palette className="h-3 w-3" />;
+    case 'emoji': return <Smile className="h-3 w-3" />;
+    case 'tags': case 'multi-select': return <Tag className="h-3 w-3" />;
+    case 'icon-set': case 'color-palette': return <Layers className="h-3 w-3" />;
+    case 'number': case 'range': case 'percent': case 'progress': return null;
+    default: return <Type className="h-3 w-3" />;
+  }
+}
+
 function parseMaybeJson(v: unknown): unknown {
   if (typeof v === 'string') {
     try { return JSON.parse(v); } catch { return v; }
@@ -118,7 +138,7 @@ function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: C
     return <span className="font-semibold tabular-nums">{val !== undefined ? `${val}%` : '—'}</span>;
   }
 
-  if (stat.format === 'number') {
+  if (stat.format === 'number' || stat.format === 'progress') {
     return <span className="font-semibold tabular-nums">{val !== undefined ? String(val) : '—'}</span>;
   }
 
@@ -138,6 +158,144 @@ function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: C
 
   if (stat.format === 'duration') {
     return <span className="font-mono text-xs tabular-nums">{String(val ?? '—')}</span>;
+  }
+
+  if (stat.format === 'image') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Image src={String(val)} alt="" width={24} height={24} className="h-6 w-6 rounded object-cover shrink-0" />
+      </div>
+    );
+  }
+
+  if (stat.format === 'icon') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    const str = String(val);
+    if (str.includes(':')) {
+      return <IconRenderer icon={str} size="sm" />;
+    }
+    return <span className="text-sm">{str}</span>;
+  }
+
+  if (stat.format === 'link') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    const str = String(val);
+    return (
+      <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline truncate max-w-[150px]">
+        <LinkIcon className="h-3 w-3 shrink-0" />
+        {str.replace(/^https?:\/\//, '').slice(0, 30)}
+      </a>
+    );
+  }
+
+  if (stat.format === 'video') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-1.5">
+        <Video className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs truncate max-w-[120px]">{String(val)}</span>
+      </div>
+    );
+  }
+
+  if (stat.format === 'audio') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-1.5">
+        <Music className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs truncate max-w-[120px]">{String(val)}</span>
+      </div>
+    );
+  }
+
+  if (stat.format === 'rating') {
+    const num = typeof val === 'number' ? val : parseFloat(String(val));
+    if (isNaN(num)) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className={`h-3 w-3 ${i < num ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+        ))}
+        <span className="text-xs font-semibold ml-1 tabular-nums">{num}</span>
+      </div>
+    );
+  }
+
+  if (stat.format === 'color') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 rounded-full border shrink-0" style={{ backgroundColor: String(val) }} />
+        <span className="text-xs font-mono">{String(val)}</span>
+      </div>
+    );
+  }
+
+  if (stat.format === 'emoji') {
+    return <span className="text-base">{val ? String(val) : '—'}</span>;
+  }
+
+  if (stat.format === 'icon-set') {
+    const parsed = parseMaybeJson(val);
+    if (!Array.isArray(parsed) || parsed.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-0.5">
+        {parsed.slice(0, 5).map((ic: any, i: number) => (
+          <span key={i} className="text-xs">{typeof ic === 'string' ? ic : String(ic)}</span>
+        ))}
+        {parsed.length > 5 && <span className="text-[10px] text-muted-foreground">+{parsed.length - 5}</span>}
+      </div>
+    );
+  }
+
+  if (stat.format === 'color-palette') {
+    const parsed = parseMaybeJson(val);
+    if (!Array.isArray(parsed) || parsed.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-0.5">
+        {parsed.slice(0, 6).map((c: any, i: number) => (
+          <div key={i} className="h-3.5 w-3.5 rounded-full border shrink-0" style={{ backgroundColor: String(c) }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (stat.format === 'select' || stat.format === 'toggle-group') {
+    return <span className="text-xs font-medium">{val != null ? String(val) : '—'}</span>;
+  }
+
+  if (stat.format === 'multi-select' || stat.format === 'tags') {
+    const parsed = parseMaybeJson(val);
+    const items: string[] = Array.isArray(parsed) ? parsed.map(String) : (val ? [String(val)] : []);
+    if (items.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.slice(0, 4).map((t, i) => (
+          <span key={i} className="inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px]">
+            <Tag className="h-2.5 w-2.5" />
+            {t}
+          </span>
+        ))}
+        {items.length > 4 && <span className="text-[10px] text-muted-foreground">+{items.length - 4}</span>}
+      </div>
+    );
+  }
+
+  if (stat.format === 'file') {
+    if (!val) return <span className="text-xs text-muted-foreground">—</span>;
+    const str = String(val);
+    return (
+      <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline truncate max-w-[150px]">
+        <Layers className="h-3 w-3 shrink-0" />
+        {str.split('/').pop()?.slice(0, 25) || str}
+      </a>
+    );
+  }
+
+  if (stat.format === 'popover') {
+    return <span className="text-xs text-foreground">{String(val ?? '—')}</span>;
   }
 
   if (stat.format === 'jsonb') {
@@ -283,7 +441,7 @@ export default function ComparePopup({
   const sorted = useMemo(() => {
     if (!compareStat) return [];
     const stat = compareStat;
-    const numericFormats = new Set(['number', 'range', 'percent']);
+    const numericFormats = new Set(['number', 'range', 'percent', 'progress', 'rating']);
     return [...filteredItems]
       .filter(item => getCompareValue(item, stat) != null)
       .sort((a, b) => {
@@ -350,9 +508,7 @@ export default function ComparePopup({
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
-                  {s.format !== 'number' && s.format !== 'range' && s.format !== 'percent' && (
-                    <Type className="h-3 w-3" />
-                  )}
+                  {formatIcon(s.format)}
                   {s.label}
                 </button>
               ))}
@@ -411,7 +567,7 @@ export default function ComparePopup({
                   <tr className="border-b text-xs text-muted-foreground">
                     <th className="text-left px-5 py-2.5 font-medium w-8">#</th>
                     <th className="text-left px-5 py-2.5 font-medium">Item</th>
-                    <th className="text-right px-5 py-2.5 font-medium w-40">{compareStat.label}</th>
+                    <th className="text-left px-5 py-2.5 font-medium w-40">{compareStat.label}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -442,7 +598,7 @@ export default function ComparePopup({
                             )}
                           </div>
                         </td>
-                        <td className={`px-5 py-2.5 text-right ${isCurrent ? 'text-primary' : ''}`}>
+                        <td className={`px-5 py-2.5 ${isCurrent ? 'text-primary' : ''}`}>
                           {renderCompareValue(item, compareStat, colConfig)}
                         </td>
                       </tr>
@@ -490,6 +646,10 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[])
 
   // Runtime type inference from data (used when schema type is missing/unknown).
   const inferFormat = (name: string): CompareFormat => {
+    // Name-based detection first (covers text columns storing structured data)
+    const nf = classifyByName(name);
+    if (nf) return nf;
+
     for (const item of items) {
       const v = item[name];
       if (v === null || v === undefined || v === '') continue;
@@ -505,6 +665,10 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[])
   };
 
   const classify = (name: string): CompareFormat => {
+    // Name-based detection first (image_url → image, etc.)
+    const nf = classifyByName(name);
+    if (nf) return nf;
+
     const dt = columnTypes.get(name);
     if (dt === undefined) return inferFormat(name);
     if (JSONB_TYPES.has(dt)) return 'jsonb';
@@ -515,6 +679,23 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[])
     }
     return 'text';
   };
+
+  // Detect format from column name patterns (for text columns storing specific data)
+  function classifyByName(name: string): CompareFormat | null {
+    const n = name.toLowerCase();
+    if (n.endsWith('_url') || n === 'url' || n === 'link' || n === 'href') return 'link';
+    if (n.includes('image') || n === 'icon_url' || n === 'thumbnail' || n === 'cover' || n === 'banner' || n === 'avatar' || n === 'photo') return 'image';
+    if (n.includes('icon') && !n.includes('icon_url')) return 'icon';
+    if (n.includes('video') || n.endsWith('.mp4') || n.endsWith('.webm')) return 'video';
+    if (n.includes('audio') || n.endsWith('.mp3') || n.endsWith('.ogg') || n.endsWith('.wav')) return 'audio';
+    if (n.includes('color') || n.endsWith('_color') || n === 'colour') return 'color';
+    if (n.includes('rating') || n.includes('stars') || n.includes('score')) return 'rating';
+    if (n.includes('emoji')) return 'emoji';
+    if (n.includes('tags') || n.includes('labels')) return 'tags';
+    if (n.includes('progress') || n.includes('percentage') || n.includes('completion')) return 'progress';
+    if (n.includes('file') || n.includes('document') || n.includes('attachment')) return 'file';
+    return null;
+  }
 
   // Range pairs (only meaningful for schema-known numeric columns).
   const numericSchema = schema.filter(c => NUMERIC_TYPES.has(c.data_type) && !isSystem(c.column_name));

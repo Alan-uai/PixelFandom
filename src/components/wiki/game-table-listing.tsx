@@ -1648,12 +1648,10 @@ function MiniCardsSection({
   if (visible.length === 0) return null;
 
   const badgeColors: Record<string, string> = (cardConfig?.badgeColors as Record<string, string>) || {};
-  const badgeConfig: Record<string, any> = (cardConfig?.badgeConfig as Record<string, any>) || {};
 
   // Inner mini-card click: a jsonb sub-key path may be provided (e.g. `stats.damage`).
   // Falls back to the whole column when no sub-key is given.
   function handleCompare(col: string, subKey?: string) {
-    if (badgeConfig[col]?.clickAction !== 'comparison') return;
     onCompareStatClick?.(subKey ?? col);
   }
 
@@ -1697,7 +1695,7 @@ function MiniCardsSection({
                 valueColors={badgeColors}
                 columnConfig={colConfig}
                 maxValue={colConfig?.maxValue}
-                onCompareClick={badgeConfig[col]?.clickAction === 'comparison' ? (subKey) => handleCompare(col, subKey) : undefined}
+                onCompareClick={(subKey) => handleCompare(col, subKey)}
               />
             </VariantAnimatedValue>
           </Variant3D>
