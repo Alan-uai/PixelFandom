@@ -260,9 +260,13 @@ function bentoChildren(
       gridRow: `${pos.row + 1} / span ${pos.spanRows}`,
     };
 
+    // Use stable key (child's key or index) so tiles stay mounted for FLIP
+    const childKey = React.isValidElement(child) ? child.key : null;
+    const stableKey = childKey != null ? String(childKey) : `bento-${i}`;
+
     return (
       <BentoTile
-        key={`${trigger}-${i}`}
+        key={stableKey}
         index={i}
         animated={animated}
         staggerDelay={staggerDelay}

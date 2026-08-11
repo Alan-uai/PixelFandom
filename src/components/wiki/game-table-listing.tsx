@@ -1616,6 +1616,8 @@ function MiniCardsSection({
   onCompareStatClick,
   /** muda a cada troca de variante — re-dispara animações 3D por coluna */
   variationKey = 0,
+  /** Called when FLIP animation completes — trigger beam/bevel after this */
+  onAnimationComplete,
 }: {
   item: any;
   columnTypes?: Record<string, string>;
@@ -1627,6 +1629,7 @@ function MiniCardsSection({
   columnOpFlipped?: Record<string, boolean>;
   onCompareStatClick?: (statKey: string) => void;
   variationKey?: number;
+  onAnimationComplete?: () => void;
 }) {
   const formatVariants: Record<string, number> = (detailConfig?.columnFormatVariants as Record<string, number>) || {};
   const visibleColumns: string[] = cardConfig?.visibleColumns || [];
@@ -1658,7 +1661,7 @@ function MiniCardsSection({
   const columnConfig = (detailConfig?.columnConfig || {}) as Record<string, any>;
 
   return (
-    <MiniCardGrid className="mb-3" count={visible.length} trigger={variationKey} columns={4}>
+    <MiniCardGrid className="mb-3" count={visible.length} trigger={variationKey} columns={4} onAnimationComplete={onAnimationComplete}>
       {visible.map((col) => {
         const renderType = columnTypes?.[col] || 'text';
         const colConfig = columnConfig?.[col];
@@ -1783,17 +1786,30 @@ function ItemCard({
   const animsOn = useAnimationsEnabled();
   const prefersReduced = () => !animsOn;
 
+  // beamPending holds the direction until FLIP animation completes
+  const [beamPending, setBeamPending] = useState<'ltr' | 'rtl' | null>(null);
+
   const triggerTransition = useCallback((direction: 'ltr' | 'rtl') => {
     if (prefersReduced()) {
       setVariationKey((k) => k + 1);
       return;
     }
-    setBeamDir(direction);
-    setTransitioning(true);
+    // Store direction, increment key to trigger FLIP animation
+    // Beam will be activated by onFlipComplete after FLIP finishes
+    setBeamPending(direction);
     setVariationKey((k) => k + 1);
-    if (transitionTimer.current) clearTimeout(transitionTimer.current);
-    transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
   }, []);
+
+  // Called by MiniCardsSection when FLIP animation completes
+  const handleFlipComplete = useCallback(() => {
+    if (beamPending) {
+      setBeamDir(beamPending);
+      setTransitioning(true);
+      setBeamPending(null);
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
+      transitionTimer.current = setTimeout(() => setTransitioning(false), 800);
+    }
+  }, [beamPending]);
 
   const handleSelectVariant = useCallback(async (
     variant: { item_id: string; item_slug?: string | null } | null,
@@ -1989,6 +2005,7 @@ function ItemCard({
           columnOpFlipped={columnOpFlipped}
           onCompareStatClick={onCompareStatClick}
           variationKey={variationKey}
+          onAnimationComplete={handleFlipComplete}
         />
         {!tenantId && (
           <p className="text-sm text-muted-foreground">{activeItem.description || ''}</p>

@@ -4,205 +4,243 @@ import type { Variant3DRegistry, Variant3DPreset, EntryEffect, AmbientEffect, Ho
 /* -------------------------------------------------------------------------- */
 /*  Central preset registry — format × variant (v1..v5).                       */
 /*                                                                            */
-/*  Every format + variant combination has its own entry / ambient / hover     */
-/*  animation, deliberately distinct from every other combination. The         */
-/*  factories below keep it terse; edit here to retune a single effect.        */
+/*  Each format has 5 distinct presets that COMPLEMENT the render function's   */
+/*  own value animation (counting, star-spin, bar-slide, etc.).               */
+/*  Entry effects are type-specific: numbers get count-up, ratings get        */
+/*  star-flip, progress gets slide, text gets scramble-3D, etc.               */
 /* -------------------------------------------------------------------------- */
 
 function p(entry: EntryEffect, ambient: AmbientEffect, hover: HoverEffect, opts?: Partial<Variant3DPreset>): Variant3DPreset {
   return { entry, ambient, hover, depth: true, ...opts };
 }
 
-/* Row of five distinct variants for a format. The order v1..v5 always maps to
-   the visual variant the renderer already draws, so the animation complements
-   it instead of fighting it. */
 function row(v1: Variant3DPreset, v2: Variant3DPreset, v3: Variant3DPreset, v4: Variant3DPreset, v5: Variant3DPreset): [Variant3DPreset, Variant3DPreset, Variant3DPreset, Variant3DPreset, Variant3DPreset] {
   return [v1, v2, v3, v4, v5];
 }
 
 export const VARIANT_3D_PRESETS: Variant3DRegistry = {
-  // ── text / strings ──────────────────────────────────────────────────
+  // ── text: character-by-character 3D reveal ─────────────────────────────
   text: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('reveal-x', 'none', 'scale', { entryTune: { x: -6 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 8 } }),
-    p('slide-l', 'drift', 'glow', { entryTune: { x: -10 } }),
-    p('swing', 'pulse', 'roll', { entryTune: { rotateZ: 3 } }),
+    p('morph', 'none', 'lift', { entryTune: { scale: 0.92, rotateY: 10 } }),
+    p('glitch', 'none', 'scale', { entryTune: { x: -4, skewX: -1.5 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 6, rotateX: -8 } }),
+    p('expand', 'drift', 'glow', { entryTune: { scaleX: 0.85 } }),
+    p('flip-x', 'pulse', 'roll', { entryTune: { rotateX: -35 } }),
   ),
+
+  // ── badge: clip-path circle reveal + scale bounce ──────────────────────
   badge: row(
-    p('pop', 'glow', 'lift', { entryTune: { scale: 0.9 } }),
-    p('zoom', 'pulse', 'scale', { entryTune: { scale: 0.9 } }),
-    p('rise', 'float', 'tilt', { entryTune: { y: 6 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: -4 } }),
-    p('flip-y', 'drift', 'deep', { entryTune: { rotateY: -40 } }),
+    p('zoom', 'glow', 'lift', { entryTune: { scale: 0.85 } }),
+    p('expand', 'pulse', 'scale', { entryTune: { scaleX: 0.7, scaleY: 0.9 } }),
+    p('morph', 'float', 'tilt', { entryTune: { scale: 0.88, rotateY: 12 } }),
+    p('flip-x', 'breathe', 'roll', { entryTune: { rotateX: -40 } }),
+    p('wave', 'drift', 'deep', { entryTune: { y: 6, rotateX: -6 } }),
   ),
-  // ── numbers ─────────────────────────────────────────────────────────
+
+  // ── number: count-up entrance with perspective tilt ────────────────────
   number: row(
-    p('rise', 'none', 'lift', { entryTune: { y: 10 } }),
-    p('flip-y', 'float', 'tilt', { entryTune: { rotateY: -45, scale: 0.92 } }),
-    p('pop', 'glow', 'scale', { entryTune: { scale: 0.85 } }),
-    p('drop', 'breathe', 'deep', { entryTune: { y: -12 } }),
-    p('spin-in', 'pulse', 'roll', { entryTune: { rotateZ: -6 } }),
+    p('rise', 'none', 'lift', { entryTune: { y: 8, rotateX: -5 } }),
+    p('morph', 'float', 'tilt', { entryTune: { scale: 0.88, rotateY: 12 } }),
+    p('expand', 'glow', 'scale', { entryTune: { scaleX: 0.8 } }),
+    p('drop', 'breathe', 'deep', { entryTune: { y: -10, rotateX: 5 } }),
+    p('flip-x', 'pulse', 'roll', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── rating: star-flip entrance (complements star-spin in render) ───────
   rating: row(
-    p('pop', 'none', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('rise', 'float', 'scale', { entryTune: { y: 8 } }),
-    p('swing', 'pulse', 'roll', { entryTune: { rotateZ: -5 } }),
-    p('zoom', 'glow', 'lift', { entryTune: { scale: 0.9 } }),
-    p('drop', 'breathe', 'deep', { entryTune: { y: -10 } }),
+    p('spin-in', 'none', 'tilt', { entryTune: { rotateZ: -8 } }),
+    p('flip-y', 'float', 'scale', { entryTune: { rotateY: -40 } }),
+    p('wave', 'pulse', 'roll', { entryTune: { y: 5, rotateX: -8 } }),
+    p('morph', 'glow', 'lift', { entryTune: { scale: 0.9, rotateY: 10 } }),
+    p('expand', 'breathe', 'deep', { entryTune: { scaleX: 0.85 } }),
   ),
+
+  // ── progress: bar-slide entrance (complements bar-slide in render) ─────
   progress: row(
-    p('reveal-x', 'none', 'lift', { entryTune: { x: -8 } }),
-    p('slide-r', 'drift', 'scale', { entryTune: { x: 8 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 6 } }),
-    p('zoom', 'pulse', 'roll', { entryTune: { scale: 0.92 } }),
-    p('spin-in', 'glow', 'deep', { entryTune: { rotateZ: -4 } }),
+    p('slide-r', 'none', 'lift', { entryTune: { x: 10 } }),
+    p('expand', 'drift', 'scale', { entryTune: { scaleX: 0.7 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 5, rotateX: -6 } }),
+    p('morph', 'pulse', 'roll', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('flip-x', 'glow', 'deep', { entryTune: { rotateX: -25 } }),
   ),
+
+  // ── duration: clock-hand spin entrance ─────────────────────────────────
   duration: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('rise', 'float', 'tilt', { entryTune: { y: 6 } }),
-    p('swing', 'pulse', 'roll', { entryTune: { rotateZ: -3 } }),
-    p('zoom', 'breathe', 'scale', { entryTune: { scale: 0.92 } }),
-    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -35 } }),
+    p('spin-in', 'none', 'lift', { entryTune: { rotateZ: -10 } }),
+    p('morph', 'float', 'tilt', { entryTune: { scale: 0.9, rotateY: 10 } }),
+    p('flip-y', 'pulse', 'roll', { entryTune: { rotateY: -35 } }),
+    p('expand', 'breathe', 'scale', { entryTune: { scaleX: 0.85 } }),
+    p('wave', 'glow', 'deep', { entryTune: { y: 5, rotateX: -6 } }),
   ),
+
+  // ── boolean: toggle pulse entrance ─────────────────────────────────────
   boolean: row(
-    p('pop', 'none', 'scale', { entryTune: { scale: 0.8 } }),
-    p('rise', 'float', 'lift', { entryTune: { y: 8 } }),
-    p('swing', 'pulse', 'roll', { entryTune: { rotateZ: -6 } }),
-    p('zoom', 'breathe', 'tilt', { entryTune: { scale: 0.9 } }),
-    p('flip-y', 'drift', 'deep', { entryTune: { rotateY: -50 } }),
+    p('zoom', 'none', 'scale', { entryTune: { scale: 0.75 } }),
+    p('expand', 'float', 'lift', { entryTune: { scaleX: 0.6 } }),
+    p('flip-x', 'pulse', 'roll', { entryTune: { rotateX: -45 } }),
+    p('morph', 'breathe', 'tilt', { entryTune: { scale: 0.85, rotateY: 10 } }),
+    p('wave', 'drift', 'deep', { entryTune: { y: 4, rotateX: -5 } }),
   ),
-  // ── colors / icons ──────────────────────────────────────────────────
+
+  // ── color: morph/scale entrance (color swatch transitions) ────────────
   color: row(
-    p('pop', 'glow', 'tilt', { entryTune: { scale: 0.88 } }),
-    p('zoom', 'breathe', 'scale', { entryTune: { scale: 0.85 } }),
-    p('swing', 'float', 'roll', { entryTune: { rotateZ: 5 } }),
-    p('rise', 'pulse', 'lift', { entryTune: { y: 8 } }),
-    p('spin-in', 'spin', 'deep', { entryTune: { rotateZ: -8 } }),
+    p('morph', 'glow', 'tilt', { entryTune: { scale: 0.82, rotateY: 15 } }),
+    p('expand', 'breathe', 'scale', { entryTune: { scaleX: 0.7, scaleY: 0.85 } }),
+    p('zoom', 'float', 'roll', { entryTune: { scale: 0.85 } }),
+    p('wave', 'pulse', 'lift', { entryTune: { y: 5, rotateX: -6 } }),
+    p('flip-x', 'spin', 'deep', { entryTune: { rotateX: -35 } }),
   ),
+
+  // ── color-palette: wave entrance (colors fade in sequence) ────────────
   'color-palette': row(
-    p('rise', 'none', 'lift', { entryTune: { y: 8 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.9 } }),
-    p('pop', 'breathe', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('slide-l', 'drift', 'roll', { entryTune: { x: -8 } }),
-    p('swing', 'pulse', 'deep', { entryTune: { rotateZ: 4 } }),
+    p('wave', 'none', 'lift', { entryTune: { y: 6, rotateX: -5 } }),
+    p('expand', 'float', 'scale', { entryTune: { scaleX: 0.8 } }),
+    p('morph', 'breathe', 'tilt', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('slide-l', 'drift', 'roll', { entryTune: { x: -6 } }),
+    p('flip-x', 'pulse', 'deep', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── icon: 3D pop + rotate entrance ────────────────────────────────────
   icon: row(
-    p('pop', 'none', 'tilt', { entryTune: { scale: 0.8 } }),
-    p('spin-in', 'spin', 'roll', { entryTune: { rotateZ: -10 } }),
-    p('swing', 'float', 'deep', { entryTune: { rotateZ: 6 } }),
-    p('rise', 'pulse', 'scale', { entryTune: { y: 8 } }),
-    p('flip-y', 'breathe', 'lift', { entryTune: { rotateY: -45 } }),
+    p('zoom', 'none', 'tilt', { entryTune: { scale: 0.7 } }),
+    p('spin-in', 'spin', 'roll', { entryTune: { rotateZ: -12 } }),
+    p('flip-y', 'float', 'deep', { entryTune: { rotateY: -45 } }),
+    p('morph', 'pulse', 'scale', { entryTune: { scale: 0.8, rotateY: 12 } }),
+    p('wave', 'breathe', 'lift', { entryTune: { y: 5, rotateX: -6 } }),
   ),
+
+  // ── emoji: bounce + scale entrance ─────────────────────────────────────
   emoji: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.85 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: 8 } }),
-    p('rise', 'float', 'scale', { entryTune: { y: 8 } }),
-    p('zoom', 'pulse', 'tilt', { entryTune: { scale: 0.9 } }),
-    p('spin-in', 'spin', 'deep', { entryTune: { rotateZ: -12 } }),
+    p('zoom', 'none', 'lift', { entryTune: { scale: 0.6 } }),
+    p('wave', 'breathe', 'roll', { entryTune: { y: 6, rotateZ: 5 } }),
+    p('morph', 'float', 'scale', { entryTune: { scale: 0.75, rotateY: 10 } }),
+    p('expand', 'pulse', 'tilt', { entryTune: { scaleX: 0.7 } }),
+    p('spin-in', 'spin', 'deep', { entryTune: { rotateZ: -15 } }),
   ),
+
+  // ── icon-set: cascade entrance ─────────────────────────────────────────
   'icon-set': row(
-    p('rise', 'none', 'lift', { entryTune: { y: 8 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.9 } }),
-    p('pop', 'breathe', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('slide-l', 'drift', 'roll', { entryTune: { x: -8 } }),
-    p('swing', 'pulse', 'deep', { entryTune: { rotateZ: 4 } }),
+    p('wave', 'none', 'lift', { entryTune: { y: 6, rotateX: -5 } }),
+    p('expand', 'float', 'scale', { entryTune: { scaleX: 0.8 } }),
+    p('morph', 'breathe', 'tilt', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('slide-l', 'drift', 'roll', { entryTune: { x: -6 } }),
+    p('flip-x', 'pulse', 'deep', { entryTune: { rotateX: -30 } }),
   ),
-  // ── media ───────────────────────────────────────────────────────────
+
+  // ── image: fade + scale entrance ───────────────────────────────────────
   image: row(
-    p('zoom', 'none', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('rise', 'float', 'lift', { entryTune: { y: 8 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: -2 } }),
-    p('slide-r', 'drift', 'scale', { entryTune: { x: 8 } }),
-    p('pop', 'glow', 'deep', { entryTune: { scale: 0.9 } }),
+    p('morph', 'none', 'tilt', { entryTune: { scale: 0.88, rotateY: 8 } }),
+    p('expand', 'float', 'lift', { entryTune: { scaleX: 0.85, scaleY: 0.9 } }),
+    p('wave', 'breathe', 'roll', { entryTune: { y: 5, rotateX: -5 } }),
+    p('slide-r', 'drift', 'scale', { entryTune: { x: 6 } }),
+    p('zoom', 'glow', 'deep', { entryTune: { scale: 0.85 } }),
   ),
+
+  // ── video: play-button pulse entrance ──────────────────────────────────
   video: row(
-    p('pop', 'none', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('rise', 'float', 'lift', { entryTune: { y: 6 } }),
-    p('zoom', 'breathe', 'scale', { entryTune: { scale: 0.9 } }),
-    p('slide-l', 'drift', 'roll', { entryTune: { x: -8 } }),
+    p('zoom', 'none', 'tilt', { entryTune: { scale: 0.88 } }),
+    p('morph', 'float', 'lift', { entryTune: { scale: 0.9, rotateY: 10 } }),
+    p('expand', 'breathe', 'scale', { entryTune: { scaleX: 0.85 } }),
+    p('wave', 'drift', 'roll', { entryTune: { y: 5, rotateX: -5 } }),
     p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -30 } }),
   ),
+
+  // ── audio: waveform pulse entrance ─────────────────────────────────────
   audio: row(
-    p('pop', 'none', 'scale', { entryTune: { scale: 0.9 } }),
-    p('rise', 'pulse', 'lift', { entryTune: { y: 6 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: -3 } }),
-    p('zoom', 'float', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -40 } }),
+    p('expand', 'none', 'scale', { entryTune: { scaleX: 0.7 } }),
+    p('wave', 'pulse', 'lift', { entryTune: { y: 5, rotateX: -5 } }),
+    p('morph', 'breathe', 'roll', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('zoom', 'float', 'tilt', { entryTune: { scale: 0.85 } }),
+    p('flip-x', 'glow', 'deep', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── file: slide-in entrance ────────────────────────────────────────────
   file: row(
-    p('rise', 'none', 'lift', { entryTune: { y: 8 } }),
-    p('slide-r', 'drift', 'scale', { entryTune: { x: 8 } }),
-    p('pop', 'float', 'tilt', { entryTune: { scale: 0.9 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: 3 } }),
-    p('zoom', 'pulse', 'deep', { entryTune: { scale: 0.92 } }),
+    p('slide-r', 'none', 'lift', { entryTune: { x: 8 } }),
+    p('morph', 'drift', 'scale', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('expand', 'float', 'tilt', { entryTune: { scaleX: 0.8 } }),
+    p('wave', 'breathe', 'roll', { entryTune: { y: 5, rotateX: -5 } }),
+    p('zoom', 'pulse', 'deep', { entryTune: { scale: 0.88 } }),
   ),
+
+  // ── link: underline-draw entrance ──────────────────────────────────────
   link: row(
-    p('reveal-x', 'none', 'lift', { entryTune: { x: -6 } }),
-    p('rise', 'float', 'scale', { entryTune: { y: 6 } }),
-    p('pop', 'glow', 'tilt', { entryTune: { scale: 0.94 } }),
-    p('slide-l', 'drift', 'roll', { entryTune: { x: -8 } }),
-    p('swing', 'breathe', 'deep', { entryTune: { rotateZ: 2 } }),
+    p('slide-l', 'none', 'lift', { entryTune: { x: -6 } }),
+    p('morph', 'float', 'scale', { entryTune: { scale: 0.92, rotateY: 8 } }),
+    p('wave', 'glow', 'tilt', { entryTune: { y: 4, rotateX: -5 } }),
+    p('expand', 'drift', 'roll', { entryTune: { scaleX: 0.85 } }),
+    p('flip-x', 'breathe', 'deep', { entryTune: { rotateX: -25 } }),
   ),
-  // ── datetime ────────────────────────────────────────────────────────
+
+  // ── date: calendar-flip entrance ───────────────────────────────────────
   date: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('rise', 'float', 'scale', { entryTune: { y: 6 } }),
-    p('reveal-x', 'drift', 'tilt', { entryTune: { x: -8 } }),
-    p('swing', 'breathe', 'roll', { entryTune: { rotateZ: 3 } }),
-    p('zoom', 'pulse', 'deep', { entryTune: { scale: 0.92 } }),
+    p('flip-x', 'none', 'lift', { entryTune: { rotateX: -40 } }),
+    p('morph', 'float', 'scale', { entryTune: { scale: 0.9, rotateY: 10 } }),
+    p('wave', 'drift', 'tilt', { entryTune: { y: 5, rotateX: -6 } }),
+    p('expand', 'breathe', 'roll', { entryTune: { scaleX: 0.85 } }),
+    p('spin-in', 'pulse', 'deep', { entryTune: { rotateZ: -8 } }),
   ),
-  // ── structured / jsonb ──────────────────────────────────────────────
+
+  // ── jsonb: staggered key reveal ────────────────────────────────────────
   jsonb: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.95 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.92 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 8 } }),
-    p('slide-r', 'drift', 'roll', { entryTune: { x: 8 } }),
-    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -35 } }),
+    p('morph', 'none', 'lift', { entryTune: { scale: 0.92, rotateY: 8 } }),
+    p('expand', 'float', 'scale', { entryTune: { scaleX: 0.85 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 5, rotateX: -5 } }),
+    p('slide-r', 'drift', 'roll', { entryTune: { x: 6 } }),
+    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -30 } }),
   ),
+
   'jsonb-structured': row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.95 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.92 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 8 } }),
-    p('slide-r', 'drift', 'roll', { entryTune: { x: 8 } }),
-    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -35 } }),
+    p('morph', 'none', 'lift', { entryTune: { scale: 0.92, rotateY: 8 } }),
+    p('expand', 'float', 'scale', { entryTune: { scaleX: 0.85 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 5, rotateX: -5 } }),
+    p('slide-r', 'drift', 'roll', { entryTune: { x: 6 } }),
+    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -30 } }),
   ),
-  // ── selectors ───────────────────────────────────────────────────────
+
+  // ── select: selection-highlight slide ──────────────────────────────────
   select: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('reveal-x', 'drift', 'scale', { entryTune: { x: -6 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 8 } }),
-    p('slide-l', 'float', 'roll', { entryTune: { x: -8 } }),
-    p('swing', 'pulse', 'deep', { entryTune: { rotateZ: 3 } }),
+    p('morph', 'none', 'lift', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('wave', 'drift', 'scale', { entryTune: { y: 4, rotateX: -5 } }),
+    p('expand', 'breathe', 'tilt', { entryTune: { scaleX: 0.8 } }),
+    p('slide-l', 'float', 'roll', { entryTune: { x: -6 } }),
+    p('flip-x', 'pulse', 'deep', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── multi-select: staggered tag entrance ───────────────────────────────
   'multi-select': row(
-    p('rise', 'none', 'lift', { entryTune: { y: 8 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.9 } }),
-    p('pop', 'breathe', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('slide-l', 'drift', 'roll', { entryTune: { x: -8 } }),
-    p('swing', 'pulse', 'deep', { entryTune: { rotateZ: 4 } }),
+    p('wave', 'none', 'lift', { entryTune: { y: 5, rotateX: -5 } }),
+    p('expand', 'float', 'scale', { entryTune: { scaleX: 0.8 } }),
+    p('morph', 'breathe', 'tilt', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('slide-l', 'drift', 'roll', { entryTune: { x: -6 } }),
+    p('flip-x', 'pulse', 'deep', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── toggle-group: toggle-switch entrance ───────────────────────────────
   'toggle-group': row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('zoom', 'float', 'scale', { entryTune: { scale: 0.9 } }),
-    p('rise', 'breathe', 'tilt', { entryTune: { y: 8 } }),
-    p('swing', 'pulse', 'roll', { entryTune: { rotateZ: 3 } }),
-    p('flip-y', 'glow', 'deep', { entryTune: { rotateY: -40 } }),
+    p('expand', 'none', 'lift', { entryTune: { scaleX: 0.6 } }),
+    p('morph', 'float', 'scale', { entryTune: { scale: 0.85, rotateY: 10 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 4, rotateX: -5 } }),
+    p('zoom', 'pulse', 'roll', { entryTune: { scale: 0.8 } }),
+    p('flip-x', 'glow', 'deep', { entryTune: { rotateX: -35 } }),
   ),
-  // ── tags / misc ─────────────────────────────────────────────────────
+
+  // ── tags: staggered tag slide entrance ─────────────────────────────────
   tags: row(
-    p('pop', 'none', 'lift', { entryTune: { scale: 0.94 } }),
-    p('rise', 'float', 'scale', { entryTune: { y: 6 } }),
-    p('slide-r', 'drift', 'roll', { entryTune: { x: 8 } }),
-    p('zoom', 'breathe', 'tilt', { entryTune: { scale: 0.92 } }),
-    p('swing', 'pulse', 'deep', { entryTune: { rotateZ: 4 } }),
+    p('wave', 'none', 'lift', { entryTune: { y: 5, rotateX: -5 } }),
+    p('morph', 'float', 'scale', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('slide-r', 'drift', 'roll', { entryTune: { x: 6 } }),
+    p('expand', 'breathe', 'tilt', { entryTune: { scaleX: 0.8 } }),
+    p('flip-x', 'pulse', 'deep', { entryTune: { rotateX: -30 } }),
   ),
+
+  // ── popover: content reveal from trigger ───────────────────────────────
   popover: row(
-    p('pop', 'none', 'none', { entryTune: { scale: 0.92 } }),
-    p('zoom', 'float', 'none', { entryTune: { scale: 0.9 } }),
-    p('swing', 'pulse', 'none', { entryTune: { rotateZ: -3 } }),
-    p('rise', 'breathe', 'none', { entryTune: { y: 8 } }),
-    p('flip-y', 'glow', 'none', { entryTune: { rotateY: -30 } }),
+    p('morph', 'none', 'none', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('expand', 'float', 'none', { entryTune: { scaleX: 0.8 } }),
+    p('wave', 'pulse', 'none', { entryTune: { y: 4, rotateX: -5 } }),
+    p('zoom', 'breathe', 'none', { entryTune: { scale: 0.85 } }),
+    p('flip-x', 'glow', 'none', { entryTune: { rotateX: -30 } }),
   ),
 };
 

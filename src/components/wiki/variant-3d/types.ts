@@ -5,13 +5,18 @@ export type EntryEffect =
   | 'pop'
   | 'rise'
   | 'flip-y'
+  | 'flip-x'
   | 'swing'
   | 'zoom'
   | 'slide-l'
   | 'slide-r'
   | 'spin-in'
   | 'drop'
-  | 'reveal-x';
+  | 'reveal-x'
+  | 'morph'
+  | 'wave'
+  | 'expand'
+  | 'glitch';
 
 /** Named ambient effect — a subtle looping motion while idle. */
 export type AmbientEffect =

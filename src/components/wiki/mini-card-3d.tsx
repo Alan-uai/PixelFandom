@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { BentoGrid } from '@/components/wiki/bento-grid';
+import { AnimatedBentoGrid } from '@/components/wiki/animated-bento-grid';
 
 export interface MiniCard3DProps {
   label?: React.ReactNode;
@@ -95,24 +95,13 @@ export function MiniCard3D({ label, value, icon, color, onClick, className = '',
 /**
  * Bento-box layout wrapper used to lay mini cards inside an item card.
  *
- * True bento-box behaviour (no fixed column count):
- *  - Rendered as CSS grid `repeat(auto-fit, minmax(columnWidth,1fr))` with
- *    `grid-auto-flow: dense`. The number of columns is deduced entirely from
- *    the container width and the chosen `columnWidth`, so the grid adapts to
- *    the size of the wrapping item/card automatically — no hardcoded 2-column
- *    track and no pre-defined column limit.
- *  - Each card keeps its NATURAL height and is never stretched to match a
- *    taller neighbour. `dense` packing pushes short cards into the gaps left
- *    by taller ones, so every free slot in the container gets filled instead
- *    of staying empty — the v1–v5 visual variants express their different
- *    sizes and the bento simply re-flows.
- *  - With a single card the whole bento collapses to a single full-width
- *    column (no leftover half-width slot). When `singleFullWidth` is false
- *    the lone card sits in a single column as-is.
+ * Uses AnimatedBentoGrid for smooth FLIP animations when items change position
+ * (e.g. on variant switch). The bevel/glow sweep activates only after all tiles
+ * finish sliding to their new positions.
  *
- * This is a thin wrapper over the unified `BentoGrid` so every item-card grid
- * (mini cards, stat cells, holo/neon panels…) shares the same reusable bento
- * layout implementation.
+ * This is a thin wrapper over the unified `AnimatedBentoGrid` so every item-card
+ * grid (mini cards, stat cells, holo/neon panels…) shares the same reusable
+ * bento layout implementation with animations.
  */
 export function MiniCardGrid(props: {
   children: React.ReactNode;
@@ -128,6 +117,16 @@ export function MiniCardGrid(props: {
   trigger?: number;
   /** Number of columns for bento packing. */
   columns?: number;
+  /** Called when the FLIP slide animation completes. Use to trigger beam/bevel. */
+  onAnimationComplete?: () => void;
 }) {
-  return <BentoGrid mode="bento" {...props} />;
+  const { onAnimationComplete, ...rest } = props;
+  return (
+    <AnimatedBentoGrid
+      mode="bento"
+      onAnimationComplete={onAnimationComplete}
+      animDuration={420}
+      {...rest}
+    />
+  );
 }

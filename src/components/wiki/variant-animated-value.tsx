@@ -40,7 +40,8 @@ function isNumericRenderType(rt: string): boolean {
     rt === 'double' ||
     rt === 'slider' ||
     rt === 'duration' ||
-    rt === 'progress'
+    rt === 'progress' ||
+    rt === 'rating'
   );
 }
 
@@ -70,7 +71,9 @@ function isBooleanRenderType(rt: string): boolean {
 /** Render types whose ColumnDisplay output is visually rich (icons, colors,
  *  OP symbols, suffixes, badges, ratings, progress, links, images). These must
  *  be animated with a 3D flip of the already-rendered `children` — never with
- *  a plain scramble/counter that would discard the icon/color/OP/suffix. */
+ *  a plain scramble/counter that would discard the icon/color/OP/suffix.
+ *  NOTE: rating and progress are excluded because they have their own
+ *  specialized animations (star-spin and bar-slide) in the render functions. */
 function isRichVisualRenderType(rt: string): boolean {
   return (
     rt === 'icon' ||
@@ -83,9 +86,6 @@ function isRichVisualRenderType(rt: string): boolean {
     rt === 'audio' ||
     rt === 'link' ||
     rt === 'badge' ||
-    rt === 'rating' ||
-    rt === 'progress' ||
-    rt === 'slider' ||
     rt === 'duration' ||
     rt === 'tags' ||
     rt === 'multi-select' ||
@@ -100,7 +100,7 @@ function isRichVisualRenderType(rt: string): boolean {
  *  suffix must keep its rich ColumnDisplay rendering instead of a plain
  *  counter, which would strip the symbol/suffix. */
 function hasRichNumericValue(value: unknown, renderType: string): boolean {
-  if (renderType === 'progress' || renderType === 'slider' || renderType === 'duration' || renderType === 'rating') {
+  if (renderType === 'progress' || renderType === 'slider' || renderType === 'duration') {
     return true;
   }
   if (typeof value === 'string' && parseOperatorPrefix(value)) return true;

@@ -26,6 +26,7 @@ const ENTRY_MAP: Record<EntryEffect, { initial: Target; animate: Target }> = {
   pop:       { initial: { scale: 0.94 }, animate: { scale: 1 } },
   rise:      { initial: { y: 10 }, animate: { y: 0 } },
   'flip-y':  { initial: { rotateY: -50, scale: 0.95 }, animate: { rotateY: 0, scale: 1 } },
+  'flip-x':  { initial: { rotateX: -50, scale: 0.95 }, animate: { rotateX: 0, scale: 1 } },
   swing:     { initial: { rotateZ: 5 }, animate: { rotateZ: 0 } },
   zoom:      { initial: { scale: 0.9 }, animate: { scale: 1 } },
   'slide-l': { initial: { x: -12 }, animate: { x: 0 } },
@@ -33,6 +34,10 @@ const ENTRY_MAP: Record<EntryEffect, { initial: Target; animate: Target }> = {
   'spin-in': { initial: { rotateZ: -12, scale: 0.92 }, animate: { rotateZ: 0, scale: 1 } },
   drop:      { initial: { y: -14 }, animate: { y: 0 } },
   'reveal-x': { initial: { x: -8, opacity: 0 }, animate: { x: 0, opacity: 1 } },
+  morph:     { initial: { scale: 0.8, opacity: 0, rotateY: 15 }, animate: { scale: 1, opacity: 1, rotateY: 0 } },
+  wave:      { initial: { y: 8, rotateX: -10 }, animate: { y: 0, rotateX: 0 } },
+  expand:    { initial: { scaleX: 0.6, scaleY: 0.8 }, animate: { scaleX: 1, scaleY: 1 } },
+  glitch:    { initial: { x: -3, skewX: -2, opacity: 0.7 }, animate: { x: 0, skewX: 0, opacity: 1 } },
 };
 
 const HOVER_MAP: Record<string, { whileHover?: Target; className?: string }> = {

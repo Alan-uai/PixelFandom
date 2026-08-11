@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
@@ -85,46 +85,81 @@ function ColWrap({ label, children, labelColor }: { label: string; children: Rea
 }
 
 // ── text ──────────────────────────────────────────────────
-function renderText(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
+function renderText(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, trigger?: string) {
   const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <code className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono text-foreground" style={valStyle}>{str}</code>
+        <motion.code
+          key={trigger}
+          className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono text-foreground"
+          style={valStyle}
+          initial={{ opacity: 0, scale: 0.85, rotateY: 15 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+        >{str}</motion.code>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs bg-muted/70 rounded px-1.5 py-0.5 text-foreground" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="text-xs bg-muted/70 rounded px-1.5 py-0.5 text-foreground"
+          style={valStyle}
+          initial={{ opacity: 0, x: -8, skewX: -2 }}
+          animate={{ opacity: 1, x: 0, skewX: 0 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   if (v === 4) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs border-l-2 border-primary pl-2 text-foreground" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="text-xs border-l-2 border-primary pl-2 text-foreground"
+          style={valStyle}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 160, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   if (v === 5) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="text-xs font-semibold text-foreground" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="text-xs font-semibold text-foreground"
+          style={valStyle}
+          initial={{ opacity: 0, scale: 0.9, y: -6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <span className="text-xs text-foreground" style={valStyle}>{str}</span>
+      <motion.span
+        key={trigger}
+        className="text-xs text-foreground"
+        style={valStyle}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >{str}</motion.span>
     </Row>
   );
 }
 
 // ── number ────────────────────────────────────────────────
-function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, rawValue?: string) {
+function renderNumber(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, rawValue?: string, trigger?: string) {
   const color = valueColors?.[str] ?? (rawValue != null ? valueColors?.[rawValue] : undefined) ?? labelColor;
   const valStyle: React.CSSProperties = color ? { color } : {};
   const accent = color || 'hsl(var(--primary))';
@@ -132,6 +167,7 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div
+          key={trigger}
           className="relative font-mono text-xs font-bold text-foreground px-2 py-1 rounded-md"
           style={{
             ...valStyle,
@@ -140,6 +176,8 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
             perspective: '400px',
             transformStyle: 'preserve-3d',
           }}
+          initial={{ opacity: 0, y: 8, rotateX: -5, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
           whileHover={{ rotateX: 8, rotateY: -6, translateZ: 12, scale: 1.04 }}
           transition={{ type: 'spring', stiffness: 200, damping: 14 }}
         >
@@ -153,6 +191,7 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.span
+          key={trigger}
           className="relative inline-block font-mono text-sm font-extrabold px-3 py-1 rounded-lg backdrop-blur-sm"
           style={{
             ...valStyle,
@@ -162,15 +201,10 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
             border: `1px solid ${accent}30`,
             boxShadow: `0 0 20px -4px ${accent}44, inset 0 0 20px -8px ${accent}22`,
           }}
-          animate={{
-            textShadow: [
-              `0 0 12px ${accent}88, 0 0 30px ${accent}44`,
-              `0 0 18px ${accent}aa, 0 0 40px ${accent}66`,
-              `0 0 12px ${accent}88, 0 0 30px ${accent}44`,
-            ],
-          }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          initial={{ opacity: 0, scale: 0.88, rotateY: 12 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
           whileHover={{ scale: 1.06 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
         >
           {str}
         </motion.span>
@@ -186,7 +220,13 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
     const dashOffset = circumference * (1 - fraction);
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="relative inline-flex items-center justify-center w-16 h-16">
+        <motion.div
+          key={trigger}
+          className="relative inline-flex items-center justify-center w-16 h-16"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+        >
           <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 72 72">
             <circle cx="36" cy="36" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" opacity="0.3" />
             {isValid && (
@@ -209,7 +249,7 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
           >
             {str}
           </motion.span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
@@ -217,6 +257,7 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div
+          key={trigger}
           className="relative font-mono text-xs font-extrabold px-3 py-1.5 rounded-xl"
           style={{
             ...valStyle,
@@ -227,16 +268,10 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
             perspective: '500px',
             transformStyle: 'preserve-3d',
           }}
-          animate={{
-            y: [0, -3, 0],
-            boxShadow: [
-              `0 4px 16px -6px ${accent}66, 0 0 30px -8px ${accent}33`,
-              `0 8px 24px -8px ${accent}88, 0 0 40px -10px ${accent}44`,
-              `0 4px 16px -6px ${accent}66, 0 0 30px -8px ${accent}33`,
-            ],
-          }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          initial={{ opacity: 0, y: -10, rotateX: 5, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
           whileHover={{ rotateX: 6, rotateY: 10, scale: 1.05, translateZ: 16 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
         >
           <span className="relative z-10 bg-gradient-to-r from-current via-current to-current/70 bg-clip-text">{str}</span>
           <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/[0.04] via-transparent to-black/[0.04] pointer-events-none" />
@@ -246,60 +281,109 @@ function renderNumber(v: number, str: string, label: string, labelColor?: string
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <span className="text-xs font-mono text-foreground" style={valStyle}>{str}</span>
+      <motion.span
+        key={trigger}
+        className="text-xs font-mono text-foreground"
+        style={valStyle}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >{str}</motion.span>
     </Row>
   );
 }
 
 // ── badge ─────────────────────────────────────────────────
-function renderBadge(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>) {
+function renderBadge(v: number, str: string, label: string, labelColor?: string, valueColors?: Record<string, string>, trigger?: string) {
   const color = valueColors?.[str] || labelColor;
   const valStyle: React.CSSProperties = color ? { color, borderColor: color, backgroundColor: `${color}1a` } : {};
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/20 text-primary" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/20 text-primary"
+          style={valStyle}
+          initial={{ opacity: 0, scale: 0.7, rotateY: 10 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium bg-muted/30 border-border text-foreground" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium bg-muted/30 border-border text-foreground"
+          style={valStyle}
+          initial={{ opacity: 0, x: -6, scaleX: 0.8 }}
+          animate={{ opacity: 1, x: 0, scaleX: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   if (v === 4) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-primary/40 text-primary shadow-[0_0_8px] shadow-primary/30" style={valStyle}>{str}</span>
+        <motion.span
+          key={trigger}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-primary/40 text-primary shadow-[0_0_8px] shadow-primary/30"
+          style={valStyle}
+          initial={{ opacity: 0, scale: 0.85, rotateX: -10 }}
+          animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+        >{str}</motion.span>
       </Row>
     );
   }
   if (v === 5) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 border border-primary/30 text-primary" style={valStyle}>
+        <motion.span
+          key={trigger}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 border border-primary/30 text-primary"
+          style={valStyle}
+          initial={{ opacity: 0, scale: 0.8, y: 4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        >
           <span className="text-[10px]">✦</span>
           {str}
-        </span>
+        </motion.span>
       </Row>
     );
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary" style={valStyle}>{str}</span>
+      <motion.span
+        key={trigger}
+        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary"
+        style={valStyle}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >{str}</motion.span>
     </Row>
   );
 }
 
 // ── color ─────────────────────────────────────────────────
-function renderColor(v: number, str: string, label: string, labelColor?: string) {
+function renderColor(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isColor = str.startsWith('#') || str.startsWith('hsl') || str.startsWith('rgb');
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="h-5 w-5 rounded-md border" style={{ backgroundColor: str }} />
+        <motion.div
+          key={trigger}
+          className="h-5 w-5 rounded-md border"
+          style={{ backgroundColor: str }}
+          initial={{ opacity: 0, scale: 0.5, rotateY: 15 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 14 }}
+        />
         {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
       </Row>
     );
@@ -307,7 +391,14 @@ function renderColor(v: number, str: string, label: string, labelColor?: string)
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex-1 h-5 rounded border max-w-[120px]" style={{ backgroundColor: str }} />
+        <motion.div
+          key={trigger}
+          className="flex-1 h-5 rounded border max-w-[120px]"
+          style={{ backgroundColor: str }}
+          initial={{ opacity: 0, scaleX: 0.6 }}
+          animate={{ opacity: 1, scaleX: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+        />
         {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
       </Row>
     );
@@ -315,7 +406,14 @@ function renderColor(v: number, str: string, label: string, labelColor?: string)
   if (v === 4) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="h-2.5 w-2.5 rounded-full border" style={{ backgroundColor: str }} />
+        <motion.div
+          key={trigger}
+          className="h-2.5 w-2.5 rounded-full border"
+          style={{ backgroundColor: str }}
+          initial={{ opacity: 0, scale: 0.3 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+        />
         <span className="text-xs font-mono text-muted-foreground">{str}</span>
       </Row>
     );
@@ -326,7 +424,14 @@ function renderColor(v: number, str: string, label: string, labelColor?: string)
       const gradient = `linear-gradient(90deg, ${colors.join(', ')})`;
       return (
         <Row label={label} labelColor={labelColor}>
-          <div className="h-5 w-24 rounded border" style={{ background: gradient }} />
+          <motion.div
+            key={trigger}
+            className="h-5 w-24 rounded border"
+            style={{ background: gradient }}
+            initial={{ opacity: 0, scaleX: 0.5 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ type: 'spring', stiffness: 160, damping: 16 }}
+          />
           <span className="text-[10px] font-mono text-muted-foreground">{colors.length} cores</span>
         </Row>
       );
@@ -334,34 +439,61 @@ function renderColor(v: number, str: string, label: string, labelColor?: string)
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: str }} />
+      <motion.div
+        key={trigger}
+        className="h-5 w-5 rounded-full border"
+        style={{ backgroundColor: str }}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      />
       {isColor && <span className="text-xs font-mono text-muted-foreground">{str}</span>}
     </Row>
   );
 }
 
 // ── icon ──────────────────────────────────────────────────
-function renderIcon(v: number, str: string, label: string, labelColor?: string) {
+function renderIcon(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted/50">
+        <motion.div
+          key={trigger}
+          className="flex items-center justify-center h-7 w-7 rounded-full bg-muted/50"
+          initial={{ opacity: 0, scale: 0.5, rotateZ: -15 }}
+          animate={{ opacity: 1, scale: 1, rotateZ: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+        >
           <IconRenderer icon={str} size="sm" />
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <IconRenderer icon={str} size="lg" />
+        <motion.div
+          key={trigger}
+          initial={{ opacity: 0, scale: 0.7, rotateY: -20 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        >
+          <IconRenderer icon={str} size="lg" />
+        </motion.div>
       </Row>
     );
   }
   if (v === 4) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <IconRenderer icon={str} size="sm" />
+        <motion.div
+          key={trigger}
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+        >
+          <IconRenderer icon={str} size="sm" />
+        </motion.div>
         <span className="text-xs text-muted-foreground">{str}</span>
       </Row>
     );
@@ -369,21 +501,34 @@ function renderIcon(v: number, str: string, label: string, labelColor?: string) 
   if (v === 5) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg border bg-muted/20">
+        <motion.div
+          key={trigger}
+          className="flex items-center justify-center h-8 w-8 rounded-lg border bg-muted/20"
+          initial={{ opacity: 0, scale: 0.6, rotateY: -25 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 16 }}
+        >
           <IconRenderer icon={str} size="md" />
-        </div>
+        </motion.div>
       </Row>
     );
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <IconRenderer icon={str} size="md" />
+      <motion.div
+        key={trigger}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <IconRenderer icon={str} size="md" />
+      </motion.div>
     </Row>
   );
 }
 
 // ── link ──────────────────────────────────────────────────
-function renderLink(v: number, str: string, label: string, labelColor?: string) {
+function renderLink(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
   const content = isValid ? (
     <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs truncate max-w-[300px]">{str}</a>
@@ -395,9 +540,18 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
     return (
       <Row label={label} labelColor={labelColor}>
         {isValid ? (
-          <a href={str} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium text-primary border-primary/30 hover:bg-primary/5 transition-colors">
+          <motion.a
+            key={trigger}
+            href={str}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium text-primary border-primary/30 hover:bg-primary/5 transition-colors"
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+          >
             {str.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 40)}
-          </a>
+          </motion.a>
         ) : content}
       </Row>
     );
@@ -406,10 +560,19 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
     return (
       <Row label={label} labelColor={labelColor}>
         {isValid ? (
-          <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 truncate max-w-[300px]">
+          <motion.a
+            key={trigger}
+            href={str}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1 truncate max-w-[300px]"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+          >
             {str}
             <ExternalLink className="h-3 w-3 shrink-0" />
-          </a>
+          </motion.a>
         ) : content}
       </Row>
     );
@@ -418,10 +581,16 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
     return (
       <Row label={label} labelColor={labelColor}>
         {isValid ? (
-          <div className="rounded-md border bg-muted/20 px-3 py-1.5 max-w-[300px]">
+          <motion.div
+            key={trigger}
+            className="rounded-md border bg-muted/20 px-3 py-1.5 max-w-[300px]"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+          >
             <p className="text-[10px] text-muted-foreground truncate">{str.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
             <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">Abrir link</a>
-          </div>
+          </motion.div>
         ) : content}
       </Row>
     );
@@ -430,7 +599,16 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
     return (
       <Row label={label} labelColor={labelColor}>
         {isValid ? (
-          <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary no-underline hover:text-primary/80 transition-colors truncate max-w-[300px]">{str}</a>
+          <motion.a
+            key={trigger}
+            href={str}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary no-underline hover:text-primary/80 transition-colors truncate max-w-[300px]"
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+          >{str}</motion.a>
         ) : content}
       </Row>
     );
@@ -438,7 +616,16 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
   return (
     <Row label={label} labelColor={labelColor}>
       {isValid ? (
-        <a href={str} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[300px]">{str}</a>
+        <motion.a
+          key={trigger}
+          href={str}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-primary hover:underline truncate max-w-[300px]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >{str}</motion.a>
       ) : (
         <span className="text-xs text-muted-foreground">{str}</span>
       )}
@@ -447,16 +634,22 @@ function renderLink(v: number, str: string, label: string, labelColor?: string) 
 }
 
 // ── image ─────────────────────────────────────────────────
-function renderImage(v: number, str: string, label: string, labelColor?: string) {
+function renderImage(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:');
 
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
-          <div className="relative w-14 h-14 rounded-full overflow-hidden border shrink-0">
+          <motion.div
+            key={trigger}
+            className="relative w-14 h-14 rounded-full overflow-hidden border shrink-0"
+            initial={{ opacity: 0, scale: 0.7, rotateY: -10 }}
+            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+          >
             <Image src={str} alt={label} fill className="object-cover" />
-          </div>
+          </motion.div>
         ) : (
           <span className="text-xs text-muted-foreground">{str}</span>
         )}
@@ -467,9 +660,15 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
     return (
       <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
-          <div className="relative w-20 h-20 rounded-lg overflow-hidden border shadow-lg">
+          <motion.div
+            key={trigger}
+            className="relative w-20 h-20 rounded-lg overflow-hidden border shadow-lg"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+          >
             <Image src={str} alt={label} fill className="object-cover" />
-          </div>
+          </motion.div>
         ) : (
           <span className="text-xs text-muted-foreground">{str}</span>
         )}
@@ -480,11 +679,17 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
     return (
       <Row label={label} labelColor={labelColor} className="items-start">
         {isValid ? (
-          <div className="relative w-20 h-20 rounded overflow-hidden border bg-white p-1 shadow-md">
+          <motion.div
+            key={trigger}
+            className="relative w-20 h-20 rounded overflow-hidden border bg-white p-1 shadow-md"
+            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+          >
             <div className="relative w-full h-full">
               <Image src={str} alt={label} fill className="object-cover" />
             </div>
-          </div>
+          </motion.div>
         ) : (
           <span className="text-xs text-muted-foreground">{str}</span>
         )}
@@ -495,9 +700,15 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
     return (
       <ColWrap label={label} labelColor={labelColor}>
         {isValid ? (
-          <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+          <motion.div
+            key={trigger}
+            className="relative w-full h-32 rounded-lg overflow-hidden border"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 160, damping: 16 }}
+          >
             <Image src={str} alt={label} fill className="object-cover" />
-          </div>
+          </motion.div>
         ) : (
           <span className="text-xs text-muted-foreground">{str}</span>
         )}
@@ -507,9 +718,15 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
   return (
     <Row label={label} labelColor={labelColor} className="items-start">
       {isValid ? (
-        <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
+        <motion.div
+          key={trigger}
+          className="relative w-20 h-20 rounded-lg overflow-hidden border"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <Image src={str} alt={label} fill className="object-cover" />
-        </div>
+        </motion.div>
       ) : (
         <span className="text-xs text-muted-foreground">{str}</span>
       )}
@@ -518,9 +735,11 @@ function renderImage(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── rating ────────────────────────────────────────────────
-function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 5) {
+function renderRating(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 5, animatedStars?: number, prevStars?: number, trigger?: string) {
   const num = Number(val);
-  const stars = isNaN(num) ? 0 : Math.round(Math.min(maxValue, Math.max(0, num)));
+  const stars = animatedStars ?? (isNaN(num) ? 0 : Math.round(Math.min(maxValue, Math.max(0, num))));
+  const prev = prevStars ?? stars;
+  const isAnimating = animatedStars !== undefined && prevStars !== undefined && prev !== stars;
 
   // OP handling for operator-prefixed values
   if (opEnabled && typeof val === 'string') {
@@ -538,43 +757,81 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex gap-0.5">
-          {Array.from({ length: maxValue }).map((_, i) => (
-            <Heart key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
-          ))}
+        <motion.div key={trigger} className="flex gap-0.5" style={{ perspective: '400px' }}>
+          <AnimatePresence mode="popLayout">
+            {Array.from({ length: maxValue }).map((_, i) => {
+              const isFilled = i < stars;
+              const wasFilled = i < prev;
+              const changed = isFilled !== wasFilled;
+              return (
+                <motion.span
+                  key={`heart-${i}`}
+                  initial={isAnimating && changed ? { rotateY: -180, scale: 0.3, opacity: 0 } : false}
+                  animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                  exit={isAnimating && changed ? { rotateY: 180, scale: 0.3, opacity: 0 } : undefined}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
+                  style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
+                >
+                  <Heart className={`h-3.5 w-3.5 ${isFilled ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
+                </motion.span>
+              );
+            })}
+          </AnimatePresence>
           {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
           {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-amber-500/10 border-amber-500/30 text-amber-400">
+        <motion.span
+          key={trigger}
+          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium bg-amber-500/10 border-amber-500/30 text-amber-400"
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+        >
           {isNaN(num) ? String(val) : `${num}/${maxValue}`}
-        </span>
+        </motion.span>
       </Row>
     );
   }
   if (v === 4) {
     const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / maxValue) * 100));
+    const prevPctVal = prevStars !== undefined ? (prev / maxValue) * 100 : pct;
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex items-center gap-2">
+        <motion.div key={trigger} className="flex items-center gap-2">
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
+            <motion.div
+              className="h-full rounded-full bg-amber-400"
+              initial={false}
+              animate={{ width: `${pct}%` }}
+              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+            />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${num}/${maxValue}`}</span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 5) {
+    const displayVal = animatedStars !== undefined ? animatedStars : (isNaN(num) ? '?' : num);
     return (
       <ColWrap label={label} labelColor={labelColor}>
         <div className="flex items-baseline gap-0.5">
-          <span className="text-3xl font-bold text-amber-400">{isNaN(num) ? '?' : num}</span>
+          <motion.span
+            key={trigger || (animatedStars !== undefined ? animatedStars : num)}
+            className="text-3xl font-bold text-amber-400"
+            initial={{ opacity: 0, scale: 0.5, rotateY: -90 }}
+            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+            transition={{ type: 'spring', stiffness: 250, damping: 18 }}
+            style={{ display: 'inline-block', transformStyle: 'preserve-3d' }}
+          >
+            {displayVal}
+          </motion.span>
           <span className="text-sm text-muted-foreground">/{maxValue}</span>
         </div>
       </ColWrap>
@@ -582,22 +839,40 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   }
   return (
     <Row label={label} labelColor={labelColor}>
-      <div className="flex gap-0.5 items-center">
-        {Array.from({ length: maxValue }).map((_, i) => (
-          <Star key={i} className={`h-3.5 w-3.5 ${i < stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
-        ))}
+      <motion.div key={trigger} className="flex gap-0.5 items-center" style={{ perspective: '400px' }}>
+        <AnimatePresence mode="popLayout">
+          {Array.from({ length: maxValue }).map((_, i) => {
+            const isFilled = i < stars;
+            const wasFilled = i < prev;
+            const changed = isFilled !== wasFilled;
+            return (
+              <motion.span
+                key={`star-${i}`}
+                initial={isAnimating && changed ? { rotateY: -180, scale: 0.3, opacity: 0 } : false}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                exit={isAnimating && changed ? { rotateY: 180, scale: 0.3, opacity: 0 } : undefined}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
+                style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
+              >
+                <Star className={`h-3.5 w-3.5 ${isFilled ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+              </motion.span>
+            );
+          })}
+        </AnimatePresence>
         {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
         {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
-      </div>
+      </motion.div>
     </Row>
   );
 }
 
 // ── progress ──────────────────────────────────────────────
-function renderProgress(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 100) {
+function renderProgress(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 100, animatedPct?: number, prevPct?: number, trigger?: string) {
   const num = Number(val);
   const clamped = isNaN(num) ? 0 : Math.min(maxValue, Math.max(0, num));
   const normalizedPct = maxValue > 0 ? (clamped / maxValue) * 100 : 0;
+  const displayPct = animatedPct ?? normalizedPct;
+  const prevPctVal = prevPct ?? displayPct;
 
   // OP handling for operator-prefixed values
   if (opEnabled && typeof val === 'string') {
@@ -610,66 +885,85 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
     }
   }
 
-  const displayText = isNaN(num) ? String(val) : maxValue === 100 ? `${Math.round(clamped)}%` : `${num}/${maxValue}`;
+  const displayText = isNaN(num) ? String(val) : maxValue === 100 ? `${Math.round(displayPct)}%` : `${num}/${maxValue}`;
 
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex-1 flex items-center gap-2 max-w-[200px]">
+        <motion.div key={trigger} className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${normalizedPct}%`, backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={false}
+              animate={{ width: `${displayPct}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 18 }}
+              style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
             />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex-1 flex items-center gap-2 max-w-[200px]">
+        <motion.div key={trigger} className="flex-1 flex items-center gap-2 max-w-[200px]">
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full transition-all bg-gradient-to-r from-primary to-primary/60"
-              style={{ width: `${normalizedPct}%` }}
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60"
+              initial={false}
+              animate={{ width: `${displayPct}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 18 }}
             />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 4) {
     const segments = 5;
-    const filled = Math.round((normalizedPct / 100) * segments);
+    const filled = Math.round((displayPct / 100) * segments);
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="flex gap-0.5 items-center">
+        <motion.div key={trigger} className="flex gap-0.5 items-center">
           {Array.from({ length: segments }).map((_, i) => (
-            <div key={i} className={`h-4 w-3 rounded-sm transition-colors ${i < filled ? 'bg-primary' : 'bg-muted'}`} />
+            <motion.div
+              key={i}
+              className={`h-4 w-3 rounded-sm ${i < filled ? 'bg-primary' : 'bg-muted'}`}
+              initial={false}
+              animate={{ scale: i < filled ? [0.7, 1.15, 1] : 1, opacity: i < filled ? 1 : 0.4 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 18, delay: i < filled !== i < Math.round((prevPctVal / 100) * segments) ? i * 0.05 : 0 }}
+            />
           ))}
           <span className="text-xs font-mono text-muted-foreground ml-1">{displayText}</span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
   if (v === 5) {
     const r = 14;
     const circumference = 2 * Math.PI * r;
-    const offset = circumference - (normalizedPct / 100) * circumference;
+    const offset = circumference - (displayPct / 100) * circumference;
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className="relative h-10 w-10">
+        <motion.div key={trigger} className="relative h-10 w-10">
           <svg className="h-10 w-10 -rotate-90" viewBox="0 0 32 32">
             <circle cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
-            <circle cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
-              strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
+            <motion.circle
+              cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
+              strokeDasharray={circumference}
+              initial={false}
+              animate={{ strokeDashoffset: offset }}
+              transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+              strokeLinecap="round"
+            />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground">
             {isNaN(num) ? '?' : displayText}
           </span>
-        </div>
+        </motion.div>
       </Row>
     );
   }
@@ -677,7 +971,12 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
     <Row label={label} labelColor={labelColor}>
       <div className="flex-1 flex items-center gap-2">
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-[200px]">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${normalizedPct}%` }} />
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            initial={false}
+            animate={{ width: `${displayPct}%` }}
+            transition={{ type: 'spring', stiffness: 100, damping: 18 }}
+          />
         </div>
         <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
       </div>
@@ -686,7 +985,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
 }
 
 // ── tags ──────────────────────────────────────────────────
-function renderTags(v: number, val: unknown, label: string, labelColor?: string) {
+function renderTags(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const arr: string[] = [];
   if (Array.isArray(val)) {
     arr.push(...val.map(String));
@@ -759,28 +1058,41 @@ function renderTags(v: number, val: unknown, label: string, labelColor?: string)
 }
 
 // ── boolean ───────────────────────────────────────────────
-function renderBoolean(v: number, val: unknown, label: string, labelColor?: string) {
+function renderBoolean(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const truthy = val === true || val === 'true' || val === 1 || val === '1' || val === 'yes' || val === 'sim';
   const falsy = val === false || val === 'false' || val === 0 || val === '0' || val === 'no' || val === 'não' || val === 'nao';
 
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${truthy
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-          : falsy
-            ? 'bg-red-500/10 border-red-500/30 text-red-400'
-            : 'bg-muted/30 border-border text-muted-foreground'
-        }`}>
+        <motion.span
+          key={trigger}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${truthy
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            : falsy
+              ? 'bg-red-500/10 border-red-500/30 text-red-400'
+              : 'bg-muted/30 border-border text-muted-foreground'
+          }`}
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 250, damping: 14 }}
+        >
           {truthy ? 'ON' : falsy ? 'OFF' : String(val)}
-        </span>
+        </motion.span>
       </Row>
     );
   }
   if (v === 3) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className={`h-3 w-3 rounded-full ${truthy ? 'bg-emerald-500' : falsy ? 'bg-red-400' : 'bg-muted'}`} />
+        <motion.div
+          key={trigger}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 14 }}
+        >
+          <div className={`h-3 w-3 rounded-full ${truthy ? 'bg-emerald-500' : falsy ? 'bg-red-400' : 'bg-muted'}`} />
+        </motion.div>
         <span className={`text-xs ${truthy ? 'text-emerald-500' : falsy ? 'text-red-400' : 'text-muted-foreground'}`}>
           {truthy ? 'Sim' : falsy ? 'Não' : String(val)}
         </span>
@@ -790,9 +1102,20 @@ function renderBoolean(v: number, val: unknown, label: string, labelColor?: stri
   if (v === 4) {
     return (
       <Row label={label} labelColor={labelColor}>
-        <div className={`relative h-4 w-8 rounded-full transition-colors ${truthy ? 'bg-emerald-500' : 'bg-muted'}`}>
-          <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${truthy ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-        </div>
+        <motion.div
+          key={trigger}
+          className={`relative h-4 w-8 rounded-full transition-colors ${truthy ? 'bg-emerald-500' : 'bg-muted'}`}
+          initial={{ opacity: 0, scaleX: 0.6 }}
+          animate={{ opacity: 1, scaleX: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 16 }}
+        >
+          <motion.div
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${truthy ? 'translate-x-[18px]' : 'translate-x-0.5'}`}
+            initial={{ x: truthy ? 2 : 18 }}
+            animate={{ x: truthy ? 18 : 2 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          />
+        </motion.div>
         <span className="text-xs text-muted-foreground">{truthy ? 'ON' : falsy ? 'OFF' : String(val)}</span>
       </Row>
     );
@@ -816,7 +1139,7 @@ function renderBoolean(v: number, val: unknown, label: string, labelColor?: stri
 }
 
 // ── date ──────────────────────────────────────────────────
-function renderDate(v: number, val: unknown, label: string, labelColor?: string) {
+function renderDate(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const d = new Date(val as string);
   const valid = !isNaN(d.getTime());
 
@@ -873,7 +1196,7 @@ function renderDate(v: number, val: unknown, label: string, labelColor?: string)
 }
 
 // ── duration ──────────────────────────────────────────────
-function renderDuration(v: number, val: unknown, label: string, labelColor?: string) {
+function renderDuration(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const str = String(val ?? '');
   let display = str;
   if (/^\d{1,4}(:\d{2}){0,3}$/.test(str)) {
@@ -930,7 +1253,7 @@ function renderDuration(v: number, val: unknown, label: string, labelColor?: str
 }
 
 // ── file ──────────────────────────────────────────────────
-function renderFile(v: number, str: string, label: string, labelColor?: string) {
+function renderFile(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
   const filename = str.split('/').pop() || str;
 
@@ -1004,7 +1327,7 @@ function renderFile(v: number, str: string, label: string, labelColor?: string) 
 }
 
 // ── video ─────────────────────────────────────────────────
-function renderVideo(v: number, str: string, label: string, labelColor?: string) {
+function renderVideo(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
@@ -1083,7 +1406,7 @@ function renderVideo(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── audio ─────────────────────────────────────────────────
-function renderAudio(v: number, str: string, label: string, labelColor?: string) {
+function renderAudio(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
@@ -1163,7 +1486,7 @@ function renderAudio(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── emoji ─────────────────────────────────────────────────
-function renderEmoji(v: number, str: string, label: string, labelColor?: string) {
+function renderEmoji(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
@@ -1205,7 +1528,7 @@ function renderEmoji(v: number, str: string, label: string, labelColor?: string)
 }
 
 // ── icon-set ──────────────────────────────────────────────
-function renderIconSet(v: number, val: unknown, label: string, labelColor?: string) {
+function renderIconSet(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
@@ -1268,7 +1591,7 @@ function renderIconSet(v: number, val: unknown, label: string, labelColor?: stri
 }
 
 // ── color-palette ─────────────────────────────────────────
-function renderColorPalette(v: number, val: unknown, label: string, labelColor?: string) {
+function renderColorPalette(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
@@ -1331,7 +1654,7 @@ function renderColorPalette(v: number, val: unknown, label: string, labelColor?:
 }
 
 // ── multi-select ──────────────────────────────────────────
-function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>, allowedValues?: AllowedValue[]) {
+function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>, allowedValues?: AllowedValue[], trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
 
@@ -1408,7 +1731,7 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
 }
 
 // ── select (single value with allowedValues) ──────────────
-function renderSelect(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>) {
+function renderSelect(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, trigger?: string) {
   const av = findAllowed(allowedValues, str);
   const displayLabel = av?.label || str;
   const color = av?.color || valueColors?.[str];
@@ -1475,7 +1798,7 @@ function renderSelect(v: number, str: string, label: string, labelColor?: string
 }
 
 // ── toggle-group ──────────────────────────────────────────
-function renderToggleGroup(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>) {
+function renderToggleGroup(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, trigger?: string) {
   const av = findAllowed(allowedValues, str);
   const displayLabel = av?.label || str;
   const color = av?.color || valueColors?.[str];
@@ -2494,6 +2817,23 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
 export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, opFlipped, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger }: Props) {
   const n = v(variant);
 
+  // Track previous values for animated transitions (rating stars, progress bar)
+  const prevValueRef = useRef(value);
+  const prevNumRef = useRef<number>(0);
+  const numVal = typeof value === 'number' ? value : Number(value);
+  const prevNum = prevNumRef.current;
+  // Compute animated stars for rating
+  const ratingMax = maxValue ?? 5;
+  const currentStars = isNaN(numVal) ? 0 : Math.round(Math.min(ratingMax, Math.max(0, numVal)));
+  const prevStarsVal = isNaN(prevNum) ? 0 : Math.round(Math.min(ratingMax, Math.max(0, prevNum)));
+  // Compute animated percentage for progress
+  const progressMax = maxValue ?? 100;
+  const currentPct = progressMax > 0 ? (isNaN(numVal) ? 0 : Math.min(100, Math.max(0, (numVal / progressMax) * 100))) : 0;
+  const prevPctVal = progressMax > 0 ? (isNaN(prevNum) ? 0 : Math.min(100, Math.max(0, (prevNum / progressMax) * 100))) : 0;
+  // Update refs after render
+  prevValueRef.current = value;
+  prevNumRef.current = numVal;
+
   // For complex values (objects/arrays of objects), use variant-aware rendering.
   // Popover, jsonb and jsonb-structured have their own dedicated format handlers.
   if (isComplexValue(value) && format !== 'popover' && format !== 'jsonb' && format !== 'jsonb-structured') {
@@ -2551,30 +2891,30 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       }
     }
     switch (format) {
-      case 'text':     return renderText(n, str, label, labelColor, valueColors);
-      case 'badge':    return renderBadge(n, str, label, labelColor, valueColors);
+      case 'text':     return renderText(n, str, label, labelColor, valueColors, animTrigger);
+      case 'badge':    return renderBadge(n, str, label, labelColor, valueColors, animTrigger);
       case 'number':
-        if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value));
-        return renderNumber(n, str, label, labelColor, valueColors);
-      case 'color':    return renderColor(n, str, label, labelColor);
-      case 'icon':     return renderIcon(n, str, label, labelColor);
-      case 'link':     return renderLink(n, str, label, labelColor);
-      case 'image':    return renderImage(n, str, label, labelColor);
-      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue);
-      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue);
-      case 'tags':     return renderTags(n, value, label, labelColor);
-      case 'boolean':  return renderBoolean(n, value, label, labelColor);
-      case 'date':     return renderDate(n, value, label, labelColor);
-      case 'duration': return renderDuration(n, value, label, labelColor);
-      case 'file':     return renderFile(n, str, label, labelColor);
-      case 'video':    return renderVideo(n, str, label, labelColor);
-      case 'audio':    return renderAudio(n, str, label, labelColor);
-      case 'emoji':    return renderEmoji(n, str, label, labelColor);
-      case 'icon-set': return renderIconSet(n, value, label, labelColor);
-      case 'color-palette': return renderColorPalette(n, value, label, labelColor);
-      case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors);
-      case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues);
-      case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors);
+        if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value), animTrigger);
+        return renderNumber(n, str, label, labelColor, valueColors, undefined, animTrigger);
+      case 'color':    return renderColor(n, str, label, labelColor, animTrigger);
+      case 'icon':     return renderIcon(n, str, label, labelColor, animTrigger);
+      case 'link':     return renderLink(n, str, label, labelColor, animTrigger);
+      case 'image':    return renderImage(n, str, label, labelColor, animTrigger);
+      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentStars, prevStarsVal, animTrigger);
+      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentPct, prevPctVal, animTrigger);
+      case 'tags':     return renderTags(n, value, label, labelColor, animTrigger);
+      case 'boolean':  return renderBoolean(n, value, label, labelColor, animTrigger);
+      case 'date':     return renderDate(n, value, label, labelColor, animTrigger);
+      case 'duration': return renderDuration(n, value, label, labelColor, animTrigger);
+      case 'file':     return renderFile(n, str, label, labelColor, animTrigger);
+      case 'video':    return renderVideo(n, str, label, labelColor, animTrigger);
+      case 'audio':    return renderAudio(n, str, label, labelColor, animTrigger);
+      case 'emoji':    return renderEmoji(n, str, label, labelColor, animTrigger);
+      case 'icon-set': return renderIconSet(n, value, label, labelColor, animTrigger);
+      case 'color-palette': return renderColorPalette(n, value, label, labelColor, animTrigger);
+      case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors, animTrigger);
+      case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues, animTrigger);
+      case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors, animTrigger);
       case 'popover': {
         let popoverTitle = '';
         let popoverContent = str;
