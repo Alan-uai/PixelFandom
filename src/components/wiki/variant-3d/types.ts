@@ -58,6 +58,11 @@ export interface Variant3DPreset {
     x?: number;
     y?: number;
     scale?: number;
+    scaleX?: number;
+    scaleY?: number;
+    skewX?: number;
+    skewY?: number;
+    opacity?: number;
     duration?: number;
   };
 }

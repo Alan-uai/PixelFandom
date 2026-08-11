@@ -2890,31 +2890,32 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         );
       }
     }
-    switch (format) {
-      case 'text':     return renderText(n, str, label, labelColor, valueColors, animTrigger);
-      case 'badge':    return renderBadge(n, str, label, labelColor, valueColors, animTrigger);
-      case 'number':
-        if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value), animTrigger);
-        return renderNumber(n, str, label, labelColor, valueColors, undefined, animTrigger);
-      case 'color':    return renderColor(n, str, label, labelColor, animTrigger);
-      case 'icon':     return renderIcon(n, str, label, labelColor, animTrigger);
-      case 'link':     return renderLink(n, str, label, labelColor, animTrigger);
-      case 'image':    return renderImage(n, str, label, labelColor, animTrigger);
-      case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentStars, prevStarsVal, animTrigger);
-      case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentPct, prevPctVal, animTrigger);
-      case 'tags':     return renderTags(n, value, label, labelColor, animTrigger);
-      case 'boolean':  return renderBoolean(n, value, label, labelColor, animTrigger);
-      case 'date':     return renderDate(n, value, label, labelColor, animTrigger);
-      case 'duration': return renderDuration(n, value, label, labelColor, animTrigger);
-      case 'file':     return renderFile(n, str, label, labelColor, animTrigger);
-      case 'video':    return renderVideo(n, str, label, labelColor, animTrigger);
-      case 'audio':    return renderAudio(n, str, label, labelColor, animTrigger);
-      case 'emoji':    return renderEmoji(n, str, label, labelColor, animTrigger);
-      case 'icon-set': return renderIconSet(n, value, label, labelColor, animTrigger);
-      case 'color-palette': return renderColorPalette(n, value, label, labelColor, animTrigger);
-      case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors, animTrigger);
-      case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues, animTrigger);
-      case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors, animTrigger);
+  const triggerStr = animTrigger != null ? String(animTrigger) : undefined;
+  switch (format) {
+    case 'text':     return renderText(n, str, label, labelColor, valueColors, triggerStr);
+    case 'badge':    return renderBadge(n, str, label, labelColor, valueColors, triggerStr);
+    case 'number':
+      if (typeof value === 'number') return renderNumber(n, formatNumber(value, !!useSuffix), label, labelColor, valueColors, String(value), triggerStr);
+      return renderNumber(n, str, label, labelColor, valueColors, undefined, triggerStr);
+    case 'color':    return renderColor(n, str, label, labelColor, triggerStr);
+    case 'icon':     return renderIcon(n, str, label, labelColor, triggerStr);
+    case 'link':     return renderLink(n, str, label, labelColor, triggerStr);
+    case 'image':    return renderImage(n, str, label, labelColor, triggerStr);
+    case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentStars, prevStarsVal, triggerStr);
+    case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentPct, prevPctVal, triggerStr);
+    case 'tags':     return renderTags(n, value, label, labelColor, triggerStr);
+    case 'boolean':  return renderBoolean(n, value, label, labelColor, triggerStr);
+    case 'date':     return renderDate(n, value, label, labelColor, triggerStr);
+    case 'duration': return renderDuration(n, value, label, labelColor, triggerStr);
+    case 'file':     return renderFile(n, str, label, labelColor, triggerStr);
+    case 'video':    return renderVideo(n, str, label, labelColor, triggerStr);
+    case 'audio':    return renderAudio(n, str, label, labelColor, triggerStr);
+    case 'emoji':    return renderEmoji(n, str, label, labelColor, triggerStr);
+    case 'icon-set': return renderIconSet(n, value, label, labelColor, triggerStr);
+    case 'color-palette': return renderColorPalette(n, value, label, labelColor, triggerStr);
+    case 'select': return renderSelect(n, str, label, labelColor, allowedValues, valueColors, triggerStr);
+    case 'multi-select': return renderMultiSelect(n, value, label, labelColor, valueColors, allowedValues, triggerStr);
+    case 'toggle-group': return renderToggleGroup(n, str, label, labelColor, allowedValues, valueColors, triggerStr);
       case 'popover': {
         let popoverTitle = '';
         let popoverContent = str;
