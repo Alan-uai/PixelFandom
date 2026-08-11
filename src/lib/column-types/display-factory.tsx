@@ -255,6 +255,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         maxValue={maxValue}
         onCompareClick={onCompareClick}
         column={column}
+        animTrigger={animTrigger}
       />
     );
   }
@@ -283,6 +284,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         maxValue={maxValue}
         onCompareClick={onCompareClick}
         column={column}
+        animTrigger={animTrigger}
       />
     );
   }

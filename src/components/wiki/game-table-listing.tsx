@@ -1696,6 +1696,7 @@ function MiniCardsSection({
                 columnConfig={colConfig}
                 maxValue={colConfig?.maxValue}
                 onCompareClick={(subKey) => handleCompare(col, subKey)}
+                animTrigger={variationKey}
               />
             </VariantAnimatedValue>
           </Variant3D>
