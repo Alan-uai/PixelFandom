@@ -155,8 +155,17 @@ function useScramble(text: string, trigger: number, enabled: boolean): string {
 }
 
 /* ----------------------------- Counter ----------------------------------- */
+/* Step counter (odometer style): the number advances +1/-1 per tick, e.g.
+   HP 5 → 23 passes through 6, 7, 8 … and HP 23 → 5 regresses one by one.
+   `fromValue` bridges the old value across remounts (the item-variant swap
+   remounts this subtree, wiping useState); without it we fall back to the
+   current display state (live same-mount updates). Very large deltas are
+   capped in duration and step wider so the count never stalls. */
 
-function useCounter(value: number, trigger: number, enabled: boolean): number {
+const STEP_MS = 26;
+const MAX_COUNT_MS = 2000;
+
+function useCounter(value: number, trigger: number, enabled: boolean, fromValue?: number): number {
   const [display, setDisplay] = useState(value);
   const frame = useRef<number | null>(null);
 
@@ -166,19 +175,20 @@ function useCounter(value: number, trigger: number, enabled: boolean): number {
       setDisplay(value);
       return;
     }
-    const from = display;
     const to = value;
+    const bridged = fromValue !== undefined && isFinite(fromValue) && fromValue !== to;
+    const from = bridged ? fromValue : display;
     if (from === to) {
       setDisplay(to);
       return;
     }
-    const duration = 400;
+    const delta = to - from;
+    const duration = Math.min(Math.abs(delta) * STEP_MS, MAX_COUNT_MS);
     const start = performance.now();
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      const current = Math.round(from + (to - from) * eased);
+      const current = from + Math.sign(delta) * Math.floor(t * Math.abs(delta));
       setDisplay(current);
       if (t < 1) {
         frame.current = requestAnimationFrame(tick);
@@ -191,7 +201,7 @@ function useCounter(value: number, trigger: number, enabled: boolean): number {
       if (frame.current) cancelAnimationFrame(frame.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger, value, enabled]);
+  }, [trigger, value, enabled, fromValue]);
 
   return display;
 }
@@ -208,6 +218,9 @@ export interface VariantAnimatedValueProps {
   formatNumber?: (n: number) => string;
   /** whether to abbreviate/use suffix + scientific notation on numeric output */
   useSuffix?: boolean;
+  /** previous (pre-switch) value passed down by the parent — lets the counter
+   *  start from the old number even though this subtree remounts on change. */
+  fromValue?: unknown;
   children?: React.ReactNode;
 }
 
@@ -218,6 +231,7 @@ export function VariantAnimatedValue({
   className,
   formatNumber,
   useSuffix,
+  fromValue,
   children,
 }: VariantAnimatedValueProps) {
   const animsOn = useAnimationsEnabled();
@@ -231,7 +245,8 @@ export function VariantAnimatedValue({
   // When a suffix/scientific notation is requested we keep the rich ColumnDisplay
   // rendering (with the abbreviate formatter) instead of a bare counter.
   const isNum = !Number.isNaN(numericVal) && isNumericRenderType(renderType) && !hasRichNumericValue(value, renderType) && !useSuffix;
-  const counted = useCounter(isNum ? numericVal : 0, trigger, animsOn && isNum);
+  const fromNum = typeof fromValue === 'number' ? fromValue : Number(fromValue);
+  const counted = useCounter(isNum ? numericVal : 0, trigger, animsOn && isNum, !Number.isNaN(fromNum) ? fromNum : undefined);
 
   // Boolean pulse
   const isBool = isBooleanRenderType(renderType);

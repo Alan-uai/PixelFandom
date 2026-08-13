@@ -56,6 +56,9 @@ type Props = {
   labelNode?: React.ReactNode;
   /** Animation trigger counter — incremented when variant changes to fire entry animations. */
   animTrigger?: number;
+  /** Previous (pre-variant-switch) value for this column — lets counters
+   *  count from the old number and stars/progress animate from the old state. */
+  prevValue?: unknown;
 };
 
 function findAllowed(allowedValues: AllowedValue[] | undefined, val: string): AllowedValue | undefined {
@@ -758,25 +761,28 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="flex gap-0.5" style={{ perspective: '400px' }}>
-          <AnimatePresence mode="popLayout">
-            {Array.from({ length: maxValue }).map((_, i) => {
-              const isFilled = i < stars;
-              const wasFilled = i < prev;
-              const changed = isFilled !== wasFilled;
-              return (
-                <motion.span
-                  key={`heart-${i}`}
-                  initial={isAnimating && changed ? { rotateY: -180, scale: 0.3, opacity: 0 } : false}
-                  animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-                  exit={isAnimating && changed ? { rotateY: 180, scale: 0.3, opacity: 0 } : undefined}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
-                  style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
-                >
-                  <Heart className={`h-3.5 w-3.5 ${isFilled ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
-                </motion.span>
-              );
-            })}
-          </AnimatePresence>
+          {Array.from({ length: maxValue }).map((_, i) => {
+            const isFilled = i < stars;
+            const wasFilled = i < prev;
+            const changed = isFilled !== wasFilled;
+            const gained = changed && isFilled;
+            const lost = changed && !isFilled;
+            return (
+              <motion.span
+                key={`heart-${trigger}-${i}-${isFilled ? 'on' : 'off'}`}
+                initial={isAnimating && gained
+                  ? { rotateY: -180, scale: 0.25, opacity: 0 }
+                  : isAnimating && lost
+                    ? { rotateY: 160, scale: 0.6, opacity: 0.35 }
+                    : false}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
+                style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
+              >
+                <Heart className={`h-3.5 w-3.5 ${isFilled ? 'text-red-400 fill-red-400' : 'text-muted-foreground/30'}`} />
+              </motion.span>
+            );
+          })}
           {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
           {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
         </motion.div>
@@ -800,16 +806,16 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   }
   if (v === 4) {
     const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / maxValue) * 100));
-    const prevPctVal = prevStars !== undefined ? (prev / maxValue) * 100 : pct;
+    const prevPctVal = prevStars !== undefined ? (prevStars / maxValue) * 100 : pct;
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="flex items-center gap-2">
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-amber-400"
-              initial={false}
+              initial={{ width: `${prevPctVal}%` }}
               animate={{ width: `${pct}%` }}
-              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+              transition={{ type: 'spring', stiffness: 90, damping: 20 }}
             />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{isNaN(num) ? String(val) : `${num}/${maxValue}`}</span>
@@ -840,25 +846,28 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   return (
     <Row label={label} labelColor={labelColor}>
       <motion.div key={trigger} className="flex gap-0.5 items-center" style={{ perspective: '400px' }}>
-        <AnimatePresence mode="popLayout">
-          {Array.from({ length: maxValue }).map((_, i) => {
-            const isFilled = i < stars;
-            const wasFilled = i < prev;
-            const changed = isFilled !== wasFilled;
-            return (
-              <motion.span
-                key={`star-${i}`}
-                initial={isAnimating && changed ? { rotateY: -180, scale: 0.3, opacity: 0 } : false}
-                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-                exit={isAnimating && changed ? { rotateY: 180, scale: 0.3, opacity: 0 } : undefined}
-                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
-                style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
-              >
-                <Star className={`h-3.5 w-3.5 ${isFilled ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
-              </motion.span>
-            );
-          })}
-        </AnimatePresence>
+        {Array.from({ length: maxValue }).map((_, i) => {
+          const isFilled = i < stars;
+          const wasFilled = i < prev;
+          const changed = isFilled !== wasFilled;
+          const gained = changed && isFilled;
+          const lost = changed && !isFilled;
+          return (
+            <motion.span
+              key={`star-${trigger}-${i}-${isFilled ? 'on' : 'off'}`}
+              initial={isAnimating && gained
+                ? { rotateY: -180, scale: 0.25, opacity: 0 }
+                : isAnimating && lost
+                  ? { rotateY: 160, scale: 0.6, opacity: 0.35 }
+                  : false}
+              animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
+              style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
+            >
+              <Star className={`h-3.5 w-3.5 ${isFilled ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+            </motion.span>
+          );
+        })}
         {fraction && <span className="text-[10px] text-muted-foreground ml-1">{fraction}</span>}
         {!fraction && isNaN(num) && <span className="text-xs text-muted-foreground ml-1">{String(val)}</span>}
       </motion.div>
@@ -894,9 +903,9 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-primary"
-              initial={false}
+              initial={{ width: `${prevPctVal}%` }}
               animate={{ width: `${displayPct}%` }}
-              transition={{ type: 'spring', stiffness: 100, damping: 18 }}
+              transition={{ type: 'spring', stiffness: 90, damping: 20 }}
               style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
             />
           </div>
@@ -912,9 +921,9 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60"
-              initial={false}
+              initial={{ width: `${prevPctVal}%` }}
               animate={{ width: `${displayPct}%` }}
-              transition={{ type: 'spring', stiffness: 100, damping: 18 }}
+              transition={{ type: 'spring', stiffness: 90, damping: 20 }}
             />
           </div>
           <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
@@ -925,18 +934,22 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
   if (v === 4) {
     const segments = 5;
     const filled = Math.round((displayPct / 100) * segments);
+    const prevFilled = Math.round((prevPctVal / 100) * segments);
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="flex gap-0.5 items-center">
-          {Array.from({ length: segments }).map((_, i) => (
-            <motion.div
-              key={i}
-              className={`h-4 w-3 rounded-sm ${i < filled ? 'bg-primary' : 'bg-muted'}`}
-              initial={false}
-              animate={{ scale: i < filled ? [0.7, 1.15, 1] : 1, opacity: i < filled ? 1 : 0.4 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 18, delay: i < filled !== i < Math.round((prevPctVal / 100) * segments) ? i * 0.05 : 0 }}
-            />
-          ))}
+          {Array.from({ length: segments }).map((_, i) => {
+            const changed = (i < filled) !== (i < prevFilled);
+            return (
+              <motion.div
+                key={i}
+                className={`h-4 w-3 rounded-sm ${i < filled ? 'bg-primary' : 'bg-muted'}`}
+                initial={changed ? { scale: 0.4, opacity: 0.3 } : false}
+                animate={{ scale: 1, opacity: i < filled ? 1 : 0.4 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 18, delay: changed ? i * 0.05 : 0 }}
+              />
+            );
+          })}
           <span className="text-xs font-mono text-muted-foreground ml-1">{displayText}</span>
         </motion.div>
       </Row>
@@ -946,6 +959,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
     const r = 14;
     const circumference = 2 * Math.PI * r;
     const offset = circumference - (displayPct / 100) * circumference;
+    const prevOffset = circumference - (prevPctVal / 100) * circumference;
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="relative h-10 w-10">
@@ -954,9 +968,9 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
             <motion.circle
               cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
               strokeDasharray={circumference}
-              initial={false}
+              initial={{ strokeDashoffset: prevOffset }}
               animate={{ strokeDashoffset: offset }}
-              transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+              transition={{ type: 'spring', stiffness: 80, damping: 20 }}
               strokeLinecap="round"
             />
           </svg>
@@ -973,9 +987,9 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-[200px]">
           <motion.div
             className="h-full rounded-full bg-primary"
-            initial={false}
+            initial={{ width: `${prevPctVal}%` }}
             animate={{ width: `${displayPct}%` }}
-            transition={{ type: 'spring', stiffness: 100, damping: 18 }}
+            transition={{ type: 'spring', stiffness: 90, damping: 20 }}
           />
         </div>
         <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
@@ -2814,14 +2828,18 @@ function renderScalarMiniContent(format: string, value: unknown, str: string, la
 }
 
 // ── Main component ────────────────────────────────────────
-export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, opFlipped, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger }: Props) {
+export default function FormatVariantRenderer({ format, variant, value, label, useSuffix, opEnabled, opFlipped, labelColor, valueColors, jsonbKeyColors, maxValue, allowedValues, onCompareClick, column, plain, icon, labelNode, animTrigger, prevValue }: Props) {
   const n = v(variant);
 
   // Track previous values for animated transitions (rating stars, progress bar)
   const prevValueRef = useRef(value);
   const prevNumRef = useRef<number>(0);
   const numVal = typeof value === 'number' ? value : Number(value);
-  const prevNum = prevNumRef.current;
+  // prevValue (snapshot from the parent at variant-switch time) takes
+  // precedence over the in-component ref — the ref helps live same-mount
+  // updates, the snapshot survives the keyed remount of the inner content.
+  const prevNumFromProp = prevValue !== undefined && prevValue !== null && prevValue !== '' && !isNaN(Number(prevValue)) ? Number(prevValue) : undefined;
+  const prevNum = prevNumFromProp ?? prevNumRef.current;
   // Compute animated stars for rating
   const ratingMax = maxValue ?? 5;
   const currentStars = isNaN(numVal) ? 0 : Math.round(Math.min(ratingMax, Math.max(0, numVal)));
@@ -2853,7 +2871,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
       : renderScalarMiniContent(format, value, str, label, labelColor, valueColors, allowedValues, maxValue, useSuffix, opEnabled, opFlipped);
     const animatedContent = rawContent !== null
       ? (
-        <VariantAnimatedValue value={value} renderType={format} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
+        <VariantAnimatedValue value={value} renderType={format} trigger={animTrigger ?? 0} useSuffix={useSuffix} fromValue={prevValue}>
           {rawContent}
         </VariantAnimatedValue>
       )
@@ -2972,7 +2990,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
   const animRenderType = format === 'jsonb' || format === 'jsonb-structured' ? 'jsonb' : format;
   return (
     <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
-      <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix}>
+      <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix} fromValue={prevValue} formatNumber={(num) => formatNumber(num, !!useSuffix)}>
         {rendered}
       </VariantAnimatedValue>
     </Variant3D>

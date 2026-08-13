@@ -81,7 +81,7 @@ export interface AllowedValue {
   autoFill?: Record<string, string>;
 }
 
-export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, opFlipped, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain, animTrigger }: DisplayProps & {
+export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled, opFlipped, maxValue, columnConfig, variant, labelColor, valueColors, hideLabel, onCompareClick, plain, animTrigger, prevValue }: DisplayProps & {
   useSuffix?: boolean;
   opEnabled?: boolean;
   opFlipped?: boolean;
@@ -94,6 +94,8 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
   onCompareClick?: (subKey?: string) => void;
   plain?: boolean;
   animTrigger?: number;
+  /** previous value (pre-variant-switch) used to animate from the old state */
+  prevValue?: unknown;
 }): ReactNode {
   const prepared = normalizeValue(value, useSuffix, opEnabled);
   if (prepared === null || prepared === undefined || prepared === '') return null;
@@ -140,6 +142,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           maxValue={maxValue}
           onCompareClick={onCompareClick}
           column={column}
+          prevValue={prevValue}
         />
       );
     }
@@ -162,6 +165,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           maxValue={maxValue}
           onCompareClick={onCompareClick}
           column={column}
+          prevValue={prevValue}
         />
       );
     }
@@ -189,6 +193,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
           maxValue={maxValue}
           onCompareClick={onCompareClick}
           column={column}
+          prevValue={prevValue}
         />
       );
     }
@@ -212,6 +217,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         maxValue={maxValue}
         onCompareClick={onCompareClick}
         column={column}
+        prevValue={prevValue}
       />
     );
   }
@@ -235,6 +241,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         allowedValues={allowedValues}
         onCompareClick={onCompareClick}
         column={column}
+        prevValue={prevValue}
       />
     );
   }
@@ -255,6 +262,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         maxValue={maxValue}
         onCompareClick={onCompareClick}
         column={column}
+        prevValue={prevValue}
         animTrigger={animTrigger}
       />
     );
@@ -284,6 +292,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
         maxValue={maxValue}
         onCompareClick={onCompareClick}
         column={column}
+        prevValue={prevValue}
         animTrigger={animTrigger}
       />
     );
@@ -306,6 +315,7 @@ export function ColumnDisplay({ value, column, renderType, useSuffix, opEnabled,
       allowedValues={allowedValues}
       onCompareClick={onCompareClick}
       column={column}
+      prevValue={prevValue}
     />
   );
 }

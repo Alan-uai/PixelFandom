@@ -142,6 +142,7 @@ function BentoTile({
   children,
   className,
   style,
+  'data-flip-key': flipKey,
 }: {
   index: number;
   animated: boolean;
@@ -149,10 +150,12 @@ function BentoTile({
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  'data-flip-key'?: string;
 }) {
+  const flipAttr = flipKey != null ? { 'data-flip-key': flipKey } : undefined;
   if (!animated) {
     return (
-      <div className={className} style={style}>
+      <div className={className} style={style} {...flipAttr}>
         {children}
       </div>
     );
@@ -161,6 +164,7 @@ function BentoTile({
     <motion.div
       className={className}
       style={style}
+      {...flipAttr}
       initial={{ opacity: 0, y: 14, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97 }}
@@ -187,23 +191,29 @@ function masonryChildren(
   gap: number,
   animated: boolean,
   staggerDelay: number,
-  trigger: number,
 ) {
   const arr = Array.isArray(children) ? children : [children];
-  return arr.map((child, i) =>
-    child == null ? null : (
+  return arr.map((child, i) => {
+    if (child == null) return null;
+    const childKey = React.isValidElement(child) ? child.key : null;
+    const stableKey = childKey != null ? String(childKey) : `masonry-${i}`;
+    const flipKey = React.isValidElement(child)
+      ? (child.props as Record<string, unknown>)?.['data-flip-key']
+      : undefined;
+    return (
       <BentoTile
-        key={`${trigger}-${i}`}
+        key={stableKey}
         index={i}
         animated={animated}
         staggerDelay={staggerDelay}
         className="w-full break-inside-avoid"
         style={{ marginBottom: gap, display: 'inline-block', width: '100%' }}
+        data-flip-key={typeof flipKey === 'string' ? flipKey : undefined}
       >
         {child}
       </BentoTile>
-    ),
-  );
+    );
+  });
 }
 
 /* ─── Bento children helper (bin-packed positions) ──────────────────────── */
@@ -214,7 +224,6 @@ function bentoChildren(
   gap: number,
   animated: boolean,
   staggerDelay: number,
-  trigger: number,
 ) {
   const arr = Array.isArray(children) ? children : [children];
 
@@ -263,6 +272,9 @@ function bentoChildren(
     // Use stable key (child's key or index) so tiles stay mounted for FLIP
     const childKey = React.isValidElement(child) ? child.key : null;
     const stableKey = childKey != null ? String(childKey) : `bento-${i}`;
+    const flipKey = React.isValidElement(child)
+      ? (child.props as Record<string, unknown>)?.['data-flip-key']
+      : undefined;
 
     return (
       <BentoTile
@@ -272,6 +284,7 @@ function bentoChildren(
         staggerDelay={staggerDelay}
         className="min-w-0 h-full"
         style={gridStyle}
+        data-flip-key={typeof flipKey === 'string' ? flipKey : undefined}
       >
         {child}
       </BentoTile>
@@ -383,19 +396,27 @@ export function BentoGrid({
 
   const tiles = (single: boolean) =>
     (Array.isArray(children) ? children : [children]).map(
-      (child, i) =>
-        child == null ? null : (
+      (child, i) => {
+        if (child == null) return null;
+        const childKey = React.isValidElement(child) ? child.key : null;
+        const stableKey = childKey != null ? String(childKey) : `grid-${i}`;
+        const flipKey = React.isValidElement(child)
+          ? (child.props as Record<string, unknown>)?.['data-flip-key']
+          : undefined;
+        return (
           <BentoTile
-            key={`${trigger}-${i}`}
+            key={stableKey}
             index={i}
             animated={animated}
             staggerDelay={staggerDelay}
             className="min-w-0 h-full"
             style={single ? { flex: '1 1 auto' } : undefined}
+            data-flip-key={typeof flipKey === 'string' ? flipKey : undefined}
           >
             {child}
           </BentoTile>
-        ),
+        );
+      },
     );
 
   // Single child → single full-width column.
@@ -411,9 +432,9 @@ export function BentoGrid({
     <AnimatePresence>
       <div className={className} style={gridStyle}>
         {mode === 'masonry'
-          ? masonryChildren(children, gap, animated, staggerDelay, trigger)
+          ? masonryChildren(children, gap, animated, staggerDelay)
           : isBento && bentoGrid
-            ? bentoChildren(children, bentoGrid.numCols, gap, animated, staggerDelay, trigger)
+            ? bentoChildren(children, bentoGrid.numCols, gap, animated, staggerDelay)
             : tiles(false)}
       </div>
     </AnimatePresence>

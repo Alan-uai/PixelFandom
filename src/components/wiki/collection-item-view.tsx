@@ -184,7 +184,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 function RenderTypeFields({
   data, columnTypes, columnFormats, formatVariants, columnOpEnabled, columnOpFlipped, rendered, visibleColumnsSet,
   schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix, columnConfig,
-  variantTrigger,
+  variantTrigger, prevRow,
 }: {
   data: Record<string, any>;
   columnTypes: Record<string, string>;
@@ -205,6 +205,8 @@ function RenderTypeFields({
   useSuffix?: boolean;
   columnConfig?: Record<string, { maxValue?: number; displayName?: string; labelIcon?: string; labelColor?: string; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; jsonbKeyColors?: Record<string, string>; valueColors?: Record<string, string>; allowedValues?: AllowedValue[] }>;
   variantTrigger?: number;
+  /** linha anterior da variante — animações partem do valor antigo */
+  prevRow?: Record<string, any>;
 }) {
   const sections: React.ReactNode[] = [];
 
@@ -270,6 +272,7 @@ function RenderTypeFields({
                 column={col}
                 onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? col) : undefined}
                 animTrigger={variantTrigger}
+                prevValue={prevRow?.[col]}
               />
             );
           })}
@@ -296,7 +299,7 @@ function RenderTypeFields({
             {colIcon(col)}
             {colLabel(col)}
           </h3>
-          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} opFlipped={columnOpFlipped?.[col] === true} hideLabel columnConfig={columnConfig?.[col]} animTrigger={variantTrigger} />
+          <ColumnDisplay value={data[col]} column={col} renderType={renderType} useSuffix={useSuffix} opEnabled={columnOpEnabled?.[col] !== false} opFlipped={columnOpFlipped?.[col] === true} hideLabel columnConfig={columnConfig?.[col]} animTrigger={variantTrigger} prevValue={prevRow?.[col]} />
         </div>
       );
     }).filter(Boolean);
@@ -324,7 +327,7 @@ function RenderTypeFields({
             <StatCard
               key={c.column_name}
               label={colLabel(c.column_name)}
-               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />}
+               value={<ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} />}
               icon={colIcon(c.column_name)}
               color={colColor(c.column_name)}
               onClick={tenantId ? () => {
@@ -356,7 +359,7 @@ function RenderTypeFields({
                 : 'border-muted-foreground/30 text-muted-foreground bg-muted/10'
               }
             >
-              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+              {colLabel(c.column_name)}: <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} />
             </Tag>
           ))}
         </ChipCarousel>
@@ -381,7 +384,7 @@ function RenderTypeFields({
             const color = cc?.valueColors?.[String(val)];
             return (
               <Tag key={c.column_name} className="border-primary/30 text-primary bg-primary/10">
-                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={cc} animTrigger={variantTrigger} /></span>
+                {colLabel(c.column_name)}: <span style={color ? { color } : {}}><ColumnDisplay value={val} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={cc} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} /></span>
               </Tag>
             );
           })}
@@ -401,7 +404,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} />
       </div>,
     );
   }
@@ -418,7 +421,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="mb-6">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -436,7 +439,7 @@ function RenderTypeFields({
     sections.push(
       <div key={c.column_name} className="rounded-xl border bg-card p-5 mb-6">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">{colIcon(c.column_name)}<span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span></h3>
-        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
+        <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} onCompareClick={onStatClick ? (subKey) => onStatClick(subKey ?? c.column_name) : undefined} />
       </div>,
     );
   }
@@ -456,7 +459,7 @@ function RenderTypeFields({
                   <span style={colColor(c.column_name) ? { color: colColor(c.column_name) } : undefined}>{colLabel(c.column_name)}</span>
                 </span>
                 <div className="text-sm flex-1">
-                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} />
+                  <ColumnDisplay value={data[c.column_name]} column={c.column_name} renderType="auto" useSuffix={useSuffix} opEnabled={columnOpEnabled?.[c.column_name] !== false} opFlipped={columnOpFlipped?.[c.column_name] === true} hideLabel columnConfig={columnConfig?.[c.column_name]} animTrigger={variantTrigger} prevValue={prevRow?.[c.column_name]} />
                 </div>
               </div>
             ))}
@@ -514,6 +517,10 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
   const [variantTrigger, setVariantTrigger] = useState(0);
   const transitionTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Snapshot da linha anterior (antes da troca de variante) para as animações
+  // de transição (counter, estrelas, sliders) partirem do valor antigo.
+  const prevRowRef = useRef<Record<string, any>>(activeData);
+  prevRowRef.current = activeData;
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
 
@@ -835,6 +842,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           useSuffix={useSuffix}
           columnConfig={columnConfig}
           variantTrigger={variantTrigger}
+          prevRow={prevRowRef.current}
         />
 
         {/* Footer */}
