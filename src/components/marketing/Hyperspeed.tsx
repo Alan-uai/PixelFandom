@@ -46,7 +46,7 @@ const DEFAULT_EFFECT_OPTIONS = {
 
 type HyperspeedProps = {
   effectOptions?: Record<string, any>;
-  onReady?: (api: { setProgress: (v: number) => void }) => void;
+  onReady?: (api: { setProgress: (v: number) => void; setStraighten: (v: number) => void }) => void;
 };
 
 const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: HyperspeedProps) => {
@@ -405,6 +405,11 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         this.scrollProgress = 0;
         this.scrollTime = 40;
         this.dirty = true;
+        this.straighten = 0;
+        const uAmp = options.distortion?.uniforms?.uAmp;
+        this.baseUAmps = uAmp
+          ? { x: uAmp.value.x, y: uAmp.value.y, z: uAmp.value.z, w: uAmp.value.w }
+          : null;
 
         this.tick = this.tick.bind(this);
         this.init = this.init.bind(this);
@@ -516,7 +521,23 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         this.dirty = true;
       }
 
+      setStraighten(t) {
+        this.straighten = Math.min(1, Math.max(0, t));
+        this.dirty = true;
+      }
+
       update(time) {
+        if (this.baseUAmps && this.options.distortion?.uniforms?.uAmp) {
+          const u = this.options.distortion.uniforms.uAmp;
+          const s = 1 - this.straighten;
+          u.value.set(
+            this.baseUAmps.x * s,
+            this.baseUAmps.y * s,
+            this.baseUAmps.z * s,
+            this.baseUAmps.w * s
+          );
+        }
+
         this.rightCarLights.update(time);
         this.leftCarLights.update(time);
         this.leftSticks.update(time);
@@ -1123,7 +1144,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
 
     if (onReady) {
       onReady({
-        setProgress: (v) => myApp.setProgress(v)
+        setProgress: (v) => myApp.setProgress(v),
+        setStraighten: (v) => myApp.setStraighten(v)
       });
     }
 

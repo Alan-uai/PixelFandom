@@ -10,8 +10,6 @@ import Hyperspeed from './Hyperspeed';
 const PILL_START = 0.14;
 const PILL_STEP = 0.13;
 const PILL_SPAN = 0.05;
-const NAV_START = 0.82;
-const NAV_END = 0.95;
 
 function DiscordSvgMini({ className }: { className?: string }) {
   return (
@@ -73,28 +71,6 @@ function PillsStack({ progress }: { progress: MotionValue<number> }) {
   );
 }
 
-function NavStripReveal({
-  progress,
-  onLogin,
-}: {
-  progress: MotionValue<number>;
-  onLogin?: () => void;
-}) {
-  const opacity = useTransform(progress, [NAV_START, NAV_END], [0, 1]);
-  const y = useTransform(progress, [NAV_START, NAV_END], [48, 0]);
-  const scale = useTransform(progress, [NAV_START, NAV_END], [0.85, 1]);
-  const pointerEvents = useTransform(opacity, (v) => (v > 0.5 ? 'auto' : 'none'));
-
-  return (
-    <motion.div
-      className="relative z-20 origin-top scale-90 sm:scale-100"
-      style={{ opacity, y, scale, pointerEvents }}
-    >
-      <NavStrip onLogin={onLogin} />
-    </motion.div>
-  );
-}
-
 export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -104,10 +80,12 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoDuration, setVideoDuration] = useState(0);
-  const hyperspeedApi = useRef<{ setProgress: (v: number) => void } | null>(null);
+  const hyperspeedApi = useRef<{ setProgress: (v: number) => void; setStraighten: (v: number) => void } | null>(null);
 
   const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.05, 0.9, 1], [0.5, 0.9, 0.9, 0]);
   const videoOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 0.7]);
+  const navContainerOpacity = useTransform(scrollYProgress, [0.8, 0.98], [0, 1]);
+  const navPointer = useTransform(navContainerOpacity, (v) => (v > 0.6 ? 'auto' : 'none'));
 
   const hyperspeedOptions = useMemo(
     () => ({
@@ -123,7 +101,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     []
   );
 
-  const handleHyperspeedReady = useCallback((api: { setProgress: (v: number) => void }) => {
+  const handleHyperspeedReady = useCallback((api: { setProgress: (v: number) => void; setStraighten: (v: number) => void }) => {
     hyperspeedApi.current = api;
   }, []);
 
@@ -131,11 +109,13 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     const v = videoRef.current;
     if (v && videoDuration > 0) {
       const target = Math.min(videoDuration - 0.05, Math.max(0, p * videoDuration));
-      if (Math.abs(v.currentTime - target) > 0.04) {
+      if (Math.abs(v.currentTime - target) > 0.005) {
         v.currentTime = target;
       }
     }
     hyperspeedApi.current?.setProgress(p);
+    const straighten = p < 0.78 ? 0 : Math.min(1, (p - 0.78) / 0.17);
+    hyperspeedApi.current?.setStraighten(straighten);
   });
 
   return (
@@ -171,7 +151,30 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
         <HeroSection pillsProgress={scrollYProgress} />
         <PillsStack progress={scrollYProgress} />
         <div className="h-2 sm:h-4" />
-        <NavStripReveal progress={scrollYProgress} onLogin={onLogin} />
+
+        <motion.div
+          className="absolute inset-0 z-20 flex items-center justify-center px-4"
+          style={{ opacity: navContainerOpacity }}
+        >
+          <motion.div
+            className="relative w-[min(92vw,560px)] overflow-hidden rounded-[28px] border border-primary/25 px-6 py-6"
+            style={{
+              pointerEvents: navPointer,
+              background:
+                'linear-gradient(180deg, rgba(75,197,255,0.05), rgba(124,58,237,0.05))',
+              boxShadow: '0 0 90px rgba(75,197,255,0.14)',
+            }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-30"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(90deg, transparent 0 22px, rgba(75,197,255,0.22) 22px 23px)',
+              }}
+            />
+            <NavStrip onLogin={onLogin} />
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );
