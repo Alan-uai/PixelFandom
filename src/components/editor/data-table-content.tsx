@@ -1445,7 +1445,7 @@ export default function DataTableContent({
       {showNewForm && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
           <p className="text-sm font-medium">Novo Registro</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
             {newFormDefaultFields
               .filter((col) => !removedFields.has(col) && tableColumns?.some((c) => c.column_name === col))
               .map((col) =>
@@ -1677,7 +1677,7 @@ export default function DataTableContent({
               >
                 {isEditing ? (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
                       {allColumns.filter((col) => isEditableColumn(col) && col in editForm && !removedFields.has(col)).map((col) => {
                         const original = row[col];
                         const isBool = typeof original === 'boolean';

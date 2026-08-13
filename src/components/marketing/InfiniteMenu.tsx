@@ -1250,9 +1250,9 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
 
       {activeItem && (
         <>
-          <h2 className={`face-title ${isMoving ? 'inactive' : 'active'}`}>{activeItem.title}</h2>
-
-          <p className={`face-description ${isMoving ? 'inactive' : 'active'}`}>{activeItem.description}</p>
+          {activeItem.description && (
+            <p className={`face-description ${isMoving ? 'inactive' : 'active'}`}>{activeItem.description}</p>
+          )}
 
           {activeItem.id && (
             <div className={`wiki-actions ${isMoving ? 'inactive' : 'active'}`}>
@@ -1288,6 +1288,8 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
               />
             </div>
           )}
+
+          <h2 className={`face-title ${isMoving ? 'inactive' : 'active'}`}>{activeItem.title}</h2>
         </>
       )}
     </div>

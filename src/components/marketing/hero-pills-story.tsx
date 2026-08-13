@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, type ComponentType, type CSSProperties } from 'react';
-import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
+import { useRef, useState, useMemo, useCallback, type ComponentType, type CSSProperties } from 'react';
+import { motion, useScroll, useTransform, useVelocity, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { Sparkles, Cpu, LayoutGrid, Globe, Layout } from 'lucide-react';
 import HeroSection from './hero-section';
 import NavStrip from './nav-strip';
+import Hyperspeed from './Hyperspeed';
 
 const PILL_START = 0.12;
 const PILL_STEP = 0.06;
@@ -100,10 +101,73 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     target: sectionRef,
     offset: ['start start', 'end start'],
   });
+  const { scrollY } = useScroll();
+  const scrollVelocity = useVelocity(scrollY);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const hyperspeedApi = useRef<{ setSpeed: (v: number) => void } | null>(null);
+
+  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.08, 0.85, 1], [0, 0.9, 0.9, 0]);
+
+  const hyperspeedOptions = useMemo(
+    () => ({
+      distortion: 'turbulentDistortion',
+      totalSideLightSticks: 40,
+      lightPairsPerRoadWay: 60,
+      colors: {
+        sticks: 0x4bc5ff,
+        leftCars: [0x4bc5ff, 0x7c3aed, 0xf43f5e],
+        rightCars: [0x4bc5ff, 0x7c3aed, 0xf43f5e],
+      },
+    }),
+    []
+  );
+
+  const handleHyperspeedReady = useCallback((api: { setSpeed: (v: number) => void }) => {
+    hyperspeedApi.current = api;
+  }, []);
+
+  useMotionValueEvent(scrollYProgress, 'change', (p) => {
+    const v = videoRef.current;
+    if (v && videoDuration > 0) {
+      const target = Math.min(videoDuration - 0.05, Math.max(0, p * videoDuration));
+      if (Math.abs(v.currentTime - target) > 0.04) {
+        v.currentTime = target;
+      }
+    }
+  });
+
+  useMotionValueEvent(scrollVelocity, 'change', (vel) => {
+    const target = Math.min(6, Math.abs(vel) / 250);
+    hyperspeedApi.current?.setSpeed(target);
+  });
 
   return (
     <section ref={sectionRef} className="relative h-[350vh]">
       <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <video
+            ref={videoRef}
+            src="/Parallax.mp4"
+            muted
+            playsInline
+            preload="auto"
+            onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+            className="absolute inset-0 h-full w-full object-cover opacity-70"
+          />
+          <motion.div
+            className="absolute inset-0 mix-blend-screen"
+            style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}
+          >
+            <Hyperspeed
+              onReady={handleHyperspeedReady}
+              effectOptions={hyperspeedOptions}
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/85 pointer-events-none" />
+        </div>
+
         <HeroSection pillsProgress={scrollYProgress} />
         <PillsStack progress={scrollYProgress} />
         <div className="h-2 sm:h-4" />

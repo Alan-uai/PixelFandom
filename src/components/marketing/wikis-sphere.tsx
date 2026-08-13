@@ -51,7 +51,7 @@ export default function WikisSphere({ wikis, loading, error, activeCategory, vot
         image: wiki.logo_url || wiki.cover_image || '',
         link: `/w/${wiki.slug}`,
         title: wiki.name,
-        description: wiki.description || 'Explore a comunidade nesta wiki.',
+        description: wiki.description || '',
         banner: wiki.cover_image || undefined,
         gameUrl: wiki.game_url || undefined,
         discordUrl: wiki.discord_url || undefined,

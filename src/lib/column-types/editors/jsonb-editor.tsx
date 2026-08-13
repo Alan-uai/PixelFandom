@@ -107,26 +107,20 @@ export function JsonbEditor({
 
   const isFallback = parsed.kind === 'invalid' || parsed.kind === 'scalar';
 
-  const springTransition = { type: 'spring' as const, stiffness: 350, damping: 28 };
+  const fadeTransition = { duration: 0.18 } as const;
 
-  // `mountVariants` gives a subtle 3D fade-in when a mode mounts. The OUTER
-  // `motion.div` carries `layout`, so the surrounding item card resizes
-  // immediately whenever the mode swaps (tree <-> raw <-> fallback) — without
-  // waiting for the user to type inside the textarea.
-  const mountVariants = {
-    initial: { opacity: 0, rotateX: -15, scale: 0.95 },
-    animate: { opacity: 1, rotateX: 0, scale: 1 },
-  };
-
+  // The container is a plain element (no framer-motion `layout`): when the mode
+  // swaps, the surrounding item card reflows instantly to the new content height.
+  // The content uses an opacity-only fade so it never holds the box open via a
+  // transform during the transition.
   return (
-    <motion.div layout className="space-y-2 overflow-hidden" transition={springTransition} style={{ transformStyle: 'preserve-3d', perspective: '600px' }}>
+    <div className="space-y-2">
       {rawMode ? (
         <motion.div
           key="raw"
-          initial={mountVariants.initial}
-          animate={mountVariants.animate}
-          transition={springTransition}
-          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={fadeTransition}
         >
           <textarea
             value={value}
@@ -145,10 +139,9 @@ export function JsonbEditor({
       ) : isFallback ? (
         <motion.div
           key="fallback"
-          initial={mountVariants.initial}
-          animate={mountVariants.animate}
-          transition={springTransition}
-          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={fadeTransition}
         >
           {parsed.kind === 'invalid' && (
             <p className="text-xs text-red-400 mb-1">JSON inválido</p>
@@ -174,10 +167,9 @@ export function JsonbEditor({
       ) : (
         <motion.div
           key="tree"
-          initial={mountVariants.initial}
-          animate={mountVariants.animate}
-          transition={springTransition}
-          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={fadeTransition}
         >
           <TreeEditor
             entries={treeData.entries}
@@ -197,6 +189,6 @@ export function JsonbEditor({
           </button>
         </motion.div>
       )}
-    </motion.div>
+    </div>
   );
 }

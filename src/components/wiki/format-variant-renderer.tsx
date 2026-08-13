@@ -2420,43 +2420,10 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
     );
   }
 
-  // Object → one independent mini card per key.
+  // Object → one independent mini card per key (always MiniCard3D, just like
+  // the array branch, so jsonb {} renders with mini cards 3D regardless of OP mode).
   if (typeof value === 'object' && value !== null) {
     const obj = value as Record<string, unknown>;
-    if (opEnabled) {
-      return (
-        <div>
-          {header}
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {Object.entries(obj).map(([k, val]) => {
-              const isComplex = typeof val === 'object' && val !== null;
-              const color = jsonbKeyColors?.[k] || labelColor;
-              const labelSpan = (
-                <span className="font-semibold uppercase tracking-wider" style={{ color: color || 'hsl(var(--muted-foreground))' }}>
-                  {humanizeLabel(k)}
-                </span>
-              );
-              const valueSpan = (
-                <span className="font-medium text-foreground">
-                  {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped, animTrigger)}
-                </span>
-              );
-              return (
-                <span
-                  key={k}
-                  onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick ? () => onCompareClick() : undefined}
-                  role={onCompareClick ? 'button' : undefined}
-                  tabIndex={onCompareClick ? 0 : undefined}
-                  className={`inline-flex items-center gap-1.5 text-xs ${onCompareClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
-                >
-                  {isComplex ? <>{labelSpan}{valueSpan}</> : opFlipped ? <>{valueSpan}{labelSpan}</> : <>{labelSpan}{valueSpan}</>}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
     return (
       <div>
         {header}

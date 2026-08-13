@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import { AuthDialogProvider } from '@/context/auth-dialog-context';
 import ThreeBackground from '@/components/marketing/three-background';
 import FloatingNavStrip from '@/components/marketing/floating-nav-strip';
+import SmoothScroll from '@/components/marketing/smooth-scroll';
 
 function FloatingNav() {
   const [show, setShow] = useState(false);
@@ -87,6 +88,7 @@ export default function MarketingLayout({
   return (
     <AuthDialogProvider>
       <div className="flex min-h-screen w-full flex-col relative overflow-x-hidden">
+        <SmoothScroll />
         <ThreeBackground />
         <LayoutContent>
           {children}
