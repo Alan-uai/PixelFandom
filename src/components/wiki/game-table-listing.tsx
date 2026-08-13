@@ -32,6 +32,8 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig } from '@/lib/scaling-context';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
@@ -255,6 +257,25 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const paginationStyle = displayConfig.paginationStyle || 'arrows';
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
+  const baseXmaxRaw = (cardConfig?.baseXmax as Record<string, any>) || {};
+  const baseXmaxMode = baseXmaxRaw.mode || 'off';
+  const baseXmaxInfo: BaseXmaxConfig = {
+    enabled: baseXmaxMode !== 'off',
+    axisLabel: baseXmaxRaw.axisLabel ?? 'Nível',
+    axisMin: Number(baseXmaxRaw.axisMin) || 1,
+    axisMax: Number(baseXmaxRaw.axisMax) || 100,
+    step: Number(baseXmaxRaw.step) || 1,
+    defaultValue: baseXmaxRaw.defaultValue != null ? Number(baseXmaxRaw.defaultValue) : undefined,
+    mode: baseXmaxRaw.mode === 'tiers' ? 'tiers' : 'continuous',
+    showPerCardSlider: baseXmaxMode === 'item' || baseXmaxMode === 'ambos',
+    renderMode: baseXmaxMode as BaseXmaxConfig['renderMode'],
+    levelColumn: baseXmaxRaw.levelColumn || undefined,
+  };
+  const [tableLevel, setTableLevel] = useState<number>(
+    baseXmaxInfo.defaultValue ?? baseXmaxInfo.axisMin,
+  );
+  const sharedLevel =
+    baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? tableLevel : undefined;
   const detailConfig: Record<string, any> = {
     ...(viewerConfig?.card || {}),
     columnConfig: viewerConfig?.columnConfig || (viewerConfig?.card as any)?.columnConfig,
@@ -639,6 +660,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       cardConfig,
       detailConfig,
       columnTypes,
+      sharedLevel,
       onVariantChange: handleVariantChange,
     };
 
@@ -950,7 +972,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     return tableName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
+  const showTableSlider = baseXmaxMode === 'table' || baseXmaxMode === 'ambos';
+
   return (
+    <BaseXmaxContext.Provider value={baseXmaxInfo}>
     <article className={`max-w-3xl mx-auto ${viewerConfig?.header?.backgroundImage ? 'relative' : ''}`}>
       {viewerConfig?.header?.backgroundImage && (
         <div className="absolute inset-0 -z-10 rounded-2xl overflow-hidden">
@@ -1164,6 +1189,27 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       ) : (
         <>
+          {showTableSlider && (
+            <div className="bg-card/50 rounded-xl border p-4 mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {baseXmaxInfo.axisLabel || 'Nível'}
+                </span>
+                <span className="text-sm font-mono text-primary font-bold">
+                  {tableLevel.toLocaleString()}
+                </span>
+              </div>
+              <ElasticSlider3D
+                maxValue={baseXmaxInfo.axisMax}
+                defaultValue={tableLevel}
+                startingValue={baseXmaxInfo.axisMin}
+                onValueChange={setTableLevel}
+                isStepped
+                stepSize={baseXmaxInfo.step}
+                showValue={false}
+              />
+            </div>
+          )}
           {renderItems(
             pagination
               ? filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -1182,6 +1228,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </>
       )}
     </article>
+    </BaseXmaxContext.Provider>
   );
 }
 
@@ -1723,6 +1770,7 @@ function ItemCard({
   onVariantChange,
   persistedVariant,
   persistedVariantSlug,
+  sharedLevel,
 }: {
   item: any;
   tableName: string;
@@ -1734,11 +1782,20 @@ function ItemCard({
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   columnTypes?: Record<string, string>;
+  sharedLevel?: number;
   onVariantChange?: (itemId: string, selection: { item: any; variantSlug: string | null } | null, name: string | null) => void;
   persistedVariant?: any;
   persistedVariantSlug?: string | null;
 }) {
   ensureVariant3DKeyframes();
+
+  const bxLevelColumn = (cardConfig?.baseXmax as Record<string, any> | undefined)?.levelColumn as string | undefined;
+  const cardLevelValue =
+    sharedLevel != null
+      ? sharedLevel
+      : bxLevelColumn
+        ? Number(item?.[bxLevelColumn])
+        : undefined;
 
   const label = getItemName(item);
   const itemSlug = item.slug || toSlug(String(label));
@@ -1905,6 +1962,7 @@ function ItemCard({
   const titleSize = cardSize === 'sm' ? 'text-sm' : cardSize === 'lg' ? 'text-lg' : 'font-semibold';
 
   return (
+<BaseXmaxLevelContext.Provider value={{ levelColumn: bxLevelColumn, levelValue: cardLevelValue }}>
 <div
         ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
         className={`relative rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
@@ -2012,5 +2070,6 @@ function ItemCard({
         )}
       </div>
     </div>
+</BaseXmaxLevelContext.Provider>
   );
 }

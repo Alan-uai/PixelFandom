@@ -1,17 +1,17 @@
 'use client';
 
 import { useRef, useState, useMemo, useCallback, type ComponentType, type CSSProperties } from 'react';
-import { motion, useScroll, useTransform, useVelocity, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { Sparkles, Cpu, LayoutGrid, Globe, Layout } from 'lucide-react';
 import HeroSection from './hero-section';
 import NavStrip from './nav-strip';
 import Hyperspeed from './Hyperspeed';
 
-const PILL_START = 0.12;
-const PILL_STEP = 0.06;
+const PILL_START = 0.14;
+const PILL_STEP = 0.13;
 const PILL_SPAN = 0.05;
-const NAV_START = 0.55;
-const NAV_END = 0.68;
+const NAV_START = 0.82;
+const NAV_END = 0.95;
 
 function DiscordSvgMini({ className }: { className?: string }) {
   return (
@@ -101,14 +101,12 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     target: sectionRef,
     offset: ['start start', 'end start'],
   });
-  const { scrollY } = useScroll();
-  const scrollVelocity = useVelocity(scrollY);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoDuration, setVideoDuration] = useState(0);
-  const hyperspeedApi = useRef<{ setSpeed: (v: number) => void } | null>(null);
+  const hyperspeedApi = useRef<{ setProgress: (v: number) => void } | null>(null);
 
-  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.08, 0.85, 1], [0.6, 0.9, 0.9, 0]);
+  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.05, 0.9, 1], [0.5, 0.9, 0.9, 0]);
   const videoOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 0.7]);
 
   const hyperspeedOptions = useMemo(
@@ -125,22 +123,11 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     []
   );
 
-  const handleHyperspeedReady = useCallback((api: { setSpeed: (v: number) => void }) => {
+  const handleHyperspeedReady = useCallback((api: { setProgress: (v: number) => void }) => {
     hyperspeedApi.current = api;
   }, []);
 
-  const scrollProgressRef = useRef(0);
-  const scrollVelocityRef = useRef(0);
-
-  const updateHyperspeedSpeed = useCallback(() => {
-    const idle = 0.3;
-    const fromScroll = Math.min(1.4, scrollProgressRef.current * 1.4);
-    const fromVelocity = Math.min(4.5, Math.abs(scrollVelocityRef.current) / 250);
-    hyperspeedApi.current?.setSpeed(Math.min(6, idle + fromScroll + fromVelocity));
-  }, []);
-
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    scrollProgressRef.current = p;
     const v = videoRef.current;
     if (v && videoDuration > 0) {
       const target = Math.min(videoDuration - 0.05, Math.max(0, p * videoDuration));
@@ -148,12 +135,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
         v.currentTime = target;
       }
     }
-    updateHyperspeedSpeed();
-  });
-
-  useMotionValueEvent(scrollVelocity, 'change', (vel) => {
-    scrollVelocityRef.current = vel;
-    updateHyperspeedSpeed();
+    hyperspeedApi.current?.setProgress(p);
   });
 
   return (

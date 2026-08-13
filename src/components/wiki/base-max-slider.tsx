@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { ScaledValue, useBaseXmaxConfig } from '@/lib/scaling-context';
+import { ScaledValue, useBaseXmaxConfig, useBaseXmaxLevel } from '@/lib/scaling-context';
+import { axisValueToRatio } from '@/lib/scaling-engine';
 import type { BaseMaxValue } from '@/lib/scaling-engine';
 
 export interface BaseMaxSliderProps {
@@ -13,11 +14,15 @@ export interface BaseMaxSliderProps {
   /** Optional explicit axis label override. */
   axisLabel?: string;
   defaultValue?: number;
+  /** Per-row / shared level value that positions the slider. */
+  levelValue?: number;
 }
 
 /**
  * Per-stat elastic slider that lets the viewer sweep a base/max range along its
  * axis (level / tier / copy count / rarity) and see the interpolated result.
+ * When `levelValue` is provided (from a row's level / Max Copies column) the
+ * slider starts at that position and the value is computed from it.
  */
 export function BaseMaxSlider({
   value,
@@ -25,11 +30,15 @@ export function BaseMaxSlider({
   axisMax,
   axisLabel,
   defaultValue,
+  levelValue,
 }: BaseMaxSliderProps) {
   const min = axisMin ?? 1;
   const max = axisMax ?? 100;
-  const initial = defaultValue ?? min;
-  const [axisValue, setAxisValue] = useState<number>(initial);
+  const start =
+    levelValue != null ? Math.min(Math.max(levelValue, min), max) : defaultValue ?? min;
+  const [axisValue, setAxisValue] = useState<number>(start);
+
+  const ratio = axisValueToRatio(axisValue, min, max);
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
@@ -38,12 +47,12 @@ export function BaseMaxSlider({
         max={value.max}
         curve={value.curve}
         axis={value.axis}
-        axisValue={axisValue}
+        ratio={ratio}
       />
       <ElasticSlider3D
         startingValue={min}
         maxValue={max}
-        defaultValue={initial}
+        defaultValue={axisValue}
         label={axisLabel || value.axis || 'Nível'}
         valueSuffix=""
         showValue
@@ -56,10 +65,12 @@ export function BaseMaxSlider({
 /**
  * Renders a base/max range value: either a static scaled value (driven by the
  * global scaling context) or, when the viewer enables per-card sliders, an
- * interactive elastic slider. Consumes BaseXmaxContext for axis + slider config.
+ * interactive elastic slider. Consumes BaseXmaxContext for axis + slider config
+ * and BaseXmaxLevelContext for the per-row / shared level position.
  */
 export function BaseMaxValueNode({ value, fallbackAxisLabel }: { value: BaseMaxValue; fallbackAxisLabel?: string }) {
   const bx = useBaseXmaxConfig();
+  const lvl = useBaseXmaxLevel();
 
   if (bx?.enabled && bx.showPerCardSlider) {
     return (
@@ -69,6 +80,7 @@ export function BaseMaxValueNode({ value, fallbackAxisLabel }: { value: BaseMaxV
         axisMax={bx.axisMax}
         axisLabel={bx.axisLabel || value.axis || fallbackAxisLabel}
         defaultValue={bx.defaultValue}
+        levelValue={lvl?.levelValue}
       />
     );
   }

@@ -52,4 +52,27 @@ describe('normalizeBaseMax — named variants', () => {
     // "Critic" (critical damage) shares no stem with "Damage" → can't pair safely
     expect(normalizeBaseMax({ Damage: 12, Critic: 42 })).toBeNull();
   });
+
+  it('detects synonym pairs by co-presence (start/end, low/high, initial/final, first/last)', () => {
+    expect(normalizeBaseMax({ start: 1, end: 10 })).toEqual({ base: 1, max: 10 });
+    expect(normalizeBaseMax({ low: 5, high: 95 })).toEqual({ base: 5, max: 95 });
+    expect(normalizeBaseMax({ initial: 0, final: 100 })).toEqual({ base: 0, max: 100 });
+    expect(normalizeBaseMax({ first: 1, last: 50 })).toEqual({ base: 1, max: 50 });
+  });
+
+  it('detects base + cap / peak / limit synonyms', () => {
+    expect(normalizeBaseMax({ base: 10, cap: 90 })).toEqual({ base: 10, max: 90 });
+    expect(normalizeBaseMax({ base: 10, peak: 90 })).toEqual({ base: 10, max: 90 });
+    expect(normalizeBaseMax({ base: 10, limit: 90 })).toEqual({ base: 10, max: 90 });
+  });
+
+  it('requires BOTH synonym keys present (lone start/low is not a base value)', () => {
+    expect(normalizeBaseMax({ start: 1, duration: 5 })).toBeNull();
+    expect(normalizeBaseMax({ low: 5, mid: 50 })).toBeNull();
+  });
+
+  it('does not pair from/to unless allowLoose is set', () => {
+    expect(normalizeBaseMax({ from: 1, to: 100 })).toBeNull();
+    expect(normalizeBaseMax({ from: 1, to: 100 }, { allowLoose: true })).toEqual({ base: 1, max: 100 });
+  });
 });

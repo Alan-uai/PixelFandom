@@ -46,7 +46,7 @@ const DEFAULT_EFFECT_OPTIONS = {
 
 type HyperspeedProps = {
   effectOptions?: Record<string, any>;
-  onReady?: (api: { setSpeed: (v: number) => void }) => void;
+  onReady?: (api: { setProgress: (v: number) => void }) => void;
 };
 
 const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: HyperspeedProps) => {
@@ -402,11 +402,9 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         this.leftSticks = new LightsSticks(this, options);
 
         this.fovTarget = options.fov;
-        this.speedUpTarget = 0;
-        this.speedUp = 0;
-        this.externalSpeedTarget = 0;
-        this.externalSpeed = 0;
-        this.timeOffset = 0;
+        this.scrollProgress = 0;
+        this.scrollTime = 40;
+        this.dirty = true;
 
         this.tick = this.tick.bind(this);
         this.init = this.init.bind(this);
@@ -444,6 +442,7 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         this.camera.updateProjectionMatrix();
         this.composer.setSize(width, height);
         this.hasValidSize = true;
+        this.dirty = true;
       }
 
       initPasses() {
@@ -512,34 +511,19 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         ev.preventDefault();
       }
 
-      update(delta) {
-        let lerpPercentage = Math.exp(-(-60 * Math.log2(1 - 0.1)) * delta);
-        this.speedUp += lerp(this.speedUp, this.speedUpTarget, lerpPercentage, 0.00001);
-        this.externalSpeed += lerp(this.externalSpeed, this.externalSpeedTarget, lerpPercentage, 0.00001);
-        this.timeOffset += (this.speedUp + this.externalSpeed) * delta;
+      setProgress(p) {
+        this.scrollProgress = Math.min(1, Math.max(0, p));
+        this.dirty = true;
+      }
 
-        const totalSpeed = this.speedUp + this.externalSpeed;
-        this.fovTarget =
-          this.options.fov +
-          (this.options.fovSpeedUp - this.options.fov) * Math.min(1, totalSpeed / this.options.speedUp);
-
-        let time = this.clock.elapsedTime + this.timeOffset;
-
+      update(time) {
         this.rightCarLights.update(time);
         this.leftCarLights.update(time);
         this.leftSticks.update(time);
         this.road.update(time);
 
-        let updateCamera = false;
-        let fovChange = lerp(this.camera.fov, this.fovTarget, lerpPercentage);
-        if (fovChange !== 0) {
-          this.camera.fov += fovChange * delta * 6;
-          updateCamera = true;
-        }
-
         if (this.options.distortion.getJS) {
           const distortion = this.options.distortion.getJS(0.025, time);
-
           this.camera.lookAt(
             new THREE.Vector3(
               this.camera.position.x + distortion.x,
@@ -547,11 +531,15 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
               this.camera.position.z + distortion.z
             )
           );
-          updateCamera = true;
-        }
-        if (updateCamera) {
           this.camera.updateProjectionMatrix();
         }
+      }
+
+      renderFrame() {
+        const time = this.scrollProgress * this.scrollTime;
+        this.render(0);
+        this.update(time);
+        this.dirty = false;
       }
 
       render(delta) {
@@ -614,6 +602,7 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             this.camera.updateProjectionMatrix();
             this.composer.setSize(w, h);
             this.hasValidSize = true;
+            this.dirty = true;
           } else {
             requestAnimationFrame(this.tick);
             return;
@@ -626,12 +615,11 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
             this.camera.updateProjectionMatrix();
           }
+          this.dirty = true;
         }
 
-        if (this.hasValidSize) {
-          const delta = this.clock.getDelta();
-          this.render(delta);
-          this.update(delta);
+        if (this.hasValidSize && this.dirty) {
+          this.renderFrame();
         }
 
         requestAnimationFrame(this.tick);
@@ -1135,7 +1123,7 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
 
     if (onReady) {
       onReady({
-        setSpeed: (v) => myApp.setExternalSpeed(v)
+        setProgress: (v) => myApp.setProgress(v)
       });
     }
 

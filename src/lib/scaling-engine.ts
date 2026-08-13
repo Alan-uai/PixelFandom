@@ -184,6 +184,29 @@ function classifyBaseMaxKey(k: string): 'base' | 'max' | 'meta' | 'other' {
   return 'other';
 }
 
+/**
+ * Synonym pairs for named base/max ranges (e.g. `start`/`end`, `low`/`high`).
+ * Detection is co-presence based: BOTH keys must exist in the object for the
+ * pair to be recognized, which keeps false positives low (a lone `start` key
+ * is never treated as a base value on its own).
+ */
+const SYNONYM_PAIRS: Array<{ lo: string; hi: string; optIn?: boolean }> = [
+  { lo: 'start', hi: 'end' },
+  { lo: 'low', hi: 'high' },
+  { lo: 'initial', hi: 'final' },
+  { lo: 'first', hi: 'last' },
+  { lo: 'base', hi: 'cap' },
+  { lo: 'base', hi: 'peak' },
+  { lo: 'base', hi: 'limit' },
+  // Opt-in: `from`/`to` can be locations/dates, so only when explicitly allowed.
+  { lo: 'from', hi: 'to', optIn: true },
+];
+
+function findKeyByAlias(obj: Record<string, unknown>, alias: string): string | undefined {
+  const lower = alias.toLowerCase();
+  return Object.keys(obj).find((k) => k.toLowerCase() === lower);
+}
+
 const CRIT_AFFIXES = ['critical', 'crítico', 'critico', 'crítica', 'critica', 'crit', 'crít', 'crít'];
 
 /** Removes a leading/trailing "crit" affix, returning the remaining stat name (or ''). */
@@ -208,7 +231,7 @@ function stripCritAffix(name: string): string {
  * with a single sibling key. Values may be numbers or numeric strings
  * (e.g. `"×7"`). Returns the canonical shape or null.
  */
-export function normalizeBaseMax(v: unknown): BaseMaxValue | null {
+export function normalizeBaseMax(v: unknown, opts?: { allowLoose?: boolean }): BaseMaxValue | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
   const obj = v as Record<string, unknown>;
   const entries = Object.entries(obj);
@@ -254,6 +277,23 @@ export function normalizeBaseMax(v: unknown): BaseMaxValue | null {
   // Fallback: a single base key paired with a single sibling key (e.g. base + tier name).
   if (baseKey && !maxKey && otherKeys.length === 1) {
     maxKey = otherKeys[0];
+  }
+
+  // Fallback: named synonym pairs detected by co-presence (start/end, low/high,
+  // initial/final, first/last, base/cap, base/peak, base/limit, from/to*).
+  // Requires BOTH keys present so a lone `start`/`low` key never pairs falsely.
+  if (!baseKey || !maxKey) {
+    const allowLoose = opts?.allowLoose === true;
+    for (const p of SYNONYM_PAIRS) {
+      if (p.optIn && !allowLoose) continue;
+      const loK = findKeyByAlias(obj, p.lo);
+      const hiK = findKeyByAlias(obj, p.hi);
+      if (loK && hiK) {
+        baseKey = loK;
+        maxKey = hiK;
+        break;
+      }
+    }
   }
 
   // Fallback: a "critical" variant of a stat paired with its base. False-positive

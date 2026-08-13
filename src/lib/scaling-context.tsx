@@ -40,6 +40,10 @@ export interface BaseXmaxConfig {
   defaultValue?: number;
   mode: 'continuous' | 'tiers';
   showPerCardSlider: boolean;
+  /** Card-render mode: off (static), item (per-card), table (shared), ambos (both). */
+  renderMode?: 'off' | 'item' | 'table' | 'ambos';
+  /** Column whose value drives the base/max slider (e.g. level / Max Copies). */
+  levelColumn?: string;
 }
 
 export const DEFAULT_BASEXMAX: BaseXmaxConfig = {
@@ -50,12 +54,25 @@ export const DEFAULT_BASEXMAX: BaseXmaxConfig = {
   step: 1,
   mode: 'continuous',
   showPerCardSlider: false,
+  renderMode: 'off',
 };
 
 export const BaseXmaxContext = createContext<BaseXmaxConfig | null>(null);
 
 export function useBaseXmaxConfig(): BaseXmaxConfig | null {
   return useContext(BaseXmaxContext);
+}
+
+// ── Per-card / shared level (drives the base/max slider position) ──────────
+export interface BaseXmaxLevel {
+  levelColumn?: string;
+  levelValue?: number;
+}
+
+export const BaseXmaxLevelContext = createContext<BaseXmaxLevel | null>(null);
+
+export function useBaseXmaxLevel(): BaseXmaxLevel | null {
+  return useContext(BaseXmaxLevelContext);
 }
 
 export { BaseMaxValueNode } from '@/components/wiki/base-max-slider';

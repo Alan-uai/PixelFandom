@@ -123,6 +123,16 @@ export function CardConfig({
     onChange({ ...c, badgeDisplayMode: mode });
   };
 
+  // ── Base → Max (slider) config ─────────────────────────────
+  const baseXmax = (c.baseXmax as Record<string, any>) || {};
+  const baseXmaxMode = baseXmax.mode || 'off';
+
+  const setBaseXmax = (patch: Record<string, any>) => {
+    onChange({ ...c, baseXmax: { ...baseXmax, ...patch } });
+  };
+
+  const baseXmaxEnabled = baseXmaxMode !== 'off';
+
   // Detail state
   const columnFormats: Record<string, string> = c.columnFormats || {};
   const formatVariants: Record<string, number> = c.columnFormatVariants || {};
@@ -433,6 +443,82 @@ export function CardConfig({
             onCheckedChange={(v) => onChange({ ...c, showComparison: v })}
           />
           <Label htmlFor="show-comparison" className="text-xs">Exibir botão de comparação</Label>
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-xs font-medium text-foreground">Base → Max (slider)</Label>
+          <p className="text-[10px] text-muted-foreground">
+            Quando ativado, os valores base/máx dos cards exibem um slider interativo calculado pela coluna de nível/Max Copies. Desativado mostra só &quot;base → máx&quot;.
+          </p>
+          <Select3D
+            label="Modo"
+            value={baseXmaxMode}
+            options={[
+              { label: 'Desativado', value: 'off' },
+              { label: 'Por item (card)', value: 'item' },
+              { label: 'Tabela (compartilhado)', value: 'table' },
+              { label: 'Ambos', value: 'ambos' },
+            ]}
+            onChange={(v) => setBaseXmax({ mode: v })}
+          />
+          {baseXmaxEnabled && (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Label className="text-[10px] text-muted-foreground">Coluna de nível</Label>
+                  <Select3D
+                    value={baseXmax.levelColumn || ''}
+                    options={[
+                      { label: '— nenhuma —', value: '' },
+                      ...(columns as string[]).map((col) => ({ label: col, value: col })),
+                    ]}
+                    onChange={(v) => setBaseXmax({ levelColumn: v || undefined })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Rótulo eixo</Label>
+                  <Input
+                    value={baseXmax.axisLabel ?? 'Nível'}
+                    onChange={(e) => setBaseXmax({ axisLabel: e.target.value })}
+                    className="h-6 text-[10px]"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Mín</Label>
+                  <Input
+                    type="number"
+                    value={baseXmax.axisMin ?? 1}
+                    onChange={(e) => setBaseXmax({ axisMin: Number(e.target.value) || 1 })}
+                    className="h-6 text-[10px]"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Máx</Label>
+                  <Input
+                    type="number"
+                    value={baseXmax.axisMax ?? 100}
+                    onChange={(e) => setBaseXmax({ axisMax: Number(e.target.value) || 100 })}
+                    className="h-6 text-[10px]"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Label className="text-[10px] text-muted-foreground">Valor inicial</Label>
+                  <Input
+                    type="number"
+                    value={baseXmax.defaultValue ?? ''}
+                    placeholder={`${baseXmax.axisMin ?? 1}`}
+                    onChange={(e) => setBaseXmax({ defaultValue: e.target.value === '' ? undefined : Number(e.target.value) })}
+                    className="h-6 text-[10px]"
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-1">
