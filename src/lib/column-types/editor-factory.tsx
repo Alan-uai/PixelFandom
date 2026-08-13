@@ -9,7 +9,7 @@ import {
   RatingEditor, ColorEditor, SliderEditor, DurationEditor,
   TagsEditor, EntityLinkEditor, EmojiEditor, MediaEditor,
   SelectEditor, MultiSelectEditor, ColorPaletteEditor, IconSetEditor, ToggleGroupEditor,
-  PopoverEditor, JsonbEditor,
+  PopoverEditor, JsonbEditor, BaseMaxEditor,
 } from './editors';
 
 interface EditorProps {
@@ -249,6 +249,9 @@ function renderEditor(
 
     case 'popover':
       return <PopoverEditor value={value} onChange={onChange} />;
+
+    case 'baseXmax':
+      return <BaseMaxEditor value={value} onChange={onChange} />;
 
     case 'date':
       return <DateEditor value={value} onChange={onChange} />;

@@ -8,6 +8,7 @@ export const ColumnRenderTypeSchema = z.enum([
   'image', 'file', 'icon', 'video', 'audio',
   'select', 'multi-select', 'toggle-group',
   'color', 'color-palette', 'emoji', 'icon-set',
+  'baseXmax',
   'date', 'time',
 ]);
 

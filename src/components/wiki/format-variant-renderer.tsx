@@ -11,15 +11,16 @@ import { IconRenderer } from '@/components/ui/icon-renderer';
 import { BentoGrid } from '@/components/wiki/bento-grid';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
-import { ensureDetectorsRegistered, findBestDetector } from '@/lib/jsonb-detectors';
+import { ensureDetectorsRegistered } from '@/lib/jsonb-detectors';
 import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix, displayOpNum } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D } from '@/components/wiki/variant-3d';
-import { hasBaseMaxShape } from '@/lib/scaling-engine';
-import { ScaledValue } from '@/lib/scaling-context';
+import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { normalizeBaseMax } from '@/lib/scaling-engine';
 
+import { BaseMaxValueNode } from '@/lib/scaling-context';
 export interface AllowedValue {
   value: string;
   label?: string;
@@ -774,7 +775,7 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
                   ? { rotateY: -180, scale: 0.25, opacity: 0 }
                   : isAnimating && lost
                     ? { rotateY: 160, scale: 0.6, opacity: 0.35 }
-                    : false}
+                    : { rotateY: -90, scale: 0.5, opacity: 0 }}
                 animate={{ rotateY: 0, scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
                 style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
@@ -806,14 +807,13 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
   }
   if (v === 4) {
     const pct = isNaN(num) ? 0 : Math.min(100, Math.max(0, (num / maxValue) * 100));
-    const prevPctVal = prevStars !== undefined ? (prevStars / maxValue) * 100 : pct;
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="flex items-center gap-2">
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-amber-400"
-              initial={{ width: `${prevPctVal}%` }}
+              initial={{ width: "0%" }}
               animate={{ width: `${pct}%` }}
               transition={{ type: 'spring', stiffness: 90, damping: 20 }}
             />
@@ -859,7 +859,7 @@ function renderRating(v: number, val: unknown, label: string, labelColor?: strin
                 ? { rotateY: -180, scale: 0.25, opacity: 0 }
                 : isAnimating && lost
                   ? { rotateY: 160, scale: 0.6, opacity: 0.35 }
-                  : false}
+                  : { rotateY: -90, scale: 0.5, opacity: 0 }}
               animate={{ rotateY: 0, scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20, delay: changed ? i * 0.06 : 0 }}
               style={{ display: 'inline-flex', transformStyle: 'preserve-3d' }}
@@ -903,7 +903,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-primary"
-              initial={{ width: `${prevPctVal}%` }}
+              initial={{ width: "0%" }}
               animate={{ width: `${displayPct}%` }}
               transition={{ type: 'spring', stiffness: 90, damping: 20 }}
               style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)' }}
@@ -921,7 +921,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60"
-              initial={{ width: `${prevPctVal}%` }}
+              initial={{ width: "0%" }}
               animate={{ width: `${displayPct}%` }}
               transition={{ type: 'spring', stiffness: 90, damping: 20 }}
             />
@@ -944,7 +944,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
               <motion.div
                 key={i}
                 className={`h-4 w-3 rounded-sm ${i < filled ? 'bg-primary' : 'bg-muted'}`}
-                initial={changed ? { scale: 0.4, opacity: 0.3 } : false}
+                initial={{ scale: 0.4, opacity: 0.3 }}
                 animate={{ scale: 1, opacity: i < filled ? 1 : 0.4 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 18, delay: changed ? i * 0.05 : 0 }}
               />
@@ -959,7 +959,6 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
     const r = 14;
     const circumference = 2 * Math.PI * r;
     const offset = circumference - (displayPct / 100) * circumference;
-    const prevOffset = circumference - (prevPctVal / 100) * circumference;
     return (
       <Row label={label} labelColor={labelColor}>
         <motion.div key={trigger} className="relative h-10 w-10">
@@ -968,7 +967,7 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
             <motion.circle
               cx="16" cy="16" r={r} fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
               strokeDasharray={circumference}
-              initial={{ strokeDashoffset: prevOffset }}
+              initial={{ strokeDashoffset: circumference }}
               animate={{ strokeDashoffset: offset }}
               transition={{ type: 'spring', stiffness: 80, damping: 20 }}
               strokeLinecap="round"
@@ -987,12 +986,45 @@ function renderProgress(v: number, val: unknown, label: string, labelColor?: str
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-[200px]">
           <motion.div
             className="h-full rounded-full bg-primary"
-            initial={{ width: `${prevPctVal}%` }}
+            initial={{ width: "0%" }}
             animate={{ width: `${displayPct}%` }}
             transition={{ type: 'spring', stiffness: 90, damping: 20 }}
           />
         </div>
         <span className="text-xs font-mono text-muted-foreground">{displayText}</span>
+      </div>
+    </Row>
+  );
+}
+
+// ── slider (elastic) ──────────────────────────────────────
+function renderSlider(v: number, val: unknown, label: string, labelColor?: string, opEnabled?: boolean, opFlipped?: boolean, maxValue = 100, useSuffix?: boolean, trigger?: string) {
+  const num = Number(val);
+  const clamped = isNaN(num) ? 0 : Math.min(maxValue, Math.max(0, num));
+
+  // OP handling for operator-prefixed values
+  if (opEnabled && typeof val === 'string') {
+    const op = parseOperatorPrefix(val);
+    if (op) {
+      const displayNum = displayOpNum(op.number, !!useSuffix);
+      const opContent = <><span className="text-primary font-bold">{op.symbol}</span>{displayNum}{maxValue === 100 && !useSuffix ? '' : `/${maxValue}`}</>;
+      if (v === 1) return <Row label={label} labelColor={labelColor}><span className="text-sm font-bold font-mono">{opContent}</span></Row>;
+      return <Row label={label} labelColor={labelColor}><span className="text-xs font-mono">{opContent}</span></Row>;
+    }
+  }
+
+  // The elastic slider is a read-only display here (no persistence); the
+  // hover/elastic + variant-entry motion supplies the slider animation.
+  return (
+    <Row label={label} labelColor={labelColor}>
+      <div className="w-full max-w-[220px]">
+        <ElasticSlider3D
+          key={`slider-${trigger ?? ''}`}
+          defaultValue={clamped}
+          maxValue={maxValue}
+          showValue={true}
+          valueSuffix={useSuffix ? '%' : ''}
+        />
       </div>
     </Row>
   );
@@ -2183,17 +2215,34 @@ function fmtComplexVal(v: unknown, useSuffix?: boolean): string {
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
   if (typeof v === 'string') return humanizeLabel(v);
   if (v === null || v === undefined) return '—';
-  if (hasBaseMaxShape(v)) return `${v.base} → ${v.max}`;
+  if (normalizeBaseMax(v)) return `${normalizeBaseMax(v)!.base} → ${normalizeBaseMax(v)!.max}`;
   return String(v);
 }
 
-/** Format a single mini-card value node, respecting suffix/scientific notation and OP symbols. */
-function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean): React.ReactNode {
+/** Format a single mini-card value node, respecting suffix/scientific notation and OP symbols.
+ *  `animTrigger` (when provided) wraps each scalar key in a VariantAnimatedValue so the
+ *  per-item transition animates the value — numeric keys count up, string keys scramble —
+ *  instead of the whole jsonb block animating as one blob. */
+function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean, animTrigger?: number): React.ReactNode {
   if (typeof val === 'number') {
-    return <span className="font-mono">{formatNumber(val, !!useSuffix)}</span>;
+    if (animTrigger === undefined) {
+      return <span className="font-mono">{formatNumber(val, !!useSuffix)}</span>;
+    }
+    return (
+      <VariantAnimatedValue
+        value={val}
+        renderType="number"
+        trigger={animTrigger}
+        useSuffix={useSuffix}
+        formatNumber={(n) => formatNumber(n, !!useSuffix)}
+      />
+    );
   }
   if (typeof val === 'boolean') {
-    return <span>{val ? 'Sim' : 'Não'}</span>;
+    if (animTrigger === undefined) {
+      return <span>{val ? 'Sim' : 'Não'}</span>;
+    }
+    return <VariantAnimatedValue value={val} renderType="boolean" trigger={animTrigger} />;
   }
   if (typeof val === 'string') {
     if (opEnabled) {
@@ -2208,17 +2257,21 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
         );
       }
     }
-    return <span>{humanizeLabel(val)}</span>;
+    if (animTrigger === undefined) {
+      return <span>{humanizeLabel(val)}</span>;
+    }
+    return <VariantAnimatedValue value={val} renderType="text" trigger={animTrigger} />;
   }
-  if (hasBaseMaxShape(val)) {
-    return <ScaledValue base={val.base} max={val.max} />;
+  const bm = normalizeBaseMax(val);
+  if (bm) {
+    return <BaseMaxValueNode value={bm} />;
   }
   if (Array.isArray(val)) {
     if (val.length === 0) return <span className="text-muted-foreground text-xs">[]</span>;
     return (
       <div className="flex flex-col gap-0.5">
         {val.map((item, i) => (
-          <span key={i}>{renderMiniCardValueNode(item, useSuffix, opEnabled, opFlipped)}</span>
+          <span key={i}>{renderMiniCardValueNode(item, useSuffix, opEnabled, opFlipped, animTrigger)}</span>
         ))}
       </div>
     );
@@ -2237,7 +2290,7 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
           );
           const valueSpan = (
             <span className="text-sm font-medium text-foreground">
-              {renderMiniCardValueNode(v, useSuffix, opEnabled, opFlipped)}
+              {renderMiniCardValueNode(v, useSuffix, opEnabled, opFlipped, animTrigger)}
             </span>
           );
           return (
@@ -2253,7 +2306,7 @@ function renderMiniCardValueNode(val: unknown, useSuffix?: boolean, opEnabled?: 
 }
 
 /** Body of a mini card: one row per key with color, suffix and OP support. */
-function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean): React.ReactNode {
+function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<string, string>, useSuffix?: boolean, opEnabled?: boolean, opFlipped?: boolean, animTrigger?: number): React.ReactNode {
   const entries = Object.entries(obj);
   return (
     <div className={`flex ${opEnabled ? 'flex-row flex-wrap gap-x-3 gap-y-0.5' : 'flex-col'} gap-1`}>
@@ -2269,7 +2322,7 @@ function miniCardBody(obj: Record<string, unknown>, jsonbKeyColors?: Record<stri
         );
         const valueEl = (
           <span className="text-sm font-medium text-foreground">
-            {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
+            {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped, animTrigger)}
           </span>
         );
         if (opEnabled) {
@@ -2306,7 +2359,7 @@ function firstKeyColor(obj: Record<string, unknown>, jsonbKeyColors?: Record<str
   return undefined;
 }
 
-function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode): React.ReactNode {
+function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jsonbKeyColors?: Record<string, string>, opEnabled?: boolean, opFlipped?: boolean, onCompareClick?: (subKey?: string) => void, column?: string, labelColor?: string, labelNode?: React.ReactNode, animTrigger?: number): React.ReactNode {
   ensureDetectorsRegistered();
 
   // Builds the full stat key for a jsonb sub-path, matching CompareInfo keys
@@ -2346,7 +2399,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
                 <MiniCard3D
                   key={i}
                   color={firstKeyColor(obj, jsonbKeyColors)}
-                  value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled, opFlipped)}
+                  value={miniCardBody(obj, jsonbKeyColors, useSuffix, opEnabled, opFlipped, animTrigger)}
                   onClick={sub ? () => onCompareClick?.(sub) : onCompareClick}
                   className="min-w-[110px] flex-1"
                 />
@@ -2356,7 +2409,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
               <MiniCard3D
                 key={i}
                 color={labelColor}
-                value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled)}</span>}
+                value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(el, useSuffix, opEnabled, opFlipped, animTrigger)}</span>}
                 onClick={onCompareClick}
                 className="min-w-[90px] flex-1"
               />
@@ -2385,7 +2438,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
               );
               const valueSpan = (
                 <span className="font-medium text-foreground">
-                  {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped)}
+                  {renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped, animTrigger)}
                 </span>
               );
               return (
@@ -2418,7 +2471,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
               key={k}
               label={humanizeLabel(k)}
               color={jsonbKeyColors?.[k] || labelColor}
-              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled)}</span>}
+              value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(val, useSuffix, opEnabled, opFlipped, animTrigger)}</span>}
               onClick={subKeyFor(k) ? () => onCompareClick?.(subKeyFor(k)) : onCompareClick}
               className="min-w-[100px] flex-1"
             />
@@ -2434,7 +2487,7 @@ function renderMiniCards(value: unknown, label: string, useSuffix?: boolean, jso
     <div>
       {header}
       <MiniCard3D
-        value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled)}</span>}
+        value={<span className="text-sm font-medium text-foreground">{renderMiniCardValueNode(value, useSuffix, opEnabled, opFlipped, animTrigger)}</span>}
         onClick={onCompareClick}
       />
     </div>
@@ -2921,6 +2974,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
     case 'image':    return renderImage(n, str, label, labelColor, triggerStr);
     case 'rating':   return renderRating(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentStars, prevStarsVal, triggerStr);
     case 'progress': return renderProgress(n, value, label, labelColor, opEnabled, opFlipped, maxValue, currentPct, prevPctVal, triggerStr);
+    case 'slider':   return renderSlider(n, value, label, labelColor, opEnabled, opFlipped, maxValue, useSuffix, triggerStr);
     case 'tags':     return renderTags(n, value, label, labelColor, triggerStr);
     case 'boolean':  return renderBoolean(n, value, label, labelColor, triggerStr);
     case 'date':     return renderDate(n, value, label, labelColor, triggerStr);
@@ -2962,7 +3016,8 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
         return <RenderPopover v={n} title={popoverTitle} content={popoverContent} label={label || column} labelColor={labelColor} triggerMode={popoverTriggerMode} position={popoverPosition} triggerText={popoverTriggerText} />;
       }
       case 'jsonb':
-      case 'jsonb-structured': {
+      case 'jsonb-structured':
+      case 'baseXmax': {
         const detectValue = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
         if (typeof detectValue === 'object' && detectValue !== null) {
           ensureDetectorsRegistered();
@@ -2970,14 +3025,9 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
           if (n > 1 && n <= 5) {
             return renderComplexValue(n, normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
           }
-          if (Array.isArray(normalizedForOp)) {
-            return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
-          }
-          if (!plain) {
-            const detector = findBestDetector(detectValue);
-            if (detector) return detector.render({ value: detectValue, useSuffix }, n);
-          }
-          return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode);
+          // Both arrays ([]) and objects ({}) render as mini cards 3D at the
+          // default variant — no shape-detector intercept here.
+          return renderMiniCards(normalizedForOp, label, useSuffix, jsonbKeyColors, opEnabled, opFlipped, onCompareClick, column, labelColor, labelNode, animTrigger);
         }
         return renderText(n, String(detectValue ?? ''), label, labelColor, valueColors);
       }
@@ -2987,7 +3037,7 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   if (rendered === null) return null;
 
-  const animRenderType = format === 'jsonb' || format === 'jsonb-structured' ? 'jsonb' : format;
+  const animRenderType = format === 'jsonb' || format === 'jsonb-structured' || format === 'baseXmax' ? 'jsonb' : format;
   return (
     <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
       <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix} fromValue={prevValue} formatNumber={(num) => formatNumber(num, !!useSuffix)}>

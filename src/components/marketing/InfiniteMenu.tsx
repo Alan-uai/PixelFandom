@@ -1,8 +1,9 @@
 'use client';
 
 import { FC, useRef, useState, useEffect, MutableRefObject } from 'react';
-import { useRouter } from 'next/navigation';
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
+import { FollowButton } from '@/components/wiki/follow-button';
+import { VoteButtons } from '@/components/wiki/vote-buttons';
 import './InfiniteMenu.css';
 
 const discVertShaderSource = `#version 300 es
@@ -638,10 +639,20 @@ class ArcballControl {
 }
 
 export interface MenuItem {
+  id: string;
   image: string;
   link: string;
   title: string;
   description: string;
+  banner?: string;
+  gameUrl?: string;
+  discordUrl?: string;
+  vote?: {
+    upvotes: number;
+    downvotes: number;
+    score: number;
+    user_vote: string | null;
+  } | null;
 }
 
 type ActiveItemCallback = (index: number) => void;
@@ -773,7 +784,8 @@ class InfiniteGridMenu {
   private init(onInit?: InitCallback): void {
     const gl = this.canvas.getContext('webgl2', {
       antialias: true,
-      alpha: false
+      alpha: true,
+      premultipliedAlpha: false
     });
     if (!gl) {
       throw new Error('No WebGL 2 context!');
@@ -1095,6 +1107,7 @@ class InfiniteGridMenu {
 
 const defaultItems: MenuItem[] = [
   {
+    id: 'default',
     image:
       'https://images.unsplash.com/photo-1782977389500-dd7adad33ebe?q=80&w=600&h=600&fit=crop&sat=-100&auto=format',
     link: 'https://google.com/',
@@ -1102,6 +1115,23 @@ const defaultItems: MenuItem[] = [
     description: ''
   }
 ];
+
+function RobloxIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="5" fill="#FF451B" />
+      <path d="M6.5 17.5V6.5h5.5a3 3 0 013 3V10a3 3 0 01-3 3H9.5m0 0v4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DiscordIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18.59 5.81a14.6 14.6 0 00-3.67-1.14c-.16.28-.35.67-.48 1a13.59 13.59 0 00-4.06 0c-.13-.33-.32-.72-.48-1a14.6 14.6 0 00-3.68 1.14C3.12 10.24 2.3 14.48 2.7 18.66c1.57 1.14 3.1 1.84 4.6 2.3.37-.5.7-1.03.99-1.6a9.3 9.3 0 01-1.56-.76c.13-.1.26-.2.38-.3a11.14 11.14 0 009.78 0c.13.1.26.2.38.3-.5.3-1.02.55-1.57.75.28.57.62 1.1.98 1.6 1.5-.46 3.04-1.16 4.6-2.3.48-4.78-.74-8.99-3.1-12.85zM8.68 15.88c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82zm6.64 0c-.9 0-1.64-.82-1.64-1.82s.72-1.83 1.64-1.83c.93 0 1.66.83 1.64 1.83 0 1-.73 1.82-1.64 1.82z" fill="#5865F2" />
+    </svg>
+  );
+}
 
 interface InfiniteMenuProps {
   items?: MenuItem[];
@@ -1115,6 +1145,22 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
   const [isMoving, setIsMoving] = useState<boolean>(false);
   const [failed, setFailed] = useState<boolean>(false);
 
+  const activeItemRef = useRef<MenuItem | null>(null);
+  const lastIndexRef = useRef<number>(-1);
+  const downPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const navigate = (link: string) => {
+    if (onNavigate) {
+      onNavigate(link);
+      return;
+    }
+    if (link.startsWith('http')) {
+      window.open(link, '_blank');
+    } else {
+      window.location.href = link;
+    }
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1125,7 +1171,11 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
     const handleActiveItem = (index: number) => {
       if (!items.length) return;
       const itemIndex = index % items.length;
-      setActiveItem(items[itemIndex]);
+      if (itemIndex === lastIndexRef.current) return;
+      lastIndexRef.current = itemIndex;
+      const item = items[itemIndex];
+      activeItemRef.current = item;
+      setActiveItem(item);
     };
 
     try {
@@ -1158,22 +1208,39 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
     };
   }, [items, scale]);
 
-  const handleButtonClick = () => {
-    if (!activeItem?.link) return;
-    if (onNavigate) {
-      onNavigate(activeItem.link);
-      return;
+  const handleCanvasDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    downPosRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleCanvasUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const d = downPosRef.current;
+    downPosRef.current = null;
+    if (!d) return;
+    const dist = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+    if (dist < 8 && activeItemRef.current?.link) {
+      navigate(activeItemRef.current.link);
     }
-    if (activeItem.link.startsWith('http')) {
-      window.open(activeItem.link, '_blank');
-    } else {
-      window.location.href = activeItem.link;
-    }
+  };
+
+  const openExternal = (url: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(url, '_blank', 'noopener');
   };
 
   return (
     <div className="infinite-wikis-root">
-      <canvas id="infinite-grid-menu-canvas" ref={canvasRef} />
+      <div
+        className={`wiki-banner-sphere ${isMoving ? 'inactive' : 'active'}`}
+        style={activeItem?.banner ? { backgroundImage: `url(${activeItem.banner})` } : undefined}
+        aria-hidden
+      />
+
+      <canvas
+        id="infinite-grid-menu-canvas"
+        ref={canvasRef}
+        onPointerDown={handleCanvasDown}
+        onPointerUp={handleCanvasUp}
+      />
 
       {failed && (
         <div className="infinite-wikis-fallback-note">
@@ -1187,14 +1254,40 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
 
           <p className={`face-description ${isMoving ? 'inactive' : 'active'}`}>{activeItem.description}</p>
 
-          <button
-            type="button"
-            onClick={handleButtonClick}
-            aria-label={`Abrir ${activeItem.title || 'wiki'}`}
-            className={`action-button ${isMoving ? 'inactive' : 'active'}`}
-          >
-            <span className="action-button-icon">&#x2197;</span>
-          </button>
+          {activeItem.id && (
+            <div className={`wiki-actions ${isMoving ? 'inactive' : 'active'}`}>
+              <FollowButton tenantId={activeItem.id} />
+              {activeItem.gameUrl && (
+                <button
+                  type="button"
+                  onClick={openExternal(activeItem.gameUrl!)}
+                  className="wiki-action-link wiki-action-game"
+                  title="Ir para o jogo"
+                  aria-label="Ir para o jogo"
+                >
+                  <RobloxIcon className="h-4 w-4" />
+                </button>
+              )}
+              {activeItem.discordUrl && (
+                <button
+                  type="button"
+                  onClick={openExternal(activeItem.discordUrl!)}
+                  className="wiki-action-link wiki-action-discord"
+                  title="Ir para o Discord"
+                  aria-label="Ir para o Discord"
+                >
+                  <DiscordIcon className="h-4 w-4" />
+                </button>
+              )}
+              <VoteButtons
+                targetType="tenant"
+                targetId={activeItem.id}
+                initialUpvotes={activeItem.vote?.upvotes ?? 0}
+                initialDownvotes={activeItem.vote?.downvotes ?? 0}
+                initialUserVote={activeItem.vote?.user_vote ?? null}
+              />
+            </div>
+          )}
         </>
       )}
     </div>

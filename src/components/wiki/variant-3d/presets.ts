@@ -64,6 +64,15 @@ export const VARIANT_3D_PRESETS: Variant3DRegistry = {
     p('flip-x', 'glow', 'deep', { entryTune: { rotateX: -25 } }),
   ),
 
+  // ── slider: elastic slide entrance (complements ElasticSlider3D) ───────
+  slider: row(
+    p('slide-r', 'none', 'lift', { entryTune: { x: 10 } }),
+    p('expand', 'drift', 'scale', { entryTune: { scaleX: 0.7 } }),
+    p('wave', 'breathe', 'tilt', { entryTune: { y: 5, rotateX: -6 } }),
+    p('morph', 'pulse', 'roll', { entryTune: { scale: 0.9, rotateY: 8 } }),
+    p('flip-x', 'glow', 'deep', { entryTune: { rotateX: -25 } }),
+  ),
+
   // ── duration: clock-hand spin entrance ─────────────────────────────────
   duration: row(
     p('spin-in', 'none', 'lift', { entryTune: { rotateZ: -10 } }),
@@ -241,6 +250,15 @@ export const VARIANT_3D_PRESETS: Variant3DRegistry = {
     p('wave', 'pulse', 'none', { entryTune: { y: 4, rotateX: -5 } }),
     p('zoom', 'breathe', 'none', { entryTune: { scale: 0.85 } }),
     p('flip-x', 'glow', 'none', { entryTune: { rotateX: -30 } }),
+  ),
+
+  // ── baseXmax: scale/slide entrance reflecting the scaled value ─────────
+  baseXmax: row(
+    p('zoom', 'glow', 'lift', { entryTune: { scale: 0.85 } }),
+    p('expand', 'pulse', 'scale', { entryTune: { scaleX: 0.8 } }),
+    p('wave', 'float', 'tilt', { entryTune: { y: 4, rotateX: -6 } }),
+    p('morph', 'breathe', 'roll', { entryTune: { scale: 0.9, rotateY: 10 } }),
+    p('flip-x', 'drift', 'deep', { entryTune: { rotateX: -30 } }),
   ),
 };
 

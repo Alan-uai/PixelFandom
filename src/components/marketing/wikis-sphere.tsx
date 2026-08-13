@@ -12,6 +12,7 @@ interface WikisSphereProps {
   loading: boolean;
   error: string | null;
   activeCategory?: string | null;
+  voteData?: Record<string, { upvotes: number; downvotes: number; score: number; user_vote: string | null }>;
 }
 
 function webgl2Supported(): boolean {
@@ -24,7 +25,7 @@ function webgl2Supported(): boolean {
   }
 }
 
-export default function WikisSphere({ wikis, loading, error, activeCategory }: WikisSphereProps) {
+export default function WikisSphere({ wikis, loading, error, activeCategory, voteData }: WikisSphereProps) {
   const router = useRouter();
   const [hasWebGL, setHasWebGL] = useState(true);
 
@@ -46,12 +47,17 @@ export default function WikisSphere({ wikis, loading, error, activeCategory }: W
   const items: MenuItem[] = useMemo(
     () =>
       filtered.map(wiki => ({
+        id: wiki.id,
         image: wiki.logo_url || wiki.cover_image || '',
         link: `/w/${wiki.slug}`,
         title: wiki.name,
-        description: wiki.description || 'Explore a comunidade nesta wiki.'
+        description: wiki.description || 'Explore a comunidade nesta wiki.',
+        banner: wiki.cover_image || undefined,
+        gameUrl: wiki.game_url || undefined,
+        discordUrl: wiki.discord_url || undefined,
+        vote: voteData?.[wiki.id] ?? null
       })),
-    [filtered]
+    [filtered, voteData]
   );
 
   const navigate = (link: string) => {

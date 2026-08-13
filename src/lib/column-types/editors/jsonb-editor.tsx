@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Code2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { TreeEditor, jsonToTreeEntries, treeEntriesToJson } from './tree-editor';
 import type { TreeEntry } from './tree-editor';
 
@@ -109,93 +109,94 @@ export function JsonbEditor({
 
   const springTransition = { type: 'spring' as const, stiffness: 350, damping: 28 };
 
+  // `mountVariants` gives a subtle 3D fade-in when a mode mounts. The OUTER
+  // `motion.div` carries `layout`, so the surrounding item card resizes
+  // immediately whenever the mode swaps (tree <-> raw <-> fallback) — without
+  // waiting for the user to type inside the textarea.
+  const mountVariants = {
+    initial: { opacity: 0, rotateX: -15, scale: 0.95 },
+    animate: { opacity: 1, rotateX: 0, scale: 1 },
+  };
+
   return (
     <motion.div layout className="space-y-2 overflow-hidden" transition={springTransition} style={{ transformStyle: 'preserve-3d', perspective: '600px' }}>
-      <AnimatePresence mode="popLayout">
-        {rawMode ? (
-          <motion.div
-            key="raw"
-            layout
-            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
-            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
-            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
-            transition={springTransition}
-            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+      {rawMode ? (
+        <motion.div
+          key="raw"
+          initial={mountVariants.initial}
+          animate={mountVariants.animate}
+          transition={springTransition}
+          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+        >
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={4}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+          />
+          <button
+            type="button"
+            onClick={() => setRawMode(false)}
+            className="mt-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
           >
-            <textarea
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
-            />
-            <button
-              type="button"
-              onClick={() => setRawMode(false)}
-              className="mt-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-            >
-              Voltar ao editor visual
-            </button>
-          </motion.div>
-        ) : isFallback ? (
-          <motion.div
-            key="fallback"
-            layout
-            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
-            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
-            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
-            transition={springTransition}
-            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+            Voltar ao editor visual
+          </button>
+        </motion.div>
+      ) : isFallback ? (
+        <motion.div
+          key="fallback"
+          initial={mountVariants.initial}
+          animate={mountVariants.animate}
+          transition={springTransition}
+          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+        >
+          {parsed.kind === 'invalid' && (
+            <p className="text-xs text-red-400 mb-1">JSON inválido</p>
+          )}
+          <textarea
+            value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
+            onChange={(e) => {
+              try {
+                onChange(JSON.stringify(e.target.value));
+              } catch { onChange(e.target.value); }
+            }}
+            rows={3}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
+          />
+          <button
+            type="button"
+            onClick={() => setRawMode(true)}
+            className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
           >
-            {parsed.kind === 'invalid' && (
-              <p className="text-xs text-red-400 mb-1">JSON inválido</p>
-            )}
-            <textarea
-              value={parsed.kind === 'scalar' ? JSON.stringify(parsed.data) : (parsed.data as string)}
-              onChange={(e) => {
-                try {
-                  onChange(JSON.stringify(e.target.value));
-                } catch { onChange(e.target.value); }
-              }}
-              rows={3}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-xs"
-            />
-            <button
-              type="button"
-              onClick={() => setRawMode(true)}
-              className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-            >
-              <Code2 className="h-3 w-3" /> Editar como JSON
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="tree"
-            layout
-            initial={{ opacity: 0, rotateX: -15, scale: 0.95 }}
-            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
-            exit={{ opacity: 0, rotateX: 15, scale: 0.95 }}
-            transition={springTransition}
-            style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+            <Code2 className="h-3 w-3" /> Editar como JSON
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="tree"
+          initial={mountVariants.initial}
+          animate={mountVariants.animate}
+          transition={springTransition}
+          style={{ transformStyle: 'preserve-3d', perspective: '600px', transformOrigin: 'top center' }}
+        >
+          <TreeEditor
+            entries={treeData.entries}
+            onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
+            keyTypes={keyTypes}
+            onKeyTypesChange={handleKeyTypesChange}
+            jsonbKeyColors={keyColors}
+            onKeyColorsChange={handleKeyColorsChange}
+            depth={0}
+          />
+          <button
+            type="button"
+            onClick={() => setRawMode(true)}
+            className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
           >
-            <TreeEditor
-              entries={treeData.entries}
-              onEntriesChange={(entries) => handleTreeChange(entries, treeData.rootKind)}
-              keyTypes={keyTypes}
-              onKeyTypesChange={handleKeyTypesChange}
-              jsonbKeyColors={keyColors}
-              onKeyColorsChange={handleKeyColorsChange}
-              depth={0}
-            />
-            <button
-              type="button"
-              onClick={() => setRawMode(true)}
-              className="mt-2 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-            >
-              <Code2 className="h-3 w-3" /> Editar como JSON
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Code2 className="h-3 w-3" /> Editar como JSON
+          </button>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

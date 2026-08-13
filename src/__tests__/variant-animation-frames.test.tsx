@@ -113,7 +113,7 @@ describe('VariantAnimatedValue transition frames', () => {
 
     const prefs = {
       ...DEFAULT_PREFERENCES,
-      animations: { enabled: false, dashboard: true, wiki: true },
+      animations: { enabled: false, dashboard: true, wiki: false },
     };
     const ctxValue = {
       preferences: prefs,

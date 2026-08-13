@@ -130,6 +130,7 @@ export default function Home() {
             loading={loading}
             error={error}
             activeCategory={activeCategory}
+            voteData={voteData}
           />
         </section>
       </ScrollRevealWrapper>

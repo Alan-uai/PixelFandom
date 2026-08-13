@@ -29,7 +29,7 @@ function renderTypeToFormat(rt: string): DisplayFormat {
     case 'link':        return 'link';
     case 'video':       return 'video';
     case 'audio':       return 'audio';
-    case 'slider':      return 'progress';
+    case 'slider':      return 'slider';
     case 'duration':     return 'duration';
     case 'number':
     case 'integer':

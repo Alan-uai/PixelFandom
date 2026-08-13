@@ -122,8 +122,13 @@ export function AnimatedBentoGrid({
 
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
 
-      // Set initial offset
+      // Motion blur: stronger for longer slides, capped for subtlety
+      const dist = Math.hypot(dx, dy);
+      const blur = Math.min(6, dist / 28);
+
+      // Set initial offset + blur
       tile.style.transform = `translate(${dx}px, ${dy}px)`;
+      tile.style.filter = `blur(${blur}px)`;
       tile.style.transition = 'none';
     }
 
@@ -132,8 +137,9 @@ export function AnimatedBentoGrid({
 
     // Animate to final position
     for (const tile of tiles) {
-      tile.style.transition = `transform ${animDuration}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+      tile.style.transition = `transform ${animDuration}ms cubic-bezier(0.22, 1, 0.36, 1), filter ${animDuration}ms cubic-bezier(0.22, 1, 0.36, 1)`;
       tile.style.transform = 'translate(0, 0)';
+      tile.style.filter = 'blur(0px)';
     }
 
     // After animation completes
@@ -141,6 +147,7 @@ export function AnimatedBentoGrid({
       for (const tile of tiles) {
         tile.style.transition = '';
         tile.style.transform = '';
+        tile.style.filter = '';
       }
       prevSnapshot.current = currentSnapshot;
       onAnimationComplete?.();

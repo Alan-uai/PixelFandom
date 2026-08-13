@@ -21,7 +21,7 @@ import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
-import { ScalingContext, type ScalingInfo } from '@/lib/scaling-context';
+import { ScalingContext, BaseXmaxContext, type ScalingInfo, type BaseXmaxConfig } from '@/lib/scaling-context';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
@@ -697,6 +697,18 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     formula: scalingFormula,
   };
 
+  const baseXmaxRaw = (detailConfig as any)?.baseXmax;
+  const baseXmaxInfo: BaseXmaxConfig = {
+    enabled: baseXmaxRaw?.enabled === true,
+    axisLabel: baseXmaxRaw?.axisLabel ?? 'Nível',
+    axisMin: baseXmaxRaw?.axisMin ?? 1,
+    axisMax: baseXmaxRaw?.axisMax ?? 100,
+    step: baseXmaxRaw?.step ?? 1,
+    defaultValue: baseXmaxRaw?.defaultValue,
+    mode: baseXmaxRaw?.mode ?? 'continuous',
+    showPerCardSlider: baseXmaxRaw?.showPerCardSlider === true,
+  };
+
   const handleStatClick = (statKey: string) => {
     if (!showComparisonEnabled) return;
     if (onCompareStatClick) {
@@ -721,6 +733,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
   return (
       <ScalingContext.Provider value={scalingInfo}>
+      <BaseXmaxContext.Provider value={baseXmaxInfo}>
       <div className="max-w-3xl mx-auto">
         {tenantId && tenantSlug && (
           <VariantSelector
@@ -888,7 +901,8 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         </div>
       </div>
         </div>
-    </div>
-      </ScalingContext.Provider>
+      </div>
+        </BaseXmaxContext.Provider>
+        </ScalingContext.Provider>
    );
 }

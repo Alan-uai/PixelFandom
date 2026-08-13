@@ -81,6 +81,7 @@ function isRichVisualRenderType(rt: string): boolean {
     rt === 'color' ||
     rt === 'color-palette' ||
     rt === 'jsonb' ||
+    rt === 'slider' ||
     rt === 'image' ||
     rt === 'video' ||
     rt === 'audio' ||
@@ -100,7 +101,9 @@ function isRichVisualRenderType(rt: string): boolean {
  *  suffix must keep its rich ColumnDisplay rendering instead of a plain
  *  counter, which would strip the symbol/suffix. */
 function hasRichNumericValue(value: unknown, renderType: string): boolean {
-  if (renderType === 'progress' || renderType === 'slider' || renderType === 'duration') {
+  // Rating has its own specialized star-spin animation (in renderRating) and
+  // must keep its children instead of being collapsed into a plain counter.
+  if (renderType === 'progress' || renderType === 'slider' || renderType === 'duration' || renderType === 'rating') {
     return true;
   }
   if (typeof value === 'string' && parseOperatorPrefix(value)) return true;
@@ -168,22 +171,39 @@ const MAX_COUNT_MS = 2000;
 function useCounter(value: number, trigger: number, enabled: boolean, fromValue?: number): number {
   const [display, setDisplay] = useState(value);
   const frame = useRef<number | null>(null);
+  // Tracks the previous trigger so a variant swap (where the value itself is
+  // unchanged) still replays the count-up as a reveal, instead of being skipped
+  // because from === to.
+  const prevTrigger = useRef<number | null>(null);
 
   useEffect(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
     if (!enabled) {
       setDisplay(value);
+      prevTrigger.current = trigger;
       return;
     }
     const to = value;
+    const triggerChanged = prevTrigger.current !== trigger;
+    prevTrigger.current = trigger;
     const bridged = fromValue !== undefined && isFinite(fromValue) && fromValue !== to;
-    const from = bridged ? fromValue : display;
+    // from = bridged old value  →  else, on variant swap, replay from 0 when the
+    // value is unchanged, or from the live old value when it actually changed.
+    const from = bridged
+      ? fromValue!
+      : triggerChanged
+        ? value !== display
+          ? display
+          : 0
+        : display;
     if (from === to) {
       setDisplay(to);
       return;
     }
     const delta = to - from;
-    const duration = Math.min(Math.abs(delta) * STEP_MS, MAX_COUNT_MS);
+    // Snappy odometer: ~300ms for tiny deltas, scaling gently and capped so
+    // even huge jumps finish in well under a second.
+    const duration = Math.min(MAX_COUNT_MS, Math.max(300, Math.abs(delta) * 1.2));
     const start = performance.now();
 
     const tick = (now: number) => {

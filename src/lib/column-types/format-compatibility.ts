@@ -8,6 +8,7 @@ export const ALL_FORMATS = [
   'image',
   'rating',
   'progress',
+  'slider',
   'tags',
   'boolean',
   'date',
@@ -24,6 +25,7 @@ export const ALL_FORMATS = [
   'multi-select',
   'toggle-group',
   'popover',
+  'baseXmax',
 ] as const;
 
 export type DisplayFormat = typeof ALL_FORMATS[number];
@@ -44,6 +46,7 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   image:    { value: 'image',    label: 'Imagem',    description: 'Miniatura de imagem' },
   rating:   { value: 'rating',   label: 'Avaliação', description: 'Estrelas de 0-5' },
   progress: { value: 'progress', label: 'Progresso', description: 'Barra de progresso' },
+  slider:   { value: 'slider',   label: 'Slider Elástico', description: 'Slider 3D elástico' },
   tags:     { value: 'tags',     label: 'Tags',      description: 'Pílulas/tags' },
   boolean:  { value: 'boolean',  label: 'Sim/Não',   description: 'Checkmark ou X' },
   date:     { value: 'date',     label: 'Data',      description: 'Data formatada' },
@@ -60,6 +63,7 @@ export const FORMAT_DEFS: Record<DisplayFormat, FormatDef> = {
   'multi-select':    { value: 'multi-select',    label: 'Multi-seleção',     description: 'Múltiplos valores selecionados' },
   'toggle-group':    { value: 'toggle-group',    label: 'Toggle Group',      description: 'Grupo de toggle com cor/ícone' },
   popover:           { value: 'popover',          label: 'Popover',           description: 'Popover com conteúdo interativo' },
+  'baseXmax':        { value: 'baseXmax',         label: 'Base → Máx',        description: 'Faixas base/máx com slider por nível/tier' },
 };
 
 const COMPAT: Record<string, DisplayFormat[]> = {
@@ -75,7 +79,7 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   double:   ['number', 'text', 'badge', 'rating', 'progress'],
   numeric:  ['number', 'text', 'badge', 'rating', 'progress'],
   rating:   ['rating', 'text', 'badge', 'progress'],
-  slider:   ['progress', 'rating', 'text', 'badge'],
+  slider:   ['slider', 'progress', 'rating', 'text', 'badge'],
   duration: ['duration', 'text', 'badge'],
   boolean:  ['boolean', 'text', 'badge'],
 
@@ -95,6 +99,8 @@ const COMPAT: Record<string, DisplayFormat[]> = {
   'icon-set':    ['tags', 'text'],
 
   popover: ['popover', 'text'],
+
+  baseXmax: ['baseXmax', 'jsonb-structured', 'jsonb', 'text'],
 
   date: ['date', 'text', 'badge'],
   time: ['badge', 'text'],

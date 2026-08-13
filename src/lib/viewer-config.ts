@@ -160,6 +160,21 @@ export const ViewerConfigSchema = z.object({
     costPerCopy: z.number().optional(),
     formula: z.enum(['linear', 'diminishing']).default('linear'),
   }).optional(),
+  // ── Base → Max (baseXmax) ranges inside JSONB columns ──────────
+  // Lets a card expose a slider that sweeps a base/max range along an axis
+  // (level / tier / copy count / rarity) and shows the interpolated result.
+  baseXmax: z.object({
+    enabled: z.boolean().default(false),
+    /** Axis label shown next to the slider (e.g. "Nível", "Level"). */
+    axisLabel: z.string().default('Nível'),
+    axisMin: z.number().default(1),
+    axisMax: z.number().default(100),
+    step: z.number().min(0.0001).default(1),
+    defaultValue: z.number().optional(),
+    mode: z.enum(['continuous', 'tiers']).default('continuous'),
+    /** Show an independent slider inside each card (or scalable sub-stat). */
+    showPerCardSlider: z.boolean().default(false),
+  }).optional(),
   rowHiddenFields: z.record(z.string(), z.array(z.string())).default({}).optional(),
 }).default({});
 

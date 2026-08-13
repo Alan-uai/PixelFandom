@@ -46,6 +46,8 @@ export const RENDER_TYPES = [
   'color', 'color-palette', 'emoji', 'icon-set',
   // interactive
   'popover',
+  // base → max ranges inside JSONB
+  'baseXmax',
   // datetime
   'date', 'time',
 ] as const;
@@ -448,6 +450,20 @@ export const COLUMN_TYPES: Record<RenderType, ColumnTypeDefinition> = {
     validateValue: (v) => {
       if (!v) return null;
       try { const p = JSON.parse(v); if (!p.content && !p.title) return 'Conteúdo ou título obrigatório'; return null; }
+      catch { return 'JSON inválido'; }
+    },
+    sanitize: (v) => sanitizeJson(v).slice(0, 50000),
+  },
+
+  // ── Base → Max (baseXmax) ─────────────────────
+  baseXmax: {
+    id: 'baseXmax', label: 'Base → Máx (Slider)', category: 'numeric', dbType: 'jsonb',
+    icon: <SlidersHorizontal className="h-3.5 w-3.5" />,
+    nameMode: 'free',
+    valueSchema: jsonStr,
+    validateValue: (v) => {
+      if (!v) return null;
+      try { JSON.parse(v); return null; }
       catch { return 'JSON inválido'; }
     },
     sanitize: (v) => sanitizeJson(v).slice(0, 50000),
