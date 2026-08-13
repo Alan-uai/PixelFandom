@@ -519,8 +519,15 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const transitionTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Snapshot da linha anterior (antes da troca de variante) para as animações
   // de transição (counter, estrelas, sliders) partirem do valor antigo.
-  const prevRowRef = useRef<Record<string, any>>(activeData);
-  prevRowRef.current = activeData;
+  const activeDataRef = useRef<Record<string, any>>(activeData);
+  const [prevRow, setPrevRow] = useState<Record<string, any>>(activeData);
+  // Troca activeData preservando o snapshot da linha anterior para as
+  // animações de transição. Chamado apenas em handlers/effects.
+  const swapActiveData = (row: Record<string, any>) => {
+    setPrevRow(activeDataRef.current);
+    activeDataRef.current = row;
+    setActiveData(row);
+  };
   const baseItemId = data.id as string;
   const baseItemSlug = data.slug as string;
 
@@ -560,7 +567,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         setCachedVariantRow(tenantId as string, table, fetched.id as string, row);
         if (fetched.slug) setCachedVariantRow(tenantId as string, table, fetched.slug as string, row);
         setActiveVariantSlug(fetched.slug as string ?? null);
-        setActiveData(row);
+        swapActiveData(row);
       } catch {
         /* se falhar, mantém a variante padrão */
       }
@@ -575,7 +582,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   useEffect(() => {
     if (baseIdRef.current !== data.id) {
       baseIdRef.current = data.id as string | undefined;
-      setActiveData(data);
+      swapActiveData(data);
       setActiveVariantSlug(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -598,7 +605,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   ) => {
     if (variant === null) {
       setActiveVariantSlug(null);
-      setActiveData(data);
+      swapActiveData(data);
       persistActiveVariant(null);
       triggerTransition(meta?.direction ?? 'ltr');
       return;
@@ -609,7 +616,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     // completou antes dos chips ficarem visíveis). Usamos diretamente — sem fetch.
     if (variant.fullRow) {
       setActiveVariantSlug(variant.item_slug ?? null);
-      setActiveData({ ...variant.fullRow, _source_table: sourceTable });
+      swapActiveData({ ...variant.fullRow, _source_table: sourceTable });
       persistActiveVariant(variant.item_slug ?? null);
       triggerTransition(meta?.direction ?? 'ltr');
       return;
@@ -651,7 +658,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
 
       if (fetched) {
         setActiveVariantSlug(variant.item_slug ?? null);
-        setActiveData({ ...fetched, _source_table: sourceTable });
+        swapActiveData({ ...fetched, _source_table: sourceTable });
         persistActiveVariant(variant.item_slug ?? null);
         triggerTransition(dir);
       }
@@ -842,7 +849,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
           useSuffix={useSuffix}
           columnConfig={columnConfig}
           variantTrigger={variantTrigger}
-          prevRow={prevRowRef.current}
+          prevRow={prevRow}
         />
 
         {/* Footer */}
