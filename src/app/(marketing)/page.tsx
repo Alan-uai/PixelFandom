@@ -110,7 +110,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <section id="navstrip-origin" className="relative">
+      <section id="navstrip-origin" className="relative snap-start">
         <HeroPillsStory onLogin={openAuth} />
       </section>
 
