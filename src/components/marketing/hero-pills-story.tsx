@@ -108,7 +108,8 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const [videoDuration, setVideoDuration] = useState(0);
   const hyperspeedApi = useRef<{ setSpeed: (v: number) => void } | null>(null);
 
-  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.08, 0.85, 1], [0, 0.9, 0.9, 0]);
+  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.08, 0.85, 1], [0.6, 0.9, 0.9, 0]);
+  const videoOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 0.7]);
 
   const hyperspeedOptions = useMemo(
     () => ({
@@ -128,7 +129,18 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     hyperspeedApi.current = api;
   }, []);
 
+  const scrollProgressRef = useRef(0);
+  const scrollVelocityRef = useRef(0);
+
+  const updateHyperspeedSpeed = useCallback(() => {
+    const idle = 0.3;
+    const fromScroll = Math.min(1.4, scrollProgressRef.current * 1.4);
+    const fromVelocity = Math.min(4.5, Math.abs(scrollVelocityRef.current) / 250);
+    hyperspeedApi.current?.setSpeed(Math.min(6, idle + fromScroll + fromVelocity));
+  }, []);
+
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
+    scrollProgressRef.current = p;
     const v = videoRef.current;
     if (v && videoDuration > 0) {
       const target = Math.min(videoDuration - 0.05, Math.max(0, p * videoDuration));
@@ -136,26 +148,32 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
         v.currentTime = target;
       }
     }
+    updateHyperspeedSpeed();
   });
 
   useMotionValueEvent(scrollVelocity, 'change', (vel) => {
-    const target = Math.min(6, Math.abs(vel) / 250);
-    hyperspeedApi.current?.setSpeed(target);
+    scrollVelocityRef.current = vel;
+    updateHyperspeedSpeed();
   });
 
   return (
     <section ref={sectionRef} className="relative h-[350vh]">
       <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <video
-            ref={videoRef}
-            src="/Parallax.mp4"
-            muted
-            playsInline
-            preload="auto"
-            onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
-            className="absolute inset-0 h-full w-full object-cover opacity-70"
-          />
+          <motion.div
+            className="absolute inset-0"
+            style={{ opacity: videoOpacity, pointerEvents: 'none' }}
+          >
+            <video
+              ref={videoRef}
+              src="/Parallax.mp4"
+              muted
+              playsInline
+              preload="auto"
+              onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </motion.div>
           <motion.div
             className="absolute inset-0 mix-blend-screen"
             style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}

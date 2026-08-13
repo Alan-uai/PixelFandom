@@ -159,54 +159,131 @@ function nearestTier(tiers: BaseMaxTier[], target: number): BaseMaxTier | undefi
   return best;
 }
 
-const ROLE_KEYS = ['base', 'max', 'min', 'curve', 'axis', 'orientation', 'tiers'] as const;
+function toBaseMaxNumber(val: unknown): number | undefined {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const n = Number(String(val).replace(/[^\d.-]/g, ''));
+    return isNaN(n) ? undefined : n;
+  }
+  return undefined;
+}
 
 /**
- * Case-insensitive detection of a base/max range object. Stat labels are
- * arbitrary, so only the reserved role keys are matched. Returns the canonical
- * shape (with normalized English role keys) or null.
+ * Classifies a key by its base/max role. Supports the canonical `base`/`max`
+ * keys plus arbitrary stat names via the `Base{y}` / `{y}Max` patterns (and
+ * their reverse): e.g. `BaseDamage` + `DamageMax`, `min` + `maxtier`,
+ * `base_fire` + `fire_max`.
+ */
+function classifyBaseMaxKey(k: string): 'base' | 'max' | 'meta' | 'other' {
+  const lk = k.toLowerCase();
+  if (lk === 'curve' || lk === 'axis' || lk === 'orientation' || lk === 'direction' || lk === 'tiers') {
+    return 'meta';
+  }
+  if (/^base(.*)$/.test(lk) || /^min(.*)$/.test(lk)) return 'base';
+  if (/^max(.*)$/.test(lk) || /^(.*)max$/.test(lk) || /^(.*)maxtier$/.test(lk)) return 'max';
+  return 'other';
+}
+
+const CRIT_AFFIXES = ['critical', 'crítico', 'critico', 'crítica', 'critica', 'crit', 'crít', 'crít'];
+
+/** Removes a leading/trailing "crit" affix, returning the remaining stat name (or ''). */
+function stripCritAffix(name: string): string {
+  const lower = name.toLowerCase();
+  for (const affix of CRIT_AFFIXES) {
+    if (lower.startsWith(affix) && lower.length > affix.length) {
+      return name.slice(affix.length).trim();
+    }
+    if (lower.endsWith(affix) && lower.length > affix.length) {
+      return name.slice(0, name.length - affix.length).trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * Case-insensitive detection of a base/max range object. Supports both the
+ * canonical `base`/`max` (and `min`/`maxtier`) keys and arbitrary stat names
+ * via the `Base{y}` / `{y}Max` patterns (and their reverse), e.g.
+ * `BaseDamage` + `DamageMax`, `min` + `maxtier`, or a `base`-prefixed key paired
+ * with a single sibling key. Values may be numbers or numeric strings
+ * (e.g. `"×7"`). Returns the canonical shape or null.
  */
 export function normalizeBaseMax(v: unknown): BaseMaxValue | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
   const obj = v as Record<string, unknown>;
+  const entries = Object.entries(obj);
 
-  // Find the base/max pair case-insensitively among reserved keys.
-  let base: number | undefined;
-  let max: number | undefined;
+  const baseKeys: string[] = [];
+  const maxKeys: string[] = [];
+  const otherKeys: string[] = [];
   let curve: ScalingCurve | undefined;
   let axis: string | undefined;
   let orientation: AxisOrientation | undefined;
   let tiers: BaseMaxTier[] | undefined;
 
-  for (const [k, val] of Object.entries(obj)) {
-    const lower = k.toLowerCase();
-    if (lower === 'base') base = typeof val === 'number' ? val : undefined;
-    else if (lower === 'max' || lower === 'maxtier') max = typeof val === 'number' ? val : undefined;
-    else if (lower === 'min') {
-      // treat `min` as base when base is not present
-      if (base === undefined) base = typeof val === 'number' ? val : undefined;
-    } else if (lower === 'curve') {
-      if (val === 'linear' || val === 'diminishing' || val === 'exponential' || val === 'step') {
-        curve = val;
+  for (const [k, val] of entries) {
+    const role = classifyBaseMaxKey(k);
+    if (role === 'base') baseKeys.push(k);
+    else if (role === 'max') maxKeys.push(k);
+    else if (role === 'meta') {
+      const lk = k.toLowerCase();
+      if (lk === 'curve') {
+        if (val === 'linear' || val === 'diminishing' || val === 'exponential' || val === 'step') curve = val;
+      } else if (lk === 'axis') axis = typeof val === 'string' ? val : undefined;
+      else if (lk === 'orientation' || lk === 'direction') {
+        if (val === 'up' || val === 'down') orientation = val;
+      } else if (lk === 'tiers' && Array.isArray(val)) {
+        tiers = val
+          .filter((t) => t && typeof t === 'object')
+          .map((t) => {
+            const tt = t as Record<string, unknown>;
+            return {
+              label: String(tt.label ?? ''),
+              value: typeof tt.value === 'number' ? tt.value : Number(tt.value) || 0,
+              result: typeof tt.result === 'number' ? tt.result : undefined,
+            } as BaseMaxTier;
+          });
       }
-    } else if (lower === 'axis') axis = typeof val === 'string' ? val : undefined;
-    else if (lower === 'orientation' || lower === 'direction') {
-      if (val === 'up' || val === 'down') orientation = val;
-    } else if (lower === 'tiers' && Array.isArray(val)) {
-      tiers = val
-        .filter((t) => t && typeof t === 'object')
-        .map((t) => {
-          const tt = t as Record<string, unknown>;
-          return {
-            label: String(tt.label ?? ''),
-            value: typeof tt.value === 'number' ? tt.value : Number(tt.value) || 0,
-            result: typeof tt.result === 'number' ? tt.result : undefined,
-          } as BaseMaxTier;
-        });
+    } else {
+      otherKeys.push(k);
     }
   }
 
+  let baseKey: string | undefined = baseKeys[0];
+  let maxKey: string | undefined = maxKeys[0];
+  // Fallback: a single base key paired with a single sibling key (e.g. base + tier name).
+  if (baseKey && !maxKey && otherKeys.length === 1) {
+    maxKey = otherKeys[0];
+  }
+
+  // Fallback: a "critical" variant of a stat paired with its base. False-positive
+  // free because the base key must share the stat name (e.g. `Damage` + `CritDamage`,
+  // `chance` + `critChance`). The critical value is the max.
+  if (!baseKey && !maxKey) {
+    const critEntries = entries.filter(([k]) => CRIT_AFFIXES.some((a) => k.toLowerCase().includes(a)));
+    for (const [ck] of critEntries) {
+      const stem = stripCritAffix(ck);
+      if (!stem) continue;
+      const stemLower = stem.toLowerCase();
+      const baseEntry = entries.find(([k]) => {
+        if (k === ck) return false;
+        if (CRIT_AFFIXES.some((a) => k.toLowerCase().includes(a))) return false;
+        const lk = k.toLowerCase();
+        return lk === stemLower || lk.includes(stemLower) || stemLower.includes(lk);
+      });
+      if (baseEntry) {
+        baseKey = baseEntry[0];
+        maxKey = ck;
+        break;
+      }
+    }
+  }
+
+  if (!baseKey || !maxKey) return null;
+  const base = toBaseMaxNumber(obj[baseKey]);
+  const max = toBaseMaxNumber(obj[maxKey]);
   if (base === undefined || max === undefined) return null;
+
   const result: BaseMaxValue = { base, max };
   if (curve) result.curve = curve;
   if (axis) result.axis = axis;
@@ -220,16 +297,16 @@ export function hasBaseMaxShape(v: unknown): v is BaseMaxValue {
 }
 
 /**
- * True when the object contains only reserved role keys (base/max/curve/...),
- * i.e. it is a pure range and not a group of sub-stats.
+ * True when the object is a pure range (has a base role key and a max role
+ * key), i.e. it is not a group of sub-stats.
  */
 export function isPureBaseMax(v: unknown): boolean {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
   const obj = v as Record<string, unknown>;
-  const keys = Object.keys(obj).map((k) => k.toLowerCase());
-  return keys.every((k) => (ROLE_KEYS as readonly string[]).includes(k)) &&
-    (keys.includes('base') || keys.includes('min')) &&
-    (keys.includes('max') || keys.includes('maxtier'));
+  const entries = Object.entries(obj);
+  const hasBase = entries.some(([k]) => classifyBaseMaxKey(k) === 'base');
+  const hasMax = entries.some(([k]) => classifyBaseMaxKey(k) === 'max');
+  return hasBase && hasMax;
 }
 
 export function calcRemainingCost(copies: number, maxCopies: number, costPerCopy?: number): number {
