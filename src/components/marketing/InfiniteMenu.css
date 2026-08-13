@@ -1,0 +1,126 @@
+/* InfiniteMenu — themed for PixelFandom (cyan/dark) */
+/* Overlay logic controlled by .active / .inactive on the active item. */
+
+.infinite-wikis-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#infinite-grid-menu-canvas {
+  cursor: grab;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  outline: none;
+  display: block;
+  touch-action: none;
+}
+
+#infinite-grid-menu-canvas:active {
+  cursor: grabbing;
+}
+
+.infinite-wikis-fallback-note {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.action-button {
+  position: absolute;
+  left: 50%;
+  z-index: 10;
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.5);
+}
+
+.action-button-icon {
+  user-select: none;
+  position: relative;
+  color: #08121a;
+  top: 2px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.face-title {
+  user-select: none;
+  position: absolute;
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.05;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  max-width: 80%;
+  text-align: center;
+}
+
+.face-description {
+  user-select: none;
+  position: absolute;
+  max-width: 22ch;
+  top: 56%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: hsl(var(--muted-foreground));
+  font-size: clamp(0.9rem, 1.6vw, 1.25rem);
+  text-align: center;
+}
+
+.face-title.active {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+  transition: 0.5s ease;
+}
+
+.face-title.inactive {
+  opacity: 0;
+  transform: translate(-50%, -56%);
+  transition: 0.1s ease;
+}
+
+.face-description.active {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+  transition: 0.5s ease;
+}
+
+.face-description.inactive {
+  opacity: 0;
+  transform: translate(-50%, -44%);
+  transition: 0.1s ease;
+}
+
+.action-button.active {
+  bottom: 8%;
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  transition: 0.5s ease;
+}
+
+.action-button.inactive {
+  bottom: -80px;
+  transform: translateX(-50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.1s ease;
+}

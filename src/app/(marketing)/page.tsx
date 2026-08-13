@@ -3,11 +3,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
-import HeroSection from '@/components/marketing/hero-section';
-import NavStrip from '@/components/marketing/nav-strip';
+import HeroPillsStory from '@/components/marketing/hero-pills-story';
 import StatBar from '@/components/marketing/stat-bar';
 import SearchSection from '@/components/marketing/search-section';
-import WikisCarousel from '@/components/marketing/wikis-carousel';
+import WikisSphere from '@/components/marketing/wikis-sphere';
 import Footer from '@/components/marketing/footer';
 import ScrollRevealWrapper from '@/components/marketing/scroll-reveal-wrapper';
 import { useAuthDialog } from '@/context/auth-dialog-context';
@@ -111,12 +110,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <ScrollRevealWrapper exitOnly>
-        <section id="navstrip-origin" className="min-h-screen flex flex-col items-center justify-center">
-          <HeroSection />
-          <NavStrip onLogin={openAuth} />
-        </section>
-      </ScrollRevealWrapper>
+      <section id="navstrip-origin" className="relative">
+        <HeroPillsStory onLogin={openAuth} />
+      </section>
 
       <ScrollRevealWrapper id="section-carousel">
         <section className="min-h-screen flex flex-col items-center justify-center">
@@ -129,11 +125,10 @@ export default function Home() {
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
           />
-          <WikisCarousel
+          <WikisSphere
             wikis={wikis}
             loading={loading}
             error={error}
-            voteData={voteData}
             activeCategory={activeCategory}
           />
         </section>

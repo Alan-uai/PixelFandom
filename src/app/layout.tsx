@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { AppProvider } from '@/context/app-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { LoginFooter } from '@/components/login-footer';
 import ptMessages from '@/i18n/messages/pt.json';
 import { Inter } from 'next/font/google';
 
@@ -50,6 +51,7 @@ export default function RootLayout({
         <NextIntlClientProvider locale="pt" messages={ptMessages}>
           <AppProvider>
             {children}
+            <LoginFooter />
             <Toaster />
             <PwaRegister />
           </AppProvider>

@@ -205,25 +205,25 @@ vec3 calc(float u, float v, float t){
   float bass  = clamp(uBass, 0.0, 1.0);
   float treb  = clamp(uTreble, 0.0, 1.0);
 
-  // 0 = resting pool, 1 = fully erected spine field.
-  // Lower threshold so spines appear at normal speaking volume.
-  float growth = smoothstep(0.01, 0.18, voice + bass * 0.5);
+   // 0 = resting pool, 1 = fully erected spine field.
+   // Low threshold so spines erupt readily while the agent is talking.
+   float growth = smoothstep(0.004, 0.12, voice + bass * 0.5);
 
-  // As the voice grows, the ridge threshold drops — more of the noise field
-  // sharpens into needles, exactly like a ferrofluid under a rising magnet.
-  float ridgeFloor = mix(0.44, 0.06, growth);
-  float ridgeCeil  = mix(0.62, 0.98, growth);
-  float gate   = smoothstep(ridgeFloor, ridgeCeil, f);
-  float sharp  = 1.10 + growth * 3.2 + bass * 1.6;
-  float spike  = pow(gate, sharp);
-  spike = clamp(spike, 0.0, 2.0);
+   // As the voice grows, the ridge threshold drops — more of the noise field
+   // sharpens into needles, exactly like a ferrofluid under a rising magnet.
+   float ridgeFloor = mix(0.40, 0.04, growth);
+   float ridgeCeil  = mix(0.60, 0.98, growth);
+   float gate   = smoothstep(ridgeFloor, ridgeCeil, f);
+   float sharp  = 1.30 + growth * 4.2 + bass * 2.0;
+   float spike  = pow(gate, sharp);
+   spike = clamp(spike, 0.0, 2.2);
 
-  // Fine sibilance tremor — only while speech is present (never at rest).
-  float flutter = treb * growth * (0.35 + 0.55 * voice);
-  spike *= 1.0 + flutter * (snoise(dir * 16.0 + vec3(t * 6.5)) * 0.5 + 0.5);
+   // Fine sibilance tremor — only while speech is present (never at rest).
+   float flutter = treb * growth * (0.35 + 0.55 * voice);
+   spike *= 1.0 + flutter * (snoise(dir * 16.0 + vec3(t * 6.5)) * 0.5 + 0.5);
 
-  // Amplitude: thin resting film vs MASSIVE erupting needles.
-  float amp = 0.04 + 0.90 * growth + 0.25 * bass * growth;
+   // Amplitude: thin resting film vs MASSIVE erupting needles.
+   float amp = 0.05 + 1.05 * growth + 0.35 * bass * growth;
 
   // The whole body swells with the utterance (slow voice envelope).
   float swell = voice * (0.08 + 0.06 * sin(t * 2.2 + base.y * 5.0));
@@ -497,13 +497,40 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     const boostedBass   = Math.min(lv.bass   * 3.8, 1)
     const boostedTreble = Math.min(lv.treble * 4.0, 1)
 
+    // ── Status-driven voice envelope ───────────────────────────────────────
+    // The orb MUST erupt while the agent is talking even if the raw output
+    // analyser reads quiet (some platforms deliver low-amplitude PCM into the
+    // Web Audio graph, so a pure level gate can leave the fluid frozen on the
+    // idle pool while only the colour changes). We blend the real audio with a
+    // guaranteed floor tied to the live speaking/listening status, modulated by
+    // a couple of sine layers so the spikes shimmer instead of pulsing flat.
+    // Bass → needle length/count, mid → motion, treble → surface shimmer
+    // (this matches how real ferrofluid visualizers map the spectrum).
+    const isSpeaking = visualStatus.current === 'speaking'
+    const isListening = visualStatus.current === 'listening'
+    const talkFloor =
+      isSpeaking
+        ? 0.62 + 0.26 * (0.5 + 0.5 * Math.sin(now * 11.0)) + 0.10 * Math.sin(now * 27.0)
+        : isListening
+          ? 0.40 + 0.22 * (0.5 + 0.5 * Math.sin(now * 8.0))
+          : 0.0
+    const talkBass = (isSpeaking || isListening)
+      ? 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(now * 6.0))
+      : 0.0
+    const talkTreble = (isSpeaking || isListening)
+      ? 0.35 + 0.25 * (0.5 + 0.5 * Math.sin(now * 17.0))
+      : 0.0
+    const envVolume  = Math.max(boostedVolume, talkFloor)
+    const envBass    = Math.max(boostedBass, talkBass)
+    const envTreble  = Math.max(boostedTreble, talkTreble)
+
     // Throttle the idle loop (30 fps) — full 60 fps only while the orb is
     // being interacted with, the voice agent is live, or audio is flowing.
     const active =
       hoverTarget.current > 0.02 ||
       drag.current.active ||
       visualStatus.current !== 'idle' ||
-      boostedVolume > 0.04
+      envVolume > 0.04
     if (!active) {
       if (now - lastFrameAt.current < 1 / 30) {
         if (!idleTimer.current) {
@@ -528,11 +555,11 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
     u.uMorph.value = damp(u.uMorph.value, ringTarget, 4.5, dt)
 
     u.uTime.value = now
-    u.uVolume.value = damp(u.uVolume.value, boostedVolume, 11, dt)
-    u.uBass.value = damp(u.uBass.value, boostedBass, 11, dt)
-    u.uTreble.value = damp(u.uTreble.value, boostedTreble, 11, dt)
+    u.uVolume.value = damp(u.uVolume.value, envVolume, 11, dt)
+    u.uBass.value = damp(u.uBass.value, envBass, 11, dt)
+    u.uTreble.value = damp(u.uTreble.value, envTreble, 11, dt)
     u.uPitch.value = damp(u.uPitch.value, lv.pitch, 5, dt)
-    u.uCalm.value = damp(u.uCalm.value, REDUCED_MOTION ? 0.5 : 1 - Math.min(1, boostedVolume * 3.2), 6, dt)
+    u.uCalm.value = damp(u.uCalm.value, REDUCED_MOTION ? 0.5 : 1 - Math.min(1, envVolume * 3.2), 6, dt)
 
     // Magnetic pointer direction (updated directly from R3F events — no
     // per-frame raycaster on the CPU). Reset when the pointer leaves.
@@ -596,8 +623,8 @@ function FluidMesh({ statusRef, searching, onStatusChange, onDragState }: FluidM
       const base = statusRef.current
       let next: OrbVisualStatus = base
       if (base !== 'error' && base !== 'connecting') {
-        if (s.outputActivity > 0.42) next = 'speaking'
-        else if (s.inputActivity > 0.3) next = 'listening'
+        if (s.outputActivity > 0.28) next = 'speaking'
+        else if (s.inputActivity > 0.20) next = 'listening'
         else if (base === 'idle') next = 'idle'
         else if (base === 'connected' || base === 'listening') next = 'connected'
         else next = s.live ? 'listening' : 'connected'
