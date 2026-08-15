@@ -116,6 +116,18 @@ export const ViewerConfigSchema = z.object({
     showComparison: z.boolean().default(true),
     showHeader: z.boolean().default(false),
     defaultExpanded: z.boolean().default(false),
+    // ── Base → Max (baseXmax) slider config, stored nested under `card` ──
+    // (the editor in table-viewer-config/card-config.tsx writes it here).
+    baseXmax: z.object({
+      enabled: z.boolean().optional(),
+      mode: z.enum(['off', 'item', 'table', 'ambos']).optional(),
+      levelColumn: z.string().optional(),
+      axisLabel: z.string().optional(),
+      axisMin: z.number().optional(),
+      axisMax: z.number().optional(),
+      step: z.number().optional(),
+      defaultValue: z.number().optional(),
+    }).optional(),
   }).optional(),
   search: z.object({
     enabled: z.boolean().default(true),

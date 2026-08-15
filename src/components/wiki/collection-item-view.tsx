@@ -517,6 +517,12 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
   const [variantTrigger, setVariantTrigger] = useState(0);
   const transitionTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Coalesce de trocas rápidas de variante: o conteúdo (activeData) é trocado
+  // imediatamente, mas o gatilho da animação de entrada (beam/heading/badges)
+  // só dispara quando o usuário "pausa". Isso evita que a animação reinicie
+  // do zero a cada troca (deixando o heading/ícone travado no meio, embaçado,
+  // e sobrecarregando o paint com os filtros de blur).
+  const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Snapshot da linha anterior (antes da troca de variante) para as animações
   // de transição (counter, estrelas, sliders) partirem do valor antigo.
   const activeDataRef = useRef<Record<string, any>>(activeData);
@@ -591,12 +597,32 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const animsOn = useAnimationsEnabled();
   const prefersReduced = () => !animsOn;
 
-  const triggerTransition = (dir?: 'ltr' | 'rtl') => {
+  // Limpa os timers pendentes ao desmontar para evitar setState em componente
+  // desmontado e vazamentos.
+  useEffect(() => {
+    return () => {
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    };
+  }, []);
+
+  // Dispara a animação de transição de fato (beam + heading/ícone/badges).
+  const runTransition = (dir?: 'ltr' | 'rtl') => {
     if (dir) setBeamDir(dir);
     setVariantTrigger((p) => p + 1);
     setTransitioning(true);
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
     transitionTimer.current = setTimeout(() => setTransitioning(false), 1000);
+  };
+
+  // Agenda a animação de transição com debounce: trocas seguidas (menos de
+  // SETTLE_MS) apenas atualizam o conteúdo; a animação só roda na última,
+  // quando o usuário para de clicar. Corrige o "travamento" do brilho e do
+  // heading em trocas rápidas.
+  const SETTLE_MS = 90;
+  const scheduleTransition = (dir?: 'ltr' | 'rtl') => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => runTransition(dir), SETTLE_MS);
   };
 
   const handleSelectVariant = async (
@@ -607,7 +633,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       setActiveVariantSlug(null);
       swapActiveData(data);
       persistActiveVariant(null);
-      triggerTransition(meta?.direction ?? 'ltr');
+      scheduleTransition(meta?.direction ?? 'ltr');
       return;
     }
     if (!tenantId || !tenantSlug) return;
@@ -618,7 +644,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       setActiveVariantSlug(variant.item_slug ?? null);
       swapActiveData({ ...variant.fullRow, _source_table: sourceTable });
       persistActiveVariant(variant.item_slug ?? null);
-      triggerTransition(meta?.direction ?? 'ltr');
+      scheduleTransition(meta?.direction ?? 'ltr');
       return;
     }
 
@@ -660,7 +686,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
         setActiveVariantSlug(variant.item_slug ?? null);
         swapActiveData({ ...fetched, _source_table: sourceTable });
         persistActiveVariant(variant.item_slug ?? null);
-        triggerTransition(dir);
+        scheduleTransition(dir);
       }
     } catch {
       // keep current data on failure

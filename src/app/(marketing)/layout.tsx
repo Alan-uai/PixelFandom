@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import { useEffect, useRef, useState, ReactNode } from 'react';
 import { AuthDialogProvider } from '@/context/auth-dialog-context';
 import FloatingNavStrip from '@/components/marketing/floating-nav-strip';
 import SmoothScroll from '@/components/marketing/smooth-scroll';
@@ -23,9 +23,9 @@ function FloatingNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const scrollToTop = useCallback(() => {
+  const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  };
 
   return (
     <nav
@@ -72,9 +72,11 @@ function LayoutContent({ children }: { children: ReactNode }) {
     <>
       <FloatingNav />
       <FloatingNavStrip show={navStripOutOfView} />
-      <main className="flex flex-1 flex-col relative z-10">
-        {children}
-      </main>
+      <div id="smooth-wrapper" className="relative">
+        <div id="smooth-content">
+          <main className="flex flex-1 flex-col relative z-10">{children}</main>
+        </div>
+      </div>
     </>
   );
 }
@@ -86,11 +88,9 @@ export default function MarketingLayout({
 }>) {
   return (
     <AuthDialogProvider>
-      <div className="flex min-h-screen w-full flex-col relative overflow-x-clip">
+      <div className="flex min-h-screen w-full flex-col relative">
         <SmoothScroll />
-        <LayoutContent>
-          {children}
-        </LayoutContent>
+        <LayoutContent>{children}</LayoutContent>
       </div>
     </AuthDialogProvider>
   );

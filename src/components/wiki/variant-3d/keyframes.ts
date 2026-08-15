@@ -65,8 +65,8 @@ export function ensureVariant3DKeyframes(): void {
   15% { opacity: 1; }
   100% { right: 110%; opacity: 0; }
 }
-.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out; }
-.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out; }
+.variant-beam-ltr { animation: variant-beam-ltr 0.75s ease-in-out both; }
+.variant-beam-rtl { animation: variant-beam-rtl 0.75s ease-in-out both; }
 
 /* ── Reflection (bright sweep that settles after the beam) ── */
 @keyframes variant-reflection {
