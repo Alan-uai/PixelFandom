@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useCallback, useEffect, type ComponentType, type CSSProperties } from 'react';
+import { useRef, useMemo, useCallback, useEffect, useState, type ComponentType, type CSSProperties } from 'react';
 import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { Sparkles, Cpu, LayoutGrid, Globe, Layout } from 'lucide-react';
 import HeroSection from './hero-section';
@@ -79,8 +79,6 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Scroll nativo (mouse + toque no mobile). Sem GSAP/lerp: o frame acompanha
-  // exatamente a posição do scroll, sem "playing" automático.
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end end'],
@@ -92,8 +90,6 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
 
   const canvasOpacity = useTransform(progress, [0, 0.05, 0.78, 0.9], [0, 0.9, 0.9, 0.05]);
   const hyperspeedOpacity = useTransform(progress, [0, 0.12, 0.9, 1], [0, 0.9, 0.9, 0.12]);
-  const navContainerOpacity = useTransform(progress, [0.8, 0.98], [0, 1]);
-  const navPointer = useTransform(navContainerOpacity, (v) => (v > 0.6 ? 'auto' : 'none'));
 
   const hyperspeedOptions = useMemo(
     () => ({
@@ -113,9 +109,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     hyperspeedApi.current = api;
   }, []);
 
-  // Pré-carrega TODOS os frames. O canvas só desenha de acordo com o scroll:
-  // no onload NÃO avançamos o display (evita o "play" tipo vídeo), só repintamos
-  // o frame alvo caso ele acabe de carregar.
+  // Canvas parallax — RAF-throttled + frame deduplication + responsive DPR
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
@@ -123,17 +117,21 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const isMobile = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
     const images: (HTMLImageElement | null)[] = new Array(TOTAL_FRAMES).fill(null);
-    const displayedRef = { current: 0 };
+    const displayedRef = { current: -1 };
     const targetRef = { current: 0 };
+    let rafId = 0;
 
     const resize = () => {
-      canvas.width = Math.floor(section.clientWidth * dpr);
-      canvas.height = Math.floor(section.clientHeight * dpr);
-      canvas.style.width = `${section.clientWidth}px`;
-      canvas.style.height = `${section.clientHeight}px`;
-      draw(displayedRef.current);
+      const w = section.clientWidth;
+      const h = section.clientHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      draw(targetRef.current);
     };
 
     const drawCover = (img: HTMLImageElement) => {
@@ -154,10 +152,9 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
     };
 
-    // Desenha o frame mais próximo já carregado (<= idx), para não mostrar
-    // buracos enquanto os frames ainda baixam.
     const draw = (index: number) => {
       const i = Math.max(0, Math.min(TOTAL_FRAMES - 1, index));
+      if (i === displayedRef.current) return;
       const img = images[i];
       if (img && img.complete && img.naturalWidth > 0) {
         drawCover(img);
@@ -178,7 +175,6 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       const im = new Image();
       im.decoding = 'async';
       im.onload = () => {
-        // Só repinta se este frame for exatamente o alvo atual do scroll.
         if (k === targetRef.current) draw(k);
       };
       im.src = frameUrl(k);
@@ -190,72 +186,103 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     drawRef.current = (p: number) => {
       const idx = Math.round(p * (TOTAL_FRAMES - 1));
       targetRef.current = idx;
-      draw(idx);
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => draw(idx));
     };
 
     return () => {
       window.removeEventListener('resize', resize);
       drawRef.current = null;
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 
+  // Scroll-driven updates — RAF-throttled
+  let hyperspeedRaf = 0;
   useMotionValueEvent(progress, 'change', (p) => {
     drawRef.current?.(p);
-    hyperspeedApi.current?.setProgress(p);
-    const straighten = p < 0.78 ? 0 : Math.min(1, (p - 0.78) / 0.17);
-    hyperspeedApi.current?.setStraighten(straighten);
+    if (!hyperspeedRaf) {
+      hyperspeedRaf = requestAnimationFrame(() => {
+        hyperspeedRaf = 0;
+        hyperspeedApi.current?.setProgress(p);
+        const straighten = p < 0.78 ? 0 : Math.min(1, (p - 0.78) / 0.17);
+        hyperspeedApi.current?.setStraighten(straighten);
+      });
+    }
   });
 
   return (
-    <section ref={sectionRef} id="navstrip-origin" className="relative h-[350vh]">
-      <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <motion.div
-            className="absolute inset-0"
-            style={{ opacity: canvasOpacity, pointerEvents: 'none' }}
-          >
-            <canvas ref={canvasRef} id="parallax-canvas" className="absolute inset-0 block h-full w-full" />
-          </motion.div>
-          <motion.div
-            className="absolute inset-0 mix-blend-screen"
-            style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}
-          >
-            <Hyperspeed
-              onReady={handleHyperspeedReady}
-              effectOptions={hyperspeedOptions}
-            />
-          </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/85 pointer-events-none" />
+    <>
+      {/* ── Hero + Parallax + Hyperspeed + Pills (scroll-driven) ── */}
+      <section ref={sectionRef} id="navstrip-origin" className="relative h-[350vh]">
+        <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <motion.div
+              className="absolute inset-0"
+              style={{ opacity: canvasOpacity, pointerEvents: 'none' }}
+            >
+              <canvas ref={canvasRef} id="parallax-canvas" className="absolute inset-0 block h-full w-full" />
+            </motion.div>
+            <motion.div
+              className="absolute inset-0 mix-blend-screen"
+              style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}
+            >
+              <Hyperspeed
+                onReady={handleHyperspeedReady}
+                effectOptions={hyperspeedOptions}
+              />
+            </motion.div>
+            <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/85 pointer-events-none" />
+          </div>
+
+          <HeroSection pillsProgress={progress} />
+          <PillsStack progress={progress} />
         </div>
+      </section>
 
-        <HeroSection pillsProgress={progress} />
-        <PillsStack progress={progress} />
-        <div className="h-2 sm:h-4" />
+      {/* ── NavStrip (separate section, scrolls naturally after hero) ── */}
+      <NavStripSection onLogin={onLogin} />
+    </>
+  );
+}
 
-        <motion.div
-          className="absolute inset-0 z-20 flex items-center justify-center px-4"
-          style={{ opacity: navContainerOpacity }}
-        >
-          <motion.div
-            className="relative w-[min(92vw,560px)] overflow-hidden rounded-[28px] border border-primary/25 px-6 py-6"
-            style={{
-              pointerEvents: navPointer,
-              background:
-                'linear-gradient(180deg, rgba(75,197,255,0.05), rgba(124,58,237,0.05))',
-              boxShadow: '0 0 90px rgba(75,197,255,0.14)',
-            }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 opacity-30"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(90deg, transparent 0 22px, rgba(75,197,255,0.22) 22px 23px)',
-              }}
-            />
-            <NavStrip onLogin={onLogin} />
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
+function NavStripSection({ onLogin }: { onLogin?: () => void }) {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { threshold: 0.15 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={sectionRef} className="relative min-h-[50vh] flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="relative w-[min(92vw,560px)] overflow-hidden rounded-[28px] border border-primary/25 px-6 py-6"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(75,197,255,0.05), rgba(124,58,237,0.05))',
+          boxShadow: '0 0 90px rgba(75,197,255,0.14)',
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(90deg, transparent 0 22px, rgba(75,197,255,0.22) 22px 23px)',
+          }}
+        />
+        <NavStrip onLogin={onLogin} />
+      </motion.div>
+    </div>
   );
 }

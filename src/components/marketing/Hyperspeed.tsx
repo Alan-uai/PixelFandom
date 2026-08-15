@@ -123,8 +123,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             nsin(progress * Math.PI * uFreq.z + time) * uAmp.z -
               nsin(movementProgressFix * Math.PI * uFreq.z + time) * uAmp.z
           );
-          let lookAtAmp = new THREE.Vector3(2, 2, 2);
-          let lookAtOffset = new THREE.Vector3(0, 0, -5);
+          let lookAtAmp = new THREE.Vector3(2, 1, 2);
+          let lookAtOffset = new THREE.Vector3(0, -3, -5);
           return distortion.multiply(lookAtAmp).add(lookAtOffset);
         }
       },
@@ -155,7 +155,7 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             0
           );
           let lookAtAmp = new THREE.Vector3(2, 0.4, 1);
-          let lookAtOffset = new THREE.Vector3(0, 0, -3);
+          let lookAtOffset = new THREE.Vector3(0, -3, -3);
           return distortion.multiply(lookAtAmp).add(lookAtOffset);
         }
       },
@@ -185,8 +185,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
               Math.sin(camProgress * Math.PI * uFreq.y + time) * uAmp.y,
             0
           );
-          let lookAtAmp = new THREE.Vector3(1, 1, 0);
-          let lookAtOffset = new THREE.Vector3(0, 0, -5);
+          let lookAtAmp = new THREE.Vector3(1, 0.5, 0);
+          let lookAtOffset = new THREE.Vector3(0, -3, -5);
           return distortion.multiply(lookAtAmp).add(lookAtOffset);
         }
       },
@@ -236,8 +236,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             getY(progress) - getY(progress + 0.007),
             0
           );
-          let lookAtAmp = new THREE.Vector3(-2, -5, 0);
-          let lookAtOffset = new THREE.Vector3(0, 0, -10);
+          let lookAtAmp = new THREE.Vector3(-2, -1, 0);
+          let lookAtOffset = new THREE.Vector3(0, -4, -8);
           return distortion.multiply(lookAtAmp).add(lookAtOffset);
         }
       },
@@ -341,8 +341,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
             getY(progress) - getY(progress + 0.01),
             0
           );
-          let lookAtAmp = new THREE.Vector3(-2, -4, 0);
-          let lookAtOffset = new THREE.Vector3(0, 0, -10);
+          let lookAtAmp = new THREE.Vector3(-2, -2, 0);
+          let lookAtOffset = new THREE.Vector3(0, -3, -8);
           return distortion.multiply(lookAtAmp).add(lookAtOffset);
         }
       }
@@ -368,7 +368,7 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
 
         this.camera = new THREE.PerspectiveCamera(options.fov, initW / initH, 0.1, 10000);
         this.camera.position.z = -5;
-        this.camera.position.y = 8;
+        this.camera.position.y = 3;
         this.camera.position.x = 0;
         this.scene = new THREE.Scene();
         this.scene.background = null;
@@ -647,32 +647,6 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
       }
     }
 
-    const distortion_uniforms = {
-      uDistortionX: { value: new THREE.Vector2(80, 3) },
-      uDistortionY: { value: new THREE.Vector2(-40, 2.5) }
-    };
-
-    const distortion_vertex = `
-      #define PI 3.14159265358979
-      uniform vec2 uDistortionX;
-      uniform vec2 uDistortionY;
-      float nsin(float val){
-        return sin(val) * 0.5 + 0.5;
-      }
-      vec3 getDistortion(float progress){
-        progress = clamp(progress, 0., 1.);
-        float xAmp = uDistortionX.r;
-        float xFreq = uDistortionX.g;
-        float yAmp = uDistortionY.r;
-        float yFreq = uDistortionY.g;
-        return vec3(
-          xAmp * nsin(progress * PI * xFreq - PI / 2.),
-          yAmp * nsin(progress * PI * yFreq - PI / 2.),
-          0.
-        );
-      }
-    `;
-
     const random = (base) => {
       if (Array.isArray(base)) return Math.random() * (base[1] - base[0]) + base[0];
       return Math.random() * base;
@@ -682,14 +656,6 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
       if (Array.isArray(arr)) return arr[Math.floor(Math.random() * arr.length)];
       return arr;
     };
-
-    function lerp(current, target, speed = 0.1, limit = 0.001) {
-      let change = (target - current) * speed;
-      if (Math.abs(change) < limit) {
-        change = target - current;
-      }
-      return change;
-    }
 
     class CarLights {
       constructor(webgl, options, colors, speed, fade) {
@@ -1023,7 +989,8 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
         };
 
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.x = -Math.PI / 2;
+        mesh.rotation.x = -Math.PI / 2 + 0.15;
+        mesh.position.y = -2;
         mesh.position.z = -options.length / 2;
         mesh.position.x += (this.options.islandWidth / 2 + options.roadWidth / 2) * side;
         this.webgl.scene.add(mesh);

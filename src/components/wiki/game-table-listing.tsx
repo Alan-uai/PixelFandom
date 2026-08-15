@@ -82,7 +82,7 @@ function renderBadgeItem(
   onCompareStatClick?: (statKey: string) => void,
   columnTypes?: Record<string, string>,
   useSuffix?: boolean,
-  columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; labelIcon?: string; labelColor?: string }>,
+  _columnConfig?: Record<string, { maxValue?: number; jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>; labelIcon?: string; labelColor?: string }>,
 ): React.ReactNode {
   const val = item[col];
   if (val == null || val === '' || val === 'none') return null;
@@ -1519,6 +1519,7 @@ function ItemAccordionBox({
   cardConfig,
   detailConfig,
   columnTypes,
+  sharedLevel,
   onCompareStatClick,
 }: {
   item: any;
@@ -1533,6 +1534,7 @@ function ItemAccordionBox({
   cardConfig?: Record<string, any>;
   detailConfig?: Record<string, any>;
   columnTypes?: Record<string, string>;
+  sharedLevel?: number;
   onCompareStatClick: (statKey: string) => void;
 }) {
   const [expanded, setExpanded] = useState(detailConfig?.defaultExpanded === true);
@@ -1604,6 +1606,7 @@ function ItemAccordionBox({
               onCompareStatClick={onCompareStatClick as any}
               detailConfig={detailConfig}
               columnTypes={columnTypes}
+              baseXmaxLevel={sharedLevel}
             />
           ) : null}
         </div>
@@ -1822,7 +1825,6 @@ function ItemCard({
       const t = Math.min(Math.max(Math.round(sharedLevel), 1), bxTiers);
       setBxTier(t);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedLevel, bxTiers]);
 
   const label = getItemName(item);
@@ -1869,13 +1871,11 @@ function ItemCard({
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const animsOn = useAnimationsEnabled();
-  const prefersReduced = () => !animsOn;
-
   // beamPending holds the direction until FLIP animation completes
   const [beamPending, setBeamPending] = useState<'ltr' | 'rtl' | null>(null);
 
   const triggerTransition = useCallback((direction: 'ltr' | 'rtl') => {
-    if (prefersReduced()) {
+    if (!animsOn) {
       setVariationKey((k) => k + 1);
       return;
     }
@@ -1883,7 +1883,7 @@ function ItemCard({
     // Beam will be activated by onFlipComplete after FLIP finishes
     setBeamPending(direction);
     setVariationKey((k) => k + 1);
-  }, []);
+  }, [animsOn]);
 
   // Called by MiniCardsSection when FLIP animation completes
   const handleFlipComplete = useCallback(() => {

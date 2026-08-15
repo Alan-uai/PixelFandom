@@ -1031,7 +1031,7 @@ function renderSlider(v: number, val: unknown, label: string, labelColor?: strin
 }
 
 // ── tags ──────────────────────────────────────────────────
-function renderTags(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
+function renderTags(v: number, val: unknown, label: string, labelColor?: string, _trigger?: string) {
   const arr: string[] = [];
   if (Array.isArray(val)) {
     arr.push(...val.map(String));
@@ -1185,7 +1185,7 @@ function renderBoolean(v: number, val: unknown, label: string, labelColor?: stri
 }
 
 // ── date ──────────────────────────────────────────────────
-function renderDate(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
+function renderDate(v: number, val: unknown, label: string, labelColor?: string, _trigger?: string) {
   const d = new Date(val as string);
   const valid = !isNaN(d.getTime());
 
@@ -1242,7 +1242,7 @@ function renderDate(v: number, val: unknown, label: string, labelColor?: string,
 }
 
 // ── duration ──────────────────────────────────────────────
-function renderDuration(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
+function renderDuration(v: number, val: unknown, label: string, labelColor?: string, _trigger?: string) {
   const str = String(val ?? '');
   let display = str;
   if (/^\d{1,4}(:\d{2}){0,3}$/.test(str)) {
@@ -1299,7 +1299,7 @@ function renderDuration(v: number, val: unknown, label: string, labelColor?: str
 }
 
 // ── file ──────────────────────────────────────────────────
-function renderFile(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
+function renderFile(v: number, str: string, label: string, labelColor?: string, _trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
   const filename = str.split('/').pop() || str;
 
@@ -1373,7 +1373,7 @@ function renderFile(v: number, str: string, label: string, labelColor?: string, 
 }
 
 // ── video ─────────────────────────────────────────────────
-function renderVideo(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
+function renderVideo(v: number, str: string, label: string, labelColor?: string, _trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
@@ -1452,7 +1452,7 @@ function renderVideo(v: number, str: string, label: string, labelColor?: string,
 }
 
 // ── audio ─────────────────────────────────────────────────
-function renderAudio(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
+function renderAudio(v: number, str: string, label: string, labelColor?: string, _trigger?: string) {
   const isValid = str.startsWith('http://') || str.startsWith('https://');
 
   if (v === 2) {
@@ -1532,7 +1532,7 @@ function renderAudio(v: number, str: string, label: string, labelColor?: string,
 }
 
 // ── emoji ─────────────────────────────────────────────────
-function renderEmoji(v: number, str: string, label: string, labelColor?: string, trigger?: string) {
+function renderEmoji(v: number, str: string, label: string, labelColor?: string, _trigger?: string) {
   if (v === 2) {
     return (
       <Row label={label} labelColor={labelColor}>
@@ -1574,7 +1574,7 @@ function renderEmoji(v: number, str: string, label: string, labelColor?: string,
 }
 
 // ── icon-set ──────────────────────────────────────────────
-function renderIconSet(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
+function renderIconSet(v: number, val: unknown, label: string, labelColor?: string, _trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
@@ -1637,7 +1637,7 @@ function renderIconSet(v: number, val: unknown, label: string, labelColor?: stri
 }
 
 // ── color-palette ─────────────────────────────────────────
-function renderColorPalette(v: number, val: unknown, label: string, labelColor?: string, trigger?: string) {
+function renderColorPalette(v: number, val: unknown, label: string, labelColor?: string, _trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
   if (v === 2) {
@@ -1700,7 +1700,7 @@ function renderColorPalette(v: number, val: unknown, label: string, labelColor?:
 }
 
 // ── multi-select ──────────────────────────────────────────
-function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>, allowedValues?: AllowedValue[], trigger?: string) {
+function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: string, valueColors?: Record<string, string>, allowedValues?: AllowedValue[], _trigger?: string) {
   const arr = Array.isArray(val) ? val : typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return [val]; } })() : [];
   if (!Array.isArray(arr)) return null;
 
@@ -1777,7 +1777,7 @@ function renderMultiSelect(v: number, val: unknown, label: string, labelColor?: 
 }
 
 // ── select (single value with allowedValues) ──────────────
-function renderSelect(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, trigger?: string) {
+function renderSelect(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, _trigger?: string) {
   const av = findAllowed(allowedValues, str);
   const displayLabel = av?.label || str;
   const color = av?.color || valueColors?.[str];
@@ -1844,7 +1844,7 @@ function renderSelect(v: number, str: string, label: string, labelColor?: string
 }
 
 // ── toggle-group ──────────────────────────────────────────
-function renderToggleGroup(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, trigger?: string) {
+function renderToggleGroup(v: number, str: string, label: string, labelColor?: string, allowedValues?: AllowedValue[], valueColors?: Record<string, string>, _trigger?: string) {
   const av = findAllowed(allowedValues, str);
   const displayLabel = av?.label || str;
   const color = av?.color || valueColors?.[str];

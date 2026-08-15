@@ -502,9 +502,12 @@ type Props = {
   chipWrap?: boolean;
   columnTypes?: Record<string, string>;
   detailConfig?: DetailConfig;
+  // Shared/table-level tier pushed down from the listing's ElasticSlider3D so the
+  // item view's scalar status stays in sync with the table slider.
+  baseXmaxLevel?: number;
 };
 
-export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig }: Props) {
+export default function CollectionItemView({ data, collectionType, updatedAt, createdAt, tenantId, tenantSlug, sourceTable, comparisonMode = 'modal', schema, hideHeader, onCompareStatClick, useSuffix, chipWrap, columnTypes, detailConfig, baseXmaxLevel }: Props) {
   const table = sourceTable || 'generic';
 
   ensureVariant3DKeyframes();
@@ -704,7 +707,9 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       ? detailConfig.visibleColumns
       : ((detailConfig as any)?.card?.visibleColumns || [])
   ) as string[];
-  const visibleColumnsSet = effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null;
+  // visibleColumnsSet is derived further below once bxActive is known (we surface
+  // every stat column when baseXmax is active so the scalar slider layers on top
+  // of the existing stats instead of replacing them).
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
   const columnOpEnabled = detailConfig?.columnOpEnabled || {};
@@ -730,40 +735,59 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     formula: scalingFormula,
   };
 
-  // Two distinct baseXmax configs exist:
-  //  • `baseXmaxRaw` (top-level) → JSONB column-range config consumed by
-  //    BaseMaxValueNode for the scalar "base → max" display (config #1).
-  //  • `card.baseXmax` → the slider config (mode off/item/table/ambos,
-  //    levelColumn, tiers, axisMin/Max) that drives the footer/table sliders
-  //    (config #2). detailConfig may be the full config OR the card-level
-  //    config, so resolve the card layer first.
+  // Two distinct baseXmax configs exist in the viewer schema:
+  //  • top-level `baseXmax` (config #1) → scalar JSONB column-range config
+  //    (enabled, axisMin/Max, mode continuous/tiers) consumed by BaseMaxValueNode.
+  //  • `card.baseXmax` (config #2) → the slider config (mode off/item/table/ambos,
+  //    levelColumn, tiers, axisMin/Max) that drives the footer/table sliders.
+  // detailConfig may be the full config (detail page) OR the card-level config
+  // (listing item view), so resolve the card layer first. baseXmax is "active"
+  // when EITHER config is on — the footer scalar slider must render either way.
   const cardLayer = (detailConfig as any)?.card ?? detailConfig;
-  const sliderRaw = (cardLayer as any)?.baseXmax;
-  const baseXmaxRaw = (detailConfig as any)?.baseXmax;
+  const sliderRaw = (cardLayer as any)?.baseXmax; // config #2 (slider)
+  const scalarRaw = (detailConfig as any)?.baseXmax; // config #1 (scalar range)
   const sliderMode = sliderRaw?.mode || 'off';
   const sliderEnabled = sliderMode !== 'off';
-  const sliderTiers = Math.max(1, Number(sliderRaw?.tiers) || 12);
-  const sliderAxisMin = Number(sliderRaw?.axisMin) || 1;
-  const sliderAxisMax = Number(sliderRaw?.axisMax) || 100;
-  const sliderLevelColumn = sliderRaw?.levelColumn as string | undefined;
-  const sliderAxisLabel = sliderRaw?.axisLabel ?? 'Nível';
+  const bxActive = sliderEnabled || scalarRaw?.enabled === true || sliderRaw?.enabled === true;
+  const sliderTiers = Math.max(1, Number(sliderRaw?.tiers ?? scalarRaw?.tiers) || 12);
+  const sliderAxisMin = Number(sliderRaw?.axisMin ?? scalarRaw?.axisMin) || 1;
+  const sliderAxisMax = Number(sliderRaw?.axisMax ?? scalarRaw?.axisMax) || 100;
+  const sliderLevelColumn = (sliderRaw?.levelColumn as string | undefined) ?? (scalarRaw?.levelColumn as string | undefined);
+  const sliderAxisLabel = sliderRaw?.axisLabel ?? scalarRaw?.axisLabel ?? 'Nível';
   const baseXmaxInfo: BaseXmaxConfig = {
-    enabled: baseXmaxRaw?.enabled === true,
-    axisLabel: baseXmaxRaw?.axisLabel ?? 'Nível',
-    axisMin: Number(baseXmaxRaw?.axisMin) || 1,
-    axisMax: Number(baseXmaxRaw?.axisMax) || 100,
-    step: baseXmaxRaw?.step ?? 1,
-    defaultValue: baseXmaxRaw?.defaultValue,
-    mode: baseXmaxRaw?.mode ?? 'continuous',
-    showPerCardSlider: baseXmaxRaw?.showPerCardSlider === true,
-    tiers: Number(baseXmaxRaw?.tiers) || 12,
+    enabled: bxActive,
+    axisLabel: sliderAxisLabel,
+    axisMin: sliderAxisMin,
+    axisMax: sliderAxisMax,
+    step: sliderRaw?.step ?? scalarRaw?.step ?? 1,
+    defaultValue: sliderRaw?.defaultValue ?? scalarRaw?.defaultValue,
+    mode: scalarRaw?.mode === 'tiers' ? 'tiers' : 'continuous',
+    showPerCardSlider: sliderEnabled,
+    renderMode: (sliderRaw?.mode as BaseXmaxConfig['renderMode']) || 'off',
+    levelColumn: sliderLevelColumn,
+    tiers: sliderTiers,
   };
 
+  // When baseXmax is active, surface ALL stat columns (the scalar slider is a tier
+  // selector layered on top of existing stats, not a replacement column).
+  const visibleColumnsSet = bxActive ? null : (effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null);
+
   const [bxTier, setBxTier] = useState<number>(() => {
-    const v = sliderLevelColumn ? Number(activeData?.[sliderLevelColumn]) : (sliderRaw?.defaultValue != null ? Number(sliderRaw.defaultValue) : 1);
+    const v =
+      baseXmaxLevel != null
+        ? baseXmaxLevel
+        : sliderLevelColumn
+          ? Number(activeData?.[sliderLevelColumn])
+          : (sliderRaw?.defaultValue != null ? Number(sliderRaw.defaultValue) : 1);
     if (!Number.isFinite(v)) return 1;
     return Math.min(Math.max(Math.round(v), 1), sliderTiers);
   });
+  // Keep the tier in sync with the shared/table-level slider pushed from the listing.
+  useEffect(() => {
+    if (baseXmaxLevel != null) {
+      setBxTier(Math.min(Math.max(Math.round(baseXmaxLevel), 1), sliderTiers));
+    }
+  }, [baseXmaxLevel, sliderTiers]);
   const bxStatus = baseXmaxStatusAtTier(sliderAxisMin, sliderAxisMax, sliderTiers, bxTier);
 
   const handleStatClick = (statKey: string) => {
@@ -922,7 +946,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             prevRow={prevRow}
           />
 
-          {sliderEnabled && (
+          {bxActive && (
             <div className="bg-card/50 rounded-xl border p-4 mt-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">

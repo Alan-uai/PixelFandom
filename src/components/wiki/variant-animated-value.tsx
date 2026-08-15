@@ -165,7 +165,6 @@ function useScramble(text: string, trigger: number, enabled: boolean): string {
    current display state (live same-mount updates). Very large deltas are
    capped in duration and step wider so the count never stalls. */
 
-const STEP_MS = 26;
 const MAX_COUNT_MS = 2000;
 
 function useCounter(value: number, trigger: number, enabled: boolean, fromValue?: number): number {

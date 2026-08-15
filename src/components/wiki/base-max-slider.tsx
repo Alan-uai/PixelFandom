@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { ScaledValue, useBaseXmaxConfig, useBaseXmaxLevel } from '@/lib/scaling-context';
+import { ScaledValue, useBaseXmaxConfig } from '@/lib/scaling-context';
 import { axisValueToRatio } from '@/lib/scaling-engine';
 import type { BaseMaxValue } from '@/lib/scaling-engine';
 
@@ -68,7 +68,7 @@ export function BaseMaxSlider({
  * interactive elastic slider. Consumes BaseXmaxContext for axis + slider config
  * and BaseXmaxLevelContext for the per-row / shared level position.
  */
-export function BaseMaxValueNode({ value, fallbackAxisLabel }: { value: BaseMaxValue; fallbackAxisLabel?: string }) {
+export function BaseMaxValueNode({ value }: { value: BaseMaxValue }) {
   const bx = useBaseXmaxConfig();
 
   // When the viewer enables a footer elastic slider (item / ambos / table mode),

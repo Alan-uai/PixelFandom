@@ -1,6 +1,5 @@
 // AUTO-GENERATED offline Iconify icon data. Do not edit by hand.
 // Generated from src/data/icons.ts + src/lib/table-icons.tsx (see tooling).
-// eslint-disable-next-line
 export interface OfflineIconBody {
   body: string;
   width?: number;

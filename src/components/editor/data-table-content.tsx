@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { MotionConfig } from 'framer-motion';
+import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { inferPrimaryColumns } from '@/lib/game-schema';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -54,9 +53,9 @@ import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType } from '@/l
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
-import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
-import type { AllowedValue } from '@/components/wiki/format-variant-renderer';
-import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
+import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import { formatNumber } from '@/lib/format-number';
+import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { useItemVariants } from '@/hooks/use-item-variants';
 
 const tableLabels: Record<string, string> = {
@@ -129,6 +128,145 @@ interface ColumnConfigEntry {
   maxSelect?: number;
   restrictToValues?: boolean;
   dependentField?: string;
+}
+
+/**
+ * Formata um valor de coluna de forma elegante e INLINE (sem wrapper de card /
+ * variante3D). Usado tanto na visualização compacta do card do editor quanto
+ * como valor interno dos mini-cards da pré-visualização (bento grid).
+ *  - boolean      → pílula Sim/Não colorida
+ *  - array        → TAGs inline, uma ao lado da outra
+ *  - jsonb objeto → popover/tooltip: só o título; demais: pares chave: valor
+ *  - number       → formatado (formatNumber)
+ *  - select       → rótulo/ cor do allowedValues quando houver
+ */
+function renderInlineValue(val: unknown, cfg?: ColumnConfigEntry): ReactNode {
+  if (val === null || val === undefined || val === '') return null;
+
+  if (typeof val === 'boolean') {
+    return (
+      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${val ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+        {val ? 'Sim' : 'Não'}
+      </span>
+    );
+  }
+
+  if (Array.isArray(val)) {
+    if (val.length === 0) return null;
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        {val.map((item, i) => {
+          const s = typeof item === 'object' && item !== null ? JSON.stringify(item) : String(item);
+          const color = cfg?.valueColors?.[s];
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-primary/10 border-primary/30 text-primary"
+              style={color ? { color, borderColor: `${color}55`, backgroundColor: `${color}1a` } : undefined}
+            >
+              {s}
+            </span>
+          );
+        })}
+      </span>
+    );
+  }
+
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    // Popover / tooltip → apenas o título
+    const title = obj.title ?? obj.label ?? obj.name ?? obj.text ?? obj.tooltip;
+    if (title != null && typeof title === 'string' && title !== '') {
+      return <span className="text-sm text-foreground">{title}</span>;
+    }
+    const parts = Object.entries(obj)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    if (parts.length === 0) return null;
+    return <span className="text-xs text-muted-foreground font-mono">{parts.join(' · ')}</span>;
+  }
+
+  if (typeof val === 'number') {
+    return <span className="text-sm font-mono text-foreground">{formatNumber(val, false)}</span>;
+  }
+
+  const s = String(val);
+  const allowed = cfg?.allowedValues?.find((a) => a.value === s);
+  const color = allowed && typeof allowed.color === 'string' ? allowed.color : cfg?.valueColors?.[s];
+  const label = allowed && typeof allowed.label === 'string' ? allowed.label : s;
+  if (color) {
+    return <span className="text-sm" style={{ color }}>{label}</span>;
+  }
+  return <span className="text-sm text-foreground">{label}</span>;
+}
+
+/**
+ * Pré-visualização do card do editor reproduzindo o layout bento-box da Wiki:
+ * cada coluna vira um MiniCard3D dentro de um MiniCardGrid (bento). Clicar em
+ * qualquer mini-card dispara a animação de transição de variantes (flip + feixe)
+ * para que o editor possa prever o efeito.
+ */
+function EditorPreviewCard({
+  columns,
+  currentRow,
+  columnConfigMap,
+}: {
+  columns: string[];
+  currentRow: Row;
+  columnConfigMap: Record<string, ColumnConfigEntry>;
+}) {
+  const animsOn = useAnimationsEnabled();
+  const [trigger, setTrigger] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
+  const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const runTransition = () => {
+    if (!animsOn) return;
+    setBeamDir((d) => (d === 'ltr' ? 'rtl' : 'ltr'));
+    setTrigger((t) => t + 1);
+    setTransitioning(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setTransitioning(false), 1000);
+  };
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl border border-primary/30 bg-card/60 p-4 space-y-3 ${transitioning ? 'variant-3d-transition variant-3d-flip-in' : ''}`}
+      data-beam={transitioning ? beamDir : undefined}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-medium text-primary/80">
+        <Eye className="h-3 w-3" /> Pré-visualização — como aparece na Wiki
+      </div>
+      {transitioning && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'}`}
+          style={{ transform: 'rotate(18deg)' }}
+        />
+      )}
+      <MiniCardGrid trigger={trigger} columnWidth={150} gap={8}>
+        {columns.map((col) => {
+          const val = currentRow[col];
+          if (val === null || val === undefined || val === '') return null;
+          const cfg = columnConfigMap[col];
+          const colDispName = cfg?.displayName;
+          const icon = cfg?.labelIcon ? <IconRenderer icon={cfg.labelIcon} size="sm" /> : undefined;
+          return (
+            <MiniCard3D
+              key={col}
+              label={colDispName || col.replace(/_/g, ' ')}
+              icon={icon}
+              onClick={runTransition}
+              value={renderInlineValue(val, cfg)}
+            />
+          );
+        })}
+      </MiniCardGrid>
+    </div>
+  );
 }
 
 export default function DataTableContent({
@@ -552,16 +690,6 @@ export default function DataTableContent({
 
   function getColumnDataType(col: string, columns: { column_name: string; data_type: string }[] | null): string | undefined {
     return columns?.find((c) => c.column_name === col)?.data_type;
-  }
-
-  // Effective render type: falls back to 'jsonb' for known JSON column names
-  // (e.g. effects) when the viewer_config has no explicit mapping, so the
-  // value is rendered as structured JSON instead of disappearing from the card.
-  function getEffectiveRenderType(col: string): string | undefined {
-    const mapped = getColumnRenderType(col);
-    if (mapped) return mapped;
-    if (JSON_COLUMN_NAMES.includes(col)) return 'jsonb';
-    return undefined;
   }
 
   const isDateColumn = (col: string, dataType?: string): boolean => {
@@ -1727,34 +1855,7 @@ export default function DataTableContent({
                 }
               >
                  {showPreview ? (
-                   <div className="rounded-xl border border-primary/30 bg-card/60 p-4 space-y-3">
-                     <div className="flex items-center gap-1.5 text-xs font-medium text-primary/80">
-                       <Eye className="h-3 w-3" /> Pré-visualização — como aparece na Wiki
-                     </div>
-                     <div className="space-y-3">
-                       {detailColumns.map((col) => {
-                         const val = currentRow[col];
-                         if (val === null || val === undefined || val === '') return null;
-                         const renderType = getEffectiveRenderType(col);
-                         const fmt = getDefaultFormat(renderType || 'text');
-                         const colDispName = columnConfigMap[col]?.displayName;
-                         const cfg = columnConfigMap[col];
-                         return (
-                           <FormatVariantRenderer
-                             key={col}
-                             format={fmt}
-                             variant={1}
-                             value={val}
-                             label={colDispName || col}
-                             maxValue={cfg?.maxValue}
-                             valueColors={cfg?.valueColors}
-                             allowedValues={cfg?.allowedValues as AllowedValue[] | undefined}
-                             labelColor={cfg?.labelColor}
-                           />
-                         );
-                       })}
-                     </div>
-                   </div>
+                   <EditorPreviewCard columns={detailColumns} currentRow={currentRow} columnConfigMap={columnConfigMap} />
                  ) : isEditing ? (
                    <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
@@ -1963,10 +2064,9 @@ export default function DataTableContent({
                       const val = currentRow[col];
                       if (val === null || val === undefined || val === '') return null;
                       const colDispName = columnConfigMap[col]?.displayName;
-                      const display = typeof val === 'object' ? JSON.stringify(val) : String(val);
                       return (
-                        <div key={col} className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px] flex items-center gap-1">
+                        <div key={col} className="flex items-start gap-2">
+                          <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px] flex items-center gap-1 pt-1">
                             {!isMediaColumn(col) && columnConfigMap[col]?.labelIcon && (
                               <IconRenderer icon={columnConfigMap[col]!.labelIcon!} size="sm" />
                             )}
@@ -1974,7 +2074,7 @@ export default function DataTableContent({
                               {colDispName || col.replace(/_/g, ' ')}
                             </span>
                           </span>
-                          <span className="text-sm text-foreground truncate font-mono">{display}</span>
+                          <span className="text-sm text-foreground min-w-0 flex-1">{renderInlineValue(val, columnConfigMap[col])}</span>
                         </div>
                       );
                     })}
