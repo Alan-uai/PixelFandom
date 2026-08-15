@@ -33,7 +33,7 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig } from '@/lib/scaling-context';
+import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier } from '@/lib/scaling-context';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
@@ -270,6 +270,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     showPerCardSlider: baseXmaxMode === 'item' || baseXmaxMode === 'ambos',
     renderMode: baseXmaxMode as BaseXmaxConfig['renderMode'],
     levelColumn: baseXmaxRaw.levelColumn || undefined,
+    tiers: Number(baseXmaxRaw.tiers) || 12,
   };
   const [tableLevel, setTableLevel] = useState<number>(
     baseXmaxInfo.defaultValue ?? baseXmaxInfo.axisMin,
@@ -1797,6 +1798,32 @@ function ItemCard({
         ? Number(item?.[bxLevelColumn])
         : undefined;
 
+  // ── Base → Max (baseXmax) footer slider ──────────────────────
+  // The interactive elastic slider lives in the card footer (accordion layout)
+  // or in collection-item-view. It sweeps N tiers across [axisMin, axisMax]
+  // and shows the interpolated status for the active tier.
+  const bxRaw = (cardConfig?.baseXmax as Record<string, any> | undefined) || {};
+  const bxMode = bxRaw.mode || 'off';
+  const bxFooterActive = bxMode === 'item' || bxMode === 'ambos';
+  const bxTiers = Math.max(1, Number(bxRaw.tiers) || 12);
+  const bxAxisMin = Number(bxRaw.axisMin) || 1;
+  const bxAxisMax = Number(bxRaw.axisMax) || 100;
+  const bxAxisLabel = bxRaw.axisLabel || 'Nível';
+  const [bxTier, setBxTier] = useState<number>(() => {
+    const v = bxLevelColumn ? Number(item?.[bxLevelColumn]) : (bxRaw.defaultValue != null ? Number(bxRaw.defaultValue) : 1);
+    if (!Number.isFinite(v)) return 1;
+    return Math.min(Math.max(Math.round(v), 1), bxTiers);
+  });
+  const bxStatus = baseXmaxStatusAtTier(bxAxisMin, bxAxisMax, bxTiers, bxTier);
+  // Keep the tier in sync if the parent shared level (table mode) changes.
+  useEffect(() => {
+    if (sharedLevel != null) {
+      const t = Math.min(Math.max(Math.round(sharedLevel), 1), bxTiers);
+      setBxTier(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedLevel, bxTiers]);
+
   const label = getItemName(item);
   const itemSlug = item.slug || toSlug(String(label));
 
@@ -2065,6 +2092,30 @@ function ItemCard({
           variationKey={variationKey}
           onAnimationComplete={handleFlipComplete}
         />
+        {bxFooterActive && cardConfig?.layout === 'accordion' && (
+          <div className="mt-3 bg-card/50 rounded-xl border p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {bxAxisLabel}
+              </span>
+              <span className="text-sm font-mono text-primary font-bold">
+                {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <ElasticSlider3D
+              startingValue={1}
+              maxValue={bxTiers}
+              defaultValue={bxTier}
+              isStepped
+              stepSize={1}
+              showValue={false}
+              onValueChange={(v) => setBxTier(Math.round(v))}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Tier {bxTier} / {bxTiers} — {bxAxisMin} → {bxAxisMax}
+            </p>
+          </div>
+        )}
         {!tenantId && (
           <p className="text-sm text-muted-foreground">{activeItem.description || ''}</p>
         )}

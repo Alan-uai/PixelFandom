@@ -3,14 +3,16 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/supabase';
 import type { Tenant } from '@/supabase/client';
-import ParallaxHero from '@/components/marketing/parallax-hero';
+import HeroPillsStory from '@/components/marketing/hero-pills-story';
 import StatBar from '@/components/marketing/stat-bar';
 import SearchSection from '@/components/marketing/search-section';
 import WikisSphere from '@/components/marketing/wikis-sphere';
 import Footer from '@/components/marketing/footer';
 import ScrollRevealWrapper from '@/components/marketing/scroll-reveal-wrapper';
+import { useAuthDialog } from '@/context/auth-dialog-context';
 
 export default function Home() {
+  const { openAuth } = useAuthDialog();
   const [wikis, setWikis] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <ParallaxHero />
+      <HeroPillsStory onLogin={openAuth} />
 
       <ScrollRevealWrapper id="section-carousel">
         <section className="min-h-screen flex flex-col items-center justify-center">

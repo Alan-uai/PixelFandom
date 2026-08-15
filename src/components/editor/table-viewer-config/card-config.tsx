@@ -507,6 +507,20 @@ export function CardConfig({
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1">
+                  <Label className="text-[10px] text-muted-foreground">Níveis / Tiers</Label>
+                  <Input
+                    type="number"
+                    value={baseXmax.tiers ?? 12}
+                    onChange={(e) => setBaseXmax({ tiers: Math.max(1, Math.min(1000, Number(e.target.value) || 12)) })}
+                    className="h-6 text-[10px]"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground max-w-[140px]">
+                  Divide o intervalo [{baseXmax.axisMin ?? 1}–{baseXmax.axisMax ?? 100}] em passos iguais.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
                   <Label className="text-[10px] text-muted-foreground">Valor inicial</Label>
                   <Input
                     type="number"

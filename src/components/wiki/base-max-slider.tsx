@@ -70,18 +70,15 @@ export function BaseMaxSlider({
  */
 export function BaseMaxValueNode({ value, fallbackAxisLabel }: { value: BaseMaxValue; fallbackAxisLabel?: string }) {
   const bx = useBaseXmaxConfig();
-  const lvl = useBaseXmaxLevel();
 
-  if (bx?.enabled && bx.showPerCardSlider) {
+  // When the viewer enables a footer elastic slider (item / ambos / table mode),
+  // the interactive control lives in the card footer / collection-item-view.
+  // Inside the mini-card we only show the starting (base) status — never "base → max".
+  if (bx?.enabled) {
     return (
-      <BaseMaxSlider
-        value={value}
-        axisMin={bx.axisMin}
-        axisMax={bx.axisMax}
-        axisLabel={bx.axisLabel || value.axis || fallbackAxisLabel}
-        defaultValue={bx.defaultValue}
-        levelValue={lvl?.levelValue}
-      />
+      <span className="font-mono text-sm font-medium text-foreground">
+        {value.base}
+      </span>
     );
   }
 

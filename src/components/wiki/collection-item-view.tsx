@@ -21,7 +21,7 @@ import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
-import { ScalingContext, BaseXmaxContext, type ScalingInfo, type BaseXmaxConfig } from '@/lib/scaling-context';
+import { ScalingContext, BaseXmaxContext, type ScalingInfo, type BaseXmaxConfig, baseXmaxStatusAtTier } from '@/lib/scaling-context';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
@@ -724,16 +724,30 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   };
 
   const baseXmaxRaw = (detailConfig as any)?.baseXmax;
+  const baseXmaxMode = baseXmaxRaw?.mode || 'off';
+  const baseXmaxEnabled = baseXmaxMode !== 'off';
+  const baseXmaxTiers = Math.max(1, Number(baseXmaxRaw?.tiers) || 12);
+  const baseXmaxAxisMin = Number(baseXmaxRaw?.axisMin) || 1;
+  const baseXmaxAxisMax = Number(baseXmaxRaw?.axisMax) || 100;
+  const baseXmaxLevelColumn = baseXmaxRaw?.levelColumn as string | undefined;
   const baseXmaxInfo: BaseXmaxConfig = {
-    enabled: baseXmaxRaw?.enabled === true,
+    enabled: baseXmaxEnabled,
     axisLabel: baseXmaxRaw?.axisLabel ?? 'Nível',
-    axisMin: baseXmaxRaw?.axisMin ?? 1,
-    axisMax: baseXmaxRaw?.axisMax ?? 100,
+    axisMin: baseXmaxAxisMin,
+    axisMax: baseXmaxAxisMax,
     step: baseXmaxRaw?.step ?? 1,
     defaultValue: baseXmaxRaw?.defaultValue,
     mode: baseXmaxRaw?.mode ?? 'continuous',
     showPerCardSlider: baseXmaxRaw?.showPerCardSlider === true,
+    tiers: baseXmaxTiers,
   };
+
+  const [bxTier, setBxTier] = useState<number>(() => {
+    const v = baseXmaxLevelColumn ? Number(activeData?.[baseXmaxLevelColumn]) : (baseXmaxRaw?.defaultValue != null ? Number(baseXmaxRaw.defaultValue) : 1);
+    if (!Number.isFinite(v)) return 1;
+    return Math.min(Math.max(Math.round(v), 1), baseXmaxTiers);
+  });
+  const bxStatus = baseXmaxStatusAtTier(baseXmaxAxisMin, baseXmaxAxisMax, baseXmaxTiers, bxTier);
 
   const handleStatClick = (statKey: string) => {
     if (!showComparisonEnabled) return;
@@ -868,30 +882,55 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       <div className={`${!prefersReduced() && transitioning ? 'variant-content-expand' : ''}`}
         style={{ perspective: 600 }}
       >
-        <RenderTypeFields
-          data={activeData}
-          columnTypes={columnTypes || {}}
-          columnFormats={columnFormats}
-          formatVariants={formatVariants}
-          columnOpEnabled={columnOpEnabled}
-          columnOpFlipped={columnOpFlipped}
-          rendered={rendered}
-          visibleColumnsSet={visibleColumnsSet}
-          schema={schema}
-          tenantId={tenantId}
-          tenantSlug={tenantSlug}
-          table={table}
-          comparisonMode={comparisonMode}
-          onStatClick={handleStatClick}
-          chipWrap={chipWrap}
-          columnOrder={detailConfig?.columnOrder}
-          useSuffix={useSuffix}
-          columnConfig={columnConfig}
-          variantTrigger={variantTrigger}
-          prevRow={prevRow}
-        />
+          <RenderTypeFields
+            data={activeData}
+            columnTypes={columnTypes || {}}
+            columnFormats={columnFormats}
+            formatVariants={formatVariants}
+            columnOpEnabled={columnOpEnabled}
+            columnOpFlipped={columnOpFlipped}
+            rendered={rendered}
+            visibleColumnsSet={visibleColumnsSet}
+            schema={schema}
+            tenantId={tenantId}
+            tenantSlug={tenantSlug}
+            table={table}
+            comparisonMode={comparisonMode}
+            onStatClick={handleStatClick}
+            chipWrap={chipWrap}
+            columnOrder={detailConfig?.columnOrder}
+            useSuffix={useSuffix}
+            columnConfig={columnConfig}
+            variantTrigger={variantTrigger}
+            prevRow={prevRow}
+          />
 
-        {/* Footer */}
+          {baseXmaxEnabled && (
+            <div className="bg-card/50 rounded-xl border p-4 mt-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {baseXmaxRaw?.axisLabel || 'Nível'}
+                </span>
+                <span className="text-sm font-mono text-primary font-bold">
+                  {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <ElasticSlider3D
+                startingValue={1}
+                maxValue={baseXmaxTiers}
+                defaultValue={bxTier}
+                isStepped
+                stepSize={1}
+                showValue={false}
+                onValueChange={(v) => setBxTier(Math.round(v))}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Tier {bxTier} / {baseXmaxTiers} — {baseXmaxAxisMin} → {baseXmaxAxisMax}
+              </p>
+            </div>
+          )}
+
+          {/* Footer */}
         <div className="mt-8 pt-4 border-t border-border space-y-3">
           {(updatedAt || createdAt) && (
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">

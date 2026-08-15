@@ -127,6 +127,8 @@ export const ViewerConfigSchema = z.object({
       axisMax: z.number().optional(),
       step: z.number().optional(),
       defaultValue: z.number().optional(),
+      /** Number of levels/tiers the axis range is divided into (drives the slider steps). */
+      tiers: z.number().int().min(1).max(1000).optional(),
     }).optional(),
   }).optional(),
   search: z.object({

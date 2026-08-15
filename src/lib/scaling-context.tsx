@@ -44,6 +44,26 @@ export interface BaseXmaxConfig {
   renderMode?: 'off' | 'item' | 'table' | 'ambos';
   /** Column whose value drives the base/max slider (e.g. level / Max Copies). */
   levelColumn?: string;
+  /** Number of levels/tiers the [axisMin, axisMax] range is divided into. */
+  tiers?: number;
+}
+
+/**
+ * Interpolates the displayed status for a given tier index across the
+ * [axisMin, axisMax] axis split into `tiers` equal levels.
+ *
+ * tier 1 → axisMin (base), tier `tiers` → axisMax (max). Linear between.
+ */
+export function baseXmaxStatusAtTier(
+  axisMin: number,
+  axisMax: number,
+  tiers: number,
+  tier: number,
+): number {
+  const N = Math.max(1, Math.floor(tiers));
+  if (N <= 1) return axisMax;
+  const t = Math.min(Math.max(Math.round(tier), 1), N);
+  return axisMin + ((t - 1) / (N - 1)) * (axisMax - axisMin);
 }
 
 export const DEFAULT_BASEXMAX: BaseXmaxConfig = {

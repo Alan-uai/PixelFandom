@@ -1,11 +1,20 @@
 'use client';
 
-import { useRef, useState, useMemo, useCallback, type ComponentType, type CSSProperties } from 'react';
-import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { useRef, useMemo, useCallback, useEffect, type ComponentType, type CSSProperties } from 'react';
+import { motion, useTransform, useMotionValue, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { Sparkles, Cpu, LayoutGrid, Globe, Layout } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollSmoother } from 'gsap/ScrollSmoother';
 import HeroSection from './hero-section';
 import NavStrip from './nav-strip';
 import Hyperspeed from './Hyperspeed';
+
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+
+const TOTAL_FRAMES = 123;
+const FRAME_BASE = '/parallax/frame_';
+const frameUrl = (i: number) => `${FRAME_BASE}${String(i).padStart(3, '0')}.jpg`;
 
 const PILL_START = 0.14;
 const PILL_STEP = 0.13;
@@ -73,18 +82,15 @@ function PillsStack({ progress }: { progress: MotionValue<number> }) {
 
 export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end start'],
-  });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoDuration, setVideoDuration] = useState(0);
+  const progress = useMotionValue(0);
   const hyperspeedApi = useRef<{ setProgress: (v: number) => void; setStraighten: (v: number) => void } | null>(null);
+  const drawRef = useRef<((p: number) => void) | null>(null);
 
-  const hyperspeedOpacity = useTransform(scrollYProgress, [0, 0.05, 0.9, 1], [0.5, 0.9, 0.9, 0]);
-  const videoOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 0.7]);
-  const navContainerOpacity = useTransform(scrollYProgress, [0.8, 0.98], [0, 1]);
+  const canvasOpacity = useTransform(progress, [0, 0.05, 0.78, 0.9], [0, 0.9, 0.9, 0.05]);
+  const hyperspeedOpacity = useTransform(progress, [0, 0.12, 0.9, 1], [0, 0.9, 0.9, 0.12]);
+  const navContainerOpacity = useTransform(progress, [0.8, 0.98], [0, 1]);
   const navPointer = useTransform(navContainerOpacity, (v) => (v > 0.6 ? 'auto' : 'none'));
 
   const hyperspeedOptions = useMemo(
@@ -105,36 +111,117 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     hyperspeedApi.current = api;
   }, []);
 
-  useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    const v = videoRef.current;
-    if (v && videoDuration > 0) {
-      const target = Math.min(videoDuration - 0.05, Math.max(0, p * videoDuration));
-      if (Math.abs(v.currentTime - target) > 0.005) {
-        v.currentTime = target;
+  // GSAP ScrollTrigger scrub: progress 0 → 1 ao longo da seção (sticky 350vh)
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const st = ScrollTrigger.create({
+      trigger: section,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate: (self) => progress.set(self.progress),
+    });
+    return () => {
+      st.kill();
+    };
+  }, [progress]);
+
+  // Pré-carrega TODOS os frames e desenha no canvas conforme o progresso
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const section = sectionRef.current;
+    if (!canvas || !section) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const images: (HTMLImageElement | null)[] = new Array(TOTAL_FRAMES).fill(null);
+    const currentIndexRef = { current: 0 };
+
+    const resize = () => {
+      canvas.width = Math.floor(section.clientWidth * dpr);
+      canvas.height = Math.floor(section.clientHeight * dpr);
+      canvas.style.width = `${section.clientWidth}px`;
+      canvas.style.height = `${section.clientHeight}px`;
+      draw(currentIndexRef.current);
+    };
+
+    const drawCover = (img: HTMLImageElement) => {
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const ir = img.naturalWidth / img.naturalHeight;
+      const cr = cw / ch;
+      let dw: number;
+      let dh: number;
+      if (ir > cr) {
+        dh = ch;
+        dw = ch * ir;
+      } else {
+        dw = cw;
+        dh = cw / ir;
       }
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    };
+
+    const draw = (index: number) => {
+      const i = Math.max(0, Math.min(TOTAL_FRAMES - 1, index));
+      const img = images[i];
+      if (img && img.complete && img.naturalWidth > 0) {
+        drawCover(img);
+        currentIndexRef.current = i;
+        return;
+      }
+      for (let j = i; j >= 0; j--) {
+        const fb = images[j];
+        if (fb && fb.complete && fb.naturalWidth > 0) {
+          drawCover(fb);
+          currentIndexRef.current = j;
+          return;
+        }
+      }
+    };
+
+    for (let k = 0; k < TOTAL_FRAMES; k++) {
+      const im = new Image();
+      im.decoding = 'async';
+      im.onload = () => {
+        if (currentIndexRef.current <= k) draw(k);
+      };
+      im.src = frameUrl(k);
+      images[k] = im;
     }
+
+    resize();
+    window.addEventListener('resize', resize);
+    drawRef.current = (p: number) => {
+      const idx = Math.round(p * (TOTAL_FRAMES - 1));
+      draw(idx);
+    };
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      drawRef.current = null;
+    };
+  }, [progress]);
+
+  useMotionValueEvent(progress, 'change', (p) => {
+    drawRef.current?.(p);
     hyperspeedApi.current?.setProgress(p);
     const straighten = p < 0.78 ? 0 : Math.min(1, (p - 0.78) / 0.17);
     hyperspeedApi.current?.setStraighten(straighten);
   });
 
   return (
-    <section ref={sectionRef} className="relative h-[350vh]">
+    <section ref={sectionRef} id="navstrip-origin" className="relative h-[350vh]">
       <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
         <div className="absolute inset-0 z-0 overflow-hidden">
           <motion.div
             className="absolute inset-0"
-            style={{ opacity: videoOpacity, pointerEvents: 'none' }}
+            style={{ opacity: canvasOpacity, pointerEvents: 'none' }}
           >
-            <video
-              ref={videoRef}
-              src="/Parallax.mp4"
-              muted
-              playsInline
-              preload="auto"
-              onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+            <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" />
           </motion.div>
           <motion.div
             className="absolute inset-0 mix-blend-screen"
@@ -148,8 +235,8 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
           <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/85 pointer-events-none" />
         </div>
 
-        <HeroSection pillsProgress={scrollYProgress} />
-        <PillsStack progress={scrollYProgress} />
+        <HeroSection pillsProgress={progress} />
+        <PillsStack progress={progress} />
         <div className="h-2 sm:h-4" />
 
         <motion.div

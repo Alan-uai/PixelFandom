@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { inferPrimaryColumns } from '@/lib/game-schema';
 import { supabase } from '@/supabase';
 import { Button } from '@/components/ui/button';
@@ -1895,14 +1896,16 @@ export default function DataTableContent({
                               {colDispName || col.replace(/_/g, ' ')}
                             </span>
                           </span>
-                          <FormatVariantRenderer
-                            format={fmt}
-                            variant={1}
-                            value={val}
-                            label={colDispName || col}
-                            maxValue={columnConfigMap[col]?.maxValue}
-                            plain
-                          />
+                          <MotionConfig reducedMotion="always">
+                            <FormatVariantRenderer
+                              format={fmt}
+                              variant={1}
+                              value={val}
+                              label={colDispName || col}
+                              maxValue={columnConfigMap[col]?.maxValue}
+                              plain
+                            />
+                          </MotionConfig>
                         </div>
                       );
                     })}
