@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { ScaledValue, useBaseXmaxConfig } from '@/lib/scaling-context';
+import { ScaledValue, useBaseXmaxConfig, useBaseXmaxLevel, computeBaseXmaxStatus } from '@/lib/scaling-context';
 import { axisValueToRatio } from '@/lib/scaling-engine';
 import type { BaseMaxValue } from '@/lib/scaling-engine';
 
@@ -70,17 +70,32 @@ export function BaseMaxSlider({
  */
 export function BaseMaxValueNode({ value }: { value: BaseMaxValue }) {
   const bx = useBaseXmaxConfig();
+  const lvl = useBaseXmaxLevel();
 
-  // When the viewer enables a footer elastic slider (item / ambos / table mode),
-  // the interactive control lives in the card footer / collection-item-view.
-  // Inside the mini-card we only show the starting (base) status — never "base → max".
-  if (bx?.enabled) {
-    return (
-      <span className="font-mono text-sm font-medium text-foreground">
-        {value.base}
-      </span>
-    );
+  // Legacy (no division parameter configured): show the static base → max.
+  if (!bx?.enabled || !bx.paramColumn) {
+    return <ScaledValue base={value.base} max={value.max} curve={value.curve} axis={value.axis} />;
   }
 
-  return <ScaledValue base={value.base} max={value.max} curve={value.curve} axis={value.axis} />;
+  // New division-parameter model: the displayed status scales with the shared
+  // "copies" slider and the item's own division parameter (e.g. Max Copies).
+  const base = bx.base ?? value.base ?? 2;
+  const max = bx.max ?? value.max ?? 100;
+  const step = bx.step && bx.step > 1 ? bx.step : 1;
+  const copies = lvl?.copies ?? lvl?.levelValue ?? 0;
+  const paramValue = lvl?.paramValue;
+  const status = computeBaseXmaxStatus(copies, paramValue, base, max, step);
+  const pct = max > base ? ((status - base) / (max - base)) * 100 : 0;
+
+  return (
+    <span className="flex flex-col gap-0.5 w-full">
+      <span className="font-mono text-sm font-bold text-foreground">{Math.round(status)}</span>
+      <span className="h-1 w-full rounded-full bg-muted overflow-hidden">
+        <span
+          className="block h-full rounded-full bg-primary transition-all duration-300"
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </span>
+    </span>
+  );
 }

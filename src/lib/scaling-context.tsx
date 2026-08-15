@@ -46,6 +46,85 @@ export interface BaseXmaxConfig {
   levelColumn?: string;
   /** Number of levels/tiers the [axisMin, axisMax] range is divided into. */
   tiers?: number;
+  // ── Auto division-parameter model (new) ──────────────────────
+  /** Division parameter: a column OR a jsonb sub-key ("col.key") holding a
+   *  single numeric value (e.g. "Max Copies" = 12000). The system auto-detects
+   *  numeric columns/keys and excludes anything containing "baseXmax". */
+  paramColumn?: string;
+  /** Auto base value (defaults to 2). */
+  base?: number;
+  /** Auto max value (defaults to 100). */
+  max?: number;
+  /** Whether to auto-pick the division parameter (numeric only, no base/max/tier). */
+  auto?: boolean;
+  /** When true, the base/max/step formula overrides are applied (issue #4/#5). */
+  formulaEnabled?: boolean;
+}
+
+/** Default base/max/step for the auto division model. */
+export const BASEXMAX_DEFAULT_BASE = 2;
+export const BASEXMAX_DEFAULT_MAX = 100;
+export const BASEXMAX_DEFAULT_STEP = 1;
+
+/**
+ * Resolves the numeric division parameter value from an item. Supports both a
+ * plain column and a jsonb sub-key path ("colName.keyName").
+ */
+export function resolveBaseXmaxParam(
+  item: Record<string, any> | undefined,
+  paramColumn?: string,
+): number | undefined {
+  if (!item || !paramColumn) return undefined;
+  let raw: unknown;
+  if (paramColumn.includes('.')) {
+    const [col, key] = paramColumn.split('.');
+    const obj = item[col];
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      raw = (obj as Record<string, unknown>)[key];
+    } else {
+      raw = undefined;
+    }
+  } else {
+    raw = item[paramColumn];
+  }
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string' && raw.trim() !== '' && !isNaN(Number(raw))) {
+    return Number(raw);
+  }
+  return undefined;
+}
+
+/**
+ * Computes the displayed status for the auto division model.
+ *
+ * `copies` is the numerator (shared slider value, or per-card slider value).
+ * `paramValue` is the item's single numeric division parameter (e.g. 12000
+ * "Max Copies"). Result interpolates base→max as copies go 0→paramValue.
+ *
+ * Example: base 2, max 100, paramValue 12000 →
+ *   copies 0   → 2
+ *   copies 12000 → 100
+ *
+ * When `step` > 1 (issue #5), the result snaps to multiples of `step` above
+ * the base (e.g. step 2 → 2, 4, 6, ...).
+ */
+export function computeBaseXmaxStatus(
+  copies: number,
+  paramValue: number | undefined,
+  base?: number,
+  max?: number,
+  step?: number,
+): number {
+  const b = base ?? BASEXMAX_DEFAULT_BASE;
+  const m = max ?? BASEXMAX_DEFAULT_MAX;
+  const s = step && step > 1 ? step : BASEXMAX_DEFAULT_STEP;
+  if (!paramValue || paramValue <= 0) return b;
+  const ratio = Math.min(Math.max(copies / paramValue, 0), 1);
+  let status = b + (m - b) * ratio;
+  if (s > 1) {
+    status = b + Math.round((status - b) / s) * s;
+  }
+  return status;
 }
 
 /**
@@ -85,8 +164,14 @@ export function useBaseXmaxConfig(): BaseXmaxConfig | null {
 
 // ── Per-card / shared level (drives the base/max slider position) ──────────
 export interface BaseXmaxLevel {
+  /** Column whose value positions the per-card slider (legacy mode). */
   levelColumn?: string;
+  /** Current level value for the per-card slider (legacy mode). */
   levelValue?: number;
+  /** Shared slider value (the "copies" numerator) for the new model. */
+  copies?: number;
+  /** The item's division-parameter value (e.g. Max Copies = 12000). */
+  paramValue?: number;
 }
 
 export const BaseXmaxLevelContext = createContext<BaseXmaxLevel | null>(null);

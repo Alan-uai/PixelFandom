@@ -33,7 +33,7 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
-import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier } from '@/lib/scaling-context';
+import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
@@ -261,7 +261,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const baseXmaxMode = baseXmaxRaw.mode || 'off';
   const baseXmaxInfo: BaseXmaxConfig = {
     enabled: baseXmaxMode !== 'off',
-    axisLabel: baseXmaxRaw.axisLabel ?? 'Nível',
+    axisLabel: baseXmaxRaw.axisLabel ?? 'Cópias',
     axisMin: Number(baseXmaxRaw.axisMin) || 1,
     axisMax: Number(baseXmaxRaw.axisMax) || 100,
     step: Number(baseXmaxRaw.step) || 1,
@@ -271,12 +271,25 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     renderMode: baseXmaxMode as BaseXmaxConfig['renderMode'],
     levelColumn: baseXmaxRaw.levelColumn || undefined,
     tiers: Number(baseXmaxRaw.tiers) || 12,
+    paramColumn: baseXmaxRaw.paramColumn || undefined,
+    base: baseXmaxRaw.base != null ? Number(baseXmaxRaw.base) : undefined,
+    max: baseXmaxRaw.max != null ? Number(baseXmaxRaw.max) : undefined,
+    formulaEnabled: baseXmaxRaw.formulaEnabled === true,
+    auto: baseXmaxRaw.auto === true,
   };
-  const [tableLevel, setTableLevel] = useState<number>(
-    baseXmaxInfo.defaultValue ?? baseXmaxInfo.axisMin,
-  );
+  // Max divisor across items for the shared slider range.
+  const maxParam = useMemo(() => {
+    if (!baseXmaxInfo.paramColumn) return 100;
+    let m = 0;
+    for (const it of items) {
+      const v = resolveBaseXmaxParam(it, baseXmaxInfo.paramColumn);
+      if (v != null && v > m) m = v;
+    }
+    return m || 100;
+  }, [items, baseXmaxInfo.paramColumn]);
+  const [sharedCopies, setSharedCopies] = useState<number>(0);
   const sharedLevel =
-    baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? tableLevel : undefined;
+    baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? sharedCopies : undefined;
   const detailConfig: Record<string, any> = {
     ...(viewerConfig?.card || {}),
     columnConfig: viewerConfig?.columnConfig || (viewerConfig?.card as any)?.columnConfig,
@@ -739,18 +752,29 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       );
     };
 
+    const withBx = (item: any) => (
+      <BaseXmaxLevelContext.Provider
+        value={{
+          paramValue: resolveBaseXmaxParam(item, baseXmaxInfo.paramColumn),
+          copies: sharedCopies,
+        }}
+      >
+        {renderItemByLayout(item, '')}
+      </BaseXmaxLevelContext.Provider>
+    );
+
     if (fmt === 'list') {
       if (cols > 1) {
         const gridGap = typeof gap === 'number' ? gap : 12;
         return (
           <div className="grid grid-cols-2 sm:grid-cols-2" style={{ gap: gridGap }}>
-            {items.map((item) => renderItemByLayout(item, ''))}
+            {items.map((item) => withBx(item))}
           </div>
         );
       }
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap }}>
-          {items.map((item) => renderItemByLayout(item, ''))}
+          {items.map((item) => withBx(item))}
         </div>
       );
     }
@@ -761,9 +785,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           items={items}
           columnsCount={cols}
           gap={gap}
-          renderItem={(item: any) => (
-            renderItemByLayout(item, '')
-          )}
+          renderItem={(item: any) => withBx(item)}
         />
       );
     }
@@ -777,7 +799,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
               className="snap-start shrink-0"
               style={{ flex: `0 0 calc((100% - ${(cols - 1) * gap}px) / ${cols})` }}
             >
-              {renderItemByLayout(item, '')}
+              {withBx(item)}
             </div>
           ))}
         </div>
@@ -787,7 +809,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const gridGap = typeof gap === 'number' ? gap : 12;
     return (
       <div className={`${gridColsClass}`} style={{ gap: gridGap }}>
-        {items.map((item) => renderItemByLayout(item, ''))}
+        {items.map((item) => withBx(item))}
       </div>
     );
   }
@@ -1132,19 +1154,19 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         <div className="bg-card/50 rounded-xl border p-4 mb-4">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              {baseXmaxInfo.axisLabel || 'Nível'}
+              {baseXmaxInfo.axisLabel || 'Cópias'}
             </span>
             <span className="text-sm font-mono text-primary font-bold">
-              {tableLevel.toLocaleString()}
+              {sharedCopies.toLocaleString()} / {maxParam.toLocaleString()}
             </span>
           </div>
           <ElasticSlider3D
-            maxValue={baseXmaxInfo.axisMax}
-            defaultValue={tableLevel}
-            startingValue={baseXmaxInfo.axisMin}
-            onValueChange={setTableLevel}
+            maxValue={maxParam}
+            defaultValue={sharedCopies}
+            startingValue={0}
+            onValueChange={(v) => setSharedCopies(Math.max(0, Math.round(v)))}
             isStepped
-            stepSize={baseXmaxInfo.step}
+            stepSize={baseXmaxInfo.formulaEnabled ? (baseXmaxInfo.step && baseXmaxInfo.step > 1 ? baseXmaxInfo.step : 1) : 1}
             showValue={false}
           />
         </div>
@@ -2029,7 +2051,6 @@ function ItemCard({
   const titleSize = cardSize === 'sm' ? 'text-sm' : cardSize === 'lg' ? 'text-lg' : 'font-semibold';
 
   return (
-<BaseXmaxLevelContext.Provider value={{ levelColumn: bxLevelColumn, levelValue: cardLevelValue }}>
 <div
         ref={(el) => { if (itemSlug && el) cardRefs?.current.set(itemSlug, el); }}
         className={`relative rounded-xl border bg-card overflow-hidden ${hoverEffectClass} ${transitioning ? 'variant-3d-transition' : ''}`}
@@ -2159,8 +2180,7 @@ function ItemCard({
         {!tenantId && (
           <p className="text-sm text-muted-foreground">{activeItem.description || ''}</p>
         )}
+        </div>
       </div>
-    </div>
-</BaseXmaxLevelContext.Provider>
   );
 }

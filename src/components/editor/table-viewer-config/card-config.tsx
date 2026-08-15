@@ -51,6 +51,11 @@ function SizeStepper({ value, onChange }: { value: number; onChange: (v: number)
   );
 }
 
+const NUMERIC_TYPE_SET = new Set([
+  'integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision',
+  'double', 'float', 'decimal', 'jsonb',
+]);
+
 export function CardConfig({
   config,
   columns = [],
@@ -59,6 +64,7 @@ export function CardConfig({
   onChange,
   slug,
   tenantId,
+  items = [],
 }: {
   config: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
@@ -67,10 +73,58 @@ export function CardConfig({
   columnConfig?: Record<string, { labelIcon?: string; labelColor?: string }>;
   slug?: string;
   tenantId?: string;
+  items?: Record<string, unknown>[];
 }) {
   const c: Record<string, any> = config || {};
   const layout = c.layout || 'card';
   const isVisualLayout = layout === 'card' || layout === 'accordion';
+
+  // ── Base → Max: numeric division-parameter options ──────────
+  // Lists only numeric columns and numeric jsonb sub-keys (e.g. "stats.maxCopies"),
+  // excluding any field whose name contains "baseXmax".
+  const numericParamOptions = useMemo(() => {
+    const opts: { label: string; value: string }[] = [];
+    const seen = new Set<string>();
+    const sample: Record<string, unknown>[] = (items && items.length ? items : []) as Record<string, unknown>[];
+    for (const col of columns as string[]) {
+      const lc = col.toLowerCase();
+      if (lc.includes('basexmax')) continue;
+      if (SYSTEM_COLS_EXT.has(col) || LABEL_COLS.has(col)) continue;
+      const ctype = columnTypes[col];
+      const isNumericCol = ctype
+        ? NUMERIC_TYPE_SET.has(ctype)
+        : sample.some((it) => typeof it[col] === 'number');
+      if (isNumericCol) {
+        opts.push({ label: col, value: col });
+        seen.add(col);
+      }
+      // jsonb sub-keys (numeric only)
+      const isJsonb = ctype === 'jsonb' || sample.some(
+        (it) => it[col] && typeof it[col] === 'object' && !Array.isArray(it[col]),
+      );
+      if (isJsonb) {
+        for (const it of sample) {
+          const obj = it[col];
+          if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+            for (const key of Object.keys(obj as Record<string, unknown>)) {
+              const kl = key.toLowerCase();
+              if (kl.includes('basexmax')) continue;
+              const v = (obj as Record<string, unknown>)[key];
+              const isNum =
+                typeof v === 'number' ||
+                (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v)));
+              if (!isNum) continue;
+              const val = `${col}.${key}`;
+              if (seen.has(val)) continue;
+              seen.add(val);
+              opts.push({ label: `${col} → ${key}`, value: val });
+            }
+          }
+        }
+      }
+    }
+    return opts;
+  }, [columns, columnTypes, items]);
 
   // Badge state
   const badgeConfig: Record<string, any> = c.badgeConfig || {};
@@ -448,89 +502,83 @@ export function CardConfig({
         <div className="space-y-2 border-t pt-3">
           <Label className="text-xs font-medium text-foreground">Base → Max (slider)</Label>
           <p className="text-[10px] text-muted-foreground">
-            Quando ativado, os valores base/máx dos cards exibem um slider interativo calculado pela coluna de nível/Max Copies. Desativado mostra só &quot;base → máx&quot;.
+            Selecione a coluna (ou chave jsonb numérica) usada como parâmetro de divisão.
+            O sistema identifica automaticamente valores numéricos únicos (ex: Max Copies,
+            Max Tier, Max Level) e exclui campos contendo &quot;baseXmax&quot;.
           </p>
           <Select3D
             label="Modo"
             value={baseXmaxMode}
             options={[
               { label: 'Desativado', value: 'off' },
-              { label: 'Por item (card)', value: 'item' },
               { label: 'Tabela (compartilhado)', value: 'table' },
+              { label: 'Por item (card)', value: 'item' },
               { label: 'Ambos', value: 'ambos' },
             ]}
             onChange={(v) => setBaseXmax({ mode: v })}
           />
           {baseXmaxEnabled && (
             <>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <Label className="text-[10px] text-muted-foreground">Coluna de nível</Label>
-                  <Select3D
-                    value={baseXmax.levelColumn || ''}
-                    options={[
-                      { label: '— nenhuma —', value: '' },
-                      ...(columns as string[]).map((col) => ({ label: col, value: col })),
-                    ]}
-                    onChange={(v) => setBaseXmax({ levelColumn: v || undefined })}
-                    className="w-full"
-                  />
-                </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Parâmetro de divisão (coluna / chave)</Label>
+                <Select3D
+                  value={baseXmax.paramColumn || ''}
+                  placeholder="Somente numéricas…"
+                  options={[
+                    { label: '— nenhuma —', value: '' },
+                    ...numericParamOptions,
+                  ]}
+                  onChange={(v) => setBaseXmax({ paramColumn: v || undefined })}
+                  className="w-full"
+                />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Rótulo eixo</Label>
-                  <Input
-                    value={baseXmax.axisLabel ?? 'Nível'}
-                    onChange={(e) => setBaseXmax({ axisLabel: e.target.value })}
-                    className="h-6 text-[10px]"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Mín</Label>
-                  <Input
-                    type="number"
-                    value={baseXmax.axisMin ?? 1}
-                    onChange={(e) => setBaseXmax({ axisMin: Number(e.target.value) || 1 })}
-                    className="h-6 text-[10px]"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground">Máx</Label>
-                  <Input
-                    type="number"
-                    value={baseXmax.axisMax ?? 100}
-                    onChange={(e) => setBaseXmax({ axisMax: Number(e.target.value) || 100 })}
-                    className="h-6 text-[10px]"
-                  />
-                </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] text-muted-foreground">Configurar fórmula</Label>
+                <Switch
+                  id="bx-formula"
+                  checked={baseXmax.formulaEnabled === true}
+                  onCheckedChange={(v) => setBaseXmax({ formulaEnabled: v })}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <Label className="text-[10px] text-muted-foreground">Níveis / Tiers</Label>
-                  <Input
-                    type="number"
-                    value={baseXmax.tiers ?? 12}
-                    onChange={(e) => setBaseXmax({ tiers: Math.max(1, Math.min(1000, Number(e.target.value) || 12)) })}
-                    className="h-6 text-[10px]"
-                  />
+              {baseXmax.formulaEnabled === true && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Base</Label>
+                    <Input
+                      type="number"
+                      value={baseXmax.base ?? 2}
+                      onChange={(e) => setBaseXmax({ base: Number(e.target.value) || 2 })}
+                      className="h-6 text-[10px]"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Máx</Label>
+                    <Input
+                      type="number"
+                      value={baseXmax.max ?? 100}
+                      onChange={(e) => setBaseXmax({ max: Number(e.target.value) || 100 })}
+                      className="h-6 text-[10px]"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Intervalo</Label>
+                    <Input
+                      type="number"
+                      value={baseXmax.step ?? 1}
+                      onChange={(e) => setBaseXmax({ step: Math.max(1, Number(e.target.value) || 1) })}
+                      className="h-6 text-[10px]"
+                    />
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground max-w-[140px]">
-                  Divide o intervalo [{baseXmax.axisMin ?? 1}–{baseXmax.axisMax ?? 100}] em passos iguais.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <Label className="text-[10px] text-muted-foreground">Valor inicial</Label>
-                  <Input
-                    type="number"
-                    value={baseXmax.defaultValue ?? ''}
-                    placeholder={`${baseXmax.axisMin ?? 1}`}
-                    onChange={(e) => setBaseXmax({ defaultValue: e.target.value === '' ? undefined : Number(e.target.value) })}
-                    className="h-6 text-[10px]"
-                  />
-                </div>
-              </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Status = base + (máx − base) × (cópias / parâmetro). Ex: base 2, máx 100,
+                Max Copies 12000 → 2 → 100 conforme as cópias aumentam.
+                {baseXmax.formulaEnabled === true && baseXmax.step && baseXmax.step > 1
+                  ? ` Com intervalo ${baseXmax.step}, os valores sobem de ${baseXmax.step} em ${baseXmax.step}.`
+                  : ''}
+              </p>
             </>
           )}
         </div>

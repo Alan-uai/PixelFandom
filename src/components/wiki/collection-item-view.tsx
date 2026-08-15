@@ -21,7 +21,7 @@ import {
   RARITY_COLORS, RARITY_GRAD, TIER_LABEL, TIER_COL,
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
-import { ScalingContext, BaseXmaxContext, type ScalingInfo, type BaseXmaxConfig, baseXmaxStatusAtTier } from '@/lib/scaling-context';
+import { ScalingContext, BaseXmaxContext, BaseXmaxLevelContext, type ScalingInfo, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
 import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
@@ -763,20 +763,37 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const sliderAxisMin = Number(sliderRaw?.axisMin ?? scalarRaw?.axisMin) || 1;
   const sliderAxisMax = Number(sliderRaw?.axisMax ?? scalarRaw?.axisMax) || 100;
   const sliderLevelColumn = (sliderRaw?.levelColumn as string | undefined) ?? (scalarRaw?.levelColumn as string | undefined);
-  const sliderAxisLabel = sliderRaw?.axisLabel ?? scalarRaw?.axisLabel ?? 'Nível';
+  const sliderAxisLabel = sliderRaw?.axisLabel ?? scalarRaw?.axisLabel ?? 'Cópias';
+  const sliderParamColumn = (sliderRaw?.paramColumn as string | undefined) ?? (scalarRaw?.paramColumn as string | undefined);
+  const sliderBase = sliderRaw?.base != null ? Number(sliderRaw.base) : (scalarRaw?.base != null ? Number(scalarRaw.base) : undefined);
+  const sliderMax = sliderRaw?.max != null ? Number(sliderRaw.max) : (scalarRaw?.max != null ? Number(scalarRaw.max) : undefined);
+  const sliderStep = sliderRaw?.step ?? scalarRaw?.step ?? 1;
+  const sliderFormulaEnabled = sliderRaw?.formulaEnabled === true || scalarRaw?.formulaEnabled === true;
   const baseXmaxInfo: BaseXmaxConfig = {
     enabled: bxActive,
     axisLabel: sliderAxisLabel,
     axisMin: sliderAxisMin,
     axisMax: sliderAxisMax,
-    step: sliderRaw?.step ?? scalarRaw?.step ?? 1,
+    step: sliderStep,
     defaultValue: sliderRaw?.defaultValue ?? scalarRaw?.defaultValue,
     mode: scalarRaw?.mode === 'tiers' ? 'tiers' : 'continuous',
     showPerCardSlider: sliderEnabled,
     renderMode: (sliderRaw?.mode as BaseXmaxConfig['renderMode']) || 'off',
     levelColumn: sliderLevelColumn,
     tiers: sliderTiers,
+    paramColumn: sliderParamColumn,
+    base: sliderBase,
+    max: sliderMax,
+    formulaEnabled: sliderFormulaEnabled,
+    auto: sliderRaw?.auto === true || scalarRaw?.auto === true,
   };
+
+  const maxParam = (() => {
+    if (!sliderParamColumn) return sliderAxisMax;
+    const v = resolveBaseXmaxParam(activeData, sliderParamColumn);
+    return v && v > 0 ? v : sliderAxisMax;
+  })();
+  const [bxCopies, setBxCopies] = useState<number>(0);
 
   // When baseXmax is active, surface ALL stat columns (the scalar slider is a tier
   // selector layered on top of existing stats, not a replacement column).
@@ -825,6 +842,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   return (
       <ScalingContext.Provider value={scalingInfo}>
       <BaseXmaxContext.Provider value={baseXmaxInfo}>
+      <BaseXmaxLevelContext.Provider value={{ copies: bxCopies, paramValue: resolveBaseXmaxParam(activeData, sliderParamColumn) }}>
       <div className="max-w-3xl mx-auto">
         {tenantId && tenantSlug && (
           <VariantSelector
@@ -963,20 +981,36 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                   {sliderAxisLabel}
                 </span>
                 <span className="text-sm font-mono text-primary font-bold">
-                  {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {sliderParamColumn
+                    ? `${bxCopies.toLocaleString()} / ${maxParam.toLocaleString()}`
+                    : bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <ElasticSlider3D
-                startingValue={1}
-                maxValue={sliderTiers}
-                defaultValue={bxTier}
-                isStepped
-                stepSize={1}
-                showValue={false}
-                onValueChange={(v) => setBxTier(Math.round(v))}
-              />
+              {sliderParamColumn ? (
+                <ElasticSlider3D
+                  startingValue={0}
+                  maxValue={maxParam}
+                  defaultValue={bxCopies}
+                  isStepped
+                  stepSize={sliderFormulaEnabled && sliderStep > 1 ? sliderStep : 1}
+                  showValue={false}
+                  onValueChange={(v) => setBxCopies(Math.max(0, Math.round(v)))}
+                />
+              ) : (
+                <ElasticSlider3D
+                  startingValue={1}
+                  maxValue={sliderTiers}
+                  defaultValue={bxTier}
+                  isStepped
+                  stepSize={1}
+                  showValue={false}
+                  onValueChange={(v) => setBxTier(Math.round(v))}
+                />
+              )}
               <p className="text-xs text-muted-foreground mt-2">
-                Tier {bxTier} / {sliderTiers} — {sliderAxisMin} → {sliderAxisMax}
+                {sliderParamColumn
+                  ? `Status = ${sliderBase ?? 2} + (${sliderMax ?? 100} − ${sliderBase ?? 2}) × (cópias / ${maxParam.toLocaleString()})`
+                  : `Tier ${bxTier} / ${sliderTiers} — ${sliderAxisMin} → ${sliderAxisMax}`}
               </p>
             </div>
           )}
@@ -1018,6 +1052,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
       </div>
         </div>
       </div>
+        </BaseXmaxLevelContext.Provider>
         </BaseXmaxContext.Provider>
         </ScalingContext.Provider>
    );
