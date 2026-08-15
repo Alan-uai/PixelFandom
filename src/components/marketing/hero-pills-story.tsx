@@ -76,11 +76,12 @@ function PillsStack({ progress }: { progress: MotionValue<number> }) {
 }
 
 export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { scrollYProgress } = useScroll({
-    target: sectionRef,
+    target: rootRef,
     offset: ['start start', 'end end'],
   });
   const progress = scrollYProgress;
@@ -89,7 +90,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const drawRef = useRef<((p: number) => void) | null>(null);
 
   const canvasOpacity = useTransform(progress, [0, 0.05, 0.78, 0.9], [0, 0.9, 0.9, 0.05]);
-  const hyperspeedOpacity = useTransform(progress, [0, 0.12, 0.9, 1], [0, 0.9, 0.9, 0.12]);
+  const hyperspeedOpacity = useTransform(progress, [0, 0.05, 0.9, 1], [0, 1, 1, 0]);
 
   const hyperspeedOptions = useMemo(
     () => ({
@@ -134,7 +135,9 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       draw(targetRef.current);
     };
 
-    const drawCover = (img: HTMLImageElement) => {
+    // Desenha o frame inteiro (contain) para que ele caiba na largura da
+    // seção mesmo em telas pequenas, sem ficar gigante.
+    const drawContain = (img: HTMLImageElement) => {
       const cw = canvas.width;
       const ch = canvas.height;
       const ir = img.naturalWidth / img.naturalHeight;
@@ -142,11 +145,11 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       let dw: number;
       let dh: number;
       if (ir > cr) {
-        dh = ch;
-        dw = ch * ir;
-      } else {
         dw = cw;
         dh = cw / ir;
+      } else {
+        dh = ch;
+        dw = ch * ir;
       }
       ctx.clearRect(0, 0, cw, ch);
       ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
@@ -157,14 +160,14 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       if (i === displayedRef.current) return;
       const img = images[i];
       if (img && img.complete && img.naturalWidth > 0) {
-        drawCover(img);
+        drawContain(img);
         displayedRef.current = i;
         return;
       }
       for (let j = i; j >= 0; j--) {
         const fb = images[j];
         if (fb && fb.complete && fb.naturalWidth > 0) {
-          drawCover(fb);
+          drawContain(fb);
           displayedRef.current = j;
           return;
         }
@@ -205,15 +208,25 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       hyperspeedRaf = requestAnimationFrame(() => {
         hyperspeedRaf = 0;
         hyperspeedApi.current?.setProgress(p);
-        const straighten = p < 0.78 ? 0 : Math.min(1, (p - 0.78) / 0.17);
+        // Lines become completely straight (vertical tunnel) right from the hero
+        const straighten = p < 0.04 ? p / 0.04 : 1;
         hyperspeedApi.current?.setStraighten(straighten);
       });
     }
   });
 
   return (
-    <>
-      {/* ── Hero + Parallax + Hyperspeed + Pills (scroll-driven) ── */}
+    <div ref={rootRef} className="relative">
+      {/* ── Hyperspeed: fixed background that persists from the hero through the nav-strip ── */}
+      <motion.div
+        className="fixed inset-0 z-[1] mix-blend-screen"
+        style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}
+        aria-hidden
+      >
+        <Hyperspeed onReady={handleHyperspeedReady} effectOptions={hyperspeedOptions} />
+      </motion.div>
+
+      {/* ── Hero + Parallax + Pills (scroll-driven) ── */}
       <section ref={sectionRef} id="navstrip-origin" className="relative h-[350vh]">
         <div className="sticky top-0 flex h-svh flex-col items-center justify-center overflow-hidden px-4">
           <div className="absolute inset-0 z-0 overflow-hidden">
@@ -223,26 +236,19 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
             >
               <canvas ref={canvasRef} id="parallax-canvas" className="absolute inset-0 block h-full w-full" />
             </motion.div>
-            <motion.div
-              className="absolute inset-0 mix-blend-screen"
-              style={{ opacity: hyperspeedOpacity, pointerEvents: 'none' }}
-            >
-              <Hyperspeed
-                onReady={handleHyperspeedReady}
-                effectOptions={hyperspeedOptions}
-              />
-            </motion.div>
             <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/85 pointer-events-none" />
           </div>
 
-          <HeroSection pillsProgress={progress} />
-          <PillsStack progress={progress} />
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <HeroSection pillsProgress={progress} />
+            <PillsStack progress={progress} />
+          </div>
         </div>
       </section>
 
-      {/* ── NavStrip (separate section, scrolls naturally after hero) ── */}
+      {/* ── NavStrip (scrolls naturally after the hero, over the persistent hyperspeed) ── */}
       <NavStripSection onLogin={onLogin} />
-    </>
+    </div>
   );
 }
 
@@ -262,7 +268,7 @@ function NavStripSection({ onLogin }: { onLogin?: () => void }) {
   }, []);
 
   return (
-    <div ref={sectionRef} className="relative min-h-[50vh] flex items-center justify-center px-4">
+    <div ref={sectionRef} className="relative z-10 min-h-[50vh] flex items-center justify-center px-4">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}

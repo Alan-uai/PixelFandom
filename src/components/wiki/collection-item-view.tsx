@@ -181,7 +181,7 @@ function sortByColumnOrder<T extends { column_name: string }>(cols: T[], columnO
 
 
 
-function RenderTypeFields({
+export function RenderTypeFields({
   data, columnTypes, columnFormats, formatVariants, columnOpEnabled, columnOpFlipped, rendered, visibleColumnsSet,
   schema, tenantId, tenantSlug, table, comparisonMode, onStatClick, chipWrap, columnOrder, useSuffix, columnConfig,
   variantTrigger, prevRow,
@@ -747,8 +747,18 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   const sliderRaw = (cardLayer as any)?.baseXmax; // config #2 (slider)
   const scalarRaw = (detailConfig as any)?.baseXmax; // config #1 (scalar range)
   const sliderMode = sliderRaw?.mode || 'off';
+  const scalarMode = scalarRaw?.mode || 'off';
   const sliderEnabled = sliderMode !== 'off';
-  const bxActive = sliderEnabled || scalarRaw?.enabled === true || sliderRaw?.enabled === true;
+  // Activate when EITHER config layer is on. `card.baseXmax` drives the slider
+  // (config #2, mode off/item/table/ambos), while a top-level `baseXmax`
+  // (config #1, scalar range) activates via `mode` (continuous/tiers) OR the
+  // explicit `enabled` flag. This matches the pre-refactor rule that treated a
+  // top-level baseXmax with a non-off `mode` as active.
+  const bxActive =
+    sliderEnabled ||
+    scalarMode !== 'off' ||
+    scalarRaw?.enabled === true ||
+    sliderRaw?.enabled === true;
   const sliderTiers = Math.max(1, Number(sliderRaw?.tiers ?? scalarRaw?.tiers) || 12);
   const sliderAxisMin = Number(sliderRaw?.axisMin ?? scalarRaw?.axisMin) || 1;
   const sliderAxisMax = Number(sliderRaw?.axisMax ?? scalarRaw?.axisMax) || 100;

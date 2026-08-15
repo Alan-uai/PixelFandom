@@ -130,10 +130,18 @@ export async function getGameSchema(): Promise<GameSchema> {
     return cachedSchema;
   }
 
+  // Evita chamadas RPC quando o cliente Supabase não está configurado
+  // (credenciais placeholder em ambiente de dev sem banco), degradando
+  // silenciosamente em vez de poluir o console com erros vazios ({}).
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
+    return { tables: [] };
+  }
+
   const { supabase } = await import('@/supabase');
   const { data, error } = await supabase.rpc('get_game_schema');
 
-  if (error) {
+  if (error && Object.keys(error).length > 0) {
     console.error('Failed to fetch game schema:', error);
     if (cachedSchema) return cachedSchema;
     return { tables: [] };

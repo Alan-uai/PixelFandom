@@ -545,13 +545,23 @@ const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS, onReady }: Hypersp
 
         if (this.options.distortion.getJS) {
           const distortion = this.options.distortion.getJS(0.025, time);
-          this.camera.lookAt(
-            new THREE.Vector3(
-              this.camera.position.x + distortion.x,
-              this.camera.position.y + distortion.y,
-              this.camera.position.z + distortion.z
-            )
+          const distortedTarget = new THREE.Vector3(
+            this.camera.position.x + distortion.x,
+            this.camera.position.y + distortion.y,
+            this.camera.position.z + distortion.z
           );
+          // When straightened, look straight down the tunnel axis so the lines
+          // run vertically (from the top of the screen) instead of converging
+          // to a tilted horizon. The look target is raised slightly so the
+          // vanishing point sits toward the top of the viewport.
+          const straightTarget = new THREE.Vector3(
+            this.camera.position.x,
+            this.camera.position.y + 12,
+            this.camera.position.z - 100
+          );
+          const s = this.straighten;
+          const target = distortedTarget.clone().lerp(straightTarget, s);
+          this.camera.lookAt(target);
           this.camera.updateProjectionMatrix();
         }
       }

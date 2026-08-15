@@ -75,15 +75,26 @@ interface OrbitalNavItemProps {
   glowFilterId: string;
 }
 
-function generateRingConfig() {
-  const count = 1 + Math.floor(Math.random() * 6);
+function makeRng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateRingConfig(seed: number) {
+  const rng = makeRng(seed);
+  const count = 1 + Math.floor(rng() * 6);
   return Array.from({ length: count }, (_, i) => ({
-    outerRadius: 40 + Math.floor(Math.random() * 80),
-    wobble: 0.025 + Math.random() * 0.04,
-    duration: 3.5 + Math.random() * 2,
-    delay: i * (0.3 + Math.random() * 0.8),
-    repeatDelay: 2 + Math.random() * 3,
-    phaseSeed: Math.random() * Math.PI * 2,
+    outerRadius: 40 + Math.floor(rng() * 80),
+    wobble: 0.025 + rng() * 0.04,
+    duration: 3.5 + rng() * 2,
+    delay: i * (0.3 + rng() * 0.8),
+    repeatDelay: 2 + rng() * 3,
+    phaseSeed: rng() * Math.PI * 2,
   }));
 }
 
@@ -258,8 +269,13 @@ export default function NavStrip({ onLogin }: { onLogin?: () => void }) {
 
   const manuallyExpanded = useRef(false);
   const expandedRef = useRef(false);
-  const [rings] = useState(() => generateRingConfig());
-  const [starWaves] = useState(() => generateStarConfig());
+  const [rings, setRings] = useState<ReturnType<typeof generateRingConfig>>(() => generateRingConfig(1));
+  const [starWaves, setStarWaves] = useState<ReturnType<typeof generateStarConfig>>(() => generateStarConfig(1));
+
+  useEffect(() => {
+    setRings(generateRingConfig(Math.floor(Math.random() * 1e9)));
+    setStarWaves(generateStarConfig(Math.floor(Math.random() * 1e9)));
+  }, []);
   const glowFilterId = useId();
   const [glowLeft, setGlowLeft] = useState(false);
   const [glowRight, setGlowRight] = useState(false);

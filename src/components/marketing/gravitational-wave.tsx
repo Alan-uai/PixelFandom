@@ -64,14 +64,25 @@ function generateMorphPath(
   return d + ' Z'
 }
 
-export function generateStarConfig() {
-  const count = 1 + Math.floor(Math.random() * 6)
+export function makeRng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function generateStarConfig(seed: number) {
+  const rng = makeRng(seed);
+  const count = 1 + Math.floor(rng() * 6);
   return Array.from({ length: count }, (_, i) => ({
-    hr: 60 + Math.floor(Math.random() * 160),
-    vr: 20 + Math.floor(Math.random() * 60),
-    duration: 2.5 + Math.random() * 3.5,
-    delay: i * (0.3 + Math.random() * 0.8),
-    repeatDelay: 1.5 + Math.random() * 4,
+    hr: 60 + Math.floor(rng() * 160),
+    vr: 20 + Math.floor(rng() * 60),
+    duration: 2.5 + rng() * 3.5,
+    delay: i * (0.3 + rng() * 0.8),
+    repeatDelay: 1.5 + rng() * 4,
   }))
 }
 

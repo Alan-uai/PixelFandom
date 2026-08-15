@@ -53,7 +53,8 @@ import { FIELD_TYPE_NAMES, getTypeDef, getCategoryForType, getDbType } from '@/l
 import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
-import { MiniCard3D, MiniCardGrid } from '@/components/wiki/mini-card-3d';
+import { RenderTypeFields } from '@/components/wiki/collection-item-view';
+import type { AllowedValue } from '@/lib/column-types/display-factory';
 import { formatNumber } from '@/lib/format-number';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { useItemVariants } from '@/hooks/use-item-variants';
@@ -201,70 +202,84 @@ function renderInlineValue(val: unknown, cfg?: ColumnConfigEntry): ReactNode {
 }
 
 /**
- * Pré-visualização do card do editor reproduzindo o layout bento-box da Wiki:
- * cada coluna vira um MiniCard3D dentro de um MiniCardGrid (bento). Clicar em
- * qualquer mini-card dispara a animação de transição de variantes (flip + feixe)
- * para que o editor possa prever o efeito.
+ * Pré-visualização do card do editor reproduzindo EXATAMENTE a mesma exibição
+ * da Wiki (collection-item-view): cada coluna é renderizada pelo mesmo pipeline
+ * `RenderTypeFields` (BentoGrid / StatCards / ChipCarousel / Variant3D por tipo
+ * de coluna). O clique simula a troca de variante para que o editor possa
+ * prever o efeito: incrementa o gatilho da animação 3D específica de cada tipo
+ * de coluna (via `animTrigger` + `prevRow`) — NÃO o feixe dourado.
  */
 function EditorPreviewCard({
   columns,
   currentRow,
   columnConfigMap,
+  columnRenderTypes,
+  schema,
+  columnOrder,
 }: {
   columns: string[];
   currentRow: Row;
   columnConfigMap: Record<string, ColumnConfigEntry>;
+  columnRenderTypes: Record<string, string>;
+  schema: { column_name: string; data_type: string; is_nullable: boolean }[];
+  columnOrder?: string[];
 }) {
   const animsOn = useAnimationsEnabled();
   const [trigger, setTrigger] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Clique simula a troca de variante: incrementa o gatilho para replayar a
+  // animação 3D de entrada de cada coluna (Variant3D). O valor da linha não
+  // muda (é a mesma linha), mas o entry animation por-tipo replaya.
   const runTransition = () => {
     if (!animsOn) return;
-    setBeamDir((d) => (d === 'ltr' ? 'rtl' : 'ltr'));
     setTrigger((t) => t + 1);
-    setTransitioning(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setTransitioning(false), 1000);
   };
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  const columnInfoSchema = schema.map((c) => ({
+    column_name: c.column_name,
+    data_type: c.data_type,
+    is_nullable: c.is_nullable,
+    column_default: null,
+    is_system: false,
+  }));
+
+  const visibleSet = columns.length > 0 ? new Set(columns) : null;
+  const rendered = new Set<string>();
+
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-primary/30 bg-card/60 p-4 space-y-3 ${transitioning ? 'variant-3d-transition variant-3d-flip-in' : ''}`}
-      data-beam={transitioning ? beamDir : undefined}
+      onClick={runTransition}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') runTransition(); }}
+      className="relative overflow-hidden rounded-xl border border-primary/30 bg-card/60 p-4 space-y-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
     >
       <div className="flex items-center gap-1.5 text-xs font-medium text-primary/80">
-        <Eye className="h-3 w-3" /> Pré-visualização — como aparece na Wiki
+        <Eye className="h-3 w-3" /> Pré-visualização — como aparece na Wiki (clique para simular troca de variante)
       </div>
-      {transitioning && (
-        <span
-          aria-hidden
-          className={`pointer-events-none absolute inset-y-0 z-10 w-1/3 bg-gradient-to-r from-transparent via-[hsl(45_100%_65%/0.85)] to-transparent blur-[2px] ${beamDir === 'rtl' ? 'variant-beam-rtl' : 'variant-beam-ltr'}`}
-          style={{ transform: 'rotate(18deg)' }}
-        />
-      )}
-      <MiniCardGrid trigger={trigger} columnWidth={150} gap={8}>
-        {columns.map((col) => {
-          const val = currentRow[col];
-          if (val === null || val === undefined || val === '') return null;
-          const cfg = columnConfigMap[col];
-          const colDispName = cfg?.displayName;
-          const icon = cfg?.labelIcon ? <IconRenderer icon={cfg.labelIcon} size="sm" /> : undefined;
-          return (
-            <MiniCard3D
-              key={col}
-              label={colDispName || col.replace(/_/g, ' ')}
-              icon={icon}
-              onClick={runTransition}
-              value={renderInlineValue(val, cfg)}
-            />
-          );
-        })}
-      </MiniCardGrid>
+      <RenderTypeFields
+        data={currentRow}
+        columnTypes={columnRenderTypes}
+        schema={columnInfoSchema}
+        rendered={rendered}
+        visibleColumnsSet={visibleSet}
+        columnOrder={columnOrder}
+        columnConfig={columnConfigMap as Record<string, {
+          maxValue?: number;
+          displayName?: string;
+          labelIcon?: string;
+          labelColor?: string;
+          jsonbKeyTypes?: Record<string, { type: string; suffix?: string }>;
+          jsonbKeyColors?: Record<string, string>;
+          valueColors?: Record<string, string>;
+          allowedValues?: AllowedValue[];
+        }>}
+        variantTrigger={trigger}
+        prevRow={currentRow}
+      />
     </div>
   );
 }
@@ -1855,7 +1870,14 @@ export default function DataTableContent({
                 }
               >
                  {showPreview ? (
-                   <EditorPreviewCard columns={detailColumns} currentRow={currentRow} columnConfigMap={columnConfigMap} />
+                   <EditorPreviewCard
+                     columns={detailColumns}
+                     currentRow={currentRow}
+                     columnConfigMap={columnConfigMap}
+                     columnRenderTypes={columnRenderTypes}
+                     schema={tableColumns || []}
+                     columnOrder={columnOrder}
+                   />
                  ) : isEditing ? (
                    <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
