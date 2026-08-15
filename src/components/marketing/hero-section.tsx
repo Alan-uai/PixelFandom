@@ -61,7 +61,7 @@ export default function HeroSection({
         </motion.div>
 
         <motion.div variants={fadeUpVariants} onAnimationComplete={onFirstLetter}>
-          <PixelTitle className="w-full max-w-[680px]" />
+          <PixelTitle className="w-full max-w-[1240px]" />
         </motion.div>
 
         <motion.div

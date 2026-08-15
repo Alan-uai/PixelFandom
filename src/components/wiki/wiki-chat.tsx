@@ -10,7 +10,7 @@ import RenderTextoPuro from './render-texto-puro';
 import RenderTabela from './render-tabela';
 import RenderCards from './render-cards';
 import RenderHibrido from './render-hibrido';
-import TypingAnimation from './typing-animation';
+import WikiTypingShader from './wiki-typing-shader';
 import { MessageFeedback } from '@/components/chat/message-feedback';
 import { useUserPreferences } from '@/context/user-preferences-context';
 import { supabase, useUser } from '@/supabase';
@@ -347,7 +347,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
     if (!content && isStreaming) {
       return (
         <div className="flex items-center gap-3 py-2">
-          <TypingAnimation size="sm" />
+          <WikiTypingShader />
           {elapsedStr && (
             <span className="text-xs text-muted-foreground animate-pulse">{elapsedStr}</span>
           )}

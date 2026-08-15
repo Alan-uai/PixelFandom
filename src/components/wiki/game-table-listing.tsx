@@ -41,7 +41,7 @@ import { formatNumber } from '@/lib/format-number';
 import { humanizeLabel } from '@/lib/operator-symbols';
 import { SYSTEM_COLS, LONG_TEXT_COLS, deriveLabel } from '@/lib/categorizable-columns';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
-import { getItemName, getItemIcon, getGridColsClass } from '@/lib/item-helpers';
+import { getItemName, getItemIcon, getGridColsClass, ICON_COLUMNS } from '@/lib/item-helpers';
 
 // Feixe dourado que varre o heading do card durante a troca de variante.
 // Keyframes consolidados em variant-3d/keyframes.ts (única fonte de verdade).
@@ -375,8 +375,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const allKeys = new Set<string>();
     items.forEach(item => Object.keys(item).forEach(k => allKeys.add(k)));
 
-    const columnValues: Record<string, string[]> = {};
-    for (const key of allKeys) {
+  const columnValues: Record<string, string[]> = {};
+  const filterColumnValues: Record<string, string[]> = {};
+  for (const key of allKeys) {
       if (SYSTEM_COLS.has(key)) continue;
       if (LONG_TEXT_COLS.has(key)) continue;
       if (key.endsWith('_id') || key.endsWith('_url')) continue;
@@ -393,6 +394,11 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       }
       if (allHaveValue && values.size >= 2) {
         columnValues[key] = Array.from(values).sort();
+      }
+      // Filters don't require every item to have a value (this matches the
+      // editor's auto-detection), so they are collected separately.
+      if (values.size >= 2) {
+        filterColumnValues[key] = Array.from(values).sort();
       }
     }
 
@@ -443,8 +449,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     }
 
     // Determine active filter columns
-    const allFilterCandidates = [...tier1, ...tier2, ...tier3, ...tier4]
-      .filter(col => col !== categoryColumn);
+    // Honor explicitly configured filter columns even when they weren't
+    // auto-detected (e.g. columns that contain some null values, or columns
+    // the user manually enabled in the editor).
+    const explicitFilterCols = ((viewerConfig?.filters?.columns || []) as Array<{ column: string }>).map((fc) => fc.column);
+    const candidateSet = new Set<string>([...tier1, ...tier2, ...tier3, ...tier4, ...explicitFilterCols]);
+    candidateSet.delete(categoryColumn!);
+    const allFilterCandidates = Array.from(candidateSet);
 
     // Always auto-detect filter columns, apply column overrides
     const filterConfig = viewerConfig?.filters;
@@ -453,12 +464,22 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         .map(fc => [fc.column, fc]),
     );
 
+    const getFilterValues = (col: string): string[] => {
+      if (filterColumnValues[col]) return filterColumnValues[col];
+      const vals = new Set<string>();
+      for (const item of items) {
+        const v = item[col];
+        if (v != null && v !== '' && v !== 'none') vals.add(String(v));
+      }
+      return Array.from(vals).sort();
+    };
+
     const filterColumns: { column: string; values: string[]; label: string; mode: string }[] = allFilterCandidates
       .map(col => {
         const override = columnOverrides.get(col);
         const enabled = override ? override.enabled !== false : true;
         if (!enabled) return null;
-        const values = columnValues[col] || [];
+        const values = getFilterValues(col);
         return {
           column: col,
           values,
@@ -771,8 +792,8 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     );
   }
 
-  const renderCatIcon = (cat: string, iconSize = 16) => {
-    const catIcon = viewerConfig?.categorization?.categoryIcons?.[cat];
+  const renderCatIcon = (cat: string, iconSize = 16, itemIcon?: string | null) => {
+    const catIcon = itemIcon || viewerConfig?.categorization?.categoryIcons?.[cat];
     const colIcon = viewerConfig?.columnConfig?.[columnAnalysis?.categoryColumn || '']?.labelIcon;
     const icon = catIcon || colIcon;
     if (!icon) return <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />;
@@ -780,6 +801,17 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       return <div className="relative shrink-0" style={{ width: iconSize, height: iconSize }}><Image src={icon} alt="" fill className="object-contain" /></div>;
     }
     return <IconRenderer icon={icon} size={iconSize} />;
+  };
+
+  // Resolve a single icon string from an item's icon columns (used to reflect
+  // the active variant's icon in name-grouped categories).
+  const resolveItemIconString = (item: Record<string, any> | undefined | null): string | null => {
+    if (!item) return null;
+    for (const col of ICON_COLUMNS) {
+      const v = item[col];
+      if (typeof v === 'string' && v) return v;
+    }
+    return null;
   };
 
   const renderCategory = (
@@ -803,6 +835,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const displayLabel = isNameGroup && primaryItem
       ? (activeVariantNames[primaryItem.id as string] ?? category)
       : category;
+    // When each item is its own category, reflect the active variant's icon.
+    const nameGroupItem = isNameGroup && primaryItem ? (activeVariants[primaryItem.id as string]?.item ?? primaryItem) : null;
+    const nameGroupIcon = nameGroupItem ? resolveItemIconString(nameGroupItem) : null;
 
     // Compute secondary groups
     let secondaryGroups: [string, any[]][] = [];
@@ -861,7 +896,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           className={`inline-flex shrink-0 ${variantPulse > 0 ? 'variant-icon-3d' : ''}`}
           style={{ perspective: 400, transformStyle: 'preserve-3d' }}
         >
-          {renderCatIcon(category, iconSize)}
+          {nameGroupIcon ? renderCatIcon(category, iconSize, nameGroupIcon) : renderCatIcon(category, iconSize)}
         </span>
         <span
           key={`catnm-${category}-${variantPulse}`}
@@ -1168,6 +1203,10 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                       const tabLabel = columnAnalysis?.categoryColumn === 'name' && tabPrimary
                         ? (activeVariantNames[tabPrimary.id as string] ?? category)
                         : category;
+                      const tabNameGroupItem = columnAnalysis?.categoryColumn === 'name' && tabPrimary
+                        ? (activeVariants[tabPrimary.id as string]?.item ?? tabPrimary)
+                        : null;
+                      const tabNameGroupIcon = tabNameGroupItem ? resolveItemIconString(tabNameGroupItem) : null;
                       return (
                         <button
                           key={category}
@@ -1180,7 +1219,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
                           }`}
                           style={{ fontSize: tabLabelSize }}
                         >
-                          {tabLabelDisplay !== 'name' && renderCatIcon(category, tabIconSize)}
+                          {tabLabelDisplay !== 'name' && (tabNameGroupIcon ? renderCatIcon(category, tabIconSize, tabNameGroupIcon) : renderCatIcon(category, tabIconSize))}
                           {tabLabelDisplay !== 'icon' && <span className="capitalize">{tabLabel}</span>}
                         </button>
                       );

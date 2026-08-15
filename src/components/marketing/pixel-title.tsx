@@ -5,13 +5,13 @@ const FILL_MASK_ID = 'pixel-title-fill-mask';
 const ICON_CLIP_ID = 'pixel-title-icon-clip';
 
 const TITLE = 'PixelFandom';
-const VIEW_W = 800;
-const VIEW_H = 160;
+const VIEW_W = 1560;
+const VIEW_H = 312;
 const CX = VIEW_W / 2;
 const CY = VIEW_H / 2;
-const ICON_SIZE = 136;
+const ICON_SIZE = 260;
 const ICON_R = ICON_SIZE / 2;
-const FONT_SIZE = 66;
+const FONT_SIZE = 132;
 
 export default function PixelTitle({ className = '' }: { className?: string }) {
   return (
@@ -48,7 +48,7 @@ export default function PixelTitle({ className = '' }: { className?: string }) {
         </defs>
 
         <image
-          href="/icon-512.png"
+          href="/icon.svg"
           x={CX - ICON_R}
           y={CY - ICON_R}
           width={ICON_SIZE}

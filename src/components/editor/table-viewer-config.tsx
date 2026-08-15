@@ -191,8 +191,11 @@ export default function TableViewerConfig({
 
     const updatePayload: Record<string, unknown> = { viewer_config: parsed };
     const iconValue = parsed?.header?.icon;
-    if (parsed?.header) {
-      updatePayload.icon = iconValue || null;
+    // Only sync the catalog `icon` column when a header icon is actually set.
+    // Writing `null` here would otherwise wipe a table icon configured
+    // elsewhere (e.g. via the name column's label icon) on every save.
+    if (iconValue) {
+      updatePayload.icon = iconValue;
     }
 
     const { error: updateError } = await supabase
