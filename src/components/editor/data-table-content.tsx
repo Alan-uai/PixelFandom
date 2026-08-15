@@ -35,6 +35,8 @@ import {
   Link2,
   Layers,
   Unlink,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { FieldTypeSelect3D } from '@/components/ui/field-type-select-3d';
 import { VerticalTypeCarousel } from '@/components/ui/vertical-type-carousel';
@@ -53,6 +55,7 @@ import { ColumnEditor } from '@/lib/column-types/editor-factory';
 import { validateColumnValue, sanitizeColumnValue } from '@/lib/column-types/schemas';
 import { updateViewerConfigField } from '@/lib/viewer-config-utils';
 import FormatVariantRenderer from '@/components/wiki/format-variant-renderer';
+import type { AllowedValue } from '@/components/wiki/format-variant-renderer';
 import { getDefaultFormat } from '@/lib/column-types/format-compatibility';
 import { useItemVariants } from '@/hooks/use-item-variants';
 
@@ -173,6 +176,14 @@ export default function DataTableContent({
   const [columnConfigMap, setColumnConfigMap] = useState<Record<string, ColumnConfigEntry>>({});
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [dragFieldCol, setDragFieldCol] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState<Set<string>>(new Set());
+  const togglePreview = (id: string) =>
+    setPreviewOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const columnConfigRef = useRef<Record<string, ColumnConfigEntry>>({});
   const persistColumnConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -577,6 +588,35 @@ export default function DataTableContent({
 
   const getDetailColumns = (allCols: string[]) =>
     allCols.filter((c) => !isSystemColumn(c) && !primary.includes(c) && !imageColumnNames.includes(c) && !iconColumnNames.includes(c));
+
+  // Devolve a linha "atual" fundindo as edições ainda não salvas (editForm)
+  // por cima dos valores persistidos (row). Usado pela pré-visualização (olho)
+  // para refletir edições em tempo real antes do salvamento.
+  const getCurrentRow = (row: Row): Row => {
+    if (editingId !== row.id) return row;
+    const merged: Row = { ...row };
+    for (const [k, v] of Object.entries(editForm)) {
+      if (!(k in merged)) {
+        merged[k] = v;
+        continue;
+      }
+      const orig = (merged as Record<string, unknown>)[k];
+      if (orig && typeof orig === 'object' && !Array.isArray(orig)) {
+        try {
+          (merged as Record<string, unknown>)[k] = JSON.parse(v);
+        } catch {
+          (merged as Record<string, unknown>)[k] = v;
+        }
+      } else if (typeof orig === 'boolean') {
+        (merged as Record<string, unknown>)[k] = v === 'true';
+      } else if (typeof orig === 'number') {
+        (merged as Record<string, unknown>)[k] = v === '' ? null : Number(v);
+      } else {
+        (merged as Record<string, unknown>)[k] = v === '' ? null : v;
+      }
+    }
+    return merged;
+  };
 
   const startEdit = (row: Row) => {
     setEditingId(row.id as string);
@@ -1632,6 +1672,8 @@ export default function DataTableContent({
         <div className="space-y-2">
           {filteredRows.map((row) => {
             const isEditing = editingId === row.id;
+            const showPreview = previewOpen.has(row.id);
+            const currentRow = getCurrentRow(row);
             const rowTitle = (row['name'] as string) || primary.map((col) => {
               if (!(col in row)) return '';
               return getPrimaryValue(row, col);
@@ -1673,11 +1715,48 @@ export default function DataTableContent({
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); togglePreview(row.id); }}
+                      className={`flex items-center justify-center h-5 w-5 rounded-full border-2 bg-background transition-colors shadow-sm inset-shadow ${showPreview ? 'text-primary border-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                      title={showPreview ? 'Ocultar pré-visualização da Wiki' : 'Pré-visualizar como na Wiki'}
+                    >
+                      {showPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    </button>
                   </div>
                 }
               >
-                {isEditing ? (
-                  <div className="space-y-3">
+                 {showPreview ? (
+                   <div className="rounded-xl border border-primary/30 bg-card/60 p-4 space-y-3">
+                     <div className="flex items-center gap-1.5 text-xs font-medium text-primary/80">
+                       <Eye className="h-3 w-3" /> Pré-visualização — como aparece na Wiki
+                     </div>
+                     <div className="space-y-3">
+                       {detailColumns.map((col) => {
+                         const val = currentRow[col];
+                         if (val === null || val === undefined || val === '') return null;
+                         const renderType = getEffectiveRenderType(col);
+                         const fmt = getDefaultFormat(renderType || 'text');
+                         const colDispName = columnConfigMap[col]?.displayName;
+                         const cfg = columnConfigMap[col];
+                         return (
+                           <FormatVariantRenderer
+                             key={col}
+                             format={fmt}
+                             variant={1}
+                             value={val}
+                             label={colDispName || col}
+                             maxValue={cfg?.maxValue}
+                             valueColors={cfg?.valueColors}
+                             allowedValues={cfg?.allowedValues as AllowedValue[] | undefined}
+                             labelColor={cfg?.labelColor}
+                           />
+                         );
+                       })}
+                     </div>
+                   </div>
+                 ) : isEditing ? (
+                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
                       {allColumns.filter((col) => isEditableColumn(col) && col in editForm && !removedFields.has(col)).map((col) => {
                         const original = row[col];
@@ -1881,11 +1960,10 @@ export default function DataTableContent({
                 ) : detailColumns.length > 0 ? (
                   <div className="space-y-2">
                     {detailColumns.map((col) => {
-                      const val = row[col];
-                      if (val === null || val === undefined) return null;
-                      const renderType = getEffectiveRenderType(col);
-                      const fmt = getDefaultFormat(renderType);
+                      const val = currentRow[col];
+                      if (val === null || val === undefined || val === '') return null;
                       const colDispName = columnConfigMap[col]?.displayName;
+                      const display = typeof val === 'object' ? JSON.stringify(val) : String(val);
                       return (
                         <div key={col} className="flex items-center gap-2">
                           <span className="text-xs font-medium text-muted-foreground capitalize shrink-0 min-w-[80px] flex items-center gap-1">
@@ -1896,16 +1974,7 @@ export default function DataTableContent({
                               {colDispName || col.replace(/_/g, ' ')}
                             </span>
                           </span>
-                          <MotionConfig reducedMotion="always">
-                            <FormatVariantRenderer
-                              format={fmt}
-                              variant={1}
-                              value={val}
-                              label={colDispName || col}
-                              maxValue={columnConfigMap[col]?.maxValue}
-                              plain
-                            />
-                          </MotionConfig>
+                          <span className="text-sm text-foreground truncate font-mono">{display}</span>
                         </div>
                       );
                     })}

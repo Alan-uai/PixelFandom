@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, ReactNode } from 'react';
 import { AuthDialogProvider } from '@/context/auth-dialog-context';
 import FloatingNavStrip from '@/components/marketing/floating-nav-strip';
-import SmoothScroll from '@/components/marketing/smooth-scroll';
 
 function FloatingNav() {
   const [show, setShow] = useState(false);
@@ -72,11 +71,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
     <>
       <FloatingNav />
       <FloatingNavStrip show={navStripOutOfView} />
-      <div id="smooth-wrapper" className="relative">
-        <div id="smooth-content">
-          <main className="flex flex-1 flex-col relative z-10">{children}</main>
-        </div>
-      </div>
+      <main className="flex flex-1 flex-col relative z-10">{children}</main>
     </>
   );
 }
@@ -89,7 +84,6 @@ export default function MarketingLayout({
   return (
     <AuthDialogProvider>
       <div className="flex min-h-screen w-full flex-col relative">
-        <SmoothScroll />
         <LayoutContent>{children}</LayoutContent>
       </div>
     </AuthDialogProvider>

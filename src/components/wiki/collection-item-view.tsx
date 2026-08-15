@@ -696,7 +696,14 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
   };
 
   const effectiveHideHeader = hideHeader && detailConfig?.showHeader !== true;
-  const effectiveVisibleColumns = detailConfig?.visibleColumns || [];
+  // detailConfig may be the full viewer config (detail page) or the card-level
+  // config (listing item view). Normalize so the visible-columns restriction is
+  // read from whichever layer actually carries it.
+  const effectiveVisibleColumns: string[] = (
+    detailConfig?.visibleColumns && (detailConfig.visibleColumns as unknown[]).length > 0
+      ? detailConfig.visibleColumns
+      : ((detailConfig as any)?.card?.visibleColumns || [])
+  ) as string[];
   const visibleColumnsSet = effectiveVisibleColumns.length > 0 ? new Set(effectiveVisibleColumns) : null;
   const columnFormats = detailConfig?.columnFormats || {};
   const formatVariants: Record<string, number> = detailConfig?.columnFormatVariants || {};
@@ -723,31 +730,41 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
     formula: scalingFormula,
   };
 
+  // Two distinct baseXmax configs exist:
+  //  • `baseXmaxRaw` (top-level) → JSONB column-range config consumed by
+  //    BaseMaxValueNode for the scalar "base → max" display (config #1).
+  //  • `card.baseXmax` → the slider config (mode off/item/table/ambos,
+  //    levelColumn, tiers, axisMin/Max) that drives the footer/table sliders
+  //    (config #2). detailConfig may be the full config OR the card-level
+  //    config, so resolve the card layer first.
+  const cardLayer = (detailConfig as any)?.card ?? detailConfig;
+  const sliderRaw = (cardLayer as any)?.baseXmax;
   const baseXmaxRaw = (detailConfig as any)?.baseXmax;
-  const baseXmaxMode = baseXmaxRaw?.mode || 'off';
-  const baseXmaxEnabled = baseXmaxMode !== 'off';
-  const baseXmaxTiers = Math.max(1, Number(baseXmaxRaw?.tiers) || 12);
-  const baseXmaxAxisMin = Number(baseXmaxRaw?.axisMin) || 1;
-  const baseXmaxAxisMax = Number(baseXmaxRaw?.axisMax) || 100;
-  const baseXmaxLevelColumn = baseXmaxRaw?.levelColumn as string | undefined;
+  const sliderMode = sliderRaw?.mode || 'off';
+  const sliderEnabled = sliderMode !== 'off';
+  const sliderTiers = Math.max(1, Number(sliderRaw?.tiers) || 12);
+  const sliderAxisMin = Number(sliderRaw?.axisMin) || 1;
+  const sliderAxisMax = Number(sliderRaw?.axisMax) || 100;
+  const sliderLevelColumn = sliderRaw?.levelColumn as string | undefined;
+  const sliderAxisLabel = sliderRaw?.axisLabel ?? 'Nível';
   const baseXmaxInfo: BaseXmaxConfig = {
-    enabled: baseXmaxEnabled,
+    enabled: baseXmaxRaw?.enabled === true,
     axisLabel: baseXmaxRaw?.axisLabel ?? 'Nível',
-    axisMin: baseXmaxAxisMin,
-    axisMax: baseXmaxAxisMax,
+    axisMin: Number(baseXmaxRaw?.axisMin) || 1,
+    axisMax: Number(baseXmaxRaw?.axisMax) || 100,
     step: baseXmaxRaw?.step ?? 1,
     defaultValue: baseXmaxRaw?.defaultValue,
     mode: baseXmaxRaw?.mode ?? 'continuous',
     showPerCardSlider: baseXmaxRaw?.showPerCardSlider === true,
-    tiers: baseXmaxTiers,
+    tiers: Number(baseXmaxRaw?.tiers) || 12,
   };
 
   const [bxTier, setBxTier] = useState<number>(() => {
-    const v = baseXmaxLevelColumn ? Number(activeData?.[baseXmaxLevelColumn]) : (baseXmaxRaw?.defaultValue != null ? Number(baseXmaxRaw.defaultValue) : 1);
+    const v = sliderLevelColumn ? Number(activeData?.[sliderLevelColumn]) : (sliderRaw?.defaultValue != null ? Number(sliderRaw.defaultValue) : 1);
     if (!Number.isFinite(v)) return 1;
-    return Math.min(Math.max(Math.round(v), 1), baseXmaxTiers);
+    return Math.min(Math.max(Math.round(v), 1), sliderTiers);
   });
-  const bxStatus = baseXmaxStatusAtTier(baseXmaxAxisMin, baseXmaxAxisMax, baseXmaxTiers, bxTier);
+  const bxStatus = baseXmaxStatusAtTier(sliderAxisMin, sliderAxisMax, sliderTiers, bxTier);
 
   const handleStatClick = (statKey: string) => {
     if (!showComparisonEnabled) return;
@@ -905,11 +922,11 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
             prevRow={prevRow}
           />
 
-          {baseXmaxEnabled && (
+          {sliderEnabled && (
             <div className="bg-card/50 rounded-xl border p-4 mt-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {baseXmaxRaw?.axisLabel || 'Nível'}
+                  {sliderAxisLabel}
                 </span>
                 <span className="text-sm font-mono text-primary font-bold">
                   {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -917,7 +934,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
               </div>
               <ElasticSlider3D
                 startingValue={1}
-                maxValue={baseXmaxTiers}
+                maxValue={sliderTiers}
                 defaultValue={bxTier}
                 isStepped
                 stepSize={1}
@@ -925,7 +942,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                 onValueChange={(v) => setBxTier(Math.round(v))}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Tier {bxTier} / {baseXmaxTiers} — {baseXmaxAxisMin} → {baseXmaxAxisMax}
+                Tier {bxTier} / {sliderTiers} — {sliderAxisMin} → {sliderAxisMax}
               </p>
             </div>
           )}

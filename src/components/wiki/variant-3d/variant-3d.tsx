@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { motion, useReducedMotion, type Target } from 'framer-motion';
+import { motion, type Target } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
@@ -77,7 +77,6 @@ export interface Variant3DProps {
 
 export function Variant3D({ format, variant, trigger = 0, className, children, 'data-bento-cols': bentoCols, 'data-bento-rows': bentoRows }: Variant3DProps) {
   const animsOn = useAnimationsEnabled();
-  const prefersReduced = useReducedMotion();
   const preset = useMemo(() => getVariant3DPreset(format, variant), [format, variant]);
 
   useEffect(() => {
@@ -93,7 +92,7 @@ export function Variant3D({ format, variant, trigger = 0, className, children, '
   const ambientCls = AMBIENT_CLASS[preset.ambient] ?? '';
   const ambient = preset.ambient !== 'none';
 
-  const disabled = !animsOn || prefersReduced;
+  const disabled = !animsOn;
 
   const initialTarget = { ...entry.initial, ...tune } as Target;
   const animateTarget = { ...entry.animate } as Target;

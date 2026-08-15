@@ -1093,6 +1093,28 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       )}
 
+      {showTableSlider && (
+        <div className="bg-card/50 rounded-xl border p-4 mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {baseXmaxInfo.axisLabel || 'Nível'}
+            </span>
+            <span className="text-sm font-mono text-primary font-bold">
+              {tableLevel.toLocaleString()}
+            </span>
+          </div>
+          <ElasticSlider3D
+            maxValue={baseXmaxInfo.axisMax}
+            defaultValue={tableLevel}
+            startingValue={baseXmaxInfo.axisMin}
+            onValueChange={setTableLevel}
+            isStepped
+            stepSize={baseXmaxInfo.step}
+            showValue={false}
+          />
+        </div>
+      )}
+
       {loading ? (
         <div className={`space-y-3 ${viewerConfig?.loading?.skeleton === 'pulse' ? 'animate-pulse' : viewerConfig?.loading?.skeleton === 'shimmer' ? 'animate-shimmer' : ''}`}>
           <div className="h-5 w-32 bg-muted rounded mb-6" />
@@ -1190,27 +1212,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         </div>
       ) : (
         <>
-          {showTableSlider && (
-            <div className="bg-card/50 rounded-xl border p-4 mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {baseXmaxInfo.axisLabel || 'Nível'}
-                </span>
-                <span className="text-sm font-mono text-primary font-bold">
-                  {tableLevel.toLocaleString()}
-                </span>
-              </div>
-              <ElasticSlider3D
-                maxValue={baseXmaxInfo.axisMax}
-                defaultValue={tableLevel}
-                startingValue={baseXmaxInfo.axisMin}
-                onValueChange={setTableLevel}
-                isStepped
-                stepSize={baseXmaxInfo.step}
-                showValue={false}
-              />
-            </div>
-          )}
           {renderItems(
             pagination
               ? filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)

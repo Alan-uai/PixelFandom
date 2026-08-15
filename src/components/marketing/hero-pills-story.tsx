@@ -1,16 +1,11 @@
 'use client';
 
 import { useRef, useMemo, useCallback, useEffect, type ComponentType, type CSSProperties } from 'react';
-import { motion, useTransform, useMotionValue, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValueEvent, type MotionValue } from 'framer-motion';
 import { Sparkles, Cpu, LayoutGrid, Globe, Layout } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ScrollSmoother } from 'gsap/ScrollSmoother';
 import HeroSection from './hero-section';
 import NavStrip from './nav-strip';
 import Hyperspeed from './Hyperspeed';
-
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 const TOTAL_FRAMES = 123;
 const FRAME_BASE = '/parallax/frame_';
@@ -84,7 +79,14 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const progress = useMotionValue(0);
+  // Scroll nativo (mouse + toque no mobile). Sem GSAP/lerp: o frame acompanha
+  // exatamente a posição do scroll, sem "playing" automático.
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end end'],
+  });
+  const progress = scrollYProgress;
+
   const hyperspeedApi = useRef<{ setProgress: (v: number) => void; setStraighten: (v: number) => void } | null>(null);
   const drawRef = useRef<((p: number) => void) | null>(null);
 
@@ -111,23 +113,9 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     hyperspeedApi.current = api;
   }, []);
 
-  // GSAP ScrollTrigger scrub: progress 0 → 1 ao longo da seção (sticky 350vh)
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const st = ScrollTrigger.create({
-      trigger: section,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: true,
-      onUpdate: (self) => progress.set(self.progress),
-    });
-    return () => {
-      st.kill();
-    };
-  }, [progress]);
-
-  // Pré-carrega TODOS os frames e desenha no canvas conforme o progresso
+  // Pré-carrega TODOS os frames. O canvas só desenha de acordo com o scroll:
+  // no onload NÃO avançamos o display (evita o "play" tipo vídeo), só repintamos
+  // o frame alvo caso ele acabe de carregar.
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
@@ -137,14 +125,15 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const images: (HTMLImageElement | null)[] = new Array(TOTAL_FRAMES).fill(null);
-    const currentIndexRef = { current: 0 };
+    const displayedRef = { current: 0 };
+    const targetRef = { current: 0 };
 
     const resize = () => {
       canvas.width = Math.floor(section.clientWidth * dpr);
       canvas.height = Math.floor(section.clientHeight * dpr);
       canvas.style.width = `${section.clientWidth}px`;
       canvas.style.height = `${section.clientHeight}px`;
-      draw(currentIndexRef.current);
+      draw(displayedRef.current);
     };
 
     const drawCover = (img: HTMLImageElement) => {
@@ -165,19 +154,21 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
     };
 
+    // Desenha o frame mais próximo já carregado (<= idx), para não mostrar
+    // buracos enquanto os frames ainda baixam.
     const draw = (index: number) => {
       const i = Math.max(0, Math.min(TOTAL_FRAMES - 1, index));
       const img = images[i];
       if (img && img.complete && img.naturalWidth > 0) {
         drawCover(img);
-        currentIndexRef.current = i;
+        displayedRef.current = i;
         return;
       }
       for (let j = i; j >= 0; j--) {
         const fb = images[j];
         if (fb && fb.complete && fb.naturalWidth > 0) {
           drawCover(fb);
-          currentIndexRef.current = j;
+          displayedRef.current = j;
           return;
         }
       }
@@ -187,7 +178,8 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       const im = new Image();
       im.decoding = 'async';
       im.onload = () => {
-        if (currentIndexRef.current <= k) draw(k);
+        // Só repinta se este frame for exatamente o alvo atual do scroll.
+        if (k === targetRef.current) draw(k);
       };
       im.src = frameUrl(k);
       images[k] = im;
@@ -197,6 +189,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     window.addEventListener('resize', resize);
     drawRef.current = (p: number) => {
       const idx = Math.round(p * (TOTAL_FRAMES - 1));
+      targetRef.current = idx;
       draw(idx);
     };
 
@@ -204,7 +197,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
       window.removeEventListener('resize', resize);
       drawRef.current = null;
     };
-  }, [progress]);
+  }, []);
 
   useMotionValueEvent(progress, 'change', (p) => {
     drawRef.current?.(p);
@@ -221,7 +214,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
             className="absolute inset-0"
             style={{ opacity: canvasOpacity, pointerEvents: 'none' }}
           >
-            <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" />
+            <canvas ref={canvasRef} id="parallax-canvas" className="absolute inset-0 block h-full w-full" />
           </motion.div>
           <motion.div
             className="absolute inset-0 mix-blend-screen"
