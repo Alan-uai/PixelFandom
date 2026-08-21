@@ -33,7 +33,7 @@ import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
 import { ElasticSlider3D, buildTicks } from '@/components/ui/elastic-slider-3d';
-import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
+import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier, computeBaseXmaxStatus, resolveBaseXmaxParam } from '@/lib/scaling-context';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getCachedVariantRow } from '@/components/wiki/variant-selector';
@@ -258,23 +258,38 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const gap = displayConfig.gap ?? 12;
   const cardConfig: Record<string, any> = viewerConfig?.card || {};
   const baseXmaxRaw = (cardConfig?.baseXmax as Record<string, any>) || {};
+  // Scalar / viewer-level baseXmax (config #1) — a fallback source for the
+  // division fields (paramColumn / base / max / step / formulaEnabled) when the
+  // card-level config (#2) doesn't define them. This mirrors collection-item-view.
+  const baseXmaxScalarRaw = (viewerConfig?.baseXmax as Record<string, any>) || {};
+  // Per-field merge so the division model always resolves from whichever config
+  // actually defines each field.
+  const bxParamColumnMerged =
+    (baseXmaxRaw.paramColumn as string | undefined) ??
+    (baseXmaxScalarRaw.paramColumn as string | undefined);
+  const bxBaseMerged =
+    baseXmaxRaw.base != null ? Number(baseXmaxRaw.base) : (baseXmaxScalarRaw.base != null ? Number(baseXmaxScalarRaw.base) : undefined);
+  const bxMaxMerged =
+    baseXmaxRaw.max != null ? Number(baseXmaxRaw.max) : (baseXmaxScalarRaw.max != null ? Number(baseXmaxScalarRaw.max) : undefined);
+  const bxStepMerged = baseXmaxRaw.step ?? baseXmaxScalarRaw.step ?? 1;
+  const bxFormulaMerged = baseXmaxRaw.formulaEnabled === true || baseXmaxScalarRaw.formulaEnabled === true;
   const baseXmaxMode = baseXmaxRaw.mode || 'off';
   const baseXmaxInfo: BaseXmaxConfig = {
     enabled: baseXmaxMode !== 'off',
     axisLabel: baseXmaxRaw.axisLabel ?? 'Cópias',
     axisMin: Number(baseXmaxRaw.axisMin) || 1,
     axisMax: Number(baseXmaxRaw.axisMax) || 100,
-    step: Number(baseXmaxRaw.step) || 1,
+    step: Number(bxStepMerged) || 1,
     defaultValue: baseXmaxRaw.defaultValue != null ? Number(baseXmaxRaw.defaultValue) : undefined,
     mode: baseXmaxRaw.mode === 'tiers' ? 'tiers' : 'continuous',
     showPerCardSlider: baseXmaxMode === 'item' || baseXmaxMode === 'ambos',
     renderMode: baseXmaxMode as BaseXmaxConfig['renderMode'],
     levelColumn: baseXmaxRaw.levelColumn || undefined,
     tiers: Number(baseXmaxRaw.tiers) || 12,
-    paramColumn: baseXmaxRaw.paramColumn || undefined,
-    base: baseXmaxRaw.base != null ? Number(baseXmaxRaw.base) : undefined,
-    max: baseXmaxRaw.max != null ? Number(baseXmaxRaw.max) : undefined,
-    formulaEnabled: baseXmaxRaw.formulaEnabled === true,
+    paramColumn: bxParamColumnMerged || undefined,
+    base: bxBaseMerged != null ? bxBaseMerged : undefined,
+    max: bxMaxMerged != null ? bxMaxMerged : undefined,
+    formulaEnabled: bxFormulaMerged,
     auto: baseXmaxRaw.auto === true,
   };
   // Divisor range across all items for the shared (table) slider.
@@ -709,6 +724,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
       columnTypes,
       sharedLevel,
       onVariantChange: handleVariantChange,
+      onCopiesChange: (c: number) => { setSharedCopies(c); },
     };
 
     const rowSelectionProps = {
@@ -1060,6 +1076,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           tenantSlug={tenantSlug}
           currentItemId={compareItemId}
           initialStat={compareStat}
+          initialBxValue={sharedCopies}
           useSuffix={useSuffix}
           onClose={() => { setCompareStat(null); setCompareItemId(null); }}
         />
@@ -1850,6 +1867,7 @@ function ItemCard({
   persistedVariant,
   persistedVariantSlug,
   sharedLevel,
+  onCopiesChange,
 }: {
   item: any;
   tableName: string;
@@ -1865,6 +1883,7 @@ function ItemCard({
   onVariantChange?: (itemId: string, selection: { item: any; variantSlug: string | null } | null, name: string | null) => void;
   persistedVariant?: any;
   persistedVariantSlug?: string | null;
+  onCopiesChange?: (copies: number) => void;
 }) {
   ensureVariant3DKeyframes();
 
@@ -1881,18 +1900,44 @@ function ItemCard({
   // or in collection-item-view. It sweeps N tiers across [axisMin, axisMax]
   // and shows the interpolated status for the active tier.
   const bxRaw = (cardConfig?.baseXmax as Record<string, any> | undefined) || {};
+  // Fall back to the viewer/detail-level baseXmax for split-parameter fields
+  // (paramColumn / base / max / step / formulaEnabled) — mirrors collection-item-view.
+  const bxScalarRaw = (detailConfig?.baseXmax as Record<string, any> | undefined) || {};
+  const bxRawParam = bxRaw.paramColumn != null ? bxRaw : bxScalarRaw;
   const bxMode = bxRaw.mode || 'off';
   const bxFooterActive = bxMode === 'item' || bxMode === 'ambos';
   const bxTiers = Math.max(1, Number(bxRaw.tiers) || 12);
   const bxAxisMin = Number(bxRaw.axisMin) || 1;
   const bxAxisMax = Number(bxRaw.axisMax) || 100;
   const bxAxisLabel = bxRaw.axisLabel || 'Nível';
+  // Split-parameter column (e.g. "Max Copies" / jsonb "stats.copies"). When set,
+  // the slider sweeps the division parameter (copies 0 → paramValue) instead of
+  // tiers.
+  const bxParamColumn = bxRawParam.paramColumn as string | undefined;
+  const bxBase = bxRawParam.base != null ? Number(bxRawParam.base) : undefined;
+  const bxMax = bxRawParam.max != null ? Number(bxRawParam.max) : undefined;
+  const bxStep = bxRawParam.step ?? 1;
+  const bxFormulaEnabled = bxRawParam.formulaEnabled === true;
+  const bxMaxParam = (() => {
+    if (!bxParamColumn) return bxAxisMax;
+    const v = resolveBaseXmaxParam(item, bxParamColumn);
+    return v && v > 0 ? v : bxAxisMax;
+  })();
   const [bxTier, setBxTier] = useState<number>(() => {
     const v = bxLevelColumn ? Number(item?.[bxLevelColumn]) : (bxRaw.defaultValue != null ? Number(bxRaw.defaultValue) : 1);
     if (!Number.isFinite(v)) return 1;
     return Math.min(Math.max(Math.round(v), 1), bxTiers);
   });
-  const bxStatus = baseXmaxStatusAtTier(bxAxisMin, bxAxisMax, bxTiers, bxTier);
+  const [bxCopies, setBxCopies] = useState<number>(0);
+  // In shared (table/ambos) mode the table slider is the master numerator; the
+  // per-item value is the shared copies capped by THIS item's own Max Copies, so
+  // an item that maxes at 12k freezes at max once the slider passes 12k, while a
+  // 50k item keeps climbing until the slider hits its own ceiling.
+  const bxEffectiveCopies = sharedLevel != null ? sharedLevel : bxCopies;
+  const bxDisplayCopies = Math.min(Math.max(bxEffectiveCopies, 0), bxMaxParam);
+  const bxStatus = bxParamColumn
+    ? computeBaseXmaxStatus(bxDisplayCopies, bxMaxParam, bxBase, bxMax, bxStep)
+    : baseXmaxStatusAtTier(bxAxisMin, bxAxisMax, bxTiers, bxTier);
   // Keep the tier in sync if the parent shared level (table mode) changes.
   useEffect(() => {
     if (sharedLevel != null) {
@@ -2176,18 +2221,38 @@ function ItemCard({
                 {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </span>
             </div>
-            <ElasticSlider3D
-              startingValue={1}
-              maxValue={bxTiers}
-              defaultValue={bxTier}
-              ticks={buildTicks(1, bxTiers)}
-              isStepped
-              stepSize={1}
-              showValue={false}
-              onValueChange={(v) => setBxTier(Math.round(v))}
-            />
+            {bxParamColumn ? (
+              <ElasticSlider3D
+                startingValue={0}
+                maxValue={bxMaxParam}
+                defaultValue={bxCopies}
+                value={bxDisplayCopies}
+                ticks={buildTicks(0, bxMaxParam)}
+                isStepped
+                stepSize={bxFormulaEnabled && bxStep > 1 ? bxStep : 1}
+                showValue={false}
+                onValueChange={(v) => {
+                  const nv = Math.max(0, Math.min(Math.round(v), bxMaxParam));
+                  if (sharedLevel != null) onCopiesChange?.(nv);
+                  else setBxCopies(nv);
+                }}
+              />
+            ) : (
+              <ElasticSlider3D
+                startingValue={1}
+                maxValue={bxTiers}
+                defaultValue={bxTier}
+                ticks={buildTicks(1, bxTiers)}
+                isStepped
+                stepSize={1}
+                showValue={false}
+                onValueChange={(v) => setBxTier(Math.round(v))}
+              />
+            )}
             <p className="text-[10px] text-muted-foreground mt-1">
-              Tier {bxTier} / {bxTiers} — {bxAxisMin} → {bxAxisMax}
+              {bxParamColumn
+                ? `${bxDisplayCopies.toLocaleString()} / ${bxMaxParam.toLocaleString()} — Status = ${bxBase ?? 2} + (${bxMax ?? 100} − ${bxBase ?? 2}) × (cópias / ${bxMaxParam.toLocaleString()})`
+                : `Tier ${bxTier} / ${bxTiers} — ${bxAxisMin} → ${bxAxisMax}`}
             </p>
           </div>
         )}

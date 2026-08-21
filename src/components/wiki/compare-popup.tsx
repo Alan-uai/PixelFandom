@@ -365,13 +365,15 @@ function safeStringCompare(a: unknown, b: unknown): number {
 }
 
 export default function ComparePopup({
-  table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, onClose, useSuffix = true,
+  table, tenantId, tenantSlug: _tenantSlug, currentItemId, initialStat, initialBxValue, onClose, useSuffix = true,
 }: {
   table: string;
   tenantId: string;
   tenantSlug?: string;
   currentItemId?: string;
   initialStat?: string;
+  /** Pre-selected baseXmax slider value (the table's elastic slider / per-item copy). */
+  initialBxValue?: number;
   onClose: () => void;
   useSuffix?: boolean;
 }) {
@@ -395,6 +397,9 @@ export default function ComparePopup({
   const [bxInfo, setBxInfo] = useState<ComparePopupBxInfo | null>(null);
   const [bxValue, setBxValue] = useState(0);
   const [bxColumnTypes, setBxColumnTypes] = useState<Record<string, string>>({});
+  // Ensures the compare slider is seeded from the source table's selected copy
+  // only once, on first open.
+  const bxSeededRef = useRef(false);
 
   useEffect(() => {
     getTableSchema(table).then(setSchema);
@@ -420,9 +425,21 @@ export default function ComparePopup({
           columnOpFlipped: (vc.card?.columnOpFlipped || {}) as Record<string, boolean>,
           columnConfig: ((vc.columnConfig || (vc.card as any)?.columnConfig || {}) as Record<string, ColumnConfigEntry>),
         };
-        configCache.current = { ...cfg, columnTypes: (vc.columnTypes || {}) as Record<string, string> };
+        // Base → Max (baseXmax) column set: combine the explicit columnTypes label
+        // with columns declared in the baseXmax config (so jsonb baseXmax columns
+        // also render as a single "x → y" stat).
+        const bxTypes: Record<string, string> = {};
+        const colTypes = (vc.columnTypes || {}) as Record<string, string>;
+        for (const [c, t] of Object.entries(colTypes)) {
+          if (t === 'baseXmax') bxTypes[c] = 'baseXmax';
+        }
+        const bxCfgCols = (vc as any)?.baseXmax?.columns;
+        if (Array.isArray(bxCfgCols)) {
+          for (const c of bxCfgCols) bxTypes[c] = 'baseXmax';
+        }
+        configCache.current = { ...cfg, columnTypes: bxTypes };
         setViewerCfg(cfg);
-        setBxColumnTypes((vc.columnTypes || {}) as Record<string, string>);
+        setBxColumnTypes(bxTypes);
         const cardLayer = (vc as any)?.card ?? vc;
         const sliderRaw = (cardLayer as any)?.baseXmax; // config #2 (slider)
         const scalarRaw = (vc as any)?.baseXmax; // config #1 (scalar range)
@@ -456,15 +473,6 @@ export default function ComparePopup({
       });
   }, [tenantId, table]);
 
-  // Reset the baseXmax slider to its base position whenever the config changes.
-  useEffect(() => {
-    if (!bxInfo) { setBxValue(0); return; }
-    const start = bxInfo.mode === 'axis'
-      ? (bxInfo.defaultValue != null ? bxInfo.defaultValue : bxInfo.axisMin)
-      : (bxInfo.defaultValue != null ? bxInfo.defaultValue : 0);
-    setBxValue(start);
-  }, [bxInfo]);
-
   // Max division parameter across items (the numerator ceiling for the slider).
   const bxSliderMax = useMemo(() => {
     if (!bxInfo || bxInfo.mode !== 'division' || !bxInfo.paramColumn) return bxInfo?.axisMax ?? 100;
@@ -475,6 +483,32 @@ export default function ComparePopup({
     }
     return m > 0 ? m : (bxInfo.axisMax || 100);
   }, [bxInfo, items]);
+
+  // Reset the baseXmax slider to its base position whenever the *config* changes
+  // (not when only `active` flips). On first open, seed it from the source
+  // table's selected copy (the table elastic slider for 'table' mode, or the
+  // per-item copy for 'item'/'ambos').
+  const bxConfigKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!bxInfo) { setBxValue(0); bxSeededRef.current = false; bxConfigKeyRef.current = null; return; }
+    const key = `${bxInfo.mode}|${bxInfo.paramColumn ?? ''}|${bxInfo.axisMin}|${bxInfo.axisMax}|${bxInfo.step}`;
+    if (bxConfigKeyRef.current === key) return;
+    bxConfigKeyRef.current = key;
+    // Seed from the source table's selected copy (division model only — axis mode
+    // uses a different value space). Clamp against at least the seed value so a
+    // not-yet-loaded item set (fallback max) doesn't truncate a large copy.
+    if (!bxSeededRef.current && initialBxValue != null && bxInfo.mode === 'division') {
+      const max = Math.max(bxSliderMax, initialBxValue);
+      const v = Math.min(Math.max(initialBxValue, 0), max);
+      setBxValue(v);
+      bxSeededRef.current = true;
+      return;
+    }
+    const start = bxInfo.mode === 'axis'
+      ? (bxInfo.defaultValue != null ? bxInfo.defaultValue : bxInfo.axisMin)
+      : (bxInfo.defaultValue != null ? bxInfo.defaultValue : 0);
+    setBxValue(start);
+  }, [bxInfo, initialBxValue, bxSliderMax]);
 
   // Per-item scaled base value for a baseXmax range. When baseXmax is disabled,
   // returns the static base. Otherwise interpolates using the active slider.
@@ -504,6 +538,16 @@ export default function ComparePopup({
       setCompareStat(allStats[0]);
     }
   }, [allStats, initialStat]);
+
+  // The baseXmax slider should only appear for statuses that are actually
+  // baseXmax (either baseXmax-typed columns or jsonb baseXmax columns).
+  useEffect(() => {
+    if (!bxInfo) return;
+    const hasBxStat = allStats.some(s => s.format === 'baseXmax');
+    if (bxInfo.active !== hasBxStat) {
+      setBxInfo(prev => (prev ? { ...prev, active: hasBxStat } : null));
+    }
+  }, [allStats, bxInfo]);
 
   useEffect(() => {
     if (!tenantId || !table) return;

@@ -6,6 +6,7 @@ import { getGameSchema, getTableSchema } from '@/lib/game-schema';
 import { evaluateMath, type MathResult } from '@/lib/math-tools';
 import { parseContentToJson } from '@/lib/content-utils';
 import { getTableCatalog } from '@/lib/data-access';
+import { getDateHourInfo, getWeatherInfo, type DateHourInfo, type WeatherInfo } from '@/lib/datetime-weather';
 
 export interface ToolContext {
   slug: string;
@@ -720,6 +721,35 @@ const batchGetItemsDef: ToolDefinition = {
   },
 };
 
+// ── Date/Time & Weather tools ──
+
+const getDateHourDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'getDateHour',
+    description: 'Get the current date and time (in UTC). Returns the time of day, the weekday (Segunda-feira, Terça-feira, etc.), the day, the month, and the year in Portuguese. Use when the user asks "que horas são", "que dia é hoje", "qual o dia da semana", "me diga a data", or anything about current date/time.',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+  },
+};
+
+const getWeatherDef: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'getWeather',
+    description: 'Get the current weather for a city or region: temperature in degrees, apparent temperature, humidity, wind, cloud cover, precipitation, and condition (ensolarado, nublado, chuva, tempestade, etc). Use when the user asks "como está o tempo", "qual a temperatura em <cidade>", "vai chover", or about weather. The location is REQUIRED.',
+    parameters: {
+      type: 'object',
+      properties: {
+        location: { type: 'string', description: 'City or region name (e.g. "São Paulo", "Rio de Janeiro", "Lisboa"). Required.' },
+      },
+      required: ['location'],
+    },
+  },
+};
+
 export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   searchWikiDef,
   getWikiInfoDef,
@@ -760,6 +790,8 @@ export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   getRelatedItemsDef,
   multiTableQueryDef,
   batchGetItemsDef,
+  getDateHourDef,
+  getWeatherDef,
 ];
 
 // ── Helper: get tenant by slug or id ──
@@ -1853,6 +1885,16 @@ async function handleBatchGetItems(args: { table: string; names: string[] }, ctx
   };
 }
 
+// ── Date/Time & Weather handlers ──
+
+async function handleGetDateHour(_args: Record<string, never>): Promise<DateHourInfo> {
+  return getDateHourInfo();
+}
+
+async function handleGetWeather(args: { location: string }): Promise<WeatherInfo | { error: string }> {
+  return getWeatherInfo(args.location);
+}
+
 // ── Map dispatcher ──
 
 const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<unknown>>([
@@ -1895,6 +1937,8 @@ const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<un
   ['getRelatedItems', handleGetRelatedItems],
   ['multiTableQuery', handleMultiTableQuery],
   ['batchGetItems', handleBatchGetItems],
+  ['getDateHour', handleGetDateHour],
+  ['getWeather', handleGetWeather],
 ]);
 
 async function getValidTenantTableNames(slug: string): Promise<Set<string>> {

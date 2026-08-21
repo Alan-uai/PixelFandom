@@ -32,6 +32,9 @@ export interface ElasticSlider3DProps {
   /** Quick-jump markers along the track (e.g. nice round values). Clicking a
    *  marker snaps the value — does not replace free dragging. */
   ticks?: number[];
+  /** Controlled value. When provided the slider mirrors this value instead of
+   *  managing its own state (parent stays the source of truth). */
+  value?: number;
   onValueChange?: (value: number) => void;
 }
 
@@ -78,6 +81,7 @@ export function ElasticSlider3D({
   valueSuffix = '',
   orientation = 'horizontal',
   ticks,
+  value,
   onValueChange,
 }: ElasticSlider3DProps) {
   return (
@@ -96,6 +100,7 @@ export function ElasticSlider3D({
         valueSuffix={valueSuffix}
         orientation={orientation}
         ticks={ticks}
+        controlledValue={value}
         onValueChange={onValueChange}
       />
     </div>
@@ -115,6 +120,7 @@ function Slider({
   valueSuffix,
   orientation,
   ticks,
+  controlledValue,
   onValueChange,
 }: {
   defaultValue: number;
@@ -129,6 +135,7 @@ function Slider({
   valueSuffix: string;
   orientation: string;
   ticks?: number[];
+  controlledValue?: number;
   onValueChange?: (value: number) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
@@ -152,6 +159,11 @@ function Slider({
   useEffect(() => {
     setValue(defaultValue);
   }, [defaultValue]);
+
+  // Controlled mode: mirror the external value (parent owns the source of truth).
+  useEffect(() => {
+    if (controlledValue !== undefined) setValue(controlledValue);
+  }, [controlledValue]);
 
   useEffect(() => {
     setValue(prev => {

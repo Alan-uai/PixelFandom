@@ -884,6 +884,47 @@ Call when the user says goodbye: "tchau", "falou", "pode ir", "até logo", "bye"
       },
       ['expression']),
 
+    // ── Date/Time & Weather tools ──
+
+    new FunctionCallTool(
+      'getDateHour',
+      'Get the current date and time in UTC: time of day, weekday (Segunda-feira, Terça-feira, etc.), day, month, and year in Portuguese. Use when the user asks "que horas são?", "que dia é hoje?", "qual o dia da semana?", "me diga a data", or anything about current date/time.',
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        try {
+          const { getDateHourInfo } = await import('@/lib/datetime-weather')
+          return { result: getDateHourInfo() }
+        } catch {
+          return { result: { error: 'Não foi possível obter a data/hora.' } }
+        }
+      }
+    ),
+
+    new FunctionCallTool(
+      'getWeather',
+      'Get the current weather for a city or region: temperature in degrees, apparent temperature, humidity, wind, cloud cover, precipitation, and condition (ensolarado, nublado, chuva, tempestade, etc). Use when the user asks "como está o tempo?", "qual a temperatura em <cidade>?", "vai chover?", or about weather. The location is REQUIRED.',
+      {
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'City or region name (e.g. "São Paulo", "Rio de Janeiro", "Lisboa"). Required.' },
+        },
+      },
+      async (params: { location: string }) => {
+        try {
+          const { getWeatherInfo } = await import('@/lib/datetime-weather')
+          const data = await getWeatherInfo(params.location)
+          if ('error' in data) return { result: data }
+          return { result: data }
+        } catch {
+          return { result: { error: 'Não foi possível obter o clima para esta região.' } }
+        }
+      },
+      ['location']
+    ),
+
     // ── Batch voice tool ──
 
     new FunctionCallTool(
