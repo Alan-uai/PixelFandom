@@ -113,8 +113,7 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
   // Canvas parallax — RAF-throttled + frame deduplication + responsive DPR
   useEffect(() => {
     const canvas = canvasRef.current;
-    const section = sectionRef.current;
-    if (!canvas || !section) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -126,8 +125,11 @@ export default function HeroPillsStory({ onLogin }: { onLogin?: () => void }) {
     let rafId = 0;
 
     const resize = () => {
-      const w = section.clientWidth;
-      const h = section.clientHeight;
+      // Size the buffer to the canvas' own CSS box (the visible sticky 100vh
+      // viewport), NOT the 350vh scroll parent — otherwise frames get squished
+      // to ~1/3.5 of their height ("absurd zoom").
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;

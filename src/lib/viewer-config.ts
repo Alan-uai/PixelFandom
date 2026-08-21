@@ -122,6 +122,16 @@ export const ViewerConfigSchema = z.object({
       enabled: z.boolean().optional(),
       mode: z.enum(['off', 'item', 'table', 'ambos']).optional(),
       levelColumn: z.string().optional(),
+      /** Split parameter column/key (e.g. "max_copies" or "atributos.max") used as divisor. */
+      paramColumn: z.string().optional(),
+      /** Enable the base→max interpolation formula (base + (max − base) × copies/param). */
+      formulaEnabled: z.boolean().optional(),
+      /** Base value of the interpolation formula. */
+      base: z.number().optional(),
+      /** Max value of the interpolation formula. */
+      max: z.number().optional(),
+      /** Auto-derive the slider range from data instead of fixed bounds. */
+      auto: z.boolean().optional(),
       axisLabel: z.string().optional(),
       axisMin: z.number().optional(),
       axisMax: z.number().optional(),
