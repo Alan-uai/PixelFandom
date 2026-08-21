@@ -4,7 +4,10 @@ import Image from 'next/image';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { X, Loader2, ArrowUpDown, Type, Image as ImageIcon, Link as LinkIcon, Video, Music, Star, Palette, Smile, Hash, Tag, Layers } from 'lucide-react';
 import { supabase } from '@/supabase';
+import { formatNumber } from '@/lib/format-number';
 import { getTableSchema, type ColumnInfo } from '@/lib/game-schema';
+import { computeBaseXmaxStatus, resolveBaseXmaxParam } from '@/lib/scaling-context';
+import { axisValueToRatio, interpolate } from '@/lib/scaling-engine';
 import { ChipCarousel } from '@/components/ui/chip-carousel';
 import { IconRenderer } from '@/components/ui/icon-renderer';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
@@ -28,7 +31,7 @@ type CompareColumnConfig = {
 type CompareFormat = 'number' | 'range' | 'percent' | 'jsonb' | 'text' | 'boolean' | 'date' | 'duration'
   | 'image' | 'icon' | 'link' | 'video' | 'audio' | 'rating' | 'color' | 'emoji'
   | 'icon-set' | 'color-palette' | 'select' | 'multi-select' | 'tags' | 'toggle-group'
-  | 'progress' | 'file' | 'badge' | 'popover';
+  | 'progress' | 'file' | 'badge' | 'popover' | 'baseXmax';
 
 type CompareInfo = {
   key: string;
@@ -38,6 +41,19 @@ type CompareInfo = {
   parentKey?: string;
   // Path segments inside the parent jsonb value (object keys / array indices).
   jsonbPath?: (string | number)[];
+};
+
+type ComparePopupBxInfo = {
+  active: boolean;
+  mode: 'division' | 'axis';
+  paramColumn?: string;
+  base?: number;
+  maximum?: number;
+  step: number;
+  axisLabel: string;
+  axisMin: number;
+  axisMax: number;
+  defaultValue?: number;
 };
 
 const NUMERIC_TYPES = new Set([
@@ -125,13 +141,33 @@ function getCompareValue(item: Record<string, any>, stat: CompareInfo): unknown 
   return item[stat.key];
 }
 
-function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: CompareColumnConfig): React.ReactNode {
+function renderCompareValue(item: Record<string, any>, stat: CompareInfo, cfg: CompareColumnConfig, opts: {
+  bxInfo: ComparePopupBxInfo | null;
+  computeBxValue: (item: Record<string, any>, base: number, max: number) => number;
+  useSuffix: boolean;
+}): React.ReactNode {
   const val = stat.parentKey && stat.jsonbPath ? getCompareValue(item, stat) : item[stat.key];
 
   if (stat.format === 'range') {
     const min = item[`${stat.key}_min`] ?? val;
     const max = item[`${stat.key}_max`];
     return <span className="font-semibold tabular-nums">{max !== undefined ? `${min}–${max}` : String(min ?? '—')}</span>;
+  }
+
+  // Base → Max columns: show a single "x → y" line. `x` is the value scaled by
+  // the baseXmax slider; when the slider is disabled, x = the static base.
+  if (stat.format === 'baseXmax') {
+    const obj = (stat.parentKey && stat.jsonbPath ? getCompareValue(item, stat) : item[stat.key]) as { base?: number; max?: number } | undefined;
+    const base = Number(obj?.base);
+    const max = Number(obj?.max);
+    if (isNaN(base) || isNaN(max)) return <span className="text-xs text-muted-foreground">—</span>;
+    const x = opts.bxInfo?.active ? opts.computeBxValue(item, base, max) : base;
+    const fmt = (n: number) => formatNumber(Math.round(n), !!opts.useSuffix);
+    return (
+      <span className="font-semibold tabular-nums">
+        {fmt(x)} <span className="text-muted-foreground font-normal">→</span> {fmt(max)}
+      </span>
+    );
   }
 
   if (stat.format === 'percent') {
@@ -344,7 +380,7 @@ export default function ComparePopup({
   const [schema, setSchema] = useState<ColumnInfo[]>([]);
   const [viewerCfg, setViewerCfg] = useState<{ columnOpEnabled: Record<string, boolean>; columnOpFlipped: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> }>({ columnOpEnabled: {}, columnOpFlipped: {}, columnConfig: {} });
   const itemsCache = useRef<Record<string, any>[] | null>(null);
-  const configCache = useRef<{ columnOpEnabled: Record<string, boolean>; columnOpFlipped: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry> } | null>(null);
+  const configCache = useRef<{ columnOpEnabled: Record<string, boolean>; columnOpFlipped: Record<string, boolean>; columnConfig: Record<string, ColumnConfigEntry>; columnTypes: Record<string, string> } | null>(null);
 
   const colConfig = useMemo<CompareColumnConfig>(
     () => ({ ...viewerCfg, useSuffix }),
@@ -355,6 +391,11 @@ export default function ComparePopup({
   const [compareFilter, setCompareFilter] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Base → Max (baseXmax) slider state for the compare popup.
+  const [bxInfo, setBxInfo] = useState<ComparePopupBxInfo | null>(null);
+  const [bxValue, setBxValue] = useState(0);
+  const [bxColumnTypes, setBxColumnTypes] = useState<Record<string, string>>({});
+
   useEffect(() => {
     getTableSchema(table).then(setSchema);
   }, [table]);
@@ -363,6 +404,7 @@ export default function ComparePopup({
     if (!tenantId || !table) return;
     if (configCache.current) {
       setViewerCfg(configCache.current);
+      setBxColumnTypes(configCache.current.columnTypes || {});
       return;
     }
     supabase
@@ -378,12 +420,77 @@ export default function ComparePopup({
           columnOpFlipped: (vc.card?.columnOpFlipped || {}) as Record<string, boolean>,
           columnConfig: ((vc.columnConfig || (vc.card as any)?.columnConfig || {}) as Record<string, ColumnConfigEntry>),
         };
-        configCache.current = cfg;
+        configCache.current = { ...cfg, columnTypes: (vc.columnTypes || {}) as Record<string, string> };
         setViewerCfg(cfg);
+        setBxColumnTypes((vc.columnTypes || {}) as Record<string, string>);
+        const cardLayer = (vc as any)?.card ?? vc;
+        const sliderRaw = (cardLayer as any)?.baseXmax; // config #2 (slider)
+        const scalarRaw = (vc as any)?.baseXmax; // config #1 (scalar range)
+        const sliderEnabled = (sliderRaw?.mode || 'off') !== 'off';
+        const scalarMode = scalarRaw?.mode || 'off';
+        const scalarEnabled = scalarRaw?.enabled === true;
+        const bxActive = sliderEnabled || scalarMode !== 'off' || scalarEnabled || sliderRaw?.enabled === true;
+        if (!bxActive) {
+          setBxInfo(null);
+          return;
+        }
+        const paramColumn = (sliderRaw?.paramColumn as string | undefined) ?? (scalarRaw?.paramColumn as string | undefined);
+        const base = sliderRaw?.base != null ? Number(sliderRaw.base) : (scalarRaw?.base != null ? Number(scalarRaw.base) : undefined);
+        const maximum = sliderRaw?.max != null ? Number(sliderRaw.max) : (scalarRaw?.max != null ? Number(scalarRaw.max) : undefined);
+        const step = sliderRaw?.step ?? scalarRaw?.step ?? 1;
+        const axisLabel = sliderRaw?.axisLabel ?? scalarRaw?.axisLabel ?? 'Cópias';
+        const axisMin = Number(sliderRaw?.axisMin ?? scalarRaw?.axisMin) || 1;
+        const axisMax = Number(sliderRaw?.axisMax ?? scalarRaw?.axisMax) || 100;
+        setBxInfo({
+          active: true,
+          mode: paramColumn ? 'division' : 'axis',
+          paramColumn,
+          base,
+          maximum,
+          step,
+          axisLabel,
+          axisMin,
+          axisMax,
+          defaultValue: sliderRaw?.defaultValue ?? scalarRaw?.defaultValue,
+        });
       });
   }, [tenantId, table]);
 
-  const allStats = useMemo(() => buildAllCompareInfo(schema, items), [schema, items]);
+  // Reset the baseXmax slider to its base position whenever the config changes.
+  useEffect(() => {
+    if (!bxInfo) { setBxValue(0); return; }
+    const start = bxInfo.mode === 'axis'
+      ? (bxInfo.defaultValue != null ? bxInfo.defaultValue : bxInfo.axisMin)
+      : (bxInfo.defaultValue != null ? bxInfo.defaultValue : 0);
+    setBxValue(start);
+  }, [bxInfo]);
+
+  // Max division parameter across items (the numerator ceiling for the slider).
+  const bxSliderMax = useMemo(() => {
+    if (!bxInfo || bxInfo.mode !== 'division' || !bxInfo.paramColumn) return bxInfo?.axisMax ?? 100;
+    let m = 0;
+    for (const it of items) {
+      const v = resolveBaseXmaxParam(it, bxInfo.paramColumn);
+      if (v && v > m) m = v;
+    }
+    return m > 0 ? m : (bxInfo.axisMax || 100);
+  }, [bxInfo, items]);
+
+  // Per-item scaled base value for a baseXmax range. When baseXmax is disabled,
+  // returns the static base. Otherwise interpolates using the active slider.
+  function computeBxValue(item: Record<string, any>, base: number, max: number): number {
+    if (!bxInfo?.active) return base;
+    if (bxInfo.mode === 'division') {
+      const b = bxInfo.base ?? base;
+      const m = bxInfo.maximum ?? max;
+      const paramValue = bxInfo.paramColumn ? resolveBaseXmaxParam(item, bxInfo.paramColumn) : undefined;
+      return computeBaseXmaxStatus(bxValue, paramValue, b, m, bxInfo.step);
+    }
+    const ratio = axisValueToRatio(bxValue, bxInfo.axisMin, bxInfo.axisMax);
+    return interpolate(base, max, ratio, 'linear');
+  }
+
+  const allStats = useMemo(() => buildAllCompareInfo(schema, items, bxColumnTypes), [schema, items, bxColumnTypes]);
 
   useEffect(() => {
     if (allStats.length === 0) return;
@@ -546,6 +653,26 @@ export default function ComparePopup({
           </div>
         )}
 
+        {bxInfo?.active && (
+          <div className="px-5 py-2.5 border-b shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{bxInfo.axisLabel}</span>
+              <input
+                type="range"
+                className="flex-1 accent-primary cursor-pointer"
+                min={bxInfo.mode === 'division' ? 0 : bxInfo.axisMin}
+                max={bxInfo.mode === 'division' ? bxSliderMax : bxInfo.axisMax}
+                step={bxInfo.mode === 'division' ? 1 : (bxInfo.step || 1)}
+                value={bxValue}
+                onChange={(e) => setBxValue(Number(e.target.value))}
+              />
+              <span className="text-xs font-mono tabular-nums w-14 text-right">
+                {formatNumber(Math.round(bxValue), useSuffix)}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
@@ -599,7 +726,7 @@ export default function ComparePopup({
                           </div>
                         </td>
                         <td className={`px-5 py-2.5 ${isCurrent ? 'text-primary' : ''}`}>
-                          {renderCompareValue(item, compareStat, colConfig)}
+                          {renderCompareValue(item, compareStat, colConfig, { bxInfo, computeBxValue, useSuffix })}
                         </td>
                       </tr>
                     );
@@ -625,7 +752,7 @@ export default function ComparePopup({
   );
 }
 
-function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[]): CompareInfo[] {
+function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[], renderTypes: Record<string, string> = {}): CompareInfo[] {
   const result: CompareInfo[] = [];
   const seen = new Set<string>();
   const push = (info: CompareInfo) => {
@@ -709,12 +836,13 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[])
     if (paired.has(name)) continue;
     const format = classify(name);
     if (format === 'jsonb') {
+      const isBx = renderTypes[name] === 'baseXmax';
       const subFields = discoverJsonbSubFields(name, items);
       if (subFields.length > 0) {
-        for (const sub of subFields) push(sub);
+        for (const sub of subFields) push({ ...sub, format: isBx ? 'baseXmax' : 'jsonb' });
       } else {
         // Fall back to whole-column jsonb comparison if no sub-keys found.
-        push({ key: name, label: labelFromKey(name), format: 'jsonb' });
+        push({ key: name, label: labelFromKey(name), format: isBx ? 'baseXmax' : 'jsonb' });
       }
       continue;
     }

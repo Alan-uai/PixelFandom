@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { ElasticSlider3D, buildTicks } from '@/components/ui/elastic-slider-3d';
 import { ScaledValue, useBaseXmaxConfig, useBaseXmaxLevel, computeBaseXmaxStatus } from '@/lib/scaling-context';
 import { axisValueToRatio } from '@/lib/scaling-engine';
 import type { BaseMaxValue } from '@/lib/scaling-engine';
@@ -53,6 +53,7 @@ export function BaseMaxSlider({
         startingValue={min}
         maxValue={max}
         defaultValue={axisValue}
+        ticks={buildTicks(min, max)}
         label={axisLabel || value.axis || 'Nível'}
         valueSuffix=""
         showValue

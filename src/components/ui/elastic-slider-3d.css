@@ -122,3 +122,37 @@
 .elastic-slider-3d-wrapper:hover .elastic-slider-3d-glow {
   opacity: 1;
 }
+
+.elastic-slider-3d-ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: 10px;
+  pointer-events: none;
+}
+
+.elastic-slider-3d-tick {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 1px;
+  background: hsl(var(--muted-foreground) / 0.45);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s ease, height 0.15s ease, transform 0.15s ease;
+}
+
+.elastic-slider-3d-tick:hover {
+  background: hsl(var(--primary));
+  height: 10px;
+  transform: translateX(-50%) scaleY(1.2);
+}
+
+.elastic-slider-3d-tick.is-active {
+  background: hsl(var(--primary));
+}

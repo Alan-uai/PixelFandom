@@ -32,7 +32,7 @@ import { isColorString, hexToStyle } from '@/lib/color';
 import { smartCompare } from '@/lib/sort-utils';
 import { ColumnDisplay } from '@/lib/column-types/display-factory';
 import { MiniCardGrid } from '@/components/wiki/mini-card-3d';
-import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { ElasticSlider3D, buildTicks } from '@/components/ui/elastic-slider-3d';
 import { BaseXmaxContext, BaseXmaxLevelContext, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D, ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
@@ -277,17 +277,29 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     formulaEnabled: baseXmaxRaw.formulaEnabled === true,
     auto: baseXmaxRaw.auto === true,
   };
-  // Max divisor across items for the shared slider range.
-  const maxParam = useMemo(() => {
-    if (!baseXmaxInfo.paramColumn) return 100;
-    let m = 0;
+  // Divisor range across all items for the shared (table) slider.
+  // The slider spans from the smallest item "Max Copies" to the largest, so each
+  // item's own Max Copies cap (per-item status) lines up with its position on
+  // the shared axis: an item maxing at the minimum stays capped above that, an
+  // item maxing at the maximum only reaches its cap when the slider hits the top.
+  const { minParam, maxParam } = useMemo(() => {
+    if (!baseXmaxInfo.paramColumn) return { minParam: 0, maxParam: 100 };
+    let mn = Infinity;
+    let mx = 0;
     for (const it of items) {
       const v = resolveBaseXmaxParam(it, baseXmaxInfo.paramColumn);
-      if (v != null && v > m) m = v;
+      if (v != null && v > 0) {
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
     }
-    return m || 100;
+    return { minParam: Number.isFinite(mn) ? mn : 0, maxParam: mx || 100 };
   }, [items, baseXmaxInfo.paramColumn]);
-  const [sharedCopies, setSharedCopies] = useState<number>(0);
+  // Shared slider lower bound: smallest item Max Copies (so faster items stay
+  // capped once the slider passes them). Falls back to 0 when all items share
+  // the same divisor (degenerate single-value range).
+  const sliderMin = minParam > 0 && minParam < maxParam ? minParam : 0;
+  const [sharedCopies, setSharedCopies] = useState<number>(sliderMin);
   const sharedLevel =
     baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? sharedCopies : undefined;
   const detailConfig: Record<string, any> = {
@@ -1163,8 +1175,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
           <ElasticSlider3D
             maxValue={maxParam}
             defaultValue={sharedCopies}
-            startingValue={0}
-            onValueChange={(v) => setSharedCopies(Math.max(0, Math.round(v)))}
+            startingValue={sliderMin}
+            ticks={buildTicks(sliderMin, maxParam)}
+            onValueChange={(v) => setSharedCopies(Math.max(sliderMin, Math.min(Math.round(v), maxParam)))}
             isStepped
             stepSize={baseXmaxInfo.formulaEnabled ? (baseXmaxInfo.step && baseXmaxInfo.step > 1 ? baseXmaxInfo.step : 1) : 1}
             showValue={false}
@@ -2167,6 +2180,7 @@ function ItemCard({
               startingValue={1}
               maxValue={bxTiers}
               defaultValue={bxTier}
+              ticks={buildTicks(1, bxTiers)}
               isStepped
               stepSize={1}
               showValue={false}

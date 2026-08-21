@@ -29,7 +29,38 @@ export interface ElasticSlider3DProps {
   valuePrefix?: string;
   valueSuffix?: string;
   orientation?: 'horizontal' | 'vertical';
+  /** Quick-jump markers along the track (e.g. nice round values). Clicking a
+   *  marker snaps the value — does not replace free dragging. */
+  ticks?: number[];
   onValueChange?: (value: number) => void;
+}
+
+/**
+ * Picks a "nice" step (1/2/5 × 10^k) so the track shows ~`target` evenly spaced
+ * markers. e.g. range 100 → step 10 (10 marks); range 12000 → step 1000
+ * (12 marks). Used to build quick-jump tick shortcuts.
+ */
+export function chooseTickStep(range: number, target = 10): number {
+  if (!Number.isFinite(range) || range <= 0) return 1;
+  const ideal = range / target;
+  const k = Math.floor(Math.log10(ideal));
+  const base = Math.pow(10, k);
+  let step = base;
+  for (const m of [1, 2, 5]) {
+    if (m * base <= ideal) step = m * base;
+  }
+  return step > 0 ? step : 1;
+}
+
+/** Builds tick marker values spanning [min, max] at nice intervals. */
+export function buildTicks(min: number, max: number): number[] {
+  if (!Number.isFinite(max) || !Number.isFinite(min) || max <= min) return [];
+  const step = chooseTickStep(max - min);
+  const ticks: number[] = [];
+  for (let v = min + step; v <= max; v += step) {
+    ticks.push(Math.round(v));
+  }
+  return ticks;
 }
 
 export function ElasticSlider3D({
@@ -46,6 +77,7 @@ export function ElasticSlider3D({
   valuePrefix = '',
   valueSuffix = '',
   orientation = 'horizontal',
+  ticks,
   onValueChange,
 }: ElasticSlider3DProps) {
   return (
@@ -63,6 +95,7 @@ export function ElasticSlider3D({
         valuePrefix={valuePrefix}
         valueSuffix={valueSuffix}
         orientation={orientation}
+        ticks={ticks}
         onValueChange={onValueChange}
       />
     </div>
@@ -81,6 +114,7 @@ function Slider({
   valuePrefix,
   valueSuffix,
   orientation,
+  ticks,
   onValueChange,
 }: {
   defaultValue: number;
@@ -94,6 +128,7 @@ function Slider({
   valuePrefix: string;
   valueSuffix: string;
   orientation: string;
+  ticks?: number[];
   onValueChange?: (value: number) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
@@ -338,6 +373,31 @@ function Slider({
               style={{ left: `${rangeWidth}%` }}
             />
           </motion.div>
+          {ticks && ticks.length > 0 && (
+            <div className="elastic-slider-3d-ticks">
+              {ticks.map((t) => {
+                const totalRange = maxValue - startingValue;
+                const pct = totalRange > 0 ? ((t - startingValue) / totalRange) * 100 : 0;
+                const active = t <= Math.round(value);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-label={String(t)}
+                    className={`elastic-slider-3d-tick${active ? ' is-active' : ''}`}
+                    style={{ left: `${pct}%` }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const nv = Math.max(startingValue, Math.min(t, maxValue));
+                      setValue(nv);
+                      onValueChange?.(nv);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

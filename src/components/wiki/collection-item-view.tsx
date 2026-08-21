@@ -22,7 +22,7 @@ import {
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
 import { ScalingContext, BaseXmaxContext, BaseXmaxLevelContext, type ScalingInfo, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
-import { ElasticSlider3D } from '@/components/ui/elastic-slider-3d';
+import { ElasticSlider3D, buildTicks } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
 import { getItemName, getItemIcon } from '@/lib/item-helpers';
@@ -991,6 +991,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                   startingValue={0}
                   maxValue={maxParam}
                   defaultValue={bxCopies}
+                  ticks={buildTicks(0, maxParam)}
                   isStepped
                   stepSize={sliderFormulaEnabled && sliderStep > 1 ? sliderStep : 1}
                   showValue={false}
@@ -1001,6 +1002,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                   startingValue={1}
                   maxValue={sliderTiers}
                   defaultValue={bxTier}
+                  ticks={buildTicks(1, sliderTiers)}
                   isStepped
                   stepSize={1}
                   showValue={false}
@@ -1036,6 +1038,7 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
               <ElasticSlider3D
                 maxValue={maxCopies}
                 defaultValue={copies}
+                ticks={buildTicks(0, maxCopies)}
                 onValueChange={setCopies}
                 isStepped
                 stepSize={1}
