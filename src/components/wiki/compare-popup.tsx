@@ -880,12 +880,17 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[],
     if (paired.has(name)) continue;
     const format = classify(name);
     if (format === 'jsonb') {
-      const isBx = renderTypes[name] === 'baseXmax';
       const subFields = discoverJsonbSubFields(name, items);
       if (subFields.length > 0) {
-        for (const sub of subFields) push({ ...sub, format: isBx ? 'baseXmax' : 'jsonb' });
+        for (const sub of subFields) push(sub);
       } else {
-        // Fall back to whole-column jsonb comparison if no sub-keys found.
+        // Whole-column jsonb: a single { base, max } object is a base→max range.
+        const isBx =
+          renderTypes[name] === 'baseXmax' ||
+          items.some(it => {
+            const v = parseMaybeJson(it[name]);
+            return isBxValue(v);
+          });
         push({ key: name, label: labelFromKey(name), format: isBx ? 'baseXmax' : 'jsonb' });
       }
       continue;
@@ -898,49 +903,75 @@ function buildAllCompareInfo(schema: ColumnInfo[], items: Record<string, any>[],
 
 // Expands a jsonb column into one comparable entry per discovered sub-key,
 // mirroring how mini cards break objects/arrays into independent cards.
+// A sub-key whose value is itself a { base, max } object is treated as a base→max
+// range (format 'baseXmax') and rendered as a single "x → y" stat, while plain
+// scalar sub-keys stay as 'jsonb'. This lets jsonb columns that *contain* a
+// baseXmax value render correctly even without an explicit config label.
 function discoverJsonbSubFields(column: string, items: Record<string, any>[]): CompareInfo[] {
-  const objectKeys = new Set<string>();
+  const objectKeys = new Map<string, boolean>(); // key -> isBaseXmax
   let sawArrayOfObjects = false;
-  const arrayObjectKeys = new Set<string>();
+  const arrayObjectKeys = new Map<string, boolean>();
+  let isObjectShape = false;
+  let isArrayShape = false;
 
   for (const item of items) {
     const parsed = parseMaybeJson(item[column]);
     if (parsed === null || parsed === undefined) continue;
     if (Array.isArray(parsed)) {
+      isArrayShape = true;
       for (const el of parsed) {
         if (el && typeof el === 'object' && !Array.isArray(el)) {
           sawArrayOfObjects = true;
-          for (const k of Object.keys(el as Record<string, unknown>)) arrayObjectKeys.add(k);
+          for (const k of Object.keys(el as Record<string, unknown>)) {
+            const v = (el as Record<string, unknown>)[k];
+            const bx = isBxValue(v);
+            arrayObjectKeys.set(k, (arrayObjectKeys.get(k) ?? false) || bx);
+          }
         }
       }
     } else if (typeof parsed === 'object') {
-      for (const k of Object.keys(parsed as Record<string, unknown>)) objectKeys.add(k);
+      isObjectShape = true;
+      for (const k of Object.keys(parsed as Record<string, unknown>)) {
+        const v = (parsed as Record<string, unknown>)[k];
+        const bx = isBxValue(v);
+        objectKeys.set(k, (objectKeys.get(k) ?? false) || bx);
+      }
     }
   }
 
   // Object shape → compare each object key across items.
-  if (objectKeys.size > 0) {
-    return [...objectKeys].map(k => ({
+  if (isObjectShape && objectKeys.size > 0) {
+    return [...objectKeys.entries()].map(([k, bx]) => ({
       key: `${column}.${k}`,
       label: `${labelFromKey(column)} · ${labelFromKey(k)}`,
-      format: 'jsonb' as CompareFormat,
+      format: bx ? ('baseXmax' as CompareFormat) : ('jsonb' as CompareFormat),
       parentKey: column,
       jsonbPath: [k],
     }));
   }
 
-  // Array-of-objects → compare each key of the first array element across items.
-  if (sawArrayOfObjects && arrayObjectKeys.size > 0) {
-    return [...arrayObjectKeys].map(k => ({
+  // Array-of-objects → compare each key of the array elements across items.
+  if (isArrayShape && sawArrayOfObjects && arrayObjectKeys.size > 0) {
+    return [...arrayObjectKeys.entries()].map(([k, bx]) => ({
       key: `${column}[].${k}`,
       label: `${labelFromKey(column)} · ${labelFromKey(k)}`,
-      format: 'jsonb' as CompareFormat,
+      format: bx ? ('baseXmax' as CompareFormat) : ('jsonb' as CompareFormat),
       parentKey: column,
       jsonbPath: [0, k],
     }));
   }
 
   return [];
+}
+
+// A base→max value is an object carrying a `base` and/or `max` numeric field.
+function isBxValue(v: unknown): boolean {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    (('base' in (v as Record<string, unknown>)) || ('max' in (v as Record<string, unknown>)))
+  );
 }
 
 function findRangePairs(columns: ColumnInfo[]): string[] {

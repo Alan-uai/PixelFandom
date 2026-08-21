@@ -292,6 +292,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     formulaEnabled: bxFormulaMerged,
     auto: baseXmaxRaw.auto === true,
   };
+  const [activeVariants, setActiveVariants] = useState<Record<string, { item: any; variantSlug: string | null }>>({});
   // Divisor range across all items for the shared (table) slider.
   // The slider spans from the smallest item "Max Copies" to the largest, so each
   // item's own Max Copies cap (per-item status) lines up with its position on
@@ -301,19 +302,27 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     if (!baseXmaxInfo.paramColumn) return { minParam: 0, maxParam: 100 };
     let mn = Infinity;
     let mx = 0;
-    for (const it of items) {
+    const consider = (it: any) => {
+      if (!it) return;
       const v = resolveBaseXmaxParam(it, baseXmaxInfo.paramColumn);
       if (v != null && v > 0) {
         if (v < mn) mn = v;
         if (v > mx) mx = v;
       }
+    };
+    // Global max across every item AND every currently-loaded variant, so a
+    // variant with a larger divisor pulls the shared slider ceiling up to it.
+    for (const it of items) consider(it);
+    if (activeVariants) {
+      for (const key of Object.keys(activeVariants)) consider(activeVariants[key]?.item);
     }
     return { minParam: Number.isFinite(mn) ? mn : 0, maxParam: mx || 100 };
-  }, [items, baseXmaxInfo.paramColumn]);
-  // Shared slider lower bound: smallest item Max Copies (so faster items stay
-  // capped once the slider passes them). Falls back to 0 when all items share
-  // the same divisor (degenerate single-value range).
-  const sliderMin = minParam > 0 && minParam < maxParam ? minParam : 0;
+  }, [items, baseXmaxInfo.paramColumn, activeVariants]);
+  // Shared slider always starts at 0 and spans up to the global max of the
+  // divisor column across all items/variants (0 → 50k, 0 → 10, etc). An item
+  // whose own divisor is below the ceiling freezes at its own max and stops
+  // climbing even as the shared slider keeps rising.
+  const sliderMin = 0;
   const [sharedCopies, setSharedCopies] = useState<number>(sliderMin);
   const sharedLevel =
     baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? sharedCopies : undefined;
@@ -357,7 +366,6 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
 
   // Mapa itemId -> nome da variante ativa (usado p/ refletir variantes na categoria quando catColumn === 'name')
   const [activeVariantNames, setActiveVariantNames] = useState<Record<string, string>>({});
-  const [activeVariants, setActiveVariants] = useState<Record<string, { item: any; variantSlug: string | null }>>({});
   // Contador p/ replay das animações de heading das categorias na troca de variante
   const [variantPulse, setVariantPulse] = useState(0);
   const handleVariantChange = useCallback((
@@ -1887,12 +1895,23 @@ function ItemCard({
 }) {
   ensureVariant3DKeyframes();
 
+  // Active variant state (mirrors the variant selector). The baseXmax parameter
+  // is read from the ACTIVE item so variant-specific divisor values apply.
+  const [activeItem, setActiveItem] = useState<any>(persistedVariant ?? item);
+  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(persistedVariantSlug ?? null);
+  useEffect(() => {
+    if (persistedVariant) setActiveItem(persistedVariant);
+  }, [persistedVariant]);
+  useEffect(() => {
+    if (persistedVariantSlug != null) setActiveVariantSlug(persistedVariantSlug);
+  }, [persistedVariantSlug]);
+
   const bxLevelColumn = (cardConfig?.baseXmax as Record<string, any> | undefined)?.levelColumn as string | undefined;
   const cardLevelValue =
     sharedLevel != null
       ? sharedLevel
       : bxLevelColumn
-        ? Number(item?.[bxLevelColumn])
+        ? Number(activeItem?.[bxLevelColumn])
         : undefined;
 
   // ── Base → Max (baseXmax) footer slider ──────────────────────
@@ -1920,11 +1939,11 @@ function ItemCard({
   const bxFormulaEnabled = bxRawParam.formulaEnabled === true;
   const bxMaxParam = (() => {
     if (!bxParamColumn) return bxAxisMax;
-    const v = resolveBaseXmaxParam(item, bxParamColumn);
+    const v = resolveBaseXmaxParam(activeItem, bxParamColumn);
     return v && v > 0 ? v : bxAxisMax;
   })();
   const [bxTier, setBxTier] = useState<number>(() => {
-    const v = bxLevelColumn ? Number(item?.[bxLevelColumn]) : (bxRaw.defaultValue != null ? Number(bxRaw.defaultValue) : 1);
+    const v = bxLevelColumn ? Number(activeItem?.[bxLevelColumn]) : (bxRaw.defaultValue != null ? Number(bxRaw.defaultValue) : 1);
     if (!Number.isFinite(v)) return 1;
     return Math.min(Math.max(Math.round(v), 1), bxTiers);
   });
@@ -1972,17 +1991,8 @@ function ItemCard({
   // Track the base item id so the variant state only resets when the BASE
   // item changes — not when a variant is selected or the parent re-renders.
   const baseIdRef = useRef<string | undefined>(item.id as string | undefined);
-  const [activeItem, setActiveItem] = useState<any>(persistedVariant ?? item);
-  const [activeVariantSlug, setActiveVariantSlug] = useState<string | null>(persistedVariantSlug ?? null);
   const [loadingVariant, setLoadingVariant] = useState(false);
 
-  useEffect(() => {
-    if (persistedVariant) setActiveItem(persistedVariant);
-  }, [persistedVariant]);
-
-  useEffect(() => {
-    if (persistedVariantSlug != null) setActiveVariantSlug(persistedVariantSlug);
-  }, [persistedVariantSlug]);
   // 3D content transition bookkeeping
   const [variationKey, setVariationKey] = useState(0);
   const [beamDir, setBeamDir] = useState<'ltr' | 'rtl'>('ltr');

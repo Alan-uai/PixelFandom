@@ -727,10 +727,12 @@ const getDateHourDef: ToolDefinition = {
   type: 'function',
   function: {
     name: 'getDateHour',
-    description: 'Get the current date and time (in UTC). Returns the time of day, the weekday (Segunda-feira, Terça-feira, etc.), the day, the month, and the year in Portuguese. Use when the user asks "que horas são", "que dia é hoje", "qual o dia da semana", "me diga a data", or anything about current date/time.',
+    description: 'Get the current date and time. Returns the time of day, the weekday (Segunda-feira, Terça-feira, etc.), the day, the month, and the year in Portuguese. The time is LOCAL to a region when a location is provided (e.g. "Brasil" → UTC-3); if no location is given it falls back to UTC. Use when the user asks "que horas são", "que dia é hoje", "qual o dia da semana", "me diga a data", or anything about current date/time.',
     parameters: {
       type: 'object',
-      properties: {},
+      properties: {
+        location: { type: 'string', description: 'Optional city/region/country to get the LOCAL date/time (e.g. "Brasil", "São Paulo", "Lisboa", "Japão"). Omit for UTC.' },
+      },
     },
   },
 };
@@ -1887,8 +1889,8 @@ async function handleBatchGetItems(args: { table: string; names: string[] }, ctx
 
 // ── Date/Time & Weather handlers ──
 
-async function handleGetDateHour(_args: Record<string, never>): Promise<DateHourInfo> {
-  return getDateHourInfo();
+async function handleGetDateHour(args: { location?: string }): Promise<DateHourInfo> {
+  return getDateHourInfo(args.location);
 }
 
 async function handleGetWeather(args: { location: string }): Promise<WeatherInfo | { error: string }> {

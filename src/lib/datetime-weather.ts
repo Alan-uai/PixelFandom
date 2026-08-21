@@ -1,16 +1,6 @@
 // Shared utilities for date/time and weather tools.
 // Used by both the text chat (server) and the voice chat (browser).
 
-const WEEKDAYS_PT = [
-  'Domingo',
-  'Segunda-feira',
-  'Terça-feira',
-  'Quarta-feira',
-  'Quinta-feira',
-  'Sexta-feira',
-  'Sábado',
-];
-
 const MONTHS_PT = [
   'Janeiro',
   'Fevereiro',
@@ -27,7 +17,9 @@ const MONTHS_PT = [
 ];
 
 export interface DateHourInfo {
+  location: string | null;
   timezone: string;
+  utcOffsetLabel: string;
   iso: string;
   hour: number;
   minute: number;
@@ -41,27 +33,104 @@ export interface DateHourInfo {
   human: string;
 }
 
-// Returns the current date/time in UTC (as requested: "no horário UTC local")
-// plus weekday, day, month and year in Portuguese.
-export function getDateHourInfo(): DateHourInfo {
+// Resolve the IANA timezone + UTC offset for a given location via Open-Meteo.
+// Falls back to UTC when no location is provided or resolution fails.
+async function resolveTimezone(location?: string): Promise<{
+  timezone: string;
+  utcOffsetSeconds: number;
+  resolvedName: string | null;
+}> {
+  const place = (location || '').trim();
+  if (!place) {
+    return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+  }
+
+  try {
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+      place,
+    )}&count=1&language=pt&format=json`;
+    const geoRes = await fetch(geoUrl);
+    if (!geoRes.ok) return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+    const geoData = await geoRes.json();
+    const hit = geoData?.results?.[0];
+    if (!hit) return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+
+    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${hit.latitude}&longitude=${hit.longitude}&current=temperature_2m`;
+    const fRes = await fetch(forecastUrl);
+    if (!fRes.ok) return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+    const fData = await fRes.json();
+    const tz = fData?.timezone as string | undefined;
+    const offset = typeof fData?.utc_offset_seconds === 'number' ? fData.utc_offset_seconds : 0;
+    if (!tz) return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+
+    const resolvedName = [hit.name, hit.admin1].filter(Boolean).join(', ');
+    return { timezone: tz, utcOffsetSeconds: offset, resolvedName };
+  } catch {
+    return { timezone: 'UTC', utcOffsetSeconds: 0, resolvedName: null };
+  }
+}
+
+function formatOffsetLabel(seconds: number): string {
+  const sign = seconds < 0 ? '-' : '+';
+  const abs = Math.abs(seconds);
+  const h = Math.floor(abs / 3600);
+  const m = Math.round((abs % 3600) / 60);
+  const mm = m > 0 ? `:${String(m).padStart(2, '0')}` : '';
+  return `UTC${sign}${h}${mm}`;
+}
+
+function capitalizePt(text: string): string {
+  return text
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
+}
+
+// Returns the CURRENT local date/time for a region (dynamic timezone, e.g. Brazil = UTC-3),
+// plus weekday, day, month and year in Portuguese. When no location is given, uses UTC.
+export async function getDateHourInfo(location?: string): Promise<DateHourInfo> {
   const now = new Date();
-  const hour = now.getUTCHours();
-  const minute = now.getUTCMinutes();
-  const second = now.getUTCSeconds();
-  const day = now.getUTCDate();
-  const month = now.getUTCMonth() + 1;
-  const year = now.getUTCFullYear();
-  const weekday = WEEKDAYS_PT[now.getUTCDay()];
-  const monthName = MONTHS_PT[now.getUTCMonth()];
+  const { timezone, utcOffsetSeconds, resolvedName } = await resolveTimezone(location);
+
+  const fmt = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const parts = fmt.formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  let hour = parseInt(get('hour'), 10);
+  if (hour === 24) hour = 0;
+  const minute = parseInt(get('minute'), 10);
+  const second = parseInt(get('second'), 10);
+  const day = parseInt(get('day'), 10);
+  const year = parseInt(get('year'), 10);
+  const monthNameRaw = get('month');
+  const weekdayRaw = get('weekday');
+
+  const monthName = capitalizePt(monthNameRaw);
+  const weekday = capitalizePt(weekdayRaw);
+  const month = MONTHS_PT.findIndex((m) => m.toLowerCase() === monthNameRaw.toLowerCase()) + 1;
 
   const hh = String(hour).padStart(2, '0');
   const mm = String(minute).padStart(2, '0');
   const ss = String(second).padStart(2, '0');
 
-  const human = `${weekday}, ${day} de ${monthName} de ${year}, ${hh}:${mm}:${ss} (UTC)`;
+  const offsetLabel = formatOffsetLabel(utcOffsetSeconds);
+  const where = resolvedName ? ` (${resolvedName})` : '';
+  const human = `${weekday}, ${day} de ${monthName} de ${year}, ${hh}:${mm}:${ss} ${offsetLabel}${where}`;
 
   return {
-    timezone: 'UTC',
+    location: resolvedName,
+    timezone,
+    utcOffsetLabel: offsetLabel,
     iso: now.toISOString(),
     hour,
     minute,

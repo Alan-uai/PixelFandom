@@ -888,15 +888,17 @@ Call when the user says goodbye: "tchau", "falou", "pode ir", "até logo", "bye"
 
     new FunctionCallTool(
       'getDateHour',
-      'Get the current date and time in UTC: time of day, weekday (Segunda-feira, Terça-feira, etc.), day, month, and year in Portuguese. Use when the user asks "que horas são?", "que dia é hoje?", "qual o dia da semana?", "me diga a data", or anything about current date/time.',
+      'Get the current date and time: time of day, weekday (Segunda-feira, Terça-feira, etc.), day, month, and year in Portuguese. The time is LOCAL to a region when a location is provided (e.g. "Brasil" → UTC-3); if no location is given it falls back to UTC. Use when the user asks "que horas são?", "que dia é hoje?", "qual o dia da semana?", "me diga a data", or anything about current date/time.',
       {
         type: 'object',
-        properties: {},
+        properties: {
+          location: { type: 'string', description: 'Optional city/region/country to get the LOCAL date/time (e.g. "Brasil", "São Paulo", "Lisboa", "Japão"). Omit for UTC.' },
+        },
       },
-      async () => {
+      async (params: { location?: string }) => {
         try {
           const { getDateHourInfo } = await import('@/lib/datetime-weather')
-          return { result: getDateHourInfo() }
+          return { result: await getDateHourInfo(params.location) }
         } catch {
           return { result: { error: 'Não foi possível obter a data/hora.' } }
         }
