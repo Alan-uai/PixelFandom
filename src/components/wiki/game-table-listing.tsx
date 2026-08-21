@@ -298,17 +298,13 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   // item's own Max Copies cap (per-item status) lines up with its position on
   // the shared axis: an item maxing at the minimum stays capped above that, an
   // item maxing at the maximum only reaches its cap when the slider hits the top.
-  const { minParam, maxParam } = useMemo(() => {
-    if (!baseXmaxInfo.paramColumn) return { minParam: 0, maxParam: 100 };
-    let mn = Infinity;
+  const { maxParam } = useMemo(() => {
+    if (!baseXmaxInfo.paramColumn) return { maxParam: 100 };
     let mx = 0;
     const consider = (it: any) => {
       if (!it) return;
       const v = resolveBaseXmaxParam(it, baseXmaxInfo.paramColumn);
-      if (v != null && v > 0) {
-        if (v < mn) mn = v;
-        if (v > mx) mx = v;
-      }
+      if (v != null && v > 0 && v > mx) mx = v;
     };
     // Global max across every item AND every currently-loaded variant, so a
     // variant with a larger divisor pulls the shared slider ceiling up to it.
@@ -316,7 +312,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     if (activeVariants) {
       for (const key of Object.keys(activeVariants)) consider(activeVariants[key]?.item);
     }
-    return { minParam: Number.isFinite(mn) ? mn : 0, maxParam: mx || 100 };
+    return { maxParam: mx || 100 };
   }, [items, baseXmaxInfo.paramColumn, activeVariants]);
   // Shared slider always starts at 0 and spans up to the global max of the
   // divisor column across all items/variants (0 → 50k, 0 → 10, etc). An item
