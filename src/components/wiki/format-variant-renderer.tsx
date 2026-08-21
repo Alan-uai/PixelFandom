@@ -14,6 +14,7 @@ import type { DisplayFormat } from '@/lib/column-types/format-compatibility';
 import { ensureDetectorsRegistered } from '@/lib/jsonb-detectors';
 import { normalizeOperatorText, normalizeValue, humanizeLabel, detectOpArray, renderOpMiniCards, parseOperatorPrefix, displayOpNum } from '@/lib/operator-symbols';
 import { formatNumber } from '@/lib/format-number';
+import { cn } from '@/lib/utils';
 import { MiniCard3D } from '@/components/wiki/mini-card-3d';
 import { VariantAnimatedValue } from '@/components/wiki/variant-animated-value';
 import { Variant3D } from '@/components/wiki/variant-3d';
@@ -3004,11 +3005,27 @@ export default function FormatVariantRenderer({ format, variant, value, label, u
 
   if (rendered === null) return null;
 
+  const clickable = column && onCompareClick
+    ? {
+        onClick: () => onCompareClick(column),
+        role: 'button' as const,
+        tabIndex: 0,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCompareClick(column);
+          }
+        },
+      }
+    : {};
+
   const animRenderType = format === 'jsonb' || format === 'jsonb-structured' || format === 'baseXmax' ? 'jsonb' : format;
   return (
     <Variant3D format={format} variant={n} trigger={animTrigger ?? 0}>
       <VariantAnimatedValue value={value} renderType={animRenderType} trigger={animTrigger ?? 0} useSuffix={useSuffix} fromValue={prevValue} formatNumber={(num) => formatNumber(num, !!useSuffix)}>
-        {rendered}
+        <div {...clickable} className={cn('h-full w-full', clickable.onClick ? 'cursor-pointer' : '')}>
+          {rendered}
+        </div>
       </VariantAnimatedValue>
     </Variant3D>
   );

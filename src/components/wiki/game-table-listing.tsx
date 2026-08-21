@@ -2153,7 +2153,7 @@ function ItemCard({
           variationKey={variationKey}
           onAnimationComplete={handleFlipComplete}
         />
-        {bxFooterActive && cardConfig?.layout === 'accordion' && (
+        {bxFooterActive && (
           <div className="mt-3 bg-card/50 rounded-xl border p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
