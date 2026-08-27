@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type ChangeEvent } from 'react'
 import { GeminiLiveAPI, MultimodalLiveResponseType, type VoiceName, type ResponseMessage } from '@/lib/voice/geminilive'
 import { AudioStreamer, AudioPlayer } from '@/lib/voice/mediaUtils'
 import { createAgentTools } from '@/lib/voice/agentSystem'
@@ -37,6 +37,9 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
   const [status, setStatus] = useState<OrbVisualStatus>('idle')
   const [isMicOn, setIsMicOn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [imageBoxOpen, setImageBoxOpen] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [searching, setSearching] = useState(false)
   const [ferrofluidPhase, setFerrofluidPhase] = useState<'hidden' | 'rising' | 'visible' | 'falling' | 'dissolving'>('hidden')
 
@@ -294,6 +297,7 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
         startMic: () => startAudioStreaming(),
         stopMic: () => streamerRef.current?.stop(),
         addTranscript: () => {},
+        requestImage: () => setImageBoxOpen(true),
         onEndSession: () => disconnectRef.current(),
         fetchWithSlug: async (path, params) => {
           beginSearch()
@@ -452,6 +456,34 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
     setStatus((prev) => (prev === 'connecting' || prev === 'error' ? prev : next))
   }, [])
 
+  const handleImageUpload = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImageBoxOpen(false)
+    setImageUploading(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const mime = file.type || 'image/png'
+      const dataUri = `data:${mime};base64,${base64}`
+      // Give the model the raw visual frame...
+      apiRef.current?.sendImageMessage(base64, mime)
+      // ...and a clear instruction to identify it via the vision tool.
+      apiRef.current?.sendTextMessage(
+        `O usuário enviou a imagem do item para identificação.\n[imagem: ${dataUri}]\nUse identifyItemFromImage AGORA com image_url="${dataUri}" para reconhecer o item e cruzar com a wiki.`,
+      )
+    } catch {
+      setErrorMessage('Falha ao enviar a imagem.')
+    } finally {
+      setImageUploading(false)
+    }
+  }, [])
+
   if (widgetConfig?.enabled === false) return null
 
   const baseIdleSize = widgetConfig?.size === 'sm' ? 'h-14 w-14' : widgetConfig?.size === 'lg' ? 'h-20 w-20' : 'h-16 w-16'
@@ -536,6 +568,37 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
             <button onClick={() => setErrorMessage(null)} className="ml-2 hover:opacity-70">✕</button>
           </div>
         )}
+
+        {/* Image-share box — opened when the agent calls requestImage */}
+        <div
+          className={`fixed bottom-28 right-4 z-[60] w-64 rounded-xl border border-border bg-background/95 p-3 shadow-xl backdrop-blur transition-all duration-200 ${imageBoxOpen ? 'pointer-events-auto scale-100 translate-y-0 opacity-100' : 'pointer-events-none scale-95 translate-y-2 opacity-0'}`}
+        >
+          <p className="mb-2 text-xs text-muted-foreground">
+            Toque para enviar a imagem do item ao assistente.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={imageUploading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {imageUploading ? 'Enviando…' : 'Enviar imagem'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setImageBoxOpen(false)}
+            className="mt-1 w-full text-center text-[11px] text-muted-foreground hover:opacity-80"
+          >
+            Cancelar
+          </button>
+        </div>
       </>
     )
   }
@@ -569,6 +632,37 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
           </button>
         </div>
       )}
+
+      {/* Image-share box — opened when the agent calls requestImage */}
+      <div
+        className={`fixed bottom-28 right-4 z-[60] w-64 rounded-xl border border-border bg-background/95 p-3 shadow-xl backdrop-blur transition-all duration-200 ${imageBoxOpen ? 'pointer-events-auto scale-100 translate-y-0 opacity-100' : 'pointer-events-none scale-95 translate-y-2 opacity-0'}`}
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          Toque para enviar a imagem do item ao assistente.
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={imageUploading}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          {imageUploading ? 'Enviando…' : 'Enviar imagem'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setImageBoxOpen(false)}
+          className="mt-1 w-full text-center text-[11px] text-muted-foreground hover:opacity-80"
+        >
+          Cancelar
+        </button>
+      </div>
     </>
   )
 }

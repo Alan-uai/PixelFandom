@@ -82,3 +82,63 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Query failed' }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  const rl = await checkRateLimit(`voice-query:${ip}`, { windowMs: 60_000, maxRequests: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Muitas requisições. Tente novamente em breve.' }, {
+      status: 429,
+      headers: { 'X-RateLimit-Reset': String(rl.resetAt) },
+    })
+  }
+
+  try {
+    const body = await request.json()
+    const slug = body.slug as string | null
+    const action = body.action as string | null
+    const args: Record<string, unknown> = body.args && typeof body.args === 'object' ? body.args : {}
+
+    if (!slug || !action) {
+      return NextResponse.json({ error: 'slug and action required' }, { status: 400 })
+    }
+
+    const tenant = await getTenantBySlug(slug)
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+    }
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      if (!tenant.is_public) {
+        return NextResponse.json({ error: 'Autenticação necessária para acessar esta wiki.' }, { status: 401 })
+      }
+    } else {
+      const { data: membership } = await supabase
+        .from('tenant_members')
+        .select('role')
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (!membership && !tenant.is_public) {
+        return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 })
+      }
+    }
+
+    const { executeTextChatTool } = await import('@/lib/text-chat-tools')
+
+    const result = await executeTextChatTool(action, args, {
+      slug,
+      tenantId: tenant.id,
+      currentPageSlug: (body.page as string) || undefined,
+      userId: user?.id,
+    })
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Voice query error (POST):', error)
+    return NextResponse.json({ error: 'Query failed' }, { status: 500 })
+  }
+}

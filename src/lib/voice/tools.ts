@@ -58,6 +58,7 @@ export interface ToolContext {
   addTranscript: (text: string, isUser: boolean) => void
   onEndSession: () => void
   fetchWithSlug: (path: string, params: Record<string, string>) => Promise<any>
+  requestImage: () => void
 }
 
 type ToolBuilder = (ctx: ToolContext) => FunctionCallTool
@@ -1221,15 +1222,59 @@ Pass the table and at least 2 item names.`,
       { type: 'object', properties: {} }
     ),
 
-    q('identifyItemFromImage',
-      'Identify a game item, enemy or boss from an image (screenshot). Provide the image URL. Uses vision to recognize it and matches against the wiki. Use when the user sends a picture and asks "o que é isso", "qual item".',
+    new FunctionCallTool(
+      'identifyItemFromImage',
+      'Identify a game item, enemy or boss from an image (screenshot). Provide the image as a public URL OR a full "data:<mime>;base64,..." data URI. Uses vision to recognize it and matches against the wiki, confirming by comparing with the item icon. Use when the user sends a picture and asks "o que é isso", "qual item".',
       {
         type: 'object',
         properties: {
-          image_url: { type: 'string', description: 'Public URL of the image to identify' },
+          image_url: { type: 'string', description: 'Public URL or full data: URI of the image to identify' },
         },
       },
+      async (params: { image_url: string }) => {
+        try {
+          const pageSlug = window.location.pathname.split('/').filter(Boolean).pop()
+          const res = await fetch('/api/voice/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'identifyItemFromImage',
+              slug: ctx.tenantSlug,
+              page: pageSlug || undefined,
+              args: { image_url: params.image_url },
+            }),
+          })
+          if (!res.ok) return { result: { error: `identifyItemFromImage failed (${res.status})` } }
+          return { result: await res.json() }
+        } catch {
+          return { result: { error: 'identifyItemFromImage failed' } }
+        }
+      },
       ['image_url']
+    ),
+
+    // ── Vision request tool (opens image-share box) ──
+
+    new FunctionCallTool(
+      'requestImage',
+      `Ask the user to share an image (screenshot/photo) of the item so you can identify or confirm it. Call this when the user implies they want to show an item but HAS NOT attached an image yet, or whenever you need the actual picture to identify/confirm an item. This opens an image-share box in the UI. After calling, you MUST speak a short request like "Por favor, me envie a imagem do item" so the user knows to upload. When the user uploads, you will receive the image URL as a tool result — then you MUST say "Analisando a imagem, só um momento" and call identifyItemFromImage with that URL.`,
+      {
+        type: 'object',
+        properties: {},
+      },
+      async () => {
+        try {
+          ctx.requestImage()
+        } catch {
+          /* no-op if client does not support image requests */
+        }
+        return {
+          result: {
+            action: 'request_image',
+            message: 'Caixa de envio de imagem aberta. Aguardando o usuário enviar a imagem.',
+          },
+        }
+      }
     ),
   ]
 }
