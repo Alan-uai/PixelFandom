@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { BookOpen, Globe, ChevronDown, ChevronUp } from 'lucide-react';
 import { CardSymbols } from '@/components/wiki/card-symbols';
+import { ReportWikiButton } from '@/components/wiki/report-wiki-button';
 import type { Tenant } from '@/supabase/client';
 import type { CardPosition } from '@/components/page-builder/types';
 
@@ -211,6 +212,10 @@ export function WikiCard({
           />
         </Card>
       </Link>
+
+      <div className="absolute right-2 top-2 z-20">
+        <ReportWikiButton tenantId={wiki.id} tenantName={wiki.name} variant="icon" />
+      </div>
     </div>
   );
 }

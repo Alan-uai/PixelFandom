@@ -19,6 +19,7 @@ Stat Analysis: rankByStat, compareOnStat, getStatSummary, getTopItems, getCatego
 Cross-ref: compareTwoItems, findSimilarItems, getTableComparison, getItemNeighbors, findUpgrades, searchByExample, getRelatedItems
 Math: evaluateMath
 Date/Time & Weather: getDateHour, getWeather
+Wiki Knowledge: getWikiPage (read current/the page), listCodes, getCodeDetails (promo codes), getWikiNavigation, getPageStructure (site structure), getRecentActivity, getChangelog, getGameEvents (changes/events), getWikiCommunity, getDiscordInfo (community), getRelatedPages (related articles), getUserChatHistory, getSavedAnswers (user context), getGameDataFreshness (data freshness)
 
 ALWAYS use tools to get real data. NEVER invent numbers, stats, or counts.`;
 

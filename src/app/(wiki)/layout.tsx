@@ -9,6 +9,8 @@ import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
 import FloatingVoiceOrb from '@/components/voice/floating-voice-orb';
+import ReportWikiWidget from '@/components/wiki/report-wiki-widget';
+import { ReportWikiButton } from '@/components/wiki/report-wiki-button';
 import { WikiDataProvider, useWikiData } from '@/context/wiki-provider';
 import { WikiSearchProvider, useWikiSearch } from '@/context/wiki-search-context';
 import { useUserPreferences } from '@/context/user-preferences-context';
@@ -63,6 +65,7 @@ function WikiLayoutContent({
   const widgetTheme = (tenant?.theme as any)?.widgets || {};
   const chatWidgetConfig = widgetTheme.chat as WidgetChatConfig | undefined;
   const voiceWidgetConfig = widgetTheme.voice as WidgetVoiceConfig | undefined;
+  const reportWidgetConfig = widgetTheme.report as any | undefined;
   const isHome = pathname === `/w/${slug}` || pathname === '/';
   const isChatPage = pathname === `/w/${slug}/chat` || pathname === '/chat';
   const isVoicePage = pathname === `/w/${slug}/ai` || pathname === '/voice';
@@ -267,6 +270,9 @@ function WikiLayoutContent({
               <SunMoon className="h-4 w-4" />
             </button>
             <NotificationBell />
+            {tenant && (
+              <ReportWikiButton tenantId={tenant.id} tenantName={tenant.name} variant="icon" />
+            )}
           </div>
         </header>
 
@@ -334,6 +340,10 @@ function WikiLayoutContent({
         {tenant?.ai_enabled && <ChatWidget tenantSlug={slug} isChatPage={isChatPage} widgetConfig={chatWidgetConfig} hideWidget={preferences.chat_settings.hideWidget ?? false} />}
 
         <FloatingVoiceOrb tenantSlug={slug} aiConfig={tenant?.ai_config as Record<string, unknown>} discordUrl={(tenant as any)?.discord_url} gameUrl={(tenant as any)?.game_url} widgetConfig={voiceWidgetConfig} hideWidget={(preferences.voice_settings.hideWidget as boolean) ?? false} />
+
+        {reportWidgetConfig?.enabled && (
+          <ReportWikiWidget widgetConfig={reportWidgetConfig} />
+        )}
       </div>
     </ThemeProvider>
   );

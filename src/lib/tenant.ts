@@ -76,6 +76,7 @@ export async function getPublicTenants(): Promise<Tenant[]> {
     .from('tenants')
     .select('*')
     .eq('is_public', true)
+    .neq('status', 'restricted_review')
     .order('name');
 
   if (error || !data) return [];

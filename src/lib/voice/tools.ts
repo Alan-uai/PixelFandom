@@ -1098,5 +1098,127 @@ Pass the table and at least 2 item names.`,
       },
       ['table', 'items']
     ),
+
+    // ── Wiki knowledge tools (page context, codes, navigation, activity, community) ──
+
+    q('getWikiPage',
+      'Read the full content of a wiki article by slug. If no slug given, reads the CURRENT page the user is viewing. Use for "leia esta página", "o que diz este artigo".',
+      {
+        type: 'object',
+        properties: {
+          slug: { type: 'string', description: 'Article slug. Omit to read the current page.' },
+        },
+      }
+    ),
+
+    q('listCodes',
+      'List promo/gift codes for the game. Says rewards and which are still active. Use for "códigos", "codigos ativos", "tem código?".',
+      {
+        type: 'object',
+        properties: {
+          activeOnly: { type: 'boolean', description: 'true = only valid codes (default)' },
+          codeType: { type: 'string', description: 'Optional type filter (gift, event, creator)' },
+          limit: { type: 'number', description: 'Max codes (default 50)' },
+        },
+      }
+    ),
+
+    q('getCodeDetails',
+      'Get full details for a single code string.',
+      {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'The code string' },
+        },
+      },
+      ['code']
+    ),
+
+    q('getWikiNavigation',
+      'Describe the wiki structure: sections of the home/landing pages and the article categories. Use for "o que tem na wiki", "como navegar", "mostre a home".',
+      { type: 'object', properties: {} }
+    ),
+
+    q('getPageStructure',
+      'Describe the sections/blocks of a wiki page (hero, lists, news, grid). Use to explain what a page contains.',
+      {
+        type: 'object',
+        properties: {
+          pageType: { type: 'string', description: 'Page type (landing, wiki, dashboard). Default landing.' },
+        },
+      }
+    ),
+
+    q('getRecentActivity',
+      'List recent wiki activity (edits, new articles, members). Use for "o que aconteceu", "atividade recente".',
+      {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max entries (default 15)' },
+          days: { type: 'number', description: 'Days back (default 30)' },
+        },
+      }
+    ),
+
+    q('getChangelog',
+      'List recent article change history (what changed in articles). Use for "o que mudou", "changelog".',
+      {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max entries (default 15)' },
+        },
+      }
+    ),
+
+    q('getGameEvents',
+      'List current/upcoming game or community events configured for this wiki. Use for "próximos eventos", "eventos ativos".',
+      { type: 'object', properties: {} }
+    ),
+
+    q('getWikiCommunity',
+      'Get community info: member count, staff names/roles, Discord link. Use for "quem cuida", "quantos membros", "admins".',
+      { type: 'object', properties: {} }
+    ),
+
+    q('getDiscordInfo',
+      'Get the Discord invite link for this wiki. Use for "discord", "servidor", "comunidade".',
+      { type: 'object', properties: {} }
+    ),
+
+    q('getRelatedPages',
+      'Find pages related to an article (shared tags + inline links). Use for "páginas relacionadas", "veja também". Defaults to current page.',
+      {
+        type: 'object',
+        properties: {
+          slug: { type: 'string', description: 'Article slug. Omit for current page.' },
+          limit: { type: 'number', description: 'Max pages (default 8)' },
+        },
+      }
+    ),
+
+    q('getUserChatHistory',
+      'List the user\'s past chat sessions in this wiki. Use for "nossas conversas", "do que falamos".',
+      {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max sessions (default 10)' },
+        },
+      }
+    ),
+
+    q('getSavedAnswers',
+      'List answers the user saved in this wiki. Use for "respostas salvas", "o que eu guardei".',
+      {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max saved (default 10)' },
+        },
+      }
+    ),
+
+    q('getGameDataFreshness',
+      'Report when each game data table was last updated, so you can warn if data may be outdated. Use for "está atualizado?", "quando atualizaram".',
+      { type: 'object', properties: {} }
+    ),
   ]
 }

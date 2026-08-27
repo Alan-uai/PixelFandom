@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { message, session_id } = await request.json();
+    const { message, session_id, current_page_slug } = await request.json();
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -271,7 +271,13 @@ Use o contexto acima como fonte primária para responder. Se o contexto não tiv
       : effectiveFallbackChain;
     const apiKey = customApiKey || process.env.OPENROUTER_API_KEY || '';
     const supabaseClient = await createClient();
-    const toolCtx: ToolContext = { slug: tenantSlug, tenantId, userClient: supabaseClient };
+    const toolCtx: ToolContext = {
+      slug: tenantSlug,
+      tenantId,
+      userClient: supabaseClient,
+      currentPageSlug: current_page_slug || undefined,
+      userId,
+    };
 
     try {
       let messages = await buildMessages(

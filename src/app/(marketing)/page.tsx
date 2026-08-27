@@ -35,6 +35,7 @@ export default function Home() {
       .from('tenants')
       .select('*')
       .eq('is_public', true)
+      .neq('status', 'restricted_review')
       .order('name')
       .then(({ data, error: err }) => {
         if (err) {

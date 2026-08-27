@@ -569,6 +569,7 @@ export type Database = {
           discord_url: string | null;
           game_url: string | null;
           is_public: boolean;
+          status: string;
           created_at: string;
           updated_at: string;
         };
@@ -588,6 +589,7 @@ export type Database = {
           discord_url?: string | null;
           game_url?: string | null;
           is_public?: boolean;
+          status?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -607,8 +609,47 @@ export type Database = {
           discord_url?: string | null;
           game_url?: string | null;
           is_public?: boolean;
+          status?: string;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      wiki_reports: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          reporter_id: string;
+          reason: string;
+          description: string | null;
+          status: string;
+          created_at: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          reporter_id: string;
+          reason: string;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string;
+          reporter_id?: string;
+          reason?: string;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_notes?: string | null;
         };
       };
       tenant_members: {

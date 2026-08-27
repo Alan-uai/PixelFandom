@@ -7,11 +7,14 @@ import { evaluateMath, type MathResult } from '@/lib/math-tools';
 import { parseContentToJson } from '@/lib/content-utils';
 import { getTableCatalog } from '@/lib/data-access';
 import { getDateHourInfo, getWeatherInfo, type DateHourInfo, type WeatherInfo } from '@/lib/datetime-weather';
+import { WIKI_KNOWLEDGE_TOOL_DEFS, WIKI_KNOWLEDGE_HANDLERS } from '@/lib/wiki-knowledge-tools';
 
 export interface ToolContext {
   slug: string;
   tenantId: string | null;
   userClient?: SupabaseClient;
+  currentPageSlug?: string;
+  userId?: string;
 }
 
 export function getDb(ctx: ToolContext) {
@@ -794,6 +797,7 @@ export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   batchGetItemsDef,
   getDateHourDef,
   getWeatherDef,
+  ...WIKI_KNOWLEDGE_TOOL_DEFS,
 ];
 
 // ── Helper: get tenant by slug or id ──
@@ -1942,6 +1946,10 @@ const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<un
   ['getDateHour', handleGetDateHour],
   ['getWeather', handleGetWeather],
 ]);
+
+for (const [name, fn] of Object.entries(WIKI_KNOWLEDGE_HANDLERS)) {
+  toolHandlers.set(name, fn as (args: any, ctx: ToolContext) => Promise<unknown>);
+}
 
 async function getValidTenantTableNames(slug: string): Promise<Set<string>> {
   try {

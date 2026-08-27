@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { ArrowLeft, FileText, Calendar, Tag, Clock, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Tag, Clock, BookOpen, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { WikiContent } from '@/components/wiki/wiki-content';
 import CollectionItemView from '@/components/wiki/collection-item-view';
 import GameTableListing from '@/components/wiki/game-table-listing';
@@ -234,6 +234,23 @@ export default function WikiPage() {
         <h1 className="text-2xl font-bold mb-2">Wiki não encontrada</h1>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
           Esta wiki não existe ou o link está incorreto.
+        </p>
+        <HubLink className="text-primary hover:underline text-sm font-medium" isExternal={errorIsExternal}>
+          Voltar para o hub
+        </HubLink>
+      </div>
+    );
+  }
+
+  // Wiki em restrição automática para análise de denúncias
+  if (tenant.status === 'restricted_review') {
+    return (
+      <div className="text-center py-24 rounded-xl border border-amber-500/30 bg-amber-500/5 max-w-2xl mx-auto mt-10">
+        <AlertTriangle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Acesso restrito para análise de denúncias</h1>
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          Esta Wiki recebeu um número elevado de denúncias e foi temporariamente
+          restrita enquanto nossa equipe e o sistema realizam a análise.
         </p>
         <HubLink className="text-primary hover:underline text-sm font-medium" isExternal={errorIsExternal}>
           Voltar para o hub

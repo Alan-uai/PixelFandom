@@ -261,6 +261,10 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
         body: JSON.stringify({
           message: userMsg.content,
           session_id: currentSessionId,
+          current_page_slug:
+            typeof window !== 'undefined'
+              ? window.location.pathname.split('/').filter(Boolean).pop()
+              : undefined,
         }),
       });
 

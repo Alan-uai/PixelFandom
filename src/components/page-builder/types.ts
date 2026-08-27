@@ -952,6 +952,13 @@ export interface WidgetVoiceConfig {
   animation?: WidgetAnimation;
 }
 
+export interface WidgetReportConfig {
+  enabled?: boolean;
+  position?: WidgetPosition;
+  color?: string;
+  label?: string;
+}
+
 export interface CardPosition {
   edge: 'top' | 'bottom' | 'left' | 'right';
   offsetPct: number; // 0-100
@@ -965,6 +972,7 @@ export interface CardPositions {
 export interface WidgetLayout {
   chat?: WidgetChatConfig;
   voice?: WidgetVoiceConfig;
+  report?: WidgetReportConfig;
   cardPositions?: {
     article_card: CardPositions;
     marketing_card: CardPositions;

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
       .from('tenants')
       .select('id, name, slug, description, logo_url, cover_image, is_public')
       .eq('is_public', true)
+      .neq('status', 'restricted_review')
       .order('name')
       .limit(limit);
 
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     .from('tenants')
     .select('id, name, slug, description, logo_url, cover_image, is_public')
     .eq('is_public', true)
+    .neq('status', 'restricted_review')
     .or(`name.ilike.%${query}%,slug.ilike.%${query}%,description.ilike.%${query}%`)
     .limit(limit);
 

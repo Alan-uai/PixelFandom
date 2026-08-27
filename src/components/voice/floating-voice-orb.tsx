@@ -301,6 +301,10 @@ export default function FloatingVoiceOrb({ tenantSlug, aiConfig, discordUrl, gam
             const url = new URL(path, window.location.origin)
             Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
             url.searchParams.set('slug', tenantSlug)
+            if (!url.searchParams.has('page')) {
+              const pageSlug = window.location.pathname.split('/').filter(Boolean).pop()
+              if (pageSlug) url.searchParams.set('page', pageSlug)
+            }
             const res = await fetch(url.toString())
             if (!res.ok) {
               const errBody = await res.json().catch(() => ({error: res.statusText}))

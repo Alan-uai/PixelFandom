@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, Mic, Settings, ExternalLink, Loader2, ArrowUpDown } from 'lucide-react';
-import type { WidgetChatConfig, WidgetVoiceConfig, WidgetLayout, CardPositions } from './types';
+import { MessageCircle, Mic, Settings, ExternalLink, Loader2, ArrowUpDown, Flag } from 'lucide-react';
+import type { WidgetChatConfig, WidgetVoiceConfig, WidgetReportConfig, WidgetLayout, CardPositions } from './types';
 import { CardPositionEditor } from './card-position-editor';
 import { Checkbox3D } from '@/components/ui/checkbox-3d';
 
@@ -66,6 +66,12 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
     color: 'var(--primary)',
     animation: 'glow',
   });
+  const [report, setReport] = useState<WidgetReportConfig>({
+    enabled: false,
+    position: 'bottom-left',
+    color: 'var(--primary)',
+    label: 'Denunciar',
+  });
   const [articleCard, setArticleCard] = useState<CardPositions>(DEFAULT_POSITIONS);
   const [marketingCard, setMarketingCard] = useState<CardPositions>(DEFAULT_POSITIONS);
   const [cardTab, setCardTab] = useState<'article_card' | 'marketing_card'>('article_card');
@@ -74,16 +80,19 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
   const initialSnapshot = useRef<string>('');
   const chatRef = useRef(chat);
   const voiceRef = useRef(voice);
+  const reportRef = useRef(report);
   const articleCardRef = useRef(articleCard);
   const marketingCardRef = useRef(marketingCard);
   useEffect(() => { chatRef.current = chat; }, [chat]);
   useEffect(() => { voiceRef.current = voice; }, [voice]);
+  useEffect(() => { reportRef.current = report; }, [report]);
   useEffect(() => { articleCardRef.current = articleCard; }, [articleCard]);
   useEffect(() => { marketingCardRef.current = marketingCard; }, [marketingCard]);
 
   const handleSave = useCallback(async () => {
     const c = chatRef.current;
     const v = voiceRef.current;
+    const rp = reportRef.current;
     const ac = articleCardRef.current;
     const mc = marketingCardRef.current;
     const res = await fetch(`/api/tenants/${tenantId}/widget-config`, {
@@ -92,6 +101,7 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
       body: JSON.stringify({
         chat: c,
         voice: v,
+        report: rp,
         cardPositions: {
           article_card: ac,
           marketing_card: mc,
@@ -99,7 +109,7 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
       }),
     });
     if (!res.ok) throw new Error('Erro ao salvar configuração de widgets');
-    initialSnapshot.current = JSON.stringify({ chat: c, voice: v, articleCard: ac, marketingCard: mc });
+    initialSnapshot.current = JSON.stringify({ chat: c, voice: v, report: rp, articleCard: ac, marketingCard: mc });
   }, [tenantId]);
 
   useEffect(() => {
@@ -120,22 +130,26 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
         cacheRef.current = tenantId;
         const c = chatRef.current;
         const v = voiceRef.current;
+        const rp = reportRef.current;
         const ac = articleCardRef.current;
         const mc = marketingCardRef.current;
         const nextChat = data.chat ? { ...c, ...data.chat } : c;
         const nextVoice = data.voice ? { ...v, ...data.voice } : v;
+        const nextReport = data.report ? { ...rp, ...data.report } : rp;
         const nextArticleCard = data.cardPositions?.article_card || ac;
         const nextMarketingCard = data.cardPositions?.marketing_card || mc;
 
         initialSnapshot.current = JSON.stringify({
           chat: nextChat,
           voice: nextVoice,
+          report: nextReport,
           articleCard: nextArticleCard,
           marketingCard: nextMarketingCard,
         });
 
         if (data.chat) setChat(nextChat);
         if (data.voice) setVoice(nextVoice);
+        if (data.report) setReport(nextReport);
         if (data.cardPositions) {
           if (data.cardPositions.article_card) setArticleCard(nextArticleCard);
           if (data.cardPositions.marketing_card) setMarketingCard(nextMarketingCard);
@@ -148,9 +162,9 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
 
   useEffect(() => {
     if (!initialSnapshot.current) return;
-    const dirty = JSON.stringify({ chat, voice, articleCard, marketingCard }) !== initialSnapshot.current;
+    const dirty = JSON.stringify({ chat, voice, report, articleCard, marketingCard }) !== initialSnapshot.current;
     onDirtyChange?.(dirty);
-  }, [chat, voice, articleCard, marketingCard, onDirtyChange]);
+  }, [chat, voice, report, articleCard, marketingCard, onDirtyChange]);
 
   if (loading) {
     return (
@@ -356,6 +370,73 @@ export function WidgetsEditor({ tenantId, slug, onSaveReady, onDirtyChange }: Wi
                 Configurar IA
                 <ExternalLink className="h-3 w-3" />
               </a>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Report Wiki Widget Card */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Flag className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium">Widget Denunciar Wiki</h3>
+              <p className="text-xs text-muted-foreground">Botão flutuante para denunciar a Wiki</p>
+            </div>
+          </div>
+          <Checkbox3D
+            checked={report.enabled ?? false}
+            onChange={(v) => setReport((p) => ({ ...p, enabled: v }))}
+            size="md"
+          />
+        </div>
+
+        {report.enabled && (
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Posição</label>
+              <select
+                value={report.position}
+                onChange={(e) => setReport((p) => ({ ...p, position: e.target.value as any }))}
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+              >
+                {POSITIONS.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Rótulo</label>
+              <input
+                type="text"
+                value={report.label || ''}
+                onChange={(e) => setReport((p) => ({ ...p, label: e.target.value }))}
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+                placeholder="Denunciar"
+              />
+            </div>
+
+            <div className="space-y-1.5 col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">Cor</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={report.color || '#4BC5FF'}
+                  onChange={(e) => setReport((p) => ({ ...p, color: e.target.value }))}
+                  className="h-8 w-8 rounded border bg-background cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={report.color || ''}
+                  onChange={(e) => setReport((p) => ({ ...p, color: e.target.value }))}
+                  className="flex-1 rounded-md border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
+                  placeholder="var(--primary)"
+                />
+              </div>
             </div>
           </div>
         )}

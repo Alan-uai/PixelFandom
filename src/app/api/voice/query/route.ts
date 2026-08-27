@@ -70,7 +70,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const result = await executeTextChatTool(action, args, { slug, tenantId: tenant.id })
+    const result = await executeTextChatTool(action, args, {
+      slug,
+      tenantId: tenant.id,
+      currentPageSlug: searchParams.get('page') || undefined,
+      userId: user?.id,
+    })
     return NextResponse.json(result)
   } catch (error) {
     console.error('Voice query error:', error)

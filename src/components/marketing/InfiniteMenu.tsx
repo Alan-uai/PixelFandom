@@ -4,6 +4,7 @@ import { FC, useRef, useState, useEffect, MutableRefObject } from 'react';
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
 import { FollowButton } from '@/components/wiki/follow-button';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
+import { ReportWikiButton } from '@/components/wiki/report-wiki-button';
 import './InfiniteMenu.css';
 
 const discVertShaderSource = `#version 300 es
@@ -1285,6 +1286,11 @@ const InfiniteMenu: FC<InfiniteMenuProps> = ({ items = [], scale = 1.0, onNaviga
                 initialUpvotes={activeItem.vote?.upvotes ?? 0}
                 initialDownvotes={activeItem.vote?.downvotes ?? 0}
                 initialUserVote={activeItem.vote?.user_vote ?? null}
+              />
+              <ReportWikiButton
+                tenantId={activeItem.id}
+                tenantName={activeItem.title}
+                variant="icon"
               />
             </div>
           )}
