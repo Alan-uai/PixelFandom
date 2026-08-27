@@ -98,7 +98,13 @@ export async function POST(
       text = parts.join('\n');
     }
 
-    const result = await sendEmail({ to: ownerEmail, subject, html, text });
+    const result = await sendEmail({
+      to: ownerEmail,
+      subject,
+      html,
+      text,
+      meta: { tenantId, category: action },
+    });
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
