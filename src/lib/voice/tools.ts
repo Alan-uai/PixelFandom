@@ -1220,5 +1220,16 @@ Pass the table and at least 2 item names.`,
       'Report when each game data table was last updated, so you can warn if data may be outdated. Use for "está atualizado?", "quando atualizaram".',
       { type: 'object', properties: {} }
     ),
+
+    q('identifyItemFromImage',
+      'Identify a game item, enemy or boss from an image (screenshot). Provide the image URL. Uses vision to recognize it and matches against the wiki. Use when the user sends a picture and asks "o que é isso", "qual item".',
+      {
+        type: 'object',
+        properties: {
+          image_url: { type: 'string', description: 'Public URL of the image to identify' },
+        },
+      },
+      ['image_url']
+    ),
   ]
 }

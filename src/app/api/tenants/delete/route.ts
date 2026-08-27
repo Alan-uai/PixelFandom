@@ -33,8 +33,16 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .single();
 
-  if (!membership || membership.role !== 'owner') {
-    return NextResponse.json({ error: 'Apenas o owner pode excluir a wiki' }, { status: 403 });
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const isGlobalAdmin = profile?.role === 'admin';
+
+  if (!membership || (membership.role !== 'owner' && !isGlobalAdmin)) {
+    return NextResponse.json({ error: 'Apenas o owner ou um admin pode excluir a wiki' }, { status: 403 });
   }
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

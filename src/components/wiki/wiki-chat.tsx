@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { Loader2, Send, Bot, User, AlertCircle, MessageSquare, Trash2, Clock, Settings } from 'lucide-react';
+import { Loader2, Send, Bot, User, AlertCircle, MessageSquare, Trash2, Clock, Settings, ImagePlus, X } from 'lucide-react';
 import StreamingAccordion from './streaming-accordion';
 import RenderTextoPuro from './render-texto-puro';
 import RenderTabela from './render-tabela';
@@ -85,6 +85,9 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
   const [chatUnavailable, setChatUnavailable] = useState<string | null>(null);
   const [checkingChat, setCheckingChat] = useState(true);
   const [botLogo, setBotLogo] = useState('');
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sessionsCache = useRef<DBSession[] | null>(null);
@@ -221,17 +224,40 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
     } catch {/* noop */}
   }, [sessionId]);
 
+  const handleUploadImage = useCallback(async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'wiki-images');
+      formData.append('path_prefix', 'chat-uploads');
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload falhou');
+      const data = await res.json();
+      setAttachedImage(data.url);
+    } catch {
+      setError('Não foi possível enviar a imagem.');
+    } finally {
+      setUploadingImage(false);
+    }
+  }, []);
+
   const handleSend = useCallback(async () => {
-    if (!input.trim() || loading) return;
+    if ((!input.trim() && !attachedImage) || loading) return;
+
+    const content = attachedImage
+      ? `${input.trim() ? input.trim() + '\n' : ''}[imagem: ${attachedImage}]`
+      : input.trim();
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: input.trim(),
+      content,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setAttachedImage(null);
     setLoading(true);
     setError(null);
 
@@ -325,7 +351,7 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, loading, tenantSlug, sessionId, user, createSession, loadSessions]);
+  }, [input, loading, attachedImage, tenantSlug, sessionId, user, createSession, loadSessions]);
 
   const handleFeedback = async (messageId: string, type: 'positive' | 'negative') => {
     const message = messages.find((m) => m.id === messageId);
@@ -442,6 +468,28 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
 
   const chatForm = (
     <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-3 mt-4 shrink-0">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleUploadImage(f);
+          e.target.value = '';
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-12 w-12 shrink-0"
+        disabled={loading || uploadingImage}
+        onClick={() => fileInputRef.current?.click()}
+        title="Anexar imagem"
+      >
+        {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+      </Button>
       <div className="flex-1">
         <FloatingLabelInput
           ref={inputRef}
@@ -450,8 +498,17 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
         />
+        {attachedImage && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <Image src={attachedImage} alt="anexo" width={28} height={28} className="rounded object-cover" unoptimized />
+            <span>Imagem anexada — o assistente vai identificar o item.</span>
+            <button type="button" onClick={() => setAttachedImage(null)} className="ml-auto">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
-      <Button type="submit" disabled={loading || !input.trim()} className="h-12 px-6">
+      <Button type="submit" disabled={loading || (!input.trim() && !attachedImage)} className="h-12 px-6">
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
         <Send className="ml-2 h-4 w-4" />
       </Button>
@@ -631,6 +688,27 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
           </div>
         )}
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 p-3 border-t shrink-0">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleUploadImage(f);
+              e.target.value = '';
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={loading || uploadingImage}
+            onClick={() => fileInputRef.current?.click()}
+            title="Anexar imagem"
+          >
+            {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+          </Button>
           <div className="flex-1">
             <FloatingLabelInput
               ref={inputRef}
@@ -639,8 +717,14 @@ export default function WikiChat({ tenantSlug, compact, onClose: _onClose }: Wik
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}
             />
+            {attachedImage && (
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Image src={attachedImage} alt="anexo" width={20} height={20} className="rounded object-cover" unoptimized />
+                <span>Imagem anexada</span>
+              </div>
+            )}
           </div>
-          <Button type="submit" size="icon" disabled={loading || !input.trim()}>
+          <Button type="submit" size="icon" disabled={loading || (!input.trim() && !attachedImage)}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>

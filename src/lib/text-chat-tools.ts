@@ -8,6 +8,7 @@ import { parseContentToJson } from '@/lib/content-utils';
 import { getTableCatalog } from '@/lib/data-access';
 import { getDateHourInfo, getWeatherInfo, type DateHourInfo, type WeatherInfo } from '@/lib/datetime-weather';
 import { WIKI_KNOWLEDGE_TOOL_DEFS, WIKI_KNOWLEDGE_HANDLERS } from '@/lib/wiki-knowledge-tools';
+import { WIKI_IMAGE_TOOL_DEFS, WIKI_IMAGE_HANDLERS } from '@/lib/wiki-image-tools';
 
 export interface ToolContext {
   slug: string;
@@ -798,6 +799,7 @@ export const TEXT_CHAT_TOOLS: ToolDefinition[] = [
   getDateHourDef,
   getWeatherDef,
   ...WIKI_KNOWLEDGE_TOOL_DEFS,
+  ...WIKI_IMAGE_TOOL_DEFS,
 ];
 
 // ── Helper: get tenant by slug or id ──
@@ -1948,6 +1950,10 @@ const toolHandlers = new Map<string, (args: any, ctx: ToolContext) => Promise<un
 ]);
 
 for (const [name, fn] of Object.entries(WIKI_KNOWLEDGE_HANDLERS)) {
+  toolHandlers.set(name, fn as (args: any, ctx: ToolContext) => Promise<unknown>);
+}
+
+for (const [name, fn] of Object.entries(WIKI_IMAGE_HANDLERS)) {
   toolHandlers.set(name, fn as (args: any, ctx: ToolContext) => Promise<unknown>);
 }
 

@@ -20,6 +20,7 @@ Cross-ref: compareTwoItems, findSimilarItems, getTableComparison, getItemNeighbo
 Math: evaluateMath
 Date/Time & Weather: getDateHour, getWeather
 Wiki Knowledge: getWikiPage (read current/the page), listCodes, getCodeDetails (promo codes), getWikiNavigation, getPageStructure (site structure), getRecentActivity, getChangelog, getGameEvents (changes/events), getWikiCommunity, getDiscordInfo (community), getRelatedPages (related articles), getUserChatHistory, getSavedAnswers (user context), getGameDataFreshness (data freshness)
+Vision: identifyItemFromImage (when a message contains "[imagem: URL]" or the user attaches an image and asks what it is, call this with the URL to recognize the item via Gemini and match it in the wiki)
 
 ALWAYS use tools to get real data. NEVER invent numbers, stats, or counts.`;
 
