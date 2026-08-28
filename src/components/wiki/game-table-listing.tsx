@@ -310,19 +310,14 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
         if (v > mx) mx = v;
       }
     };
-    // Global min/max across every item AND every currently-loaded variant, so a
-    // variant with a larger/smaller divisor expands the shared slider range to
-    // it. The shared slider spans [globalMin, globalMax]; each item still caps
-    // at its own divisor, so an item whose divisor equals the global minimum is
-    // already at Max at the slider's floor, and each item only hits Max when the
-    // slider reaches its own divisor.
+    // Range from the base items only — intentionally NOT from `activeVariants`.
+    // The shared "baseXmax" slider must stay fixed and shared for all items, so
+    // toggling a variant must never shift its range (and thus its value). Each
+    // item still caps at its own divisor via its own `paramValue` in BaseXmaxLevelContext.
     for (const it of items) consider(it);
-    if (activeVariants) {
-      for (const key of Object.keys(activeVariants)) consider(activeVariants[key]?.item);
-    }
     if (mn === Infinity) mn = 0;
     return { minParam: mn, maxParam: mx || 100 };
-  }, [items, baseXmaxInfo.paramColumn, activeVariants]);
+  }, [items, baseXmaxInfo.paramColumn]);
   // Shared slider spans [globalMin, globalMax] of the divisor column across all
   // items/variants. An item whose own divisor is below the ceiling (or above the
   // floor) freezes at its own max and stops climbing even as the shared slider
@@ -331,6 +326,15 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   const [sharedCopies, setSharedCopies] = useState<number>(sliderMin);
   const sharedLevel =
     baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? sharedCopies : undefined;
+  // Stable handler so the ElasticSlider3D's internal clamp effect doesn't fire
+  // on every render (an inline arrow would make it run on each variant toggle
+  // and yank `sharedCopies` to the range bound).
+  const handleTableSliderChange = useCallback(
+    (v: number) => {
+      setSharedCopies(Math.max(sliderMin, Math.min(Math.round(v), maxParam)));
+    },
+    [sliderMin, maxParam],
+  );
   const detailConfig: Record<string, any> = {
     ...(viewerConfig?.card || {}),
     columnConfig: viewerConfig?.columnConfig || (viewerConfig?.card as any)?.columnConfig,
@@ -1207,7 +1211,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             defaultValue={sharedCopies}
             startingValue={sliderMin}
             ticks={buildTicks(sliderMin, maxParam)}
-            onValueChange={(v) => setSharedCopies(Math.max(sliderMin, Math.min(Math.round(v), maxParam)))}
+            onValueChange={handleTableSliderChange}
             isStepped
             stepSize={baseXmaxInfo.formulaEnabled ? (baseXmaxInfo.step && baseXmaxInfo.step > 1 ? baseXmaxInfo.step : 1) : 1}
             showValue={false}

@@ -156,7 +156,16 @@ function Slider({
     ['blur(0px)', 'blur(2px)'],
   );
 
+  // Mirror of the live value so we can commit the final position on release
+  // (pointer capture can swallow the last move event).
+  const valueRef = useRef(value);
+  useEffect(() => { valueRef.current = value; }, [value]);
+
   useEffect(() => {
+    // Don't yank the value mid-drag: during a drag the slider owns `value`
+    // and pushes changes via onValueChange. Only resync from `defaultValue`
+    // when the user is not actively dragging.
+    if (dragRef.current === 1) return;
     setValue(defaultValue);
   }, [defaultValue]);
 
@@ -166,6 +175,9 @@ function Slider({
   }, [controlledValue]);
 
   useEffect(() => {
+    // Same guard: never re-clamp (and thus never reset) the value while the
+    // user is dragging — that would snap it to the range bound on release.
+    if (dragRef.current === 1) return;
     setValue(prev => {
       const clamped = Math.min(Math.max(prev, startingValue), maxValue);
       if (clamped !== prev) {
@@ -213,9 +225,10 @@ function Slider({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (e.buttons > 0 && sliderRef.current) {
+      if (dragRef.current === 1 && sliderRef.current) {
         const newValue = calculateValue(isHorizontal ? e.clientX : e.clientY);
         setValue(newValue);
+        valueRef.current = newValue;
         onValueChange?.(newValue);
         clientX.jump(e.clientX);
         clientY.jump(e.clientY);
@@ -249,8 +262,13 @@ function Slider({
     animate(tiltX, 0, { type: 'spring', stiffness: 200, damping: 25 });
     animate(tiltY, 0, { type: 'spring', stiffness: 200, damping: 25 });
     animate(scale, 1, { type: 'spring', stiffness: 300, damping: 20 });
+    // Commit the final dragged position so the parent never loses the last
+    // value (e.g. when pointer capture swallows the final move event).
+    if (dragRef.current === 1) {
+      onValueChange?.(valueRef.current);
+    }
     dragRef.current = 0;
-  }, [overflow, tiltX, tiltY, scale]);
+  }, [overflow, tiltX, tiltY, scale, onValueChange]);
 
   const getRangePercentage = () => {
     const totalRange = maxValue - startingValue;
@@ -347,6 +365,7 @@ function Slider({
         <div
           ref={sliderRef}
           className="elastic-slider-3d-root"
+          style={{ touchAction: 'none' }}
           onPointerMove={handlePointerMove}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
@@ -398,7 +417,6 @@ function Slider({
                     aria-label={String(t)}
                     className={`elastic-slider-3d-tick${active ? ' is-active' : ''}`}
                     style={{ left: `${pct}%` }}
-                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
                       const nv = Math.max(startingValue, Math.min(t, maxValue));
