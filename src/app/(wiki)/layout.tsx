@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, usePathname } from 'next/navigation';
-import { Loader2, Search, X, House, MessageCircle, Gamepad2, SunMoon, PanelLeft } from 'lucide-react';
+import { Search, X, House, MessageCircle, Gamepad2, SunMoon, PanelLeft } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/wiki-sidebar';
 import ChatWidget from '@/components/wiki/chat-widget';
 import VoiceChat from '@/components/voice/voice-chat';
@@ -25,6 +25,7 @@ import type { WidgetChatConfig, WidgetVoiceConfig, FloatingIslandConfig, SlotFlo
 import { FloatingIslandsBar } from '@/components/floating-islands/floating-islands-bar';
 import { getTableCatalog } from '@/lib/data-access';
 import { AnimationSurfaceProvider } from '@/lib/animation-prefs';
+import { WikiLoadingSkeleton } from '@/components/wiki/wiki-loading-skeleton';
 
 export default function WikiLayout({
   children,
@@ -172,11 +173,7 @@ function WikiLayoutContent({
   }, [updatePreference]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <WikiLoadingSkeleton variant="full" />;
   }
 
   if (!tenant) {

@@ -22,6 +22,7 @@ import {
   elementClass, elIcon, COLL_ICON,
 } from '@/lib/game-ui';
 import { ScalingContext, BaseXmaxContext, BaseXmaxLevelContext, type ScalingInfo, type BaseXmaxConfig, baseXmaxStatusAtTier, resolveBaseXmaxParam } from '@/lib/scaling-context';
+import { formatNumber } from '@/lib/format-number';
 import { ElasticSlider3D, buildTicks } from '@/components/ui/elastic-slider-3d';
 import { useAnimationsEnabled } from '@/lib/animation-prefs';
 import { ensureVariant3DKeyframes } from '@/components/wiki/variant-3d';
@@ -980,11 +981,11 @@ export default function CollectionItemView({ data, collectionType, updatedAt, cr
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {sliderAxisLabel}
                 </span>
-                <span className="text-sm font-mono text-primary font-bold">
-                  {sliderParamColumn
-                    ? `${bxCopies.toLocaleString()} / ${maxParam.toLocaleString()}`
-                    : bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                </span>
+              <span className="text-sm font-mono text-primary font-bold">
+                {sliderParamColumn
+                  ? `${formatNumber(bxCopies, !!useSuffix)} / ${formatNumber(maxParam, !!useSuffix)}`
+                  : formatNumber(bxStatus, !!useSuffix)}
+              </span>
               </div>
               {sliderParamColumn ? (
                 <ElasticSlider3D

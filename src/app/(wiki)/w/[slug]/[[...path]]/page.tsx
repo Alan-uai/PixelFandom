@@ -19,6 +19,7 @@ import { PageRenderer } from '@/components/page-builder/renderer/page-renderer';
 import { MAIN_DOMAIN } from '@/lib/constants';
 import { useWikiPath } from '@/hooks/use-wiki-path';
 import { CommentsSection } from '@/components/comments/comments-section';
+import { WikiLoadingSkeleton } from '@/components/wiki/wiki-loading-skeleton';
 
 import { CardSymbols } from '@/components/wiki/card-symbols';
 import { VoteButtons } from '@/components/wiki/vote-buttons';
@@ -690,31 +691,5 @@ function ArticleCarouselView({ articles, columns, wikiArticlePath, showImages, s
 }
 
 function WikiPageSkeleton() {
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="rounded-xl overflow-hidden mb-8 border">
-        <div className="h-48 md:h-64 lg:h-72 bg-muted animate-pulse" />
-      </div>
-      <div className="mb-10">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-14 w-14 rounded-xl bg-muted animate-pulse shrink-0" />
-          <div className="space-y-2 flex-1">
-            <div className="h-7 w-48 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-72 bg-muted animate-pulse rounded" />
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-12">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
-      <div className="space-y-3">
-        <div className="h-6 w-40 bg-muted animate-pulse rounded mb-5" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
-        ))}
-      </div>
-    </div>
-  );
+  return <WikiLoadingSkeleton variant="content" />;
 }

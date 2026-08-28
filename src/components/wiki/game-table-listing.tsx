@@ -298,27 +298,36 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
   // item's own Max Copies cap (per-item status) lines up with its position on
   // the shared axis: an item maxing at the minimum stays capped above that, an
   // item maxing at the maximum only reaches its cap when the slider hits the top.
-  const { maxParam } = useMemo(() => {
-    if (!baseXmaxInfo.paramColumn) return { maxParam: 100 };
+  const { minParam, maxParam } = useMemo(() => {
+    if (!baseXmaxInfo.paramColumn) return { minParam: 0, maxParam: 100 };
+    let mn = Infinity;
     let mx = 0;
     const consider = (it: any) => {
       if (!it) return;
       const v = resolveBaseXmaxParam(it, baseXmaxInfo.paramColumn);
-      if (v != null && v > 0 && v > mx) mx = v;
+      if (v != null && v > 0) {
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
     };
-    // Global max across every item AND every currently-loaded variant, so a
-    // variant with a larger divisor pulls the shared slider ceiling up to it.
+    // Global min/max across every item AND every currently-loaded variant, so a
+    // variant with a larger/smaller divisor expands the shared slider range to
+    // it. The shared slider spans [globalMin, globalMax]; each item still caps
+    // at its own divisor, so an item whose divisor equals the global minimum is
+    // already at Max at the slider's floor, and each item only hits Max when the
+    // slider reaches its own divisor.
     for (const it of items) consider(it);
     if (activeVariants) {
       for (const key of Object.keys(activeVariants)) consider(activeVariants[key]?.item);
     }
-    return { maxParam: mx || 100 };
+    if (mn === Infinity) mn = 0;
+    return { minParam: mn, maxParam: mx || 100 };
   }, [items, baseXmaxInfo.paramColumn, activeVariants]);
-  // Shared slider always starts at 0 and spans up to the global max of the
-  // divisor column across all items/variants (0 → 50k, 0 → 10, etc). An item
-  // whose own divisor is below the ceiling freezes at its own max and stops
-  // climbing even as the shared slider keeps rising.
-  const sliderMin = 0;
+  // Shared slider spans [globalMin, globalMax] of the divisor column across all
+  // items/variants. An item whose own divisor is below the ceiling (or above the
+  // floor) freezes at its own max and stops climbing even as the shared slider
+  // keeps moving.
+  const sliderMin = minParam;
   const [sharedCopies, setSharedCopies] = useState<number>(sliderMin);
   const sharedLevel =
     baseXmaxMode === 'table' || baseXmaxMode === 'ambos' ? sharedCopies : undefined;
@@ -787,7 +796,7 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
     const withBx = (item: any) => (
       <BaseXmaxLevelContext.Provider
         value={{
-          paramValue: resolveBaseXmaxParam(item, baseXmaxInfo.paramColumn),
+          paramValue: resolveBaseXmaxParam(activeVariants[item.id]?.item ?? item, baseXmaxInfo.paramColumn),
           copies: sharedCopies,
         }}
       >
@@ -1189,9 +1198,9 @@ export default function GameTableListing({ tenantSlug, tableName, tenantId, disp
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {baseXmaxInfo.axisLabel || 'Cópias'}
             </span>
-            <span className="text-sm font-mono text-primary font-bold">
-              {sharedCopies.toLocaleString()} / {maxParam.toLocaleString()}
-            </span>
+              <span className="text-sm font-mono text-primary font-bold">
+                {formatNumber(sharedCopies, !!useSuffix)} / {formatNumber(maxParam, !!useSuffix)}
+              </span>
           </div>
           <ElasticSlider3D
             maxValue={maxParam}
@@ -2224,7 +2233,9 @@ function ItemCard({
                 {bxAxisLabel}
               </span>
               <span className="text-sm font-mono text-primary font-bold">
-                {bxStatus.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                {bxParamColumn
+                  ? `${formatNumber(bxDisplayCopies, !!useSuffix)} / ${formatNumber(bxMaxParam, !!useSuffix)}`
+                  : formatNumber(bxStatus, !!useSuffix)}
               </span>
             </div>
             {bxParamColumn ? (

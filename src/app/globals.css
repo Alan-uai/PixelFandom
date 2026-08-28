@@ -240,6 +240,45 @@
     animation: shimmer 2s infinite;
   }
 
+  /* ── Wiki 3D Loading Skeleton ── */
+  @keyframes skeleton-orbit-spin {
+    from { transform: rotateZ(0deg); }
+    to   { transform: rotateZ(360deg); }
+  }
+  @keyframes skeleton-cube-spin {
+    from { transform: rotateX(-22deg) rotateY(0deg); }
+    to   { transform: rotateX(-22deg) rotateY(360deg); }
+  }
+  @keyframes skeleton-float {
+    0%, 100% { transform: translateY(0) rotateX(8deg) rotateY(-10deg); }
+    50%      { transform: translateY(-10px) rotateX(10deg) rotateY(-6deg); }
+  }
+  @keyframes skeleton-core {
+    0%, 100% { transform: scale(0.82); opacity: 0.65; }
+    50%      { transform: scale(1.06); opacity: 1; }
+  }
+  @keyframes skeleton-sheen {
+    0%   { transform: translateX(-120%) skewX(-18deg); }
+    60%  { transform: translateX(220%) skewX(-18deg); }
+    100% { transform: translateX(220%) skewX(-18deg); }
+  }
+
+  .skeleton-orbit { animation: skeleton-orbit-spin 7s linear infinite; }
+  .skeleton-cube  { animation: skeleton-cube-spin 9s linear infinite; }
+  .skeleton-float { animation: skeleton-float 6s ease-in-out infinite; }
+  .skeleton-core  { animation: skeleton-core 2.4s ease-in-out infinite; }
+  .skeleton-sheen {
+    animation: skeleton-sheen 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-orbit,
+    .skeleton-cube,
+    .skeleton-float,
+    .skeleton-core,
+    .skeleton-sheen { animation: none !important; }
+  }
+
 
   /* Scroll-Reveal: enter and exit */
   @keyframes slide-reveal-down {
